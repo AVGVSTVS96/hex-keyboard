@@ -1,0 +1,59 @@
+#!/bin/bash
+# Runs on the Mac. Headless simulator helpers for screenshots and keyboard checks.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+RUNTIME=${RUNTIME:-com.apple.CoreSimulator.SimRuntime.iOS-26-3}
+APP=build/Build/Products/Debug-iphonesimulator/Hex.app
+BUNDLE=com.shahidy.hexkeyboard
+
+udid() {
+  xcrun simctl list devices -j | /usr/bin/python3 -c "
+import json, sys
+name, runtime = sys.argv[1], sys.argv[2]
+for d in json.load(sys.stdin)['devices'].get(runtime, []):
+    if d['name'] == name and d['isAvailable']: print(d['udid']); break" "$1" "$RUNTIME"
+}
+
+ensure() {
+  local name="hexkb $1" type="com.apple.CoreSimulator.SimDeviceType.$2" id
+  id=$(udid "$name")
+  [ -n "$id" ] || id=$(xcrun simctl create "$name" "$type" "$RUNTIME")
+  echo "$id"
+}
+
+boot() {
+  xcrun simctl bootstatus "$1" -b >/dev/null
+  xcrun simctl spawn "$1" defaults write com.apple.keyboard.preferences DidShowContinuousPathIntroduction -bool true
+  xcrun simctl install "$1" "$APP"
+}
+
+shoot() {
+  local id=$1 playground=$2 appearance=$3 out=$4; shift 4
+  xcrun simctl ui "$id" appearance "$appearance"
+  xcrun simctl terminate "$id" "$BUNDLE" 2>/dev/null || true
+  xcrun simctl launch "$id" "$BUNDLE" -HexPlayground "$playground" "$@" >/dev/null
+  sleep "${SETTLE:-3}"
+  mkdir -p "$(dirname "$out")"
+  xcrun simctl io "$id" screenshot "$out" >/dev/null 2>&1
+}
+
+all() {
+  local tag=$1; shift
+  for spec in "iPhone 17:iPhone-17" "iPhone 17 Pro Max:iPhone-17-Pro-Max" "iPhone 16e:iPhone-16e" "iPhone Air:iPhone-Air" \
+              "iPad Pro 11:iPad-Pro-11-inch-M5-12GB" "iPad Pro 13:iPad-Pro-13-inch-M5-12GB" "iPad A16:iPad-A16" "iPad mini:iPad-mini-A17-Pro"; do
+    local name=${spec%%:*} id slug
+    [ -n "${ONLY:-}" ] && [[ "$name" != *$ONLY* ]] && continue
+    slug=$(echo "$name" | tr 'A-Z ' 'a-z-')
+    id=$(ensure "$name" "${spec##*:}")
+    boot "$id"
+    for appearance in light dark; do
+      for playground in ${PLAYGROUNDS:-system hex}; do
+        shoot "$id" "$playground" "$appearance" "shots/raw/$slug-$tag-$playground-$appearance.png" "$@"
+      done
+    done
+    [ -n "${KEEP:-}" ] || xcrun simctl shutdown "$id"
+  done
+}
+
+"$@"

@@ -1,0 +1,77 @@
+name: HexKeyboard
+options:
+  bundleIdPrefix: com.shahidy.hexkeyboard
+  deploymentTarget:
+    iOS: "26.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
+    SWIFT_APPROACHABLE_CONCURRENCY: YES
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    DEVELOPMENT_TEAM: ""
+    CODE_SIGN_STYLE: Automatic
+    TARGETED_DEVICE_FAMILY: "1,2"
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+packages:
+  HexKeyboard:
+    path: Packages/HexKeyboard
+targets:
+  Hex:
+    type: application
+    platform: iOS
+    sources: [App]
+    dependencies:
+      - package: HexKeyboard
+        product: KeyboardUI
+      - target: Keyboard
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.shahidy.hexkeyboard
+        PRODUCT_NAME: Hex
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDisplayName: Hex
+        UILaunchScreen: {}
+        UIApplicationSupportsIndirectInputEvents: true
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
+        UISupportedInterfaceOrientations~ipad: [UIInterfaceOrientationPortrait, UIInterfaceOrientationPortraitUpsideDown, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+          UISceneConfigurations:
+            UIWindowSceneSessionRoleApplication:
+              - UISceneConfigurationName: Default
+                UISceneDelegateClassName: $(PRODUCT_MODULE_NAME).SceneDelegate
+  Keyboard:
+    type: app-extension
+    platform: iOS
+    sources: [Keyboard]
+    dependencies:
+      - package: HexKeyboard
+        product: KeyboardUI
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.shahidy.hexkeyboard.keyboard
+        PRODUCT_NAME: Keyboard
+    info:
+      path: Keyboard/Info.plist
+      properties:
+        CFBundleDisplayName: Hex
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.keyboard-service
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).KeyboardViewController
+          NSExtensionAttributes:
+            IsASCIICapable: true
+            PrefersRightToLeft: false
+            PrimaryLanguage: en-US
+            RequestsOpenAccess: false
+schemes:
+  Hex:
+    build:
+      targets:
+        Hex: all
+        Keyboard: all

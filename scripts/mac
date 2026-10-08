@@ -1,0 +1,8 @@
+#!/bin/sh
+# Syncs the tree to the Mac, runs a command there, and copies screenshots back.
+set -e
+cd "$(dirname "$0")/.."
+scripts/sync
+ssh mac "cd ~/Developer/hex-keyboard && $*"
+mkdir -p shots/raw
+rsync -a mac:Developer/hex-keyboard/shots/raw/ shots/raw/ 2>/dev/null || true

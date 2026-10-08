@@ -1,0 +1,4 @@
+#!/bin/sh
+set -e
+cd "$(dirname "$0")/.."
+rsync -az --delete --exclude .git --exclude /build --exclude /shots --exclude '*.xcodeproj' --exclude /reference ./ mac:Developer/hex-keyboard/
