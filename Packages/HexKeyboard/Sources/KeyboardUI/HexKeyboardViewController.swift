@@ -99,7 +99,7 @@ open class HexKeyboardViewController: UIInputViewController {
             isLandscape: screenSize.width > screenSize.height
         ))
         let metrics = metrics
-        let theme = KeyboardTheme.current(for: traitCollection)
+        let theme = KeyboardTheme.current(for: traitCollection, appearance: textDocumentProxy.keyboardAppearance)
         let faces = KeyFaceContext(
             device: device,
             layer: engine.layer,

@@ -68,17 +68,7 @@ struct LayoutTests {
         for (device, total) in columns {
             for layer in [KeyboardLayer.letters, .numbers, .symbols] {
                 for row in Layouts.layout(for: LayoutContext(device: device, layer: layer, showsGlobe: true)).rows {
-                    let fixed = row.reduce(0.0) { sum, item in
-                        let width: KeyWidth = switch item {
-                        case .key(let key): key.width
-                        case .spacer(let width): width
-                        }
-                        return switch width {
-                        case .input: sum + 1
-                        case .pitch(let value): sum + value
-                        case .fill: sum
-                        }
-                    }
+                    let fixed = row.compactMap(\.width.span).reduce(0, +)
                     #expect(fixed <= total + 0.01, "\(device) \(layer) row overflows: \(fixed)")
                 }
             }

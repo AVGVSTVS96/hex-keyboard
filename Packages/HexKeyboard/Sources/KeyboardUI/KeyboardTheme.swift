@@ -10,8 +10,8 @@ struct KeyboardTheme {
     let selection: UIColor
     let shadow: UIColor
 
-    static func current(for traits: UITraitCollection) -> KeyboardTheme {
-        traits.userInterfaceStyle == .dark ? dark : light
+    static func current(for traits: UITraitCollection, appearance: UIKeyboardAppearance?) -> KeyboardTheme {
+        appearance == .dark || traits.userInterfaceStyle == .dark ? dark : light
     }
 
     static let light = KeyboardTheme(

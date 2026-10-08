@@ -1,4 +1,5 @@
 # Compares Hex screenshots with the system keyboard, key by key.
+# Space bars are compared by top and height only: the system one shares its row with keys a third-party keyboard can't have (mic, emoji).
 # uv run --with pillow --with numpy --with scipy scripts/shotdiff.py <tag>
 import glob
 import os
@@ -34,7 +35,10 @@ def compare(reference, ours, scale):
         if match is None or abs(match[0] - rect[0]) + abs(match[1] - rect[1]) > 8:
             unmatched += 1
             continue
-        worst = max(worst, *(abs(a - b) for a, b in zip(match, rect)))
+        deltas = [abs(a - b) for a, b in zip(match, rect)]
+        if max(rect[2], match[2]) > 150:
+            deltas[1] = deltas[2] = 0
+        worst = max(worst, *deltas)
     return len(system), len(hex_), unmatched, worst
 
 

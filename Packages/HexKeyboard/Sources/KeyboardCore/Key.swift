@@ -19,6 +19,14 @@ public enum KeyWidth: Hashable, Sendable {
     case input
     case pitch(Double)
     case fill
+
+    public var span: Double? {
+        switch self {
+        case .input: 1
+        case .pitch(let value): value
+        case .fill: nil
+        }
+    }
 }
 
 public struct Key: Hashable, Sendable {
@@ -58,6 +66,13 @@ public struct Key: Hashable, Sendable {
 public enum RowItem: Hashable, Sendable {
     case key(Key)
     case spacer(KeyWidth)
+
+    public var width: KeyWidth {
+        switch self {
+        case .key(let key): key.width
+        case .spacer(let width): width
+        }
+    }
 }
 
 public struct KeyboardLayout: Hashable, Sendable {
