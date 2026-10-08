@@ -67,6 +67,7 @@ struct TapSimulator {
 
 struct Score: CustomStringConvertible {
     var words = 0, raw = 0, corrected = 0, topThree = 0, fixed = 0, broken = 0
+    var brokenWords: [String] = []
 
     mutating func add(word: String, typed: String, final: String, shown: [String]) {
         words += 1
@@ -74,7 +75,10 @@ struct Score: CustomStringConvertible {
         if final == word { corrected += 1 }
         if shown.contains(word) { topThree += 1 }
         if typed != word, final == word { fixed += 1 }
-        if typed == word, final != word { broken += 1 }
+        if typed == word, final != word {
+            broken += 1
+            brokenWords.append("\(word)→\(final)")
+        }
     }
 
     private func percent(_ count: Int) -> String {
@@ -82,7 +86,7 @@ struct Score: CustomStringConvertible {
     }
 
     var description: String {
-        "words=\(words) raw=\(percent(raw)) autocorrect=\(percent(corrected)) top3=\(percent(topThree)) fixed=\(fixed) broken=\(broken)"
+        "words=\(words) raw=\(percent(raw)) autocorrect=\(percent(corrected)) top3=\(percent(topThree)) fixed=\(fixed) broken=\(broken) \(brokenWords.prefix(5))"
     }
 }
 

@@ -42,11 +42,6 @@ open class HexKeyboardViewController: UIInputViewController {
             render()
         }
         engine.corrector = Corrector(source: TextCheckerSource(language: primaryLanguage ?? "en-US"))
-        Task { [weak self] in
-            guard let lexicon = await self?.requestSupplementaryLexicon() else { return }
-            self?.engine.corrector?.learn(lexicon)
-            self?.syncWithDocument()
-        }
         keyboardView.globeTarget = { [unowned self] control in
             control.addTarget(self, action: #selector(handleInputModeList(from:with:)), for: .allTouchEvents)
         }
@@ -65,6 +60,15 @@ open class HexKeyboardViewController: UIInputViewController {
         engine.corrector?.memory = MemoryStore.load()
         keyboardView.characterPreview = engine.settings.characterPreview
         syncWithDocument()
+    }
+
+    override open func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        Task { [weak self] in
+            guard let lexicon = await self?.requestSupplementaryLexicon() else { return }
+            self?.engine.corrector?.learn(lexicon)
+            self?.syncWithDocument()
+        }
     }
 
     override open func viewWillDisappear(_ animated: Bool) {
@@ -126,6 +130,7 @@ open class HexKeyboardViewController: UIInputViewController {
             returnEnabled: !engine.traits.returnRequiresText || textDocumentProxy.hasText
         )
         keyboardView.update(layout: layout, metrics: metrics, faces: faces, theme: theme)
+        suggestionBar.maximumSlotWidth = device == .phone ? .infinity : 154.5
         suggestionBar.update(engine.suggestions, enabled: engine.showsSuggestions, theme: theme)
 
         let height = metrics.height(rows: layout.rows.count, hasNumberRow: layout.hasNumberRow)

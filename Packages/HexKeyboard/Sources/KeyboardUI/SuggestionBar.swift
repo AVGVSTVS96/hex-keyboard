@@ -3,6 +3,7 @@ import KeyboardCore
 
 final class SuggestionBar: UIView {
     var onSelect: (Suggestion) -> Void = { _ in }
+    var maximumSlotWidth = CGFloat.infinity { didSet { setNeedsLayout() } }
 
     private let slots = (0..<3).map { SuggestionSlot(index: $0) }
     private let dividers = (0..<2).map { _ in UIView() }
@@ -41,10 +42,11 @@ final class SuggestionBar: UIView {
     override func layoutSubviews() {
         super.layoutSubviews()
         let scale = traitCollection.displayScale
-        let width = bounds.width / CGFloat(slots.count)
+        let width = min(bounds.width / CGFloat(slots.count), maximumSlotWidth)
+        let start = bounds.midX - width * CGFloat(slots.count) / 2
         for (index, slot) in slots.enumerated() {
-            let minX = (CGFloat(index) * width).rounded(scale: scale)
-            let maxX = (CGFloat(index + 1) * width).rounded(scale: scale)
+            let minX = (start + CGFloat(index) * width).rounded(scale: scale)
+            let maxX = (start + CGFloat(index + 1) * width).rounded(scale: scale)
             slot.frame = CGRect(x: minX, y: 0, width: maxX - minX, height: bounds.height)
         }
         for (index, divider) in dividers.enumerated() {

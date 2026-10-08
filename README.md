@@ -23,7 +23,11 @@ Apple's keyboard on the left, Hex on the right, same simulator, iOS 26.3:
 - Return key follows the field's `returnKeyType`; email, URL and search fields get their own bottom rows.
 - Globe key only when iOS asks for one (`needsInputModeSwitchKey`).
 - Landscape iPhone and wide (foldable-size) phones, which get the iPad mini layout.
-- No network, no Full Access, no autocorrect yet.
+- Suggestion bar drawn like iOS 26/27's: the literal “word” in quotes, the pending autocorrection in a pill, light and dark.
+- Autocorrect on space and punctuation, backspace right after a correction offers the original back, and reverted words are never corrected again. Candidates come from `UITextChecker`, your Text Replacements and contacts (`requestSupplementaryLexicon`), and words you type. Fields that turn autocorrection off, and URL, email and number fields, are left alone.
+- Smart Punctuation (curly quotes, em dashes), since host apps don't convert a third-party keyboard's input.
+- A settings screen in the app, styled like Settings › General › Keyboard and shared with the keyboard through an App Group.
+- No network, no Full Access.
 
 ## Build
 
@@ -47,10 +51,10 @@ xcodebuild test -scheme HexKeyboard-Package -destination 'platform=iOS Simulator
 
 | Path | What |
 | --- | --- |
-| `Packages/HexKeyboard/Sources/KeyboardCore` | Layouts and typing logic. No UIKit, fully unit tested. |
+| `Packages/HexKeyboard/Sources/KeyboardCore` | Layouts, typing and autocorrect logic. Pure Swift, no Foundation or UIKit, fully unit tested. |
 | `Packages/HexKeyboard/Sources/KeyboardUI` | The keyboard view controller, key views, metrics and theme. |
 | `Keyboard/` | The keyboard extension. |
-| `App/` | The containing app. |
+| `App/` | The containing app: setup steps, a test field and the keyboard settings. |
 | `UITests/` | End-to-end typing through the real extension. |
 
 ## License
