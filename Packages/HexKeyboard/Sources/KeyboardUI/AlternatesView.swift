@@ -24,7 +24,7 @@ final class AlternatesView: UIView {
 
     required init?(coder: NSCoder) { fatalError() }
 
-    func show(_ options: [String], base: String, over key: CGRect, in bounds: CGRect, metrics: KeyboardMetrics, theme: KeyboardTheme) {
+    func show(_ options: [String], base: String, over key: CGRect, in area: CGRect, metrics: KeyboardMetrics, theme: KeyboardTheme) {
         self.options = options
         labels.forEach { $0.removeFromSuperview() }
         cellWidth = max(key.width * 0.95, 30)
@@ -32,8 +32,8 @@ final class AlternatesView: UIView {
         let width = cellWidth * CGFloat(options.count) + 12
         let baseIndex = options.firstIndex(of: base) ?? 0
         var x = key.midX - 6 - cellWidth * (CGFloat(baseIndex) + 0.5)
-        x = min(max(x, bounds.minX + 4), bounds.maxX - width - 4)
-        frame = CGRect(x: x, y: key.minY - height - 8, width: width, height: height)
+        x = min(max(x, area.minX + 4), area.maxX - width - 4)
+        frame = CGRect(x: x, y: max(key.minY - height - 8, area.minY + 1), width: width, height: height)
         panel.frame = bounds
         panel.layer.cornerRadius = metrics.cornerRadius * 1.6
         panel.backgroundColor = theme.key

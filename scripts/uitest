@@ -1,0 +1,13 @@
+#!/bin/bash
+# Runs on the Mac. Types through the real keyboard extension with XCUITest.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+NAME=${1:-iPhone 17}
+TYPE=${2:-iPhone-17}
+ID=$(scripts/sim ensure "$NAME" "$TYPE")
+scripts/sim boot "$ID"
+scripts/sim use "$ID" hex
+rm -rf build/uitests.xcresult
+xcodebuild test -project HexKeyboard.xcodeproj -scheme Hex -destination "id=$ID" -derivedDataPath build \
+  -resultBundlePath build/uitests.xcresult CODE_SIGNING_ALLOWED=NO 2>&1 \
+  | grep -E "error:|Test Case .*(passed|failed)|XCTAssert|Executed" || true

@@ -24,8 +24,6 @@ targets:
     platform: iOS
     sources: [App]
     dependencies:
-      - package: HexKeyboard
-        product: KeyboardUI
       - target: Keyboard
     settings:
       base:
@@ -36,6 +34,8 @@ targets:
       path: App/Info.plist
       properties:
         CFBundleDisplayName: Hex
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         UILaunchScreen: {}
         UIApplicationSupportsIndirectInputEvents: true
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
@@ -61,6 +61,8 @@ targets:
       path: Keyboard/Info.plist
       properties:
         CFBundleDisplayName: Hex
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         NSExtension:
           NSExtensionPointIdentifier: com.apple.keyboard-service
           NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).KeyboardViewController
@@ -69,9 +71,22 @@ targets:
             PrefersRightToLeft: false
             PrimaryLanguage: en-US
             RequestsOpenAccess: false
+  HexUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [UITests]
+    dependencies:
+      - target: Hex
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.shahidy.hexkeyboard.uitests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: Hex
 schemes:
   Hex:
     build:
       targets:
         Hex: all
         Keyboard: all
+    test:
+      targets: [HexUITests]

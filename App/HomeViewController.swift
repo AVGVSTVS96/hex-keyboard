@@ -1,34 +1,51 @@
 import UIKit
-import KeyboardUI
 
 final class HomeViewController: UIViewController {
-    private let field = PlaygroundTextView()
+    private let field = UITextView()
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "Hex"
-        view.backgroundColor = .systemBackground
+        title = "Hex Keyboard"
+        navigationItem.largeTitleDisplayMode = .always
+        navigationController?.navigationBar.prefersLargeTitles = true
+        view.backgroundColor = .systemGroupedBackground
+
+        let steps = UILabel()
+        steps.numberOfLines = 0
+        steps.font = .preferredFont(forTextStyle: .body)
+        steps.textColor = .secondaryLabel
+        steps.text = "Settings › General › Keyboard › Keyboards › Add New Keyboard… › Hex. Then hold the globe key to switch."
+
+        let settings = UIButton(configuration: .glass(), primaryAction: UIAction(title: "Open Settings") { _ in
+            UIApplication.shared.open(URL(string: UIApplication.openSettingsURLString)!)
+        })
+
         field.font = .preferredFont(forTextStyle: .body)
-        field.backgroundColor = .secondarySystemBackground
-        field.layer.cornerRadius = 12
+        field.backgroundColor = .secondarySystemGroupedBackground
+        field.layer.cornerRadius = 16
+        field.layer.cornerCurve = .continuous
         field.textContainerInset = UIEdgeInsets(top: 12, left: 8, bottom: 12, right: 8)
-        field.translatesAutoresizingMaskIntoConstraints = false
-        Playground.configure(field)
-        view.addSubview(field)
+        LaunchOptions.configure(field)
+
+        let stack = UIStackView(arrangedSubviews: [steps, settings, field])
+        stack.axis = .vertical
+        stack.spacing = 16
+        stack.alignment = .fill
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(stack)
         NSLayoutConstraint.activate([
-            field.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 16),
-            field.leadingAnchor.constraint(equalTo: view.layoutMarginsGuide.leadingAnchor),
-            field.trailingAnchor.constraint(equalTo: view.layoutMarginsGuide.trailingAnchor),
+            stack.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
+            stack.leadingAnchor.constraint(equalTo: view.readableContentGuide.leadingAnchor),
+            stack.trailingAnchor.constraint(equalTo: view.readableContentGuide.trailingAnchor),
             field.heightAnchor.constraint(equalToConstant: 120),
         ])
     }
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        guard Playground.current != nil else { return }
-        if Playground.landscape {
+        if LaunchOptions.landscape {
             view.window?.windowScene?.requestGeometryUpdate(.iOS(interfaceOrientations: .landscapeRight))
         }
-        field.becomeFirstResponder()
+        if LaunchOptions.focus { field.becomeFirstResponder() }
     }
 }

@@ -21,6 +21,8 @@ final class KeyView: UIView {
         self.key = key
         super.init(frame: .zero)
         isUserInteractionEnabled = false
+        isAccessibilityElement = true
+        accessibilityTraits = .keyboardKey
         layer.cornerCurve = .continuous
         icon.contentMode = .center
         label.textAlignment = .center
@@ -53,8 +55,14 @@ final class KeyView: UIView {
             label.text = nil
             icon.image = nil
         }
+        accessibilityLabel = accessibilityName
         secondaryLabel.text = face.secondary
-        secondaryLabel.font = .systemFont(ofSize: metrics.secondarySize, weight: .regular)
+        if face.secondary != nil, !face.secondaryIsDimmed {
+            label.font = .systemFont(ofSize: metrics.pairSize, weight: .regular)
+            secondaryLabel.font = label.font
+        } else {
+            secondaryLabel.font = .systemFont(ofSize: metrics.secondarySize, weight: .regular)
+        }
         updateColors()
         setNeedsLayout()
     }
@@ -62,31 +70,61 @@ final class KeyView: UIView {
     override func layoutSubviews() {
         super.layoutSubviews()
         guard let metrics else { return }
-        let padding = CGSize(width: 12, height: 9)
-        let content = bounds.insetBy(dx: padding.width, dy: padding.height)
+        label.sizeToFit()
+        icon.sizeToFit()
 
-        for view in [label, icon] as [UIView] {
-            view.sizeToFit()
-            var frame = view.frame
-            switch face.alignment {
-            case .center:
-                let offset = view === label && isLetter ? metrics.letterOffset : 0
-                frame.origin = CGPoint(x: bounds.midX - frame.width / 2, y: bounds.midY - frame.height / 2 + offset)
-            case .bottomLeading:
-                frame.origin = CGPoint(x: content.minX, y: content.maxY - frame.height)
-            case .bottomTrailing:
-                frame.origin = CGPoint(x: content.maxX - frame.width, y: content.maxY - frame.height)
-            }
-            view.frame = frame
+        switch face.alignment {
+        case .center:
+            let offset = isLetter ? metrics.letterOffset : 0
+            label.center = CGPoint(x: bounds.midX, y: bounds.midY + offset)
+            icon.center = CGPoint(x: bounds.midX, y: bounds.midY)
+        case .bottomLeading, .bottomTrailing:
+            let leading = face.alignment == .bottomLeading
+            let inset = metrics.edgeInset
+            label.frame.origin = CGPoint(
+                x: leading ? inset.width : bounds.width - inset.width - label.bounds.width,
+                y: bounds.height - metrics.textBaselineInset - (label.font?.ascender ?? 0)
+            )
+            icon.frame.origin = CGPoint(
+                x: leading ? inset.width : bounds.width - inset.width - icon.bounds.width,
+                y: bounds.height - inset.height - icon.bounds.height
+            )
         }
 
-        guard face.secondary != nil else { return secondaryLabel.frame = .zero }
+        guard face.secondary != nil, let font = label.font, let secondaryFont = secondaryLabel.font else {
+            return secondaryLabel.frame = .zero
+        }
         secondaryLabel.sizeToFit()
-        let spacing = metrics.keyHeight * 0.03
-        let stack = secondaryLabel.bounds.height + spacing + label.bounds.height
-        let top = bounds.midY - stack / 2
-        secondaryLabel.center = CGPoint(x: bounds.midX, y: top + secondaryLabel.bounds.height / 2)
-        label.center = CGPoint(x: bounds.midX, y: top + secondaryLabel.bounds.height + spacing + label.bounds.height / 2)
+        var capTop = metrics.secondaryCapTop
+        var baseline = bounds.height - metrics.letterBaselineInset
+        if !face.secondaryIsDimmed {
+            let gap = font.pointSize * 0.38
+            let ink = secondaryFont.capHeight + gap + font.capHeight
+            capTop = (bounds.height - ink) / 2
+            baseline = capTop + ink
+        }
+        secondaryLabel.frame.origin = CGPoint(
+            x: bounds.midX - secondaryLabel.bounds.width / 2,
+            y: capTop - (secondaryFont.ascender - secondaryFont.capHeight)
+        )
+        label.frame.origin = CGPoint(x: bounds.midX - label.bounds.width / 2, y: baseline - font.ascender)
+    }
+
+    private var accessibilityName: String {
+        switch key.action {
+        case .character: label.text ?? ""
+        case .space: "space"
+        case .delete: "delete"
+        case .shift: "shift"
+        case .capsLock: "caps lock"
+        case .return: label.text ?? "return"
+        case .tab: "tab"
+        case .layer(.letters): "letters"
+        case .layer(.numbers): "numbers"
+        case .layer(.symbols): "symbols"
+        case .nextKeyboard: "next keyboard"
+        case .dismiss: "dismiss keyboard"
+        }
     }
 
     private var isLetter: Bool {

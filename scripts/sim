@@ -28,11 +28,28 @@ boot() {
   xcrun simctl install "$1" "$APP"
 }
 
+use() {
+  local id=$1 keyboards
+  case $2 in
+    hex) keyboards=("com.shahidy.hexkeyboard.keyboard" "en_US@sw=QWERTY;hw=Automatic") ;;
+    system) keyboards=("en_US@sw=QWERTY;hw=Automatic") ;;
+  esac
+  local current expanded
+  current=$(xcrun simctl spawn "$id" defaults read .GlobalPreferences AppleKeyboards 2>/dev/null | sed -n 2p | tr -d ' ",')
+  expanded=$(xcrun simctl spawn "$id" defaults read .GlobalPreferences AppleKeyboardsExpanded 2>/dev/null || true)
+  [ "$current" = "${keyboards[0]}" ] && [ "$expanded" = 1 ] && return
+  xcrun simctl spawn "$id" defaults write .GlobalPreferences AppleKeyboards -array "${keyboards[@]}"
+  xcrun simctl spawn "$id" defaults write .GlobalPreferences AppleKeyboardsExpanded -int 1
+  xcrun simctl shutdown "$id"
+  boot "$id"
+}
+
 shoot() {
-  local id=$1 playground=$2 appearance=$3 out=$4; shift 4
+  local id=$1 keyboard=$2 appearance=$3 out=$4; shift 4
   xcrun simctl ui "$id" appearance "$appearance"
   xcrun simctl terminate "$id" "$BUNDLE" 2>/dev/null || true
-  xcrun simctl launch "$id" "$BUNDLE" -HexPlayground "$playground" "$@" >/dev/null
+  use "$id" "$keyboard"
+  until xcrun simctl launch "$id" "$BUNDLE" -HexFocus YES "$@" >/dev/null 2>&1; do sleep 2; done
   sleep "${SETTLE:-3}"
   mkdir -p "$(dirname "$out")"
   xcrun simctl io "$id" screenshot "$out" >/dev/null 2>&1
@@ -47,13 +64,37 @@ all() {
     slug=$(echo "$name" | tr 'A-Z ' 'a-z-')
     id=$(ensure "$name" "${spec##*:}")
     boot "$id"
-    for appearance in light dark; do
-      for playground in ${PLAYGROUNDS:-system hex}; do
-        shoot "$id" "$playground" "$appearance" "shots/raw/$slug-$tag-$playground-$appearance.png" "$@"
+    for keyboard in ${KEYBOARDS:-system hex}; do
+      for appearance in light dark; do
+        shoot "$id" "$keyboard" "$appearance" "shots/raw/$slug-$tag-$keyboard-$appearance.png" "$@"
       done
     done
     [ -n "${KEEP:-}" ] || xcrun simctl shutdown "$id"
   done
+}
+
+variants() {
+  local name=$1 tag=$2 id slug
+  id=$(udid "hexkb $name")
+  slug=$(echo "$name" | tr 'A-Z ' 'a-z-')
+  boot "$id"
+  for keyboard in ${KEYBOARDS:-system hex}; do
+    while read -r variant args; do
+      shoot "$id" "$keyboard" "${APPEARANCE:-light}" "shots/raw/$slug-$tag-$variant-$keyboard.png" $args
+    done <<VARIANTS
+return-go -HexReturnKey 1
+return-search -HexReturnKey 6
+return-send -HexReturnKey 7
+return-done -HexReturnKey 9
+return-next -HexReturnKey 4
+type-email -HexKeyboardType 7
+type-url -HexKeyboardType 3
+type-numbers -HexKeyboardType 2
+type-websearch -HexKeyboardType 10
+landscape -HexOrientation landscape
+VARIANTS
+  done
+  [ -n "${KEEP:-}" ] || xcrun simctl shutdown "$id"
 }
 
 "$@"

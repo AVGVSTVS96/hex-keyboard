@@ -132,6 +132,10 @@ final class KeyboardView: UIView {
         }
     }
 
+    private var drawableBounds: CGRect {
+        bounds.inset(by: UIEdgeInsets(top: -frame.minY, left: 0, bottom: 0, right: 0))
+    }
+
     func keyView(at point: CGPoint) -> KeyView? {
         guard let row = rowBands.firstIndex(where: { $0.contains(point.y) }) else { return nil }
         return rowKeys[row].min { distance(point, $0.frame) < distance(point, $1.frame) }
@@ -269,7 +273,7 @@ extension KeyboardView {
     private func show(_ tracked: TrackedTouch) {
         guard showsCallouts, tracked.mode != .alternates, let view = tracked.keyView,
               let text = text(for: view.key, flicked: tracked.flicked) else { return callout.hide() }
-        callout.show(displayed(text), over: view.frame, in: bounds, metrics: metrics, theme: theme)
+        callout.show(displayed(text), over: view.frame, in: drawableBounds, metrics: metrics, theme: theme)
     }
 
     private func text(for key: Key, flicked: Bool) -> String? {
@@ -304,7 +308,7 @@ extension KeyboardView {
                     self.callout.hide()
                     let shown = view.key.alternates.map(self.displayed)
                     let base = self.displayed(self.text(for: view.key, flicked: false) ?? "")
-                    self.alternates.show(shown, base: base, over: view.frame, in: self.bounds, metrics: self.metrics, theme: self.theme)
+                    self.alternates.show(shown, base: base, over: view.frame, in: self.drawableBounds, metrics: self.metrics, theme: self.theme)
                 }
             }
         }

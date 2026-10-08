@@ -16,6 +16,11 @@ public struct KeyboardMetrics: Equatable, Sendable {
     public var secondarySize: CGFloat
     public var symbolSize: CGFloat
     public var letterOffset: CGFloat = 0
+    public var edgeInset = CGSize(width: 7, height: 5.5)
+    public var textBaselineInset: CGFloat = 8
+    public var letterBaselineInset: CGFloat = 9
+    public var secondaryCapTop: CGFloat = 10.5
+    public var pairSize: CGFloat = 20
 
     public func height(rows: Int, hasNumberRow: Bool) -> CGFloat {
         let keys = CGFloat(rows) * keyHeight - (hasNumberRow ? keyHeight - numberRowHeight : 0)
@@ -58,20 +63,21 @@ extension KeyboardMetrics {
         columns: 11.19, sideInset: 6, keyGap: 12, rowGap: 9,
         keyHeight: 55.5, numberRowHeight: 0,
         topInset: 9, bottomInset: 9, cornerRadius: 10,
-        letterSize: 24, labelSize: 18, secondarySize: 14, symbolSize: 22
+        letterSize: 23, labelSize: 17, secondarySize: 12.5, symbolSize: 23
     )
 
     static let pad = KeyboardMetrics(
         columns: 12.5, sideInset: 9, keyGap: 10, rowGap: 9,
         keyHeight: 55.5, numberRowHeight: 0,
         topInset: 9, bottomInset: 9, cornerRadius: 10,
-        letterSize: 24, labelSize: 16, secondarySize: 14, symbolSize: 22
+        letterSize: 23, labelSize: 17, secondarySize: 12.5, symbolSize: 23
     )
 
     static let largePad = KeyboardMetrics(
         columns: 14.54, sideInset: 3.5, keyGap: 7, rowGap: 7,
         keyHeight: 61, numberRowHeight: 45.5,
         topInset: 7, bottomInset: 7, cornerRadius: 10,
-        letterSize: 24, labelSize: 16, secondarySize: 16, symbolSize: 22
+        letterSize: 23, labelSize: 17, secondarySize: 17, symbolSize: 23,
+        edgeInset: CGSize(width: 14, height: 10), textBaselineInset: 13.5, pairSize: 16.5
     )
 }

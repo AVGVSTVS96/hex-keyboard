@@ -15,7 +15,7 @@ open class HexKeyboardViewController: UIInputViewController {
     private var haptics: UIImpactFeedbackGenerator?
 
     override open func loadView() {
-        inputView = KeyboardInputView(frame: .zero, inputViewStyle: .keyboard)
+        inputView = KeyboardInputView(frame: .zero, inputViewStyle: .default)
     }
 
     override open func viewDidLoad() {
@@ -69,20 +69,17 @@ open class HexKeyboardViewController: UIInputViewController {
         render()
     }
 
-    private var device: DeviceClass {
-        guard traitCollection.userInterfaceIdiom == .pad else { return .phone }
-        let screen = view.window?.windowScene?.screen.bounds.size ?? view.bounds.size
-        let shortSide = min(screen.width, screen.height)
-        return shortSide >= 1000 ? .largePad : shortSide < 800 ? .compactPad : .pad
-    }
-
     private var screenSize: CGSize {
         view.window?.windowScene?.screen.bounds.size ?? view.bounds.size
     }
 
-    private var metrics: KeyboardMetrics {
-        KeyboardMetrics.for(device, size: CGSize(width: view.bounds.width > 0 ? view.bounds.width : screenSize.width, height: screenSize.height))
+    private var device: DeviceClass {
+        guard traitCollection.userInterfaceIdiom == .pad else { return .phone }
+        let shortSide = min(screenSize.width, screenSize.height)
+        return shortSide >= 1000 ? .largePad : shortSide < 800 ? .compactPad : .pad
     }
+
+    private var metrics: KeyboardMetrics { .for(device, size: screenSize) }
 
     private var barHeight: CGFloat { device == .phone ? 27 : 40 }
 
@@ -113,7 +110,7 @@ open class HexKeyboardViewController: UIInputViewController {
     private func handle(_ event: KeyboardEvent) {
         switch event {
         case .down(let key, let tapCount):
-            feedback(for: key)
+            feedback()
             switch key.action {
             case .shift:
                 engine.pressShift(doubleTap: tapCount == 2)
@@ -123,7 +120,7 @@ open class HexKeyboardViewController: UIInputViewController {
                 engine.perform(.delete, in: document)
                 deleteRepeat = DeleteRepeat { [unowned self] words in
                     if words { engine.deleteWord(in: document) } else { engine.perform(.delete, in: document) }
-                    feedback(for: key)
+                    feedback()
                     render()
                 }
             case .layer(let layer):
@@ -159,7 +156,7 @@ open class HexKeyboardViewController: UIInputViewController {
         render()
     }
 
-    private func feedback(for key: Key) {
+    private func feedback() {
         UIDevice.current.playInputClick()
         guard hapticsEnabled else { return }
         if haptics == nil { haptics = UIImpactFeedbackGenerator(style: .light, view: view) }

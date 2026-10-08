@@ -44,15 +44,16 @@ enum PhoneLayouts {
             : [.key(Key(.layer(layerKey), width: .pitch(2.5)))]
         let space = RowItem.key(Key(.space, width: .fill))
         let returnKey = RowItem.key(Key(.return, width: .pitch(2.5)))
+        let character = { (value: String, width: KeyWidth) in RowItem.key(Key(.character(value), width: width)) }
         switch context.kind {
         case .email:
-            return leading + [space, .key(Key(.character("@"))), .key(Key(.character("."))), returnKey]
+            return leading + [space, character("@", .pitch(1.25)), character(".", .pitch(1.25)), returnKey]
         case .url:
-            return leading + [.key(Key(.character("."))), .key(Key(.character("/"))), .key(Key(.character(".com"), width: .fill)), returnKey]
+            return leading + [character(".", .fill), character("/", .fill), character(".com", .fill), returnKey]
         case .twitter:
-            return leading + [space, .key(Key(.character("@"))), .key(Key(.character("#"))), returnKey]
+            return leading + [space, character("@", .pitch(1.25)), character("#", .pitch(1.25)), returnKey]
         case .webSearch:
-            return leading + [space, .key(Key(.character("."))), returnKey]
+            return leading + [space, character(".", .input), .key(Key(.return, width: .pitch(1.75)))]
         default:
             return leading + [space, returnKey]
         }

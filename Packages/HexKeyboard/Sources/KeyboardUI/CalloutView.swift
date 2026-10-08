@@ -17,8 +17,8 @@ final class CalloutView: UIView {
 
     required init?(coder: NSCoder) { fatalError() }
 
-    func show(_ text: String, over key: CGRect, in bounds: CGRect, metrics: KeyboardMetrics, theme: KeyboardTheme) {
-        let bubble = Self.bubbleRect(for: key, in: bounds, metrics: metrics)
+    func show(_ text: String, over key: CGRect, in area: CGRect, metrics: KeyboardMetrics, theme: KeyboardTheme) {
+        let bubble = Self.bubbleRect(for: key, in: area)
         frame = bubble.union(key)
         let local = { (rect: CGRect) in rect.offsetBy(dx: -self.frame.minX, dy: -self.frame.minY) }
         shape.path = Self.path(bubble: local(bubble), key: local(key), radius: metrics.cornerRadius)
@@ -35,12 +35,13 @@ final class CalloutView: UIView {
         isHidden = true
     }
 
-    static func bubbleRect(for key: CGRect, in bounds: CGRect, metrics: KeyboardMetrics) -> CGRect {
+    static func bubbleRect(for key: CGRect, in area: CGRect) -> CGRect {
         let spread = key.width * 0.32
         let height = key.height * 1.22
         let neck = key.height * 0.3
         var bubble = CGRect(x: key.minX - spread, y: key.minY - neck - height, width: key.width + spread * 2, height: height)
-        bubble.origin.x = min(max(bubble.minX, bounds.minX + 1), bounds.maxX - bubble.width - 1)
+        bubble.origin.x = min(max(bubble.minX, area.minX + 1), area.maxX - bubble.width - 1)
+        bubble.origin.y = max(bubble.minY, area.minY + 1)
         return bubble
     }
 
@@ -49,7 +50,7 @@ final class CalloutView: UIView {
         let r = radius
         let bubbleRadius = radius * 1.4
         let shoulder = bubble.maxY
-        let neckTop = key.minY
+        let neckTop = max(key.minY, shoulder + r)
 
         path.move(to: CGPoint(x: key.minX + r, y: key.maxY))
         path.addArc(withCenter: CGPoint(x: key.minX + r, y: key.maxY - r), radius: r, startAngle: .pi / 2, endAngle: .pi, clockwise: true)

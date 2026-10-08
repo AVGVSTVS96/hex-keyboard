@@ -1,12 +1,9 @@
 import UIKit
-import KeyboardUI
 
-enum Playground: String {
-    case system, hex
-
+enum LaunchOptions {
     private static var defaults: UserDefaults { .standard }
 
-    static var current: Playground? { defaults.string(forKey: "HexPlayground").flatMap(Playground.init) }
+    static var focus: Bool { defaults.bool(forKey: "HexFocus") }
     static var landscape: Bool { defaults.string(forKey: "HexOrientation") == "landscape" }
 
     static func configure(_ field: UITextView) {
@@ -18,10 +15,4 @@ enum Playground: String {
         }
         if let text = defaults.string(forKey: "HexText") { field.text = text }
     }
-}
-
-final class PlaygroundTextView: UITextView {
-    private lazy var keyboard: UIInputViewController? = Playground.current == .hex ? HexKeyboardViewController() : nil
-
-    override var inputViewController: UIInputViewController? { keyboard }
 }
