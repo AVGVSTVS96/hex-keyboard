@@ -17,3 +17,13 @@
 - 07:20 Captured live pop-ups by holding keys from XCUITest while grabbing frames (`scripts/capture`). Our key callout and accent panel now match iOS 26's (blue selection, 37.5pt cells, 67pt panel); on iOS 27 they switch to its gray selection and dimmed held key.
 - 07:20 iOS 27: geometry identical except the system keyboard's rows sit 7pt lower, below where a third-party keyboard's area ends. We follow 3pt of that; the last 4pt would clip.
 - 07:20 Every iPhone (16e, 17, Air, 17 Pro Max) and iPad (mini, A16, Pro 11, Pro 13) key rect is within 0.33–1pt of Apple's in light and dark; landscape iPhone within 0.33pt.
+- 07:25 Release device build (iphoneos, unsigned) compiles clean: 632 KB app. Extension footprint 25 MB in the simulator (limit ~48–60 MB).
+- 07:25 Added placeholder app icon and privacy manifests. 15 UI tests pass on iPhone and iPad including delete acceleration and iPad flicks.
+
+## Left before packaging
+
+- Apple Developer membership (signing team, App Group if the app should ever toggle the hex bar or haptics, TestFlight).
+- Real-device pass: haptics need Full Access on device and can't read the system haptics setting; key clicks follow the system setting through `playInputClick`.
+- Visual check of iPad landscape (the simulator wouldn't rotate iPad headlessly) and of a real foldable size (wide phones fall back to the iPad mini layout, untested).
+- iPad `#+=` layers and 13" symbol layers are best guesses; capture references with `scripts/capture` and adjust.
+- Final app icon; this one is a placeholder.
