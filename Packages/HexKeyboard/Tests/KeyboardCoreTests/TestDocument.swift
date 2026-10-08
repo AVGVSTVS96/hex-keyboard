@@ -10,6 +10,7 @@ final class TestDocument: TextDocument {
     }
 
     var textBeforeInput: String? { String(text.prefix(cursor)) }
+    var textAfterInput: String? { String(text.dropFirst(cursor)) }
 
     func insert(_ value: String) {
         let index = text.index(text.startIndex, offsetBy: cursor)

@@ -1,10 +1,16 @@
-public struct TypingEngine: Sendable {
+public struct TypingEngine {
     public private(set) var layer: KeyboardLayer = .letters
     public private(set) var shift: ShiftState = .off
     public private(set) var traits: InputTraits
+    public internal(set) var suggestions: [Suggestion] = []
+    public var settings = KeyboardSettings()
+    public var corrector: Corrector?
+    public var onTapSamples: ([TapSample]) -> Void = { _ in }
 
     private var spaceJustTyped = false
     private var shiftHold: ShiftHold?
+    var taps: [Tap] = []
+    var revert: Revert?
 
     private enum ShiftHold { case pressed, typedWhileHeld }
 
@@ -18,30 +24,8 @@ public struct TypingEngine: Sendable {
         self.traits = traits
     }
 
-    public mutating func perform(_ action: KeyAction, in document: some TextDocument) {
-        let wasSpace = spaceJustTyped
-        spaceJustTyped = false
-
+    public mutating func perform(_ action: KeyAction, in document: some TextDocument, tap: Tap? = nil) {
         switch action {
-        case .character(let text):
-            document.insert(shift.isUppercase && layer == .letters ? text.uppercased() : text)
-            if layer != .letters, Self.returnsToLetters.contains(text) { layer = .letters }
-            if shiftHold != nil { shiftHold = .typedWhileHeld }
-        case .space:
-            if wasSpace, traits.smartPunctuation, Self.endsSentenceable(document.textBeforeInput) {
-                document.deleteBackward(1)
-                document.insert(". ")
-            } else {
-                document.insert(" ")
-                spaceJustTyped = true
-            }
-            if layer != .letters { layer = .letters }
-        case .return:
-            document.insert("\n")
-        case .tab:
-            document.insert("\t")
-        case .delete:
-            document.deleteBackward(1)
         case .shift:
             shift = shift == .off ? .on : .off
             return
@@ -50,21 +34,75 @@ public struct TypingEngine: Sendable {
             return
         case .layer(let target):
             layer = target
+            refreshSuggestions(in: document)
             return
         case .nextKeyboard, .dismiss:
             return
+        case .character, .space, .return, .tab, .delete:
+            break
+        }
+
+        let wasSpace = spaceJustTyped
+        let revert = self.revert
+        spaceJustTyped = false
+        self.revert = nil
+
+        switch action {
+        case .character(let text):
+            let typed = shift.isUppercase && layer == .letters ? text.uppercased() : text
+            if Self.wordEnders.contains(typed) {
+                commitWord(in: document)
+            } else if let tap, typed.allSatisfy(Words.isWordCharacter) {
+                taps.append(tap)
+            }
+            document.insert(typed)
+            self.revert?.trailing = typed
+            if layer != .letters, Self.returnsToLetters.contains(text) { layer = .letters }
+            if shiftHold != nil { shiftHold = .typedWhileHeld }
+        case .space:
+            if wasSpace, settings.periodShortcut, traits.smartPunctuation, Self.endsSentenceable(document.textBeforeInput) {
+                document.deleteBackward(1)
+                document.insert(". ")
+            } else {
+                commitWord(in: document)
+                document.insert(" ")
+                self.revert?.trailing = " "
+                spaceJustTyped = true
+            }
+            if layer != .letters { layer = .letters }
+        case .return:
+            commitWord(in: document)
+            document.insert("\n")
+            self.revert?.trailing = "\n"
+        case .tab:
+            document.insert("\t")
+        case .delete:
+            let offersRevert = revert?.isCommitted(before: document.textBeforeInput) == true
+            document.deleteBackward(1)
+            if offersRevert {
+                self.revert = revert
+                self.revert?.offered = true
+            } else if !taps.isEmpty {
+                taps.removeLast()
+            }
+        default:
+            break
         }
         refreshShift(in: document)
+        refreshSuggestions(in: document)
     }
 
     public mutating func deleteWord(in document: some TextDocument) {
         spaceJustTyped = false
+        revert = nil
+        taps = []
         document.deleteBackward(Self.wordLength(before: document.textBeforeInput))
         refreshShift(in: document)
+        refreshSuggestions(in: document)
     }
 
     public mutating func pressShift(doubleTap: Bool) {
-        shift = doubleTap ? .locked : shift == .off ? .on : .off
+        shift = doubleTap && settings.capsLock ? .locked : shift == .off ? .on : .off
         shiftHold = .pressed
     }
 
@@ -77,18 +115,22 @@ public struct TypingEngine: Sendable {
 
     public mutating func documentChanged(_ document: some TextDocument) {
         spaceJustTyped = false
+        if Words.current(in: document.textBeforeInput ?? "").count != taps.count { taps = [] }
         refreshShift(in: document)
+        refreshSuggestions(in: document)
     }
 
     public mutating func refreshShift(in document: some TextDocument) {
         guard shift != .locked, shiftHold == nil else { return }
-        let capitalize = layer == .letters && Self.shouldCapitalize(document.textBeforeInput, mode: traits.autocapitalization)
+        let mode = settings.autoCapitalization ? traits.autocapitalization : .none
+        let capitalize = layer == .letters && Self.shouldCapitalize(document.textBeforeInput, mode: mode)
         shift = capitalize ? .on : .off
     }
 }
 
 extension TypingEngine {
     static let returnsToLetters: Set<String> = ["'"]
+    static let wordEnders: Set<String> = [".", ",", "!", "?", ";", ":"]
     static let sentenceEnders: Set<Character> = [".", "!", "?"]
     static let closers: Set<Character> = [")", "]", "\"", "'", "”", "’"]
 

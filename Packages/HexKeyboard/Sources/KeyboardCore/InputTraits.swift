@@ -45,19 +45,31 @@ public struct InputTraits: Sendable {
     public var autocapitalization: Autocapitalization
     public var smartPunctuation: Bool
     public var returnRequiresText: Bool
+    public var autocorrection: Bool
+    public var spellChecking: Bool
 
     public init(
         kind: InputKind = .text,
         returnKind: ReturnKind = .default,
         autocapitalization: Autocapitalization = .sentences,
         smartPunctuation: Bool = true,
-        returnRequiresText: Bool = false
+        returnRequiresText: Bool = false,
+        autocorrection: Bool = true,
+        spellChecking: Bool = true
     ) {
         self.kind = kind
         self.returnKind = returnKind
         self.autocapitalization = autocapitalization
         self.smartPunctuation = smartPunctuation
         self.returnRequiresText = returnRequiresText
+        self.autocorrection = autocorrection
+        self.spellChecking = spellChecking
     }
 
+    public var allowsCorrection: Bool {
+        switch kind {
+        case .email, .url, .number, .decimal: false
+        default: autocorrection
+        }
+    }
 }
