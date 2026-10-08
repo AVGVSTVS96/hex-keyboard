@@ -21,7 +21,7 @@ struct KeyboardTheme {
         secondaryLabel: UIColor(white: 0, alpha: 0.32),
         prominent: .systemBlue,
         prominentLabel: .white,
-        selection: .systemBlue,
+        selection: UIColor(red: 226 / 255, green: 228 / 255, blue: 232 / 255, alpha: 1),
         shadow: UIColor(white: 0, alpha: 0.18)
     )
 
@@ -32,7 +32,7 @@ struct KeyboardTheme {
         secondaryLabel: UIColor(white: 1, alpha: 0.4),
         prominent: .systemBlue,
         prominentLabel: .white,
-        selection: .systemBlue,
+        selection: UIColor(white: 0.36, alpha: 1),
         shadow: UIColor(white: 0, alpha: 0.5)
     )
 }

@@ -8,7 +8,7 @@ final class HomeViewController: UIViewController {
         title = "Hex Keyboard"
         navigationItem.largeTitleDisplayMode = .always
         navigationController?.navigationBar.prefersLargeTitles = true
-        view.backgroundColor = .systemGroupedBackground
+        view.backgroundColor = .systemBackground
 
         let steps = UILabel()
         steps.numberOfLines = 0
@@ -21,7 +21,7 @@ final class HomeViewController: UIViewController {
         })
 
         field.font = .preferredFont(forTextStyle: .body)
-        field.backgroundColor = .secondarySystemGroupedBackground
+        field.backgroundColor = .secondarySystemBackground
         field.layer.cornerRadius = 16
         field.layer.cornerCurve = .continuous
         field.textContainerInset = UIEdgeInsets(top: 12, left: 8, bottom: 12, right: 8)

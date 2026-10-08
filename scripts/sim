@@ -35,7 +35,7 @@ use() {
     system) keyboards=("en_US@sw=QWERTY;hw=Automatic") ;;
   esac
   local current expanded
-  current=$(xcrun simctl spawn "$id" defaults read .GlobalPreferences AppleKeyboards 2>/dev/null | sed -n 2p | tr -d ' ",')
+  current=$(xcrun simctl spawn "$id" defaults read .GlobalPreferences AppleKeyboards 2>/dev/null | sed -n 2p | tr -d ' ",' || true)
   expanded=$(xcrun simctl spawn "$id" defaults read .GlobalPreferences AppleKeyboardsExpanded 2>/dev/null || true)
   [ "$current" = "${keyboards[0]}" ] && [ "$expanded" = 1 ] && return
   xcrun simctl spawn "$id" defaults write .GlobalPreferences AppleKeyboards -array "${keyboards[@]}"
@@ -49,7 +49,12 @@ shoot() {
   xcrun simctl ui "$id" appearance "$appearance"
   xcrun simctl terminate "$id" "$BUNDLE" 2>/dev/null || true
   use "$id" "$keyboard"
-  until xcrun simctl launch "$id" "$BUNDLE" -HexFocus YES "$@" >/dev/null 2>&1; do sleep 2; done
+  local attempt
+  for attempt in 1 2 3 4 5; do
+    xcrun simctl launch "$id" "$BUNDLE" -HexFocus YES "$@" >/dev/null 2>&1 && break
+    [ "$attempt" = 3 ] && xcrun simctl install "$id" "$APP"
+    sleep 2
+  done
   sleep "${SETTLE:-3}"
   mkdir -p "$(dirname "$out")"
   xcrun simctl io "$id" screenshot "$out" >/dev/null 2>&1

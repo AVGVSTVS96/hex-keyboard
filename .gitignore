@@ -7,3 +7,5 @@ DerivedData/
 xcuserdata/
 .DS_Store
 /shots/raw/
+/App/Info.plist
+/Keyboard/Info.plist

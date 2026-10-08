@@ -2,8 +2,8 @@ import UIKit
 import KeyboardCore
 
 open class HexKeyboardViewController: UIInputViewController {
-    public var showsHexBar = UserDefaults.standard.bool(forKey: "HexBarEnabled")
-    public var hapticsEnabled = true
+    open var showsHexBar: Bool { false }
+    open var hapticsEnabled: Bool { true }
 
     private let keyboardView = KeyboardView()
     private let hexBar = HexBar()

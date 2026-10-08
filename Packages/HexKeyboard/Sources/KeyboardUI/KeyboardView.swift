@@ -200,7 +200,9 @@ extension KeyboardView {
                 }
             case .typing, .slide:
                 if let flick = flickTarget(tracked, point) {
-                    if flick != tracked.flicked { tracked.flicked = flick; show(tracked) }
+                    tracked.hold?.invalidate()
+                    tracked.flicked = flick
+                    tracked.keyView?.isFlicked = flick
                     continue
                 }
                 guard let view = keyView(at: point), view !== tracked.keyView,
@@ -240,6 +242,7 @@ extension KeyboardView {
         callout.hide()
         guard let view = tracked.keyView else { return }
         view.isPressed = false
+        view.isFlicked = false
         defer { onEvent(.up(view.key)) }
 
         switch tracked.mode {
@@ -305,6 +308,7 @@ extension KeyboardView {
                     self.onEvent(.trackpad(active: true))
                 } else {
                     tracked.mode = .alternates
+                    view.isPressed = true
                     self.callout.hide()
                     let shown = view.key.alternates.map(self.displayed)
                     let base = self.displayed(self.text(for: view.key, flicked: false) ?? "")

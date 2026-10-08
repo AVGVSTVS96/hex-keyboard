@@ -5,6 +5,8 @@ final class AlternatesView: UIView {
     private let highlight = UIView()
     private var labels: [UILabel] = []
     private var cellWidth: CGFloat = 0
+    private var highlightHeight: CGFloat = 0
+    private let padding: CGFloat = 10
     private(set) var options: [String] = []
     private(set) var selectedIndex = 0
 
@@ -27,22 +29,27 @@ final class AlternatesView: UIView {
     func show(_ options: [String], base: String, over key: CGRect, in area: CGRect, metrics: KeyboardMetrics, theme: KeyboardTheme) {
         self.options = options
         labels.forEach { $0.removeFromSuperview() }
-        cellWidth = max(key.width * 0.95, 30)
-        let height = key.height * 1.15
-        let width = cellWidth * CGFloat(options.count) + 12
+        cellWidth = key.width + 4
+        let height = key.height * 1.57
+        let width = cellWidth * CGFloat(options.count) + padding * 2
         let baseIndex = options.firstIndex(of: base) ?? 0
-        var x = key.midX - 6 - cellWidth * (CGFloat(baseIndex) + 0.5)
-        x = min(max(x, area.minX + 4), area.maxX - width - 4)
-        frame = CGRect(x: x, y: max(key.minY - height - 8, area.minY + 1), width: width, height: height)
+        let x = key.midX - padding - cellWidth * (CGFloat(baseIndex) + 0.5)
+        frame = CGRect(
+            x: min(max(x, area.minX + 7), area.maxX - width - 7),
+            y: max(key.minY - height - 3, area.minY + 1),
+            width: width,
+            height: height
+        )
         panel.frame = bounds
-        panel.layer.cornerRadius = metrics.cornerRadius * 1.6
+        panel.layer.cornerRadius = metrics.cornerRadius * 2
+        panel.layer.shadowPath = UIBezierPath(roundedRect: panel.bounds, cornerRadius: panel.layer.cornerRadius).cgPath
         panel.backgroundColor = theme.key
         panel.layer.shadowColor = theme.shadow.cgColor
-        highlight.backgroundColor = theme.keyPressed
+        highlight.backgroundColor = theme.selection
         highlight.layer.cornerRadius = metrics.cornerRadius
 
         labels = options.enumerated().map { index, option in
-            let label = UILabel(frame: CGRect(x: 6 + CGFloat(index) * cellWidth, y: 0, width: cellWidth, height: height))
+            let label = UILabel(frame: CGRect(x: padding + CGFloat(index) * cellWidth, y: 0, width: cellWidth, height: height))
             label.text = option
             label.textAlignment = .center
             label.font = KeyboardFont.letter(metrics.letterSize)
@@ -50,12 +57,13 @@ final class AlternatesView: UIView {
             panel.addSubview(label)
             return label
         }
+        highlightHeight = key.height + 4
         select(baseIndex)
         isHidden = false
     }
 
     func track(_ point: CGPoint) {
-        let local = point.x - frame.minX - 6
+        let local = point.x - frame.minX - padding
         select(min(max(Int(local / cellWidth), 0), options.count - 1))
     }
 
@@ -66,6 +74,6 @@ final class AlternatesView: UIView {
 
     private func select(_ index: Int) {
         selectedIndex = index
-        highlight.frame = CGRect(x: 6 + CGFloat(index) * cellWidth, y: 6, width: cellWidth, height: bounds.height - 12)
+        highlight.frame = CGRect(x: padding + CGFloat(index) * cellWidth, y: (bounds.height - highlightHeight) / 2, width: cellWidth, height: highlightHeight)
     }
 }

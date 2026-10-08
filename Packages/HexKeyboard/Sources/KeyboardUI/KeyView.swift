@@ -12,6 +12,14 @@ final class KeyView: UIView {
     var theme = KeyboardTheme.light { didSet { updateColors() } }
     var isPressed = false { didSet { if isPressed != oldValue { updateColors() } } }
     var showsLabel = true { didSet { contentAlpha = showsLabel ? 1 : 0 } }
+    var isFlicked = false {
+        didSet {
+            guard isFlicked != oldValue, let secondary = face.secondary, case .letter(let primary) = face.content else { return }
+            label.text = isFlicked ? secondary : primary
+            secondaryLabel.isHidden = isFlicked
+            setNeedsLayout()
+        }
+    }
 
     private var contentAlpha: CGFloat = 1 {
         didSet { [label, secondaryLabel, icon].forEach { $0.alpha = contentAlpha } }

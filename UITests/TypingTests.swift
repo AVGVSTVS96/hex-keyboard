@@ -41,9 +41,7 @@ final class TypingTests: XCTestCase {
     }
 
     func testCapsLockWithDoubleTap() {
-        let shift = app.keys["shift"]
-        shift.tap()
-        shift.doubleTap()
+        app.keys["shift"].doubleTap()
         type("abc")
         XCTAssertEqual(field.value as? String, "ABC")
     }
