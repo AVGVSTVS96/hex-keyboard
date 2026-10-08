@@ -81,7 +81,13 @@ open class HexKeyboardViewController: UIInputViewController {
 
     private var metrics: KeyboardMetrics { .for(device, size: screenSize) }
 
-    private var barHeight: CGFloat { device == .phone ? 27 : 40 }
+    private var barHeight: CGFloat {
+        switch (device, showsHexBar) {
+        case (.phone, _): 27
+        case (_, true): 36
+        case (_, false): 0
+        }
+    }
 
     private func render() {
         let device = device
@@ -89,7 +95,8 @@ open class HexKeyboardViewController: UIInputViewController {
             device: device,
             layer: engine.layer,
             kind: engine.traits.kind,
-            showsGlobe: needsInputModeSwitchKey
+            showsGlobe: needsInputModeSwitchKey,
+            isLandscape: screenSize.width > screenSize.height
         ))
         let metrics = metrics
         let theme = KeyboardTheme.current(for: traitCollection)

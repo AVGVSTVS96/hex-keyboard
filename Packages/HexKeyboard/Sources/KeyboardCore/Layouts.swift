@@ -10,12 +10,14 @@ public struct LayoutContext: Hashable, Sendable {
     public var layer: KeyboardLayer
     public var kind: InputKind
     public var showsGlobe: Bool
+    public var isLandscape: Bool
 
-    public init(device: DeviceClass, layer: KeyboardLayer, kind: InputKind = .text, showsGlobe: Bool = false) {
+    public init(device: DeviceClass, layer: KeyboardLayer, kind: InputKind = .text, showsGlobe: Bool = false, isLandscape: Bool = false) {
         self.device = device
         self.layer = layer
         self.kind = kind
         self.showsGlobe = showsGlobe
+        self.isLandscape = isLandscape
     }
 }
 

@@ -34,7 +34,7 @@ extension KeyboardMetrics {
         switch device {
         case .phone: return landscape ? phoneLandscape(width: size.width) : phone(width: size.width)
         case .compactPad: return compactPad
-        case .pad: return pad
+        case .pad: return pad(shortSide: min(size.width, size.height))
         case .largePad: return largePad
         }
     }
@@ -44,7 +44,7 @@ extension KeyboardMetrics {
         return KeyboardMetrics(
             columns: 10, sideInset: 6.5, keyGap: 6, rowGap: 11,
             keyHeight: large ? 45 : 43, numberRowHeight: 0,
-            topInset: 8, bottomInset: 3, cornerRadius: 8.5,
+            topInset: 8, bottomInset: 3, cornerRadius: 8,
             letterSize: 23, labelSize: 18, secondarySize: 12, symbolSize: 19,
             letterOffset: -1.67
         )
@@ -52,32 +52,36 @@ extension KeyboardMetrics {
 
     static func phoneLandscape(width: CGFloat) -> KeyboardMetrics {
         KeyboardMetrics(
-            columns: 10, sideInset: 6.5, keyGap: 6, rowGap: 6,
-            keyHeight: 32, numberRowHeight: 0,
-            topInset: 5, bottomInset: 3, cornerRadius: 7,
-            letterSize: 22, labelSize: 16, secondarySize: 11, symbolSize: 18
+            columns: 10, sideInset: 3.75, keyGap: 6, rowGap: 8,
+            keyHeight: 27.33, numberRowHeight: 0,
+            topInset: 22.67, bottomInset: 4, cornerRadius: 8,
+            letterSize: 20, labelSize: 15.5, secondarySize: 11, symbolSize: 19,
+            letterOffset: -1
         )
     }
 
     static let compactPad = KeyboardMetrics(
-        columns: 11.19, sideInset: 6, keyGap: 12, rowGap: 9,
+        columns: 11.2, sideInset: 6, keyGap: 12, rowGap: 9,
         keyHeight: 55.5, numberRowHeight: 0,
-        topInset: 9, bottomInset: 9, cornerRadius: 10,
+        topInset: 8, bottomInset: 8, cornerRadius: 9.5,
         letterSize: 23, labelSize: 17, secondarySize: 12.5, symbolSize: 23
     )
 
-    static let pad = KeyboardMetrics(
-        columns: 12.5, sideInset: 9, keyGap: 10, rowGap: 9,
-        keyHeight: 55.5, numberRowHeight: 0,
-        topInset: 9, bottomInset: 9, cornerRadius: 10,
-        letterSize: 23, labelSize: 17, secondarySize: 12.5, symbolSize: 23
-    )
+    static func pad(shortSide: CGFloat) -> KeyboardMetrics {
+        let large = shortSide >= 830
+        return KeyboardMetrics(
+            columns: 12.5, sideInset: 9, keyGap: 10, rowGap: large ? 9 : 8.75,
+            keyHeight: large ? 55.5 : 55, numberRowHeight: 0,
+            topInset: 8, bottomInset: 8, cornerRadius: 9.5,
+            letterSize: 23, labelSize: 17, secondarySize: 12.5, symbolSize: 23
+        )
+    }
 
     static let largePad = KeyboardMetrics(
         columns: 14.54, sideInset: 3.5, keyGap: 7, rowGap: 7,
         keyHeight: 61, numberRowHeight: 45.5,
-        topInset: 7, bottomInset: 7, cornerRadius: 10,
-        letterSize: 23, labelSize: 17, secondarySize: 17, symbolSize: 23,
-        edgeInset: CGSize(width: 14, height: 10), textBaselineInset: 13.5, pairSize: 16.5
+        topInset: 6, bottomInset: 4, cornerRadius: 11.5,
+        letterSize: 23, labelSize: 17, secondarySize: 16, symbolSize: 21,
+        edgeInset: CGSize(width: 14, height: 10), textBaselineInset: 13.5, pairSize: 16
     )
 }

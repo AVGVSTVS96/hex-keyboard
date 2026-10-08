@@ -31,7 +31,7 @@ final class KeyView: UIView {
         isUserInteractionEnabled = false
         isAccessibilityElement = true
         accessibilityTraits = .keyboardKey
-        layer.cornerCurve = .continuous
+        layer.cornerCurve = .circular
         icon.contentMode = .center
         label.textAlignment = .center
         secondaryLabel.textAlignment = .center

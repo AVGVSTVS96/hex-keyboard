@@ -39,11 +39,12 @@ enum PhoneLayouts {
     }
 
     private static func bottomRow(_ context: LayoutContext, layerKey: KeyboardLayer) -> [RowItem] {
+        let side = context.isLandscape ? 2.0 : 2.5
         let leading: [RowItem] = context.showsGlobe
-            ? [.key(Key(.layer(layerKey), width: .pitch(1.25))), .key(Key(.nextKeyboard, width: .pitch(1.25)))]
-            : [.key(Key(.layer(layerKey), width: .pitch(2.5)))]
+            ? [.key(Key(.layer(layerKey), width: .pitch(side / 2))), .key(Key(.nextKeyboard, width: .pitch(side / 2)))]
+            : [.key(Key(.layer(layerKey), width: .pitch(side)))]
         let space = RowItem.key(Key(.space, width: .fill))
-        let returnKey = RowItem.key(Key(.return, width: .pitch(2.5)))
+        let returnKey = RowItem.key(Key(.return, width: .pitch(side)))
         let character = { (value: String, width: KeyWidth) in RowItem.key(Key(.character(value), width: width)) }
         switch context.kind {
         case .email:

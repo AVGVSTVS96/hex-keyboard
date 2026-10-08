@@ -10,3 +10,5 @@
 - 05:40 iPhone geometry matches the system keyboard on all four iPhones (every key rect within 0.33pt). Light and dark key/background colors match exactly; the host-drawn backdrop behind a third-party keyboard is 3 levels darker in light mode (223 vs 226), which we can't control.
 - 05:40 iPad needs `AppleKeyboardsExpanded = 1` before it honors `AppleKeyboards`; now in `scripts/sim`.
 - 05:40 Email, URL and web search bottom rows re-measured from iOS 27 references (1.25-wide @/., three equal URL keys, 1.75 search return).
+- 06:05 iPad geometry: every key rect on iPad Pro 11/13, iPad A16 and iPad mini matches horizontally to the half point. iPad gets the system's undo/redo/paste bar above a third-party keyboard for free, so our own bar is 0pt there; vertical insets recalibrated per class. Keys are circular-cornered (r 8 iPhone, 9.5 iPad, 11.5 13"), not continuous.
+- 06:05 UI tests type through the real extension on iOS 27: "hello world  next" becomes "Hello world. Next", delete + 123 layer + space-returns-to-letters works.
