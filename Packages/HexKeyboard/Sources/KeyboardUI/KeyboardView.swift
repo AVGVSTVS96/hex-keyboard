@@ -17,7 +17,7 @@ final class KeyboardView: UIView {
 
     private(set) var layout = KeyboardLayout(rows: [])
     private var metrics = KeyboardMetrics.phone(width: 390)
-    private var faceContext = KeyFaceContext(device: .phone, shift: .off, returnKind: .default, returnEnabled: true)
+    private var faceContext = KeyFaceContext(device: .phone, layer: .letters, kind: .text, shift: .off, returnKind: .default, returnEnabled: true)
     private var theme = KeyboardTheme.light
     private var keyViews: [KeyView] = []
     private var rowBands: [ClosedRange<CGFloat>] = []

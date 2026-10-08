@@ -16,11 +16,13 @@ public struct KeyboardMetrics: Equatable, Sendable {
     public var secondarySize: CGFloat
     public var symbolSize: CGFloat
     public var letterOffset: CGFloat = 0
-    public var edgeInset = CGSize(width: 7, height: 5.5)
+    public var edgeInset = CGSize(width: 4, height: 3)
     public var textBaselineInset: CGFloat = 8
     public var letterBaselineInset: CGFloat = 9
     public var secondaryCapTop: CGFloat = 10.5
     public var pairSize: CGFloat = 20
+    public var pairCapTop: CGFloat = 12.5
+    public var pairBaselineRatio: CGFloat = 0.216
 
     public func height(rows: Int, hasNumberRow: Bool) -> CGFloat {
         let keys = CGFloat(rows) * keyHeight - (hasNumberRow ? keyHeight - numberRowHeight : 0)
@@ -44,7 +46,7 @@ extension KeyboardMetrics {
         return KeyboardMetrics(
             columns: 10, sideInset: 6.5, keyGap: 6, rowGap: 11,
             keyHeight: large ? 45 : 43, numberRowHeight: 0,
-            topInset: 8, bottomInset: 3, cornerRadius: 8,
+            topInset: 8, bottomInset: large ? 5 : 3, cornerRadius: 8,
             letterSize: 23, labelSize: 18, secondarySize: 12, symbolSize: 19,
             letterOffset: -1.67
         )
@@ -64,7 +66,7 @@ extension KeyboardMetrics {
         columns: 11.2, sideInset: 6, keyGap: 12, rowGap: 9,
         keyHeight: 55.5, numberRowHeight: 0,
         topInset: 8, bottomInset: 8, cornerRadius: 9.5,
-        letterSize: 23, labelSize: 17, secondarySize: 12.5, symbolSize: 23
+        letterSize: 22, labelSize: 15, secondarySize: 12.5, symbolSize: 23
     )
 
     static func pad(shortSide: CGFloat) -> KeyboardMetrics {
@@ -73,7 +75,7 @@ extension KeyboardMetrics {
             columns: 12.5, sideInset: 9, keyGap: 10, rowGap: large ? 9 : 8.75,
             keyHeight: large ? 55.5 : 55, numberRowHeight: 0,
             topInset: 8, bottomInset: 8, cornerRadius: 9.5,
-            letterSize: 23, labelSize: 17, secondarySize: 12.5, symbolSize: 23
+            letterSize: 22, labelSize: 15, secondarySize: 12.5, symbolSize: 23
         )
     }
 
@@ -81,7 +83,8 @@ extension KeyboardMetrics {
         columns: 14.54, sideInset: 3.5, keyGap: 7, rowGap: 7,
         keyHeight: 61, numberRowHeight: 45.5,
         topInset: 6, bottomInset: 4, cornerRadius: 11.5,
-        letterSize: 23, labelSize: 17, secondarySize: 16, symbolSize: 21,
-        edgeInset: CGSize(width: 14, height: 10), textBaselineInset: 13.5, pairSize: 16
+        letterSize: 22, labelSize: 17, secondarySize: 16, symbolSize: 21,
+        edgeInset: CGSize(width: 11.5, height: 8), textBaselineInset: 13.5,
+        pairSize: 16, pairCapTop: 10, pairBaselineRatio: 0.175
     )
 }

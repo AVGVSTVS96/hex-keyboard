@@ -5,7 +5,7 @@ enum CompactPadLayouts {
             KeyboardLayout(rows: [
                 RowItem.keys("qwertyuiop", secondaries: "1234567890") + [delete],
                 [.spacer(.pitch(0.4))] + RowItem.keys("asdfghjkl", secondaries: "@#$&*()'\"") + [returnKey],
-                [.key(Key(.shift))] + RowItem.keys("zxcvbnm,.", secondaries: "%-+=/;:!?") + [.key(Key(.shift, width: .fill))],
+                [.key(Key(.shift))] + RowItem.keys("zxcvbnm", secondaries: "%-+=/;:") + RowItem.keys(",.", secondaries: "!?", pairs: true) + [.key(Key(.shift, width: .fill))],
                 bottomRow(context, layerKey: .numbers),
             ])
         case .numbers:

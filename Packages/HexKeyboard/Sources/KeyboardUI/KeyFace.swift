@@ -5,6 +5,7 @@ struct KeyFace: Equatable {
     enum Content: Equatable {
         case letter(String)
         case text(String)
+        case smallText(String)
         case symbol(String)
         case none
     }
@@ -22,6 +23,8 @@ struct KeyFace: Equatable {
 
 struct KeyFaceContext {
     var device: DeviceClass
+    var layer: KeyboardLayer
+    var kind: InputKind
     var shift: ShiftState
     var returnKind: ReturnKind
     var returnEnabled: Bool
@@ -33,10 +36,10 @@ extension KeyFace {
         let edge: Alignment = isPad ? (trailing ? .bottomTrailing : .bottomLeading) : .center
         switch key.action {
         case .character(let value):
-            let shown = context.shift.isUppercase && value.count == 1 ? value.uppercased() : value
+            let shown = context.shift.isUppercase && value.count == 1 ? value.uppercased() : Self.glyphs[value, default: value]
             self.init(content: value.count == 1 ? .letter(shown) : .text(shown))
             secondary = key.secondary
-            secondaryIsDimmed = context.device != .largePad && value.allSatisfy(\.isLetter)
+            secondaryIsDimmed = !key.isPair
         case .space:
             self.init(content: .none)
         case .delete:
@@ -51,21 +54,26 @@ extension KeyFace {
         case .capsLock:
             self.init(content: .symbol(context.shift == .locked ? "capslock.fill" : "capslock"), alignment: edge)
         case .return:
-            if let title = context.returnKind.title {
-                self.init(content: .text(title), alignment: edge, isProminent: context.returnKind.isProminent && context.returnEnabled)
-            } else {
-                self.init(content: .symbol("return.left"), alignment: edge)
-            }
+            let kind = context.returnKind
+            self.init(
+                content: kind.symbol.map { .symbol($0) } ?? .text(kind.title),
+                alignment: edge,
+                isProminent: kind.isProminent && context.returnEnabled
+            )
         case .tab:
             self.init(content: .symbol("arrow.right.to.line"), alignment: edge)
         case .layer(let layer):
-            self.init(content: .text(Self.title(for: layer, device: context.device)), alignment: edge)
+            let title = context.kind == .url && layer == .numbers && context.device == .phone ? ".?123" : Self.title(for: layer, device: context.device)
+            let small = context.device == .phone && context.layer != .letters && layer != .letters
+            self.init(content: small ? .smallText(title) : .text(title), alignment: edge)
         case .nextKeyboard:
             self.init(content: .symbol("globe"), alignment: edge)
         case .dismiss:
             self.init(content: .symbol("keyboard.chevron.compact.down"), alignment: edge)
         }
     }
+
+    private static let glyphs = ["\"": "”", "'": "’"]
 
     private static func title(for layer: KeyboardLayer, device: DeviceClass) -> String {
         switch (layer, device) {

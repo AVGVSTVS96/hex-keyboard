@@ -26,12 +26,14 @@ public struct Key: Hashable, Sendable {
     public var width: KeyWidth
     public var alternates: [String]
     public var secondary: String?
+    public var isPair: Bool
 
-    public init(_ action: KeyAction, width: KeyWidth = .input, alternates: [String] = [], secondary: String? = nil) {
+    public init(_ action: KeyAction, width: KeyWidth = .input, alternates: [String] = [], secondary: String? = nil, isPair: Bool = false) {
         self.action = action
         self.width = width
         self.alternates = alternates
         self.secondary = secondary
+        self.isPair = isPair
     }
 
     public static func character(_ value: String, alternates: [String] = [], secondary: String? = nil) -> Key {
@@ -41,7 +43,7 @@ public struct Key: Hashable, Sendable {
     public func text(shifted: Bool, flicked: Bool = false) -> String? {
         guard case .character(let value) = action else { return nil }
         if flicked, let secondary { return secondary }
-        if shifted, let secondary, !value.allSatisfy(\.isLetter) { return secondary }
+        if shifted, isPair, let secondary { return secondary }
         return value
     }
 

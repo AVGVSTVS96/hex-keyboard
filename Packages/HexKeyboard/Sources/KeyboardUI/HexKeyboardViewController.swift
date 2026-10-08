@@ -74,8 +74,8 @@ open class HexKeyboardViewController: UIInputViewController {
     }
 
     private var device: DeviceClass {
-        guard traitCollection.userInterfaceIdiom == .pad else { return .phone }
         let shortSide = min(screenSize.width, screenSize.height)
+        guard traitCollection.userInterfaceIdiom == .pad else { return shortSide >= 600 ? .compactPad : .phone }
         return shortSide >= 1000 ? .largePad : shortSide < 800 ? .compactPad : .pad
     }
 
@@ -102,6 +102,8 @@ open class HexKeyboardViewController: UIInputViewController {
         let theme = KeyboardTheme.current(for: traitCollection)
         let faces = KeyFaceContext(
             device: device,
+            layer: engine.layer,
+            kind: engine.traits.kind,
             shift: engine.shift,
             returnKind: engine.traits.returnKind,
             returnEnabled: !engine.traits.returnRequiresText || textDocumentProxy.hasText

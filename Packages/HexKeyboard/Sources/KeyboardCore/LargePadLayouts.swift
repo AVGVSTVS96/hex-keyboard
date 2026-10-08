@@ -4,9 +4,9 @@ enum LargePadLayouts {
         case .letters:
             KeyboardLayout(rows: [
                 numberRow,
-                [tab] + RowItem.keys("qwertyuiop[]\\", secondaries: "          {}|"),
-                [capsLock] + RowItem.keys("asdfghjkl;'", secondaries: "         :\"") + [returnKey],
-                [shift] + RowItem.keys("zxcvbnm,./", secondaries: "       <>?") + [trailingShift],
+                [tab] + RowItem.keys("qwertyuiop[]\\", secondaries: "          {}|", pairs: true),
+                [capsLock] + RowItem.keys("asdfghjkl;'", secondaries: "         :\"", pairs: true) + [returnKey],
+                [shift] + RowItem.keys("zxcvbnm,./", secondaries: "       <>?", pairs: true) + [trailingShift],
                 bottomRow(context, layerKey: .numbers),
             ], hasNumberRow: true)
         case .numbers, .symbols:
@@ -20,7 +20,7 @@ enum LargePadLayouts {
         }
     }
 
-    private static let numberRow: [RowItem] = RowItem.keys("`1234567890-=", secondaries: "~!@#$%^&*()_+") + [.key(Key(.delete, width: .fill))]
+    private static let numberRow: [RowItem] = RowItem.keys("`1234567890-=", secondaries: "~!@#$%^&*()_+", pairs: true) + [.key(Key(.delete, width: .fill))]
     private static let tab = RowItem.key(Key(.tab, width: .pitch(1.54)))
     private static let capsLock = RowItem.key(Key(.capsLock, width: .pitch(1.77)))
     private static let returnKey = RowItem.key(Key(.return, width: .fill))

@@ -55,6 +55,10 @@ final class KeyView: UIView {
             label.text = text
             label.font = .systemFont(ofSize: metrics.labelSize, weight: .regular)
             icon.image = nil
+        case .smallText(let text):
+            label.text = text
+            label.font = .systemFont(ofSize: metrics.labelSize * 0.75, weight: .regular)
+            icon.image = nil
         case .symbol(let name):
             label.text = nil
             let configuration = UIImage.SymbolConfiguration(pointSize: metrics.symbolSize, weight: .regular)
@@ -106,10 +110,8 @@ final class KeyView: UIView {
         var capTop = metrics.secondaryCapTop
         var baseline = bounds.height - metrics.letterBaselineInset
         if !face.secondaryIsDimmed {
-            let gap = font.pointSize * 0.38
-            let ink = secondaryFont.capHeight + gap + font.capHeight
-            capTop = (bounds.height - ink) / 2
-            baseline = capTop + ink
+            capTop = metrics.pairCapTop
+            baseline = bounds.height * (1 - metrics.pairBaselineRatio)
         }
         secondaryLabel.frame.origin = CGPoint(
             x: bounds.midX - secondaryLabel.bounds.width / 2,

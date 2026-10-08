@@ -8,7 +8,13 @@ enum LaunchOptions {
     }
 
     static var focus: Bool { defaults.bool(forKey: "HexFocus") }
-    static var landscape: Bool { defaults.string(forKey: "HexOrientation") == "landscape" }
+    static var orientation: UIInterfaceOrientationMask? {
+        switch defaults.string(forKey: "HexOrientation") {
+        case "landscape": .landscapeRight
+        case "portrait": .portrait
+        default: nil
+        }
+    }
 
     static func configure(_ field: UITextView) {
         if let value = integer("HexKeyboardType").flatMap(UIKeyboardType.init) { field.keyboardType = value }

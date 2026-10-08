@@ -5,14 +5,14 @@ enum PadLayouts {
             KeyboardLayout(rows: [
                 [tab] + RowItem.keys("qwertyuiop", secondaries: "1234567890") + [delete],
                 [capsLock] + RowItem.keys("asdfghjkl", secondaries: "@#$&*()'\"") + [returnKey],
-                [.key(Key(.shift, width: .pitch(2)))] + RowItem.keys("zxcvbnm,.", secondaries: "%-+=/;:!?") + [.key(Key(.shift, width: .fill))],
+                [.key(Key(.shift, width: .pitch(2)))] + RowItem.keys("zxcvbnm", secondaries: "%-+=/;:") + RowItem.keys(",.", secondaries: "!?", pairs: true) + [.key(Key(.shift, width: .fill))],
                 bottomRow(context, layerKey: .numbers),
             ])
         case .numbers:
             KeyboardLayout(rows: [
                 [tab] + RowItem.keys("1234567890") + [delete],
-                [capsLock] + RowItem.keys("@#$&*()'\"") + [returnKey],
-                [.key(Key(.layer(.symbols), width: .pitch(2)))] + RowItem.keys("%-+=/;:,.") + [.key(Key(.layer(.symbols), width: .fill))],
+                [capsLock] + RowItem.keys("@#$&*()'\"", secondaries: "€£¥_^[]{}") + [returnKey],
+                [.key(Key(.layer(.symbols), width: .pitch(2)))] + RowItem.keys("%-+=/;:,.", secondaries: "§|~…\\<>!?") + [.key(Key(.layer(.symbols), width: .fill))],
                 bottomRow(context, layerKey: .letters),
             ])
         case .symbols:

@@ -43,8 +43,8 @@ final class HomeViewController: UIViewController {
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        if LaunchOptions.landscape {
-            view.window?.windowScene?.requestGeometryUpdate(.iOS(interfaceOrientations: .landscapeRight))
+        if let orientation = LaunchOptions.orientation {
+            view.window?.windowScene?.requestGeometryUpdate(.iOS(interfaceOrientations: orientation))
         }
         if LaunchOptions.focus { field.becomeFirstResponder() }
     }

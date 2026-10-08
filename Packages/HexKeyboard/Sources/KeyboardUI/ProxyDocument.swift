@@ -21,9 +21,11 @@ final class ProxyDocument: TextDocument {
 
 extension InputTraits {
     init(_ proxy: UITextDocumentProxy) {
+        let kind = InputKind(proxy.keyboardType ?? .default)
+        let returnKind = ReturnKind(proxy.returnKeyType ?? .default)
         self.init(
-            kind: InputKind(proxy.keyboardType ?? .default),
-            returnKind: ReturnKind(proxy.returnKeyType ?? .default),
+            kind: kind,
+            returnKind: kind == .webSearch && returnKind == .default ? .go : returnKind,
             autocapitalization: Autocapitalization(proxy.autocapitalizationType ?? .sentences),
             smartPunctuation: proxy.smartQuotesType != .no,
             returnRequiresText: proxy.enablesReturnKeyAutomatically ?? false

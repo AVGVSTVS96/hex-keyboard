@@ -33,14 +33,15 @@ public enum Layouts {
 }
 
 extension RowItem {
-    static func keys(_ primary: String, secondaries: String = "") -> [RowItem] {
+    static func keys(_ primary: String, secondaries: String = "", pairs: Bool = false) -> [RowItem] {
         let secondaries = secondaries.map { $0 == " " ? nil : String($0) }
         return primary.enumerated().map { index, character in
             let value = String(character)
             return .key(Key(
                 .character(value),
                 alternates: Alternates.for(value),
-                secondary: index < secondaries.count ? secondaries[index] : nil
+                secondary: index < secondaries.count ? secondaries[index] : nil,
+                isPair: pairs
             ))
         }
     }

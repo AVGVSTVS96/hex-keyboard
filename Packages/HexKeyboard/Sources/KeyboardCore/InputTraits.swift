@@ -9,18 +9,25 @@ public enum InputKind: Sendable {
 public enum ReturnKind: Hashable, Sendable {
     case `default`, go, google, join, next, route, search, send, yahoo, done, emergencyCall, `continue`
 
-    public var title: String? {
+    public var symbol: String? {
         switch self {
-        case .default: nil
-        case .go: "go"
-        case .google, .yahoo, .search: "search"
+        case .default: "return.left"
+        case .go: "arrow.right"
+        case .google, .yahoo, .search: "magnifyingglass"
+        case .send: "arrow.up"
+        case .done: "checkmark"
+        case .next: "chevron.right"
+        case .join, .route, .emergencyCall, .continue: nil
+        }
+    }
+
+    public var title: String {
+        switch self {
         case .join: "join"
-        case .next: "next"
         case .route: "route"
-        case .send: "send"
-        case .done: "done"
         case .emergencyCall: "Emergency Call"
         case .continue: "continue"
+        default: "return"
         }
     }
 

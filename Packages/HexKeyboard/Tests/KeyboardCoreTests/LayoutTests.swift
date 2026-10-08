@@ -55,4 +55,33 @@ struct LayoutTests {
         #expect(e?.alternates.contains("e") == true)
         #expect(e?.alternates.contains("é") == true)
     }
+
+    @Test func landscapePhoneUsesNarrowerBottomKeys() {
+        let portrait = Layouts.layout(for: LayoutContext(device: .phone, layer: .letters))
+        let landscape = Layouts.layout(for: LayoutContext(device: .phone, layer: .letters, isLandscape: true))
+        #expect(portrait.keys.first { $0.action == .return }?.width == .pitch(2.5))
+        #expect(landscape.keys.first { $0.action == .return }?.width == .pitch(2))
+    }
+
+    @Test func rowsFitTheirColumns() {
+        let columns: [DeviceClass: Double] = [.phone: 10, .compactPad: 11.2, .pad: 12.5, .largePad: 14.54]
+        for (device, total) in columns {
+            for layer in [KeyboardLayer.letters, .numbers, .symbols] {
+                for row in Layouts.layout(for: LayoutContext(device: device, layer: layer, showsGlobe: true)).rows {
+                    let fixed = row.reduce(0.0) { sum, item in
+                        let width: KeyWidth = switch item {
+                        case .key(let key): key.width
+                        case .spacer(let width): width
+                        }
+                        return switch width {
+                        case .input: sum + 1
+                        case .pitch(let value): sum + value
+                        case .fill: sum
+                        }
+                    }
+                    #expect(fixed <= total + 0.01, "\(device) \(layer) row overflows: \(fixed)")
+                }
+            }
+        }
+    }
 }

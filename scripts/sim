@@ -49,9 +49,10 @@ shoot() {
   xcrun simctl ui "$id" appearance "$appearance"
   xcrun simctl terminate "$id" "$BUNDLE" 2>/dev/null || true
   use "$id" "$keyboard"
-  local attempt
+  local attempt orientation=(-HexOrientation portrait)
+  [[ " $* " == *HexOrientation* ]] && orientation=()
   for attempt in 1 2 3 4 5; do
-    xcrun simctl launch "$id" "$BUNDLE" -HexFocus YES "$@" >/dev/null 2>&1 && break
+    xcrun simctl launch "$id" "$BUNDLE" -HexFocus YES ${orientation[@]+"${orientation[@]}"} "$@" >/dev/null 2>&1 && break
     [ "$attempt" = 3 ] && xcrun simctl install "$id" "$APP"
     sleep 2
   done

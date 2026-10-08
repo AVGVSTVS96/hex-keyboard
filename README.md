@@ -4,7 +4,11 @@ An open-source iOS keyboard that looks, feels and types like Apple's, built to g
 
 MIT licensed. UIKit, Swift 6, iOS 26 and later, iPhone and iPad.
 
-<!-- screenshots -->
+Apple's keyboard on the left, Hex on the right, same simulator, iOS 26.3:
+
+![iPhone 17, light and dark](docs/iphone.png)
+
+![iPad Pro 11-inch, light and dark](docs/ipad.png)
 
 ## What it does today
 
@@ -18,6 +22,7 @@ MIT licensed. UIKit, Swift 6, iOS 26 and later, iPhone and iPad.
 - iPad flick-down for the gray secondary characters.
 - Return key follows the field's `returnKeyType`; email, URL and search fields get their own bottom rows.
 - Globe key only when iOS asks for one (`needsInputModeSwitchKey`).
+- Landscape iPhone and wide (foldable-size) phones, which get the iPad mini layout.
 - No network, no Full Access, no autocorrect yet.
 
 ## Build
