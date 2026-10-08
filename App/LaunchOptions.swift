@@ -1,3 +1,4 @@
+import KeyboardUI
 import UIKit
 
 enum LaunchOptions {
@@ -8,12 +9,19 @@ enum LaunchOptions {
     }
 
     static var focus: Bool { defaults.bool(forKey: "HexFocus") }
+    static var settings: Bool { defaults.bool(forKey: "HexSettings") }
     static var orientation: UIInterfaceOrientationMask? {
         switch defaults.string(forKey: "HexOrientation") {
         case "landscape": .landscapeRight
         case "portrait": .portrait
         default: nil
         }
+    }
+
+    static func resetSettingsIfAsked() {
+        guard defaults.bool(forKey: "HexResetSettings") else { return }
+        SettingsStore.toggles.forEach { SettingsStore.defaults.removeObject(forKey: $0.key) }
+        MemoryStore.reset()
     }
 
     static func configure(_ field: UITextView) {

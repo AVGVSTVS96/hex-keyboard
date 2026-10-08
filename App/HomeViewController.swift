@@ -8,6 +8,9 @@ final class HomeViewController: UIViewController {
         title = "Hex Keyboard"
         navigationItem.largeTitleDisplayMode = .always
         navigationController?.navigationBar.prefersLargeTitles = true
+        navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Settings", image: UIImage(systemName: "gearshape"), primaryAction: UIAction { [unowned self] _ in
+            showSettings()
+        })
         view.backgroundColor = .systemBackground
 
         let steps = UILabel()
@@ -47,5 +50,9 @@ final class HomeViewController: UIViewController {
             view.window?.windowScene?.requestGeometryUpdate(.iOS(interfaceOrientations: orientation))
         }
         if LaunchOptions.focus { field.becomeFirstResponder() }
+    }
+
+    func showSettings() {
+        navigationController?.pushViewController(SettingsViewController(), animated: false)
     }
 }

@@ -13,7 +13,7 @@ mkdir -p shots/raw
 xcodegen generate -q
 rm -f shots/raw/$slug-capture-$KEYBOARD-*.png
 xcodebuild build-for-testing -project HexKeyboard.xcodeproj -scheme Hex -destination "id=$ID" \
-  -derivedDataPath build/uitest CODE_SIGNING_ALLOWED=NO >/dev/null 2>&1
+  -derivedDataPath build/uitest >/dev/null 2>&1
 TEST_RUNNER_HEX_CAPTURE=1 xcodebuild test-without-building -project HexKeyboard.xcodeproj -scheme Hex -destination "id=$ID" \
   -derivedDataPath build/uitest -only-testing:HexUITests/CaptureTests >/dev/null 2>&1 &
 test_pid=$!
