@@ -68,6 +68,7 @@ final class KeyView: UIView {
             icon.image = nil
         }
         accessibilityLabel = accessibilityName
+        accessibilityIdentifier = if case .character(let value) = key.action { "hex.\(value)" } else { "hex.\(accessibilityName)" }
         secondaryLabel.text = face.secondary
         if face.secondary != nil, !face.secondaryIsDimmed {
             label.font = .systemFont(ofSize: metrics.pairSize, weight: .regular)

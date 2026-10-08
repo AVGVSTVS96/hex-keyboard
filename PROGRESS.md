@@ -12,3 +12,5 @@
 - 05:40 Email, URL and web search bottom rows re-measured from iOS 27 references (1.25-wide @/., three equal URL keys, 1.75 search return).
 - 06:05 iPad geometry: every key rect on iPad Pro 11/13, iPad A16 and iPad mini matches horizontally to the half point. iPad gets the system's undo/redo/paste bar above a third-party keyboard for free, so our own bar is 0pt there; vertical insets recalibrated per class. Keys are circular-cornered (r 8 iPhone, 9.5 iPad, 11.5 13"), not continuous.
 - 06:05 UI tests type through the real extension on iOS 27: "hello world  next" becomes "Hello world. Next", delete + 123 layer + space-returns-to-letters works.
+- 06:55 Return key now uses iOS 26's icons (go →, search 🔍, send ↑, done ✓, next ›), blue when the field asks for it. iPad numbers layer gets its flick secondaries; pair keys (`,!`, 13" number row) are modeled explicitly.
+- 06:55 14 UI tests pass through the real extension on iPhone 17 and iPad Pro 11 (iOS 26.3): autocap, double-space period, caps lock, delete, 123 layer, return, long-press accents, slide from 123, space-bar cursor.

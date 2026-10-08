@@ -192,7 +192,7 @@ extension KeyboardView {
             case .alternates:
                 alternates.track(point)
             case .trackpad:
-                let step = metrics.keyHeight * 0.2
+                let step: CGFloat = 9
                 let offset = Int((point.x - tracked.lastCursorX) / step)
                 if offset != 0 {
                     tracked.lastCursorX += CGFloat(offset) * step

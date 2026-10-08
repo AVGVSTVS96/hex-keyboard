@@ -8,14 +8,13 @@ final class TypingTests: XCTestCase {
         app = XCUIApplication()
         app.launchArguments = ["-HexFocus", "YES"]
         app.launch()
-        XCTAssertTrue(app.keys["q"].waitForExistence(timeout: 10) || app.keys["Q"].exists, "Hex keyboard is not the active keyboard")
+        XCTAssertTrue(key("space").waitForExistence(timeout: 10), "Hex keyboard is not the active keyboard")
     }
 
     private var field: XCUIElement { app.textViews.firstMatch }
 
     private func tap(_ name: String) {
-        let key = app.keys[name].exists ? app.keys[name] : app.keys[name.uppercased()]
-        key.tap()
+        key(name).tap()
     }
 
     private func type(_ text: String) {
@@ -41,8 +40,42 @@ final class TypingTests: XCTestCase {
     }
 
     func testCapsLockWithDoubleTap() {
-        app.keys["shift"].doubleTap()
+        key("shift").doubleTap()
         type("abc")
         XCTAssertEqual(field.value as? String, "ABC")
+    }
+
+    func testReturnStartsNewCapitalizedLine() {
+        type("hi")
+        tap("return")
+        type("yo")
+        XCTAssertEqual(field.value as? String, "Hi\nYo")
+    }
+
+    func testLongPressShowsAccents() {
+        let e = key("e")
+        e.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+            .press(forDuration: 1, thenDragTo: e.coordinate(withNormalizedOffset: CGVector(dx: -0.7, dy: -0.9)))
+        XCTAssertEqual(field.value as? String, "É")
+    }
+
+    func testSlidingFromNumbersTypesAndComesBack() {
+        let numbers = key("numbers")
+        let target = key("q").coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        numbers.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).press(forDuration: 0.2, thenDragTo: target)
+        type("a")
+        XCTAssertEqual(field.value as? String, "1a")
+    }
+
+    func testSpaceBarMovesCursor() {
+        type("abc")
+        let space = key("space").coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        space.press(forDuration: 1, thenDragTo: space.withOffset(CGVector(dx: -20, dy: 0)))
+        type("x")
+        XCTAssertEqual(field.value as? String, "Axbc")
+    }
+
+    private func key(_ name: String) -> XCUIElement {
+        app.keys.matching(identifier: "hex.\(name)").firstMatch
     }
 }
