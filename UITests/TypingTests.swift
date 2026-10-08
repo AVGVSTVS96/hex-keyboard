@@ -75,6 +75,21 @@ final class TypingTests: XCTestCase {
         XCTAssertEqual(field.value as? String, "Axbc")
     }
 
+    func testHoldingDeleteSpeedsUpToWords() {
+        let sentence = "the quick brown fox jumps over the lazy dog"
+        type(sentence)
+        key("delete").press(forDuration: 3)
+        let remaining = (field.value as? String ?? "").count
+        XCTAssertLessThanOrEqual(remaining, sentence.count - 20)
+    }
+
+    func testFlickDownTypesSecondaryOnPad() throws {
+        try XCTSkipUnless(key("tab").exists, "Flicks are an iPad layout feature")
+        let q = key("q").coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.3))
+        q.press(forDuration: 0.05, thenDragTo: q.withOffset(CGVector(dx: 0, dy: 30)))
+        XCTAssertEqual(field.value as? String, "1")
+    }
+
     private func key(_ name: String) -> XCUIElement {
         app.keys.matching(identifier: "hex.\(name)").firstMatch
     }

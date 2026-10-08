@@ -16,12 +16,16 @@ An iOS custom keyboard (UIKit, Swift 6, iOS 26+) that looks and types like Apple
 Development happens on a Linux box; builds run on a Mac over ssh (`ssh mac`).
 
 ```sh
-scripts/mac scripts/build                 # sync to the Mac, xcodegen, build for the simulator
-scripts/mac scripts/test                  # KeyboardCore unit tests on an iOS simulator
-scripts/mac 'scripts/sim all v3'          # screenshots: system vs Hex keyboard, light and dark, 8 devices
+scripts/mac scripts/build                       # sync to the Mac, xcodegen, build for the simulator
+scripts/mac scripts/test                        # KeyboardCore unit tests on an iOS simulator
+scripts/mac scripts/uitest                      # type through the real extension (iPhone 17 by default)
+scripts/mac 'scripts/sim all v7'                # screenshots: system vs Hex, light and dark, 8 devices
+scripts/mac 'scripts/sim variants "iPhone 17" v7'  # return key types, keyboard types, landscape
+scripts/mac 'scripts/capture "iPhone 17" iPhone-17 hex'  # frames of held keys: pop-ups, accent panel
+uv run --with pillow --with numpy --with scipy scripts/shotdiff.py v7   # key-by-key geometry vs Apple
 ```
 
-`scripts/sim` creates its own `hexkb …` simulators and enables the extension by writing `AppleKeyboards` into the simulator's global preferences, so no Settings UI is needed. Simulators boot headless; the Simulator app never opens.
+`scripts/sim` creates its own `hexkb …` simulators and enables the extension by writing `AppleKeyboards` (and, for iPad, `AppleKeyboardsExpanded = 1`) into the simulator's global preferences, so no Settings UI is needed. Simulators boot headless; the Simulator app never opens. Reference screenshots of Apple's keyboard come from the same simulators with `KEYBOARDS=system`.
 
 ## Rules
 
@@ -30,3 +34,5 @@ scripts/mac 'scripts/sim all v3'          # screenshots: system vs Hex keyboard,
 - No comments unless they record a non-obvious fact.
 - Keycaps use SF Compact, loaded from the system font file, because that is what the system keyboard uses (verified by glyph metrics) and UIKit has no public name for it. It falls back to SF Pro.
 - iOS 26 ignores a plain height constraint on the input view; the height comes from Auto Layout content (`keyboardHeightConstraint`).
+- Third-party keyboards get a system bottom bar (globe, mic) on Face ID iPhones and a system undo/redo/paste bar on iPad. Metrics are calibrated so the keys land where Apple's do with those bars in place.
+- A third-party keyboard can't draw above its own area, so top-row pop-ups are clamped into the 27pt strip above the keys.
