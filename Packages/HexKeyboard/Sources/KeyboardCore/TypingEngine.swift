@@ -49,7 +49,15 @@ public struct TypingEngine {
 
         switch action {
         case .character(let text):
-            let typed = shift.isUppercase && layer == .letters ? text.uppercased() : text
+            var typed = shift.isUppercase && layer == .letters ? text.uppercased() : text
+            if settings.smartPunctuation, traits.smartPunctuation {
+                if typed == "-", document.textBeforeInput?.last == "-" {
+                    document.deleteBackward(1)
+                    typed = "—"
+                } else {
+                    typed = Self.smartQuote(typed, after: document.textBeforeInput)
+                }
+            }
             if Self.wordEnders.contains(typed) {
                 commitWord(in: document)
             } else if let tap, typed.allSatisfy(Words.isWordCharacter) {
@@ -153,6 +161,15 @@ extension TypingEngine {
         case .sentences:
             guard let last = text.last(where: { $0 != " " && $0 != "\t" }) else { return true }
             return last.isNewline || (text.last == " " && sentenceEnders.contains(last))
+        }
+    }
+
+    static func smartQuote(_ text: String, after before: String?) -> String {
+        let opens = before?.last.map { $0.isWhitespace || Words.openers.contains($0) } ?? true
+        switch text {
+        case "'": return opens ? "‘" : "’"
+        case "\"": return opens ? "“" : "”"
+        default: return text
         }
     }
 

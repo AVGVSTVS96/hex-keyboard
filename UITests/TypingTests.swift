@@ -90,6 +90,15 @@ final class TypingTests: XCTestCase {
         XCTAssertEqual(field.value as? String, "1")
     }
 
+    func testSmartPunctuationCurlsApostrophes() {
+        type("its")
+        tap("delete")
+        tap("numbers")
+        tap("'")
+        type("s")
+        XCTAssertEqual(field.value as? String, "It’s")
+    }
+
     private func key(_ name: String) -> XCUIElement {
         app.keys.matching(identifier: "hex.\(name)").firstMatch
     }

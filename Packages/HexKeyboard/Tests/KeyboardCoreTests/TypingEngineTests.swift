@@ -141,4 +141,14 @@ struct TypingEngineTests {
         #expect(document.text == "one\n")
         #expect(engine.shift == .on)
     }
+
+    @Test func smartPunctuationCurlsQuotesAndJoinsDashes() {
+        var engine = TypingEngine(traits: InputTraits(autocapitalization: .none))
+        let document = TestDocument()
+        engine.type("\"don't\" a--b", in: document)
+        #expect(document.text == "“don’t” a—b")
+        engine.settings.smartPunctuation = false
+        engine.type(" 'x'", in: document)
+        #expect(document.text == "“don’t” a—b 'x'")
+    }
 }
