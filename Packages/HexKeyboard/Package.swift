@@ -12,5 +12,6 @@ let package = Package(
         .target(name: "KeyboardCore"),
         .target(name: "KeyboardUI", dependencies: ["KeyboardCore"], swiftSettings: [.defaultIsolation(MainActor.self)]),
         .testTarget(name: "KeyboardCoreTests", dependencies: ["KeyboardCore"]),
+        .testTarget(name: "KeyboardUITests", dependencies: ["KeyboardUI"], resources: [.copy("phrases.txt")]),
     ]
 )

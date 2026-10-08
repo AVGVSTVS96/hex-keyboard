@@ -10,6 +10,8 @@ final class ProxyDocument: TextDocument {
 
     var textBeforeInput: String? { proxy().documentContextBeforeInput }
 
+    var textAfterInput: String? { proxy().documentContextAfterInput }
+
     func insert(_ text: String) { proxy().insertText(text) }
 
     func deleteBackward(_ count: Int) {
@@ -23,14 +25,21 @@ extension InputTraits {
     init(_ proxy: UITextDocumentProxy) {
         let kind = InputKind(proxy.keyboardType ?? .default)
         let returnKind = ReturnKind(proxy.returnKeyType ?? .default)
+        let content: UITextContentType? = proxy.textContentType ?? nil
         self.init(
             kind: kind,
             returnKind: kind == .webSearch && returnKind == .default ? .go : returnKind,
             autocapitalization: Autocapitalization(proxy.autocapitalizationType ?? .sentences),
             smartPunctuation: proxy.smartQuotesType != .no,
-            returnRequiresText: proxy.enablesReturnKeyAutomatically ?? false
+            returnRequiresText: proxy.enablesReturnKeyAutomatically ?? false,
+            autocorrection: proxy.autocorrectionType != .no && !(content.map(Self.literalContent.contains) ?? false),
+            spellChecking: proxy.spellCheckingType != .no
         )
     }
+
+    private static let literalContent: Set<UITextContentType> = [
+        .URL, .emailAddress, .username, .password, .newPassword, .oneTimeCode, .telephoneNumber, .postalCode, .creditCardNumber,
+    ]
 }
 
 extension InputKind {

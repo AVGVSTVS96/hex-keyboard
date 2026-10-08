@@ -2,14 +2,13 @@ import UIKit
 import KeyboardCore
 
 open class HexKeyboardViewController: UIInputViewController {
-    open var showsHexBar: Bool { false }
-    open var hapticsEnabled: Bool { true }
+    open var hapticsEnabled: Bool { false }
 
     private let keyboardView = KeyboardView()
-    private let hexBar = HexBar()
+    private let suggestionBar = SuggestionBar()
     private lazy var document = ProxyDocument { [unowned self] in textDocumentProxy }
     private var engine = TypingEngine()
-    private lazy var barHeightConstraint = hexBar.heightAnchor.constraint(equalToConstant: 0)
+    private lazy var barHeightConstraint = suggestionBar.heightAnchor.constraint(equalToConstant: 0)
     private lazy var keyboardHeightConstraint = keyboardView.heightAnchor.constraint(equalToConstant: 0)
     private var deleteRepeat: DeleteRepeat?
     private var haptics: UIImpactFeedbackGenerator?
@@ -20,24 +19,34 @@ open class HexKeyboardViewController: UIInputViewController {
 
     override open func viewDidLoad() {
         super.viewDidLoad()
-        hexBar.isHidden = !showsHexBar
-        view.addSubview(hexBar)
+        view.addSubview(suggestionBar)
         view.addSubview(keyboardView)
-        hexBar.translatesAutoresizingMaskIntoConstraints = false
+        suggestionBar.translatesAutoresizingMaskIntoConstraints = false
         keyboardView.translatesAutoresizingMaskIntoConstraints = false
         keyboardHeightConstraint.priority = .required - 1
         NSLayoutConstraint.activate([
-            hexBar.topAnchor.constraint(equalTo: view.topAnchor),
-            hexBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            hexBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            suggestionBar.topAnchor.constraint(equalTo: view.topAnchor),
+            suggestionBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            suggestionBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             barHeightConstraint,
-            keyboardView.topAnchor.constraint(equalTo: hexBar.bottomAnchor),
+            keyboardView.topAnchor.constraint(equalTo: suggestionBar.bottomAnchor),
             keyboardView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             keyboardView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             keyboardView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             keyboardHeightConstraint,
         ])
         keyboardView.onEvent = { [unowned self] in handle($0) }
+        suggestionBar.onSelect = { [unowned self] in
+            feedback()
+            engine.accept($0, in: document)
+            render()
+        }
+        engine.corrector = Corrector(source: TextCheckerSource(language: primaryLanguage ?? "en-US"))
+        Task { [weak self] in
+            guard let lexicon = await self?.requestSupplementaryLexicon() else { return }
+            self?.engine.corrector?.learn(lexicon)
+            self?.syncWithDocument()
+        }
         keyboardView.globeTarget = { [unowned self] control in
             control.addTarget(self, action: #selector(handleInputModeList(from:with:)), for: .allTouchEvents)
         }
@@ -52,7 +61,15 @@ open class HexKeyboardViewController: UIInputViewController {
 
     override open func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        engine.settings = SettingsStore.load()
+        engine.corrector?.memory = MemoryStore.load()
+        keyboardView.characterPreview = engine.settings.characterPreview
         syncWithDocument()
+    }
+
+    override open func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        if let memory = engine.corrector?.memory { MemoryStore.save(memory) }
     }
 
     override open func selectionDidChange(_ textInput: UITextInput?) {
@@ -82,7 +99,7 @@ open class HexKeyboardViewController: UIInputViewController {
     private var metrics: KeyboardMetrics { .for(device, size: screenSize) }
 
     private var barHeight: CGFloat {
-        switch (device, showsHexBar) {
+        switch (device, engine.showsSuggestions) {
         case (.phone, _): 27
         case (_, true): 36
         case (_, false): 0
@@ -109,7 +126,7 @@ open class HexKeyboardViewController: UIInputViewController {
             returnEnabled: !engine.traits.returnRequiresText || textDocumentProxy.hasText
         )
         keyboardView.update(layout: layout, metrics: metrics, faces: faces, theme: theme)
-        hexBar.apply(theme)
+        suggestionBar.update(engine.suggestions, enabled: engine.showsSuggestions, theme: theme)
 
         let height = metrics.height(rows: layout.rows.count, hasNumberRow: layout.hasNumberRow)
         if keyboardHeightConstraint.constant != height { keyboardHeightConstraint.constant = height }
@@ -143,8 +160,9 @@ open class HexKeyboardViewController: UIInputViewController {
             case .shift: engine.releaseShift(in: document)
             default: return
             }
-        case .type(let key, let text):
-            engine.perform(key.action == .space ? .space : .character(text), in: document)
+        case .type(let key, let text, let point):
+            let tap = Tap(x: point.x, y: point.y, key: text)
+            engine.perform(key.action == .space ? .space : .character(text), in: document, tap: tap)
         case .slideTyped(_, let text):
             let layer = engine.layer
             engine.perform(.character(text), in: document)
@@ -166,7 +184,7 @@ open class HexKeyboardViewController: UIInputViewController {
     }
 
     private func feedback() {
-        UIDevice.current.playInputClick()
+        if engine.settings.sound { UIDevice.current.playInputClick() }
         guard hapticsEnabled else { return }
         if haptics == nil { haptics = UIImpactFeedbackGenerator(style: .light, view: view) }
         haptics?.impactOccurred()

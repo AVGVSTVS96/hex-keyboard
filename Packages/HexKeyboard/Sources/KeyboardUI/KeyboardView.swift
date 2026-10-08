@@ -4,7 +4,7 @@ import KeyboardCore
 enum KeyboardEvent {
     case down(Key, tapCount: Int)
     case up(Key)
-    case type(Key, text: String)
+    case type(Key, text: String, at: CGPoint)
     case trigger(Key)
     case slideTyped(Key, text: String)
     case cursor(offset: Int)
@@ -20,14 +20,15 @@ final class KeyboardView: UIView {
     private(set) var faceContext = KeyFaceContext(device: .phone, layer: .letters, kind: .text, shift: .off, returnKind: .default, returnEnabled: true)
     private(set) var theme = KeyboardTheme.light
     private(set) var keyViews: [KeyView] = []
-    private var rowBands: [ClosedRange<CGFloat>] = []
+    private var grid = KeyGrid()
     private var rowKeys: [[KeyView]] = []
     private var globeControls: [UIControl] = []
     let callout = CalloutView()
     let alternates = AlternatesView()
     var tracked: [ObjectIdentifier: TrackedTouch] = [:]
 
-    var showsCallouts: Bool { faceContext.device == .phone }
+    var characterPreview = true
+    var showsCallouts: Bool { characterPreview && faceContext.device == .phone }
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -73,36 +74,18 @@ final class KeyboardView: UIView {
             return control
         }
         for (_, touch) in tracked { touch.keyView = nil }
+        grid = KeyGrid(layout, width: bounds.width, metrics: metrics.grid)
     }
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        let available = bounds.width - metrics.sideInset * 2 + metrics.keyGap
-        let pitch = available / metrics.columns
-        var y = metrics.topInset
+        grid = KeyGrid(layout, width: bounds.width, metrics: metrics.grid)
         var globes = globeControls.makeIterator()
-        rowBands = []
-
-        for (index, row) in layout.rows.enumerated() {
-            let height = layout.hasNumberRow && index == 0 ? metrics.numberRowHeight : metrics.keyHeight
-            let fixed = row.compactMap(\.width.span).reduce(0, +)
-            let fills = row.count { $0.width == .fill }
-            let fillSpan = fills > 0 ? max(available / pitch - fixed, 0) / Double(fills) : 0
-            var x = metrics.sideInset - metrics.keyGap / 2
-            var views = rowKeys[index].makeIterator()
-
-            for item in row {
-                let width = (item.width.span ?? fillSpan) * pitch
-                if case .key = item, let view = views.next() {
-                    view.frame = CGRect(x: x + metrics.keyGap / 2, y: y, width: width - metrics.keyGap, height: height)
-                    if view.key.action == .nextKeyboard { globes.next()?.frame = view.frame }
-                }
-                x += width
+        for (views, keys) in zip(rowKeys, grid.rows) {
+            for (view, key) in zip(views, keys) {
+                view.frame = CGRect(key.frame)
+                if view.key.action == .nextKeyboard { globes.next()?.frame = view.frame }
             }
-            let top = index == 0 ? -CGFloat.infinity : y - metrics.rowGap / 2
-            let bottom = index == layout.rows.count - 1 ? CGFloat.infinity : y + height + metrics.rowGap / 2
-            rowBands.append(top...bottom)
-            y += height + metrics.rowGap
         }
         refreshFaces()
     }
@@ -119,17 +102,16 @@ final class KeyboardView: UIView {
     }
 
     func keyView(at point: CGPoint) -> KeyView? {
-        guard let row = rowBands.firstIndex(where: { $0.contains(point.y) }) else { return nil }
-        return rowKeys[row].min { distance(point, $0.frame) < distance(point, $1.frame) }
-    }
-
-    private func distance(_ point: CGPoint, _ rect: CGRect) -> CGFloat {
-        let dx = max(rect.minX - point.x, 0, point.x - rect.maxX)
-        let dy = max(rect.minY - point.y, 0, point.y - rect.maxY)
-        return dx * dx + dy * dy
+        grid.index(atX: point.x, y: point.y).map { rowKeys[$0.row][$0.key] }
     }
 
     override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
         bounds.contains(point)
+    }
+}
+
+extension CGRect {
+    init(_ rect: Rect) {
+        self.init(x: rect.x, y: rect.y, width: rect.width, height: rect.height)
     }
 }

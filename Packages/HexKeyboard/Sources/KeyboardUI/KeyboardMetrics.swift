@@ -24,6 +24,10 @@ public struct KeyboardMetrics: Equatable, Sendable {
     public var pairCapTop: CGFloat = 12.5
     public var pairBaselineRatio: CGFloat = 0.216
 
+    var grid: GridMetrics {
+        GridMetrics(columns: columns, sideInset: sideInset, keyGap: keyGap, rowGap: rowGap, keyHeight: keyHeight, numberRowHeight: numberRowHeight, topInset: topInset)
+    }
+
     public func height(rows: Int, hasNumberRow: Bool) -> CGFloat {
         let keys = CGFloat(rows) * keyHeight - (hasNumberRow ? keyHeight - numberRowHeight : 0)
         return topInset + keys + CGFloat(rows - 1) * rowGap + bottomInset

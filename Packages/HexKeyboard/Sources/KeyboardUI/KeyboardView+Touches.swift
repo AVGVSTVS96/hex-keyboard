@@ -9,12 +9,14 @@ extension KeyboardView {
         var mode = Mode.typing
         var flicked = false
         let start: CGPoint
+        var point: CGPoint
         var lastCursorX: CGFloat
         var hold: Timer?
 
         init(keyView: KeyView, start: CGPoint) {
             self.keyView = keyView
             self.start = start
+            self.point = start
             self.lastCursorX = start.x
         }
     }
@@ -37,6 +39,7 @@ extension KeyboardView {
         for touch in touches {
             guard let tracked = tracked[ObjectIdentifier(touch)] else { continue }
             let point = touch.location(in: self)
+            tracked.point = point
             switch tracked.mode {
             case .alternates:
                 alternates.track(point)
@@ -68,6 +71,7 @@ extension KeyboardView {
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
         for touch in touches {
             guard let tracked = tracked.removeValue(forKey: ObjectIdentifier(touch)) else { continue }
+            tracked.point = touch.location(in: self)
             finish(tracked, commit: true)
         }
     }
@@ -96,7 +100,7 @@ extension KeyboardView {
 
         switch tracked.mode {
         case .alternates:
-            if commit, let text = alternates.selected { onEvent(.type(view.key, text: text)) }
+            if commit, let text = alternates.selected { onEvent(.type(view.key, text: text, at: tracked.point)) }
             alternates.hide()
         case .trackpad:
             setLabelsVisible(true)
@@ -108,9 +112,9 @@ extension KeyboardView {
         case .typing:
             guard commit else { return }
             if let text = text(for: view.key, flicked: tracked.flicked) {
-                onEvent(.type(view.key, text: text))
+                onEvent(.type(view.key, text: text, at: tracked.point))
             } else if view.key.action == .space {
-                onEvent(.type(view.key, text: " "))
+                onEvent(.type(view.key, text: " ", at: tracked.point))
             } else {
                 onEvent(.trigger(view.key))
             }

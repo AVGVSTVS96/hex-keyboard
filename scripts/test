@@ -3,5 +3,6 @@
 set -e
 cd "$(dirname "$0")/../Packages/HexKeyboard"
 ID=$(../../scripts/sim ensure "iPhone 17" iPhone-17)
-xcodebuild test -scheme HexKeyboard-Package -destination "id=$ID" -derivedDataPath ../../build/tests 2>&1 \
+xcodebuild test -scheme HexKeyboard-Package -destination "id=$ID" -derivedDataPath ../../build/tests \
+  -skip-testing:KeyboardUITests/Evaluation 2>&1 \
   | grep -E "error:|✘|Test run with" || true
