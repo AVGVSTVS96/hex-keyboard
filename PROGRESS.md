@@ -14,3 +14,6 @@
 - 06:05 UI tests type through the real extension on iOS 27: "hello world  next" becomes "Hello world. Next", delete + 123 layer + space-returns-to-letters works.
 - 06:55 Return key now uses iOS 26's icons (go →, search 🔍, send ↑, done ✓, next ›), blue when the field asks for it. iPad numbers layer gets its flick secondaries; pair keys (`,!`, 13" number row) are modeled explicitly.
 - 06:55 14 UI tests pass through the real extension on iPhone 17 and iPad Pro 11 (iOS 26.3): autocap, double-space period, caps lock, delete, 123 layer, return, long-press accents, slide from 123, space-bar cursor.
+- 07:20 Captured live pop-ups by holding keys from XCUITest while grabbing frames (`scripts/capture`). Our key callout and accent panel now match iOS 26's (blue selection, 37.5pt cells, 67pt panel); on iOS 27 they switch to its gray selection and dimmed held key.
+- 07:20 iOS 27: geometry identical except the system keyboard's rows sit 7pt lower, below where a third-party keyboard's area ends. We follow 3pt of that; the last 4pt would clip.
+- 07:20 Every iPhone (16e, 17, Air, 17 Pro Max) and iPad (mini, A16, Pro 11, Pro 13) key rect is within 0.33–1pt of Apple's in light and dark; landscape iPhone within 0.33pt.

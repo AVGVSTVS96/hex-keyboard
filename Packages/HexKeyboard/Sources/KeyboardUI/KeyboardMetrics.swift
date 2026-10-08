@@ -41,12 +41,17 @@ extension KeyboardMetrics {
         }
     }
 
+    // iOS 27 moved the system keyboard's rows 7pt lower, but a third-party keyboard's area still ends where it did on iOS 26, so we can only follow it 3pt.
+    private static var systemBottomShift: CGFloat {
+        if #available(iOS 27, *) { 3 } else { 0 }
+    }
+
     static func phone(width: CGFloat) -> KeyboardMetrics {
         let large = width >= 415
         return KeyboardMetrics(
             columns: 10, sideInset: 6.5, keyGap: 6, rowGap: 11,
             keyHeight: large ? 45 : 43, numberRowHeight: 0,
-            topInset: 8, bottomInset: large ? 5 : 3, cornerRadius: 8,
+            topInset: 8, bottomInset: (large ? 5 : 3) - systemBottomShift, cornerRadius: 8,
             letterSize: 23, labelSize: 18, secondarySize: 12, symbolSize: 19,
             letterOffset: -1.67
         )

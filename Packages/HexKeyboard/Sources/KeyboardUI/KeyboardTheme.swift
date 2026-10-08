@@ -8,10 +8,18 @@ struct KeyboardTheme {
     let prominent: UIColor
     let prominentLabel: UIColor
     let selection: UIColor
+    let selectionLabel: UIColor
     let shadow: UIColor
 
     static func current(for traits: UITraitCollection, appearance: UIKeyboardAppearance?) -> KeyboardTheme {
         appearance == .dark || traits.userInterfaceStyle == .dark ? dark : light
+    }
+
+    private static var selectsInBlue: Bool { !isIOS27 }
+    static var dimsKeyUnderAccents: Bool { isIOS27 }
+
+    private static var isIOS27: Bool {
+        if #available(iOS 27, *) { true } else { false }
     }
 
     static let light = KeyboardTheme(
@@ -21,7 +29,8 @@ struct KeyboardTheme {
         secondaryLabel: UIColor(white: 0, alpha: 0.32),
         prominent: .systemBlue,
         prominentLabel: .white,
-        selection: UIColor(red: 226 / 255, green: 228 / 255, blue: 232 / 255, alpha: 1),
+        selection: selectsInBlue ? .systemBlue : UIColor(red: 226 / 255, green: 228 / 255, blue: 232 / 255, alpha: 1),
+        selectionLabel: selectsInBlue ? .white : .black,
         shadow: UIColor(white: 0, alpha: 0.18)
     )
 
@@ -32,7 +41,8 @@ struct KeyboardTheme {
         secondaryLabel: UIColor(white: 1, alpha: 0.4),
         prominent: .systemBlue,
         prominentLabel: .white,
-        selection: UIColor(white: 0.36, alpha: 1),
+        selection: selectsInBlue ? .systemBlue : UIColor(white: 0.36, alpha: 1),
+        selectionLabel: .white,
         shadow: UIColor(white: 0, alpha: 0.5)
     )
 }

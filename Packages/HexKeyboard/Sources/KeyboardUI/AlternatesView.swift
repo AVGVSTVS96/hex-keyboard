@@ -7,6 +7,8 @@ final class AlternatesView: UIView {
     private var cellWidth: CGFloat = 0
     private var highlightHeight: CGFloat = 0
     private let padding: CGFloat = 10
+    private var labelColor = UIColor.black
+    private var selectedLabelColor = UIColor.white
     private(set) var options: [String] = []
     private(set) var selectedIndex = 0
 
@@ -46,7 +48,7 @@ final class AlternatesView: UIView {
         panel.backgroundColor = theme.key
         panel.layer.shadowColor = theme.shadow.cgColor
         highlight.backgroundColor = theme.selection
-        highlight.layer.cornerRadius = metrics.cornerRadius
+        highlight.layer.cornerRadius = metrics.cornerRadius * 1.25
 
         labels = options.enumerated().map { index, option in
             let label = UILabel(frame: CGRect(x: padding + CGFloat(index) * cellWidth, y: 0, width: cellWidth, height: height))
@@ -58,6 +60,8 @@ final class AlternatesView: UIView {
             return label
         }
         highlightHeight = key.height + 4
+        labelColor = theme.label
+        selectedLabelColor = theme.selectionLabel
         select(baseIndex)
         isHidden = false
     }
@@ -74,6 +78,9 @@ final class AlternatesView: UIView {
 
     private func select(_ index: Int) {
         selectedIndex = index
+        for (offset, view) in labels.enumerated() {
+            view.textColor = offset == index ? selectedLabelColor : labelColor
+        }
         highlight.frame = CGRect(x: padding + CGFloat(index) * cellWidth, y: (bounds.height - highlightHeight) / 2, width: cellWidth, height: highlightHeight)
     }
 }
