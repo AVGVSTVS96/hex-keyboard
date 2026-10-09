@@ -5,11 +5,13 @@ public struct TypingEngine {
     public internal(set) var suggestions: [Suggestion] = []
     public var settings = KeyboardSettings()
     public var corrector: Corrector?
-    public var onTapSamples: ([TapSample]) -> Void = { _ in }
 
     private var spaceJustTyped = false
     private var shiftHold: ShiftHold?
     var taps: [Tap] = []
+    var erased: [Int: Tap] = [:]
+    var retyped: [TapSample] = []
+    var pending: PendingWord?
     var revert: Revert?
 
     private enum ShiftHold { case pressed, typedWhileHeld }
@@ -61,7 +63,7 @@ public struct TypingEngine {
             if Self.wordEnders.contains(typed) {
                 commitWord(in: document)
             } else if let tap, typed.allSatisfy(Words.isWordCharacter) {
-                taps.append(tap)
+                recordTap(tap, for: typed.lowercased(), in: document)
             }
             document.insert(typed)
             self.revert?.trailing = typed
@@ -72,7 +74,7 @@ public struct TypingEngine {
                 document.deleteBackward(1)
                 document.insert(". ")
             } else {
-                commitWord(in: document)
+                commitWord(in: document, ending: tap)
                 document.insert(" ")
                 self.revert?.trailing = " "
                 spaceJustTyped = true
@@ -90,8 +92,8 @@ public struct TypingEngine {
             if offersRevert {
                 self.revert = revert
                 self.revert?.offered = true
-            } else if !taps.isEmpty {
-                taps.removeLast()
+            } else {
+                eraseTap(in: document)
             }
         default:
             break
@@ -103,7 +105,10 @@ public struct TypingEngine {
     public mutating func deleteWord(in document: some TextDocument) {
         spaceJustTyped = false
         revert = nil
+        if taps.isEmpty { pending = nil }
         taps = []
+        erased = [:]
+        retyped = []
         document.deleteBackward(Self.wordLength(before: document.textBeforeInput))
         refreshShift(in: document)
         refreshSuggestions(in: document)
@@ -123,7 +128,11 @@ public struct TypingEngine {
 
     public mutating func documentChanged(_ document: some TextDocument) {
         spaceJustTyped = false
-        if Words.current(in: document.textBeforeInput ?? "").count != taps.count { taps = [] }
+        if Words.current(in: document.textBeforeInput ?? "").count != taps.count {
+            taps = []
+            erased = [:]
+            retyped = []
+        }
         refreshShift(in: document)
         refreshSuggestions(in: document)
     }

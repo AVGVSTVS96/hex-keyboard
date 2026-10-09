@@ -1,7 +1,10 @@
+/// What Hex has learned about you: the words you keep, what follows what, and where your thumbs land.
 public struct TypingMemory: Codable, Hashable, Sendable {
     public private(set) var counts: [String: Int] = [:]
     public private(set) var kept: Set<String> = []
     public private(set) var following: [String: [String: Int]] = [:]
+    public private(set) var total = 0
+    public var touches = TouchModel()
 
     static let capacity = 20_000
 
@@ -9,6 +12,7 @@ public struct TypingMemory: Codable, Hashable, Sendable {
 
     public mutating func record(_ word: String, after previous: String?) {
         counts[word, default: 0] += 1
+        total += 1
         if let previous { following[previous, default: [:]][word, default: 0] += 1 }
         if counts.count > Self.capacity { forgetRarest() }
     }
@@ -21,6 +25,16 @@ public struct TypingMemory: Codable, Hashable, Sendable {
         kept.contains(word.lowercased())
     }
 
+    func count(of word: String) -> Int {
+        counts[word, default: 0] + (word.first?.isLowercase == true ? counts[word.prefix(1).uppercased() + word.dropFirst(), default: 0] : 0)
+    }
+
+    func count(of word: String, after previous: String) -> (count: Int, total: Int, types: Int) {
+        guard let next = following[previous] else { return (0, 0, 0) }
+        let capitalized = word.first?.isLowercase == true ? next[word.prefix(1).uppercased() + word.dropFirst(), default: 0] : 0
+        return (next[word, default: 0] + capitalized, next.values.reduce(0, +), next.count)
+    }
+
     func completions(for prefix: String) -> [String] {
         let lower = prefix.lowercased()
         return counts
@@ -29,12 +43,17 @@ public struct TypingMemory: Codable, Hashable, Sendable {
             .map(\.key)
     }
 
+    var familiar: some Sequence<String> {
+        counts.lazy.filter { $0.value > 1 || self.isKept($0.key) }.map(\.key)
+    }
+
     func predictions(after previous: String) -> [String] {
         (following[previous] ?? [:]).filter { $0.value > 1 }.sorted(by: Self.frequent).map(\.key)
     }
 
     private mutating func forgetRarest() {
         counts = counts.filter { $0.value > 1 || isKept($0.key) }
+        total = counts.values.reduce(0, +)
         following = following.compactMapValues { next in
             let frequent = next.filter { $0.value > 1 }
             return frequent.isEmpty ? nil : frequent

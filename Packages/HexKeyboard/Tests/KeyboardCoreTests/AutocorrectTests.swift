@@ -153,20 +153,6 @@ struct AutocorrectTests {
         #expect(engine.suggestions.first == Suggestion("you", .candidate))
     }
 
-    @Test func emitsTapSamplesForCorrectedWords() {
-        var engine = TypingEngine.correcting()
-        var samples: [TapSample] = []
-        engine.onTapSamples = { samples += $0 }
-        let document = TestDocument("x ")
-        for (index, character) in "wotk".enumerated() {
-            engine.perform(.character(String(character)), in: document, tap: Tap(x: Double(index), y: 0, key: String(character)))
-        }
-        engine.perform(.space, in: document)
-        #expect(document.text == "x work ")
-        #expect(samples.map(\.intended) == ["w", "o", "r", "k"])
-        #expect(samples[2].tap.key == "t")
-    }
-
     @Test func findsTheCurrentWord() {
         #expect(Words.current(in: "it's") == "it's")
         #expect(Words.current(in: "say 'hi") == "hi")
