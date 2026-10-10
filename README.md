@@ -24,7 +24,8 @@ Apple's keyboard on the left, Hex on the right, same simulator, iOS 26.3:
 - Globe key only when iOS asks for one (`needsInputModeSwitchKey`).
 - Landscape iPhone and wide (foldable-size) phones, which get the iPad mini layout.
 - Suggestion bar drawn like iOS 26/27's: the literal “word” in quotes, the pending autocorrection in a pill, light and dark.
-- Autocorrect on space and punctuation, backspace right after a correction offers the original back, and reverted words are never corrected again. Candidates come from `UITextChecker`, your Text Replacements and contacts (`requestSupplementaryLexicon`), and words you type. Fields that turn autocorrection off, and URL, email and number fields, are left alone.
+- Learns your thumbs: every key's touch spot is a personal 2D Gaussian, updated from the words you keep and from backspace-and-retype, with no settings and nothing to tune. Taps are hit-tested against it and against which letter is likely next, so keys grow and shrink invisibly like Apple's (never past a quarter key).
+- Its own autocorrect: a 134k-word English lexicon with frequencies (2.4 MB, SCOWL words and Google Books counts, see `Packages/HexKeyboard/Sources/KeyboardUI/Resources/LEXICON-LICENSE`), decoded against your taps and the words you use. It fixes slips, swaps, missed keys, skipped apostrophes and a space tapped instead of a letter ("a out" → "about"). Backspace right after a correction offers the original back, and reverted words are never corrected again. Your Text Replacements and contacts (`requestSupplementaryLexicon`) still apply. Fields that turn autocorrection off, and URL, email and number fields, are left alone.
 - Smart Punctuation (curly quotes, em dashes), since host apps don't convert a third-party keyboard's input.
 - A settings screen in the app, styled like Settings › General › Keyboard and shared with the keyboard through an App Group.
 - No network, no Full Access.

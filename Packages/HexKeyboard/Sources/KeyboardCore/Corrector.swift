@@ -123,14 +123,11 @@ extension Corrector {
         let taps = typed.taps.count == letters.count ? typed.taps.map(Optional.some) : letters.map { _ in nil }
         let bounds = grid.bounds
         let stray = -Math.log(bounds.width * bounds.height)
-        let frames = (0..<Lexicon.alphabet).map { grid.frame(of: String(UnicodeScalar(Lexicon.letter(at: $0)))).map(grid.cell(of:)) }
-        let touches = (0..<Lexicon.alphabet).map { memory.touches.touches(for: String(UnicodeScalar(Lexicon.letter(at: $0))), signature: grid.signature) }
+        let keys = memory.touches.layout(grid)
         return zip(letters, taps).map { letter, tap in
-            guard let index = Lexicon.index(of: letter), let typedCell = frames[index] else { return .exact(letter) }
-            let point = tap.map { ($0.x, $0.y) } ?? (typedCell.midX, typedCell.midY)
-            let likelihoods = frames.indices.map { key in
-                frames[key].map { memory.touches.logLikelihood(x: point.0, y: point.1, cell: $0, touches: touches[key]) } ?? -.infinity
-            }
+            guard let index = Lexicon.index(of: letter), let typed = grid.frame(of: Lexicon.labels[index]) else { return .exact(letter) }
+            let point = tap.map { ($0.x, $0.y) } ?? (typed.midX, typed.midY)
+            let likelihoods = Lexicon.labels.map { keys.logLikelihood(x: point.0, y: point.1, for: $0) ?? -.infinity }
             return TapEvidence(letters: likelihoods, stray: stray)
         }
     }
@@ -148,15 +145,15 @@ extension Corrector {
     /// that key is to come next after `prefix` (pass `nil` where words aren't expected). Keys without a label (shift,
     /// delete, return…) keep exactly the taps that land on them.
     public func key(atX x: Double, y: Double, in grid: KeyGrid, after prefix: String?) -> (row: Int, key: Int)? {
-        guard let nearest = grid.index(atX: x, y: y), grid.rows[nearest.row][nearest.key].key.label != nil else {
-            return grid.index(atX: x, y: y)
-        }
+        guard let nearest = grid.index(atX: x, y: y) else { return nil }
+        guard grid.rows[nearest.row][nearest.key].key.label != nil else { return nearest }
         let next = prefix.flatMap { prefix in lexicon.map { languageModel($0).next(after: prefix.lowercased()) } }
+        let keys = memory.touches.layout(grid)
         var best = nearest, bestScore = -Double.infinity
         for (r, row) in grid.rows.enumerated() {
             for (k, item) in row.enumerated() {
                 guard let label = item.key.label, grid.reaches(label, x: x, y: y),
-                      let likelihood = memory.touches.logLikelihood(x: x, y: y, for: label, on: grid) else { continue }
+                      let likelihood = keys.logLikelihood(x: x, y: y, for: label) else { continue }
                 let score = likelihood + (next?[label.lowercased()].map(Math.log) ?? 0)
                 if score > bestScore { (best, bestScore) = ((r, k), score) }
             }
@@ -171,8 +168,11 @@ extension Corrector {
     func joined(_ first: TypedWord?, space: Tap, _ second: TypedWord) -> String? {
         guard let lexicon, first.map({ !$0.text.isEmpty && $0.taps.count == $0.text.count }) ?? true,
               !second.text.isEmpty, second.taps.count == second.text.count,
-              let asSpace = memory.touches.logLikelihood(x: space.x, y: space.y, for: " ", on: grid),
-              let letter = Self.letters.max(by: { likelihood(space, $0) < likelihood(space, $1) }) else { return nil }
+              case let keys = memory.touches.layout(grid),
+              let asSpace = keys.logLikelihood(x: space.x, y: space.y, for: " "),
+              let letter = Lexicon.labels.dropLast().max(by: {
+                  keys.logLikelihood(x: space.x, y: space.y, for: $0) ?? -.infinity < keys.logLikelihood(x: space.x, y: space.y, for: $1) ?? -.infinity
+              }) else { return nil }
         let together = TypedWord((first?.text ?? "") + letter + second.text, taps: (first?.taps ?? []) + [space] + second.taps,
                                  previous: first?.previous ?? second.previous)
         let secondSpace = languageModel(lexicon).next(after: "")[" "] ?? 0.5
@@ -188,11 +188,5 @@ extension Corrector {
         }
         let joined = word.logPosterior + (first == nil ? Math.log(1 - secondSpace) : 0)
         return joined > apart ? word.word : nil
-    }
-
-    private static let letters = (0..<26).map { String(UnicodeScalar(Lexicon.letter(at: $0))) }
-
-    private func likelihood(_ tap: Tap, _ label: String) -> Double {
-        memory.touches.logLikelihood(x: tap.x, y: tap.y, for: label, on: grid) ?? -.infinity
     }
 }

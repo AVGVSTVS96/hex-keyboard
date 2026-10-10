@@ -45,10 +45,9 @@ struct LanguageModel {
         let mass = { (node: Lexicon.Node?) in node.map { (1 - novelty) * Math.exp(lexicon.logMass($0)) } ?? 0 }
         let total = mass(node) + novel(length)
         var result: [String: Double] = [:]
-        for index in 0..<Lexicon.alphabet {
-            let letter = Lexicon.letter(at: index)
-            let child = node.flatMap { lexicon.child($0, letter) }
-            result[String(UnicodeScalar(letter))] = (mass(child) + novel(length + 1)) / total
+        for (index, label) in Lexicon.labels.enumerated() {
+            let child = node.flatMap { lexicon.child($0, Lexicon.letter(at: index)) }
+            result[label] = (mass(child) + novel(length + 1)) / total
         }
         if prefix.isEmpty {
             let space = (Double(memory.spacesAfterSpace) + 1) / (Double(memory.keysAfterSpace) + 2)

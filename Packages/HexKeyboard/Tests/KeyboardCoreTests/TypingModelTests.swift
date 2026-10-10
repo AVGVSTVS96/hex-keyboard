@@ -59,6 +59,16 @@ struct TouchModelTests {
         #expect(model.taps(for: "m", on: grid) == 100)
     }
 
+    @Test func steadyTapsAnywhereTightenEveryKey() {
+        var model = TouchModel()
+        let w = grid.frame(of: "w")!
+        let before = model.logLikelihood(x: w.midX, y: w.midY, for: "q", on: grid)!
+        model.learn((0..<200).map { i in TapSample(tap: tap("e", dx: Double(i % 5 - 2) * 0.02, dy: Double(i % 3 - 1) * 0.02), intended: "e") }, on: grid)
+        let after = model.logLikelihood(x: w.midX, y: w.midY, for: "q", on: grid)!
+        #expect(after < before - 5)
+        #expect(model.center(of: "q", on: grid) == (0, 0))
+    }
+
     @Test func layoutsLearnSeparately() {
         var model = TouchModel()
         let landscape = KeyGrid(Layouts.layout(for: LayoutContext(device: .phone, layer: .letters)), width: 20,

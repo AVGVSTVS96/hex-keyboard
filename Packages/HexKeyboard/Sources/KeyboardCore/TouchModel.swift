@@ -2,16 +2,18 @@
 ///
 /// Each key's taps are a 2D Gaussian with unknown mean and covariance under a Normal-Inverse-Wishart prior, so every
 /// labeled tap is a closed-form conjugate update and the likelihood of a new tap is the posterior predictive
-/// Student-t. The prior is the key as drawn: centered on it, worth one tap (κ₀ = 1), and with the weakest Wishart
-/// (ν₀ = 4, the least that gives an expected spread) whose expected spread puts the drawn key cell at ±2σ. A key
-/// you've tapped twice barely moves; after a few dozen taps it's yours.
+/// Student-t. A key's mean starts at the drawn center, worth one tap (κ₀ = 1). Its spread starts at your spread over
+/// all keys of its kind (letters, or the space bar), which itself starts at the drawn key cell being ±2σ; each prior
+/// is worth ν₀ = 10 taps, which says people's tap spread is known to about ±30%. So the first taps anywhere teach every
+/// key how steady you are, each key's own taps move its center and shape, and nothing has a rate or schedule.
 ///
 /// Offsets are in key cells, so a model survives small width changes; each layout signature (device class,
 /// orientation, layer) keeps its own keys.
 public struct TouchModel: Codable, Hashable, Sendable {
     private var layouts: [String: [String: Touches]] = [:]
 
-    static let priorSpread = 0.25
+    static let priorSpread = 0.2
+    static let priorWeight = 10.0
 
     public init() {}
 
@@ -29,29 +31,72 @@ public struct TouchModel: Codable, Hashable, Sendable {
         }
     }
 
-    /// The learned center of a key's taps, in key cells from the drawn center.
-    public func center(of label: String, on grid: KeyGrid) -> (x: Double, y: Double) {
-        let posterior = Posterior(layouts[grid.signature]?[label] ?? Touches())
-        return (posterior.mean.x, posterior.mean.y)
+    /// The model for one keyboard layout, with the shared spreads worked out once.
+    public func layout(_ grid: KeyGrid) -> Layout {
+        Layout(grid: grid, keys: layouts[grid.signature] ?? [:])
     }
 
-    /// Log density, per square point, of a tap at (x, y) when you meant the key labeled `label`.
     public func logLikelihood(x: Double, y: Double, for label: String, on grid: KeyGrid) -> Double? {
-        guard let frame = grid.frame(of: label) else { return nil }
-        return logLikelihood(x: x, y: y, cell: grid.cell(of: frame), touches: layouts[grid.signature]?[label])
+        layout(grid).logLikelihood(x: x, y: y, for: label)
     }
 
-    func logLikelihood(x: Double, y: Double, cell: Rect, touches: Touches?) -> Double {
-        let (u, v) = Self.offset(x: x, y: y, in: cell)
-        return Posterior(touches ?? Touches()).logPredictive(u, v) - Math.log(cell.width * cell.height)
-    }
-
-    func touches(for label: String, signature: String) -> Touches? {
-        layouts[signature]?[label]
+    public func center(of label: String, on grid: KeyGrid) -> (x: Double, y: Double) {
+        layout(grid).center(of: label)
     }
 
     static func offset(x: Double, y: Double, in cell: Rect) -> (Double, Double) {
         ((x - cell.midX) / cell.width, (y - cell.midY) / cell.height)
+    }
+
+    public struct Layout {
+        let grid: KeyGrid
+        let keys: [String: Touches]
+        private let letters: Spread
+        private let space: Spread
+
+        init(grid: KeyGrid, keys: [String: Touches]) {
+            self.grid = grid
+            self.keys = keys
+            letters = Spread(pooling: keys.filter { $0.key != " " }.values)
+            space = Spread(pooling: keys[" "].map { [$0] } ?? [])
+        }
+
+        /// Log density, per square point, of a tap at (x, y) when you meant the key labeled `label`.
+        public func logLikelihood(x: Double, y: Double, for label: String) -> Double? {
+            guard let frame = grid.frame(of: label) else { return nil }
+            let cell = grid.cell(of: frame)
+            let (u, v) = TouchModel.offset(x: x, y: y, in: cell)
+            return posterior(label).logPredictive(u, v) - Math.log(cell.width * cell.height)
+        }
+
+        /// The learned center of a key's taps, in key cells from the drawn center.
+        public func center(of label: String) -> (x: Double, y: Double) {
+            posterior(label).mean
+        }
+
+        func posterior(_ label: String) -> Posterior {
+            Posterior(keys[label] ?? Touches(), spread: label == " " ? space : letters)
+        }
+    }
+}
+
+/// The expected covariance of a group of keys' taps around their own centers, starting from the drawn cell.
+struct Spread {
+    let xx, xy, yy: Double
+
+    init(pooling keys: some Sequence<Touches>) {
+        let weight = TouchModel.priorWeight - 3
+        let prior = weight * TouchModel.priorSpread * TouchModel.priorSpread
+        var (xx, xy, yy, count) = (prior, 0.0, prior, 0.0)
+        for key in keys {
+            let shrink = key.count / (1 + key.count)
+            xx += key.scatterXX + shrink * key.meanX * key.meanX
+            xy += key.scatterXY + shrink * key.meanX * key.meanY
+            yy += key.scatterYY + shrink * key.meanY * key.meanY
+            count += key.count
+        }
+        let scale = 1 / (weight + count)
+        (self.xx, self.xy, self.yy) = (xx * scale, xy * scale, yy * scale)
     }
 }
 
@@ -76,15 +121,15 @@ struct Posterior {
     let dof: Double
     let xx, xy, yy: Double
 
-    init(_ touches: Touches) {
+    init(_ touches: Touches, spread: Spread) {
         let n = touches.count
-        let kappa = 1 + n, nu = 4 + n
-        let prior = TouchModel.priorSpread * TouchModel.priorSpread
+        let kappa = 1 + n, nu = TouchModel.priorWeight + n
+        let weight = TouchModel.priorWeight - 3
         let shrink = n / kappa
         mean = (shrink * touches.meanX, shrink * touches.meanY)
-        let psiXX = prior + touches.scatterXX + shrink * touches.meanX * touches.meanX
-        let psiXY = touches.scatterXY + shrink * touches.meanX * touches.meanY
-        let psiYY = prior + touches.scatterYY + shrink * touches.meanY * touches.meanY
+        let psiXX = weight * spread.xx + touches.scatterXX + shrink * touches.meanX * touches.meanX
+        let psiXY = weight * spread.xy + touches.scatterXY + shrink * touches.meanX * touches.meanY
+        let psiYY = weight * spread.yy + touches.scatterYY + shrink * touches.meanY * touches.meanY
         dof = nu - 1
         let scale = (kappa + 1) / (kappa * dof)
         (xx, xy, yy) = (psiXX * scale, psiXY * scale, psiYY * scale)

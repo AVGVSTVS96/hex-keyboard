@@ -100,6 +100,8 @@ public final class Lexicon: Sendable {
     }
 
     static func letter(at index: Int) -> UInt8 { index == 26 ? 39 : UInt8(97 + index) }
+
+    static let labels = (0..<alphabet).map { String(UnicodeScalar(letter(at: $0))) }
 }
 
 extension Lexicon {
