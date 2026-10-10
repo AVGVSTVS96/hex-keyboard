@@ -41,7 +41,14 @@ open class HexKeyboardViewController: UIInputViewController {
             engine.accept($0, in: document)
             render()
         }
-        engine.corrector = Corrector(source: TextCheckerSource(language: primaryLanguage ?? "en-US"))
+        let words: any CandidateSource = Lexicon.english ?? TextCheckerSource(language: primaryLanguage ?? "en-US")
+        engine.corrector = Corrector(source: words)
+        keyboardView.resolve = { [unowned self] grid, point in engine.key(atX: point.x, y: point.y, in: grid, document: document) }
+        keyboardView.onGrid = { [unowned self] grid in
+            guard let corrector = engine.corrector, engine.layer == .letters else { return }
+            if grid.signature != corrector.grid.signature { engine.endSession() }
+            corrector.grid = grid
+        }
         keyboardView.globeTarget = { [unowned self] control in
             control.addTarget(self, action: #selector(handleInputModeList(from:with:)), for: .allTouchEvents)
         }
@@ -73,6 +80,7 @@ open class HexKeyboardViewController: UIInputViewController {
 
     override open func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
+        engine.endSession()
         if let memory = engine.corrector?.memory { MemoryStore.save(memory) }
     }
 
@@ -129,7 +137,8 @@ open class HexKeyboardViewController: UIInputViewController {
             returnKind: engine.traits.returnKind,
             returnEnabled: !engine.traits.returnRequiresText || textDocumentProxy.hasText
         )
-        keyboardView.update(layout: layout, metrics: metrics, faces: faces, theme: theme)
+        let signature = LayoutContext(device: device, layer: engine.layer, isLandscape: screenSize.width > screenSize.height).signature
+        keyboardView.update(layout: layout, signature: signature, metrics: metrics, faces: faces, theme: theme)
         suggestionBar.maximumSlotWidth = device == .phone ? .infinity : 154.5
         suggestionBar.update(engine.suggestions, enabled: engine.showsSuggestions, theme: theme)
 

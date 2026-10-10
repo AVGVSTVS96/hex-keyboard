@@ -12,6 +12,7 @@ public struct TypingEngine {
     var erased: [Int: Tap] = [:]
     var retyped: [TapSample] = []
     var pending: PendingWord?
+    var shortcut: Tap?
     var revert: Revert?
 
     private enum ShiftHold { case pressed, typedWhileHeld }
@@ -48,6 +49,7 @@ public struct TypingEngine {
         let revert = self.revert
         spaceJustTyped = false
         self.revert = nil
+        if wasSpace, action != .delete { corrector?.memory.recordAfterSpace(isSpace: action == .space) }
 
         switch action {
         case .character(let text):
@@ -73,6 +75,7 @@ public struct TypingEngine {
             if wasSpace, settings.periodShortcut, traits.smartPunctuation, Self.endsSentenceable(document.textBeforeInput) {
                 document.deleteBackward(1)
                 document.insert(". ")
+                shortcut = tap
             } else {
                 commitWord(in: document, ending: tap)
                 document.insert(" ")
@@ -87,6 +90,7 @@ public struct TypingEngine {
         case .tab:
             document.insert("\t")
         case .delete:
+            shortcut = nil
             let offersRevert = revert?.isCommitted(before: document.textBeforeInput) == true
             document.deleteBackward(1)
             if offersRevert {

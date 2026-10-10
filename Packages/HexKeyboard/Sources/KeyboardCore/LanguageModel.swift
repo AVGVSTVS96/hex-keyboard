@@ -37,6 +37,7 @@ struct LanguageModel {
     }
 
     /// P(next letter | the letters so far), over the lexicon and novel spellings, and P(the word ends here) as `" "`.
+    /// Before a word starts, `" "` is how often you type a second space, by the rule of succession.
     func next(after prefix: String) -> [String: Double] {
         let length = Double(prefix.utf8.count)
         let node = lexicon.node(for: prefix)
@@ -49,8 +50,14 @@ struct LanguageModel {
             let child = node.flatMap { lexicon.child($0, letter) }
             result[String(UnicodeScalar(letter))] = (mass(child) + novel(length + 1)) / total
         }
-        let ends = node.flatMap(lexicon.logWord).map { (1 - novelty) * Math.exp($0) } ?? 0
-        result[" "] = (ends + novel(length + 1)) / total
+        if prefix.isEmpty {
+            let space = (Double(memory.spacesAfterSpace) + 1) / (Double(memory.keysAfterSpace) + 2)
+            for (key, p) in result { result[key] = p * (1 - space) }
+            result[" "] = space
+        } else {
+            let ends = node.flatMap(lexicon.logWord).map { (1 - novelty) * Math.exp($0) } ?? 0
+            result[" "] = (ends + novel(length + 1)) / total
+        }
         return result
     }
 }

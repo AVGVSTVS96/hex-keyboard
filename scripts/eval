@@ -1,7 +1,11 @@
 #!/bin/sh
-# Runs on the Mac. Types the phrase corpus with simulated tap noise and prints the autocorrect baseline.
+# Runs on the Mac. Types the phrase corpus with simulated taps and prints word accuracy for the old and new correctors.
+# Optional argument: one test (noise or biasedThumbs).
 set -e
 cd "$(dirname "$0")/../Packages/HexKeyboard"
 ID=$(../../scripts/sim ensure "iPhone 17" iPhone-17)
+BOOTED=$(xcrun simctl list devices | grep -c "$ID) (Booted)" || true)
 xcodebuild test -scheme HexKeyboard-Package -destination "id=$ID" -derivedDataPath ../../build/tests \
-  -only-testing:KeyboardUITests/Evaluation 2>&1 | grep -E "error:|EVAL|✘" || true
+  -configuration Release ENABLE_TESTABILITY=YES \
+  -only-testing:KeyboardUITests/Evaluation${1:+/$1()} 2>&1 | grep -E "error:|EVAL|✘" || true
+[ "$BOOTED" = 1 ] || xcrun simctl shutdown "$ID" 2>/dev/null || true

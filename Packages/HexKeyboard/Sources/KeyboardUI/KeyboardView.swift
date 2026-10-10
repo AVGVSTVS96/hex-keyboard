@@ -13,9 +13,12 @@ enum KeyboardEvent {
 
 final class KeyboardView: UIView {
     var onEvent: (KeyboardEvent) -> Void = { _ in }
+    var onGrid: (KeyGrid) -> Void = { _ in }
+    var resolve: (KeyGrid, CGPoint) -> (row: Int, key: Int)? = { grid, point in grid.index(atX: point.x, y: point.y) }
     var globeTarget: ((UIControl) -> Void)?
 
     private(set) var layout = KeyboardLayout(rows: [])
+    private(set) var signature = ""
     private(set) var metrics = KeyboardMetrics.phone(width: 390)
     private(set) var faceContext = KeyFaceContext(device: .phone, layer: .letters, kind: .text, shift: .off, returnKind: .default, returnEnabled: true)
     private(set) var theme = KeyboardTheme.light
@@ -43,10 +46,11 @@ final class KeyboardView: UIView {
 
     required init?(coder: NSCoder) { fatalError() }
 
-    func update(layout: KeyboardLayout, metrics: KeyboardMetrics, faces: KeyFaceContext, theme: KeyboardTheme) {
+    func update(layout: KeyboardLayout, signature: String, metrics: KeyboardMetrics, faces: KeyFaceContext, theme: KeyboardTheme) {
         let rebuild = layout != self.layout
-        let relayout = rebuild || metrics != self.metrics
+        let relayout = rebuild || metrics != self.metrics || signature != self.signature
         self.layout = layout
+        self.signature = signature
         self.metrics = metrics
         self.faceContext = faces
         self.theme = theme
@@ -74,12 +78,13 @@ final class KeyboardView: UIView {
             return control
         }
         for (_, touch) in tracked { touch.keyView = nil }
-        grid = KeyGrid(layout, width: bounds.width, metrics: metrics.grid)
+        grid = KeyGrid(layout, width: bounds.width, metrics: metrics.grid, signature: signature)
     }
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        grid = KeyGrid(layout, width: bounds.width, metrics: metrics.grid)
+        grid = KeyGrid(layout, width: bounds.width, metrics: metrics.grid, signature: signature)
+        onGrid(grid)
         var globes = globeControls.makeIterator()
         for (views, keys) in zip(rowKeys, grid.rows) {
             for (view, key) in zip(views, keys) {
@@ -102,7 +107,7 @@ final class KeyboardView: UIView {
     }
 
     func keyView(at point: CGPoint) -> KeyView? {
-        grid.index(atX: point.x, y: point.y).map { rowKeys[$0.row][$0.key] }
+        resolve(grid, point).map { rowKeys[$0.row][$0.key] }
     }
 
     override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {

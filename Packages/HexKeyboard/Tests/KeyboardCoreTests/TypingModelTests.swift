@@ -289,3 +289,66 @@ struct LexiconTests {
         #expect(testLexicon.completions(for: "wo") == ["work", "word", "world"])
     }
 }
+
+struct JoinTests {
+    @Test func aSpaceTapThatMeantBJoinsTheWords() {
+        var engine = TypingEngine(traits: InputTraits(autocapitalization: .none))
+        let corrector = Corrector(source: testLexicon)
+        engine.corrector = corrector
+        let b = grid.frame(of: "b")!
+        corrector.learn(samples("b", dx: 0, dy: 0.6))
+        let document = TestDocument()
+        type("a", into: &engine, document)
+        engine.perform(.space, in: document, tap: Tap(x: b.midX, y: b.midY + 0.6, key: " "))
+        type("out ", into: &engine, document)
+        #expect(document.text == "about ")
+        engine.endSession()
+        #expect(corrector.memory.touches.taps(for: "b", on: grid) == 31)
+        #expect(corrector.memory.count(of: "a") == 0)
+    }
+
+    @Test func aRealSpaceStaysASpace() {
+        var engine = TypingEngine(traits: InputTraits(autocapitalization: .none))
+        engine.corrector = Corrector(source: testLexicon)
+        let document = TestDocument()
+        type("a out ", into: &engine, document)
+        #expect(document.text == "a out ")
+    }
+
+    @Test func secondSpacesAreAsLikelyAsYouMakeThem() {
+        var memory = TypingMemory()
+        let fresh = LanguageModel(lexicon: testLexicon, memory: memory).next(after: "")[" "]
+        #expect(fresh == 0.5)
+        for index in 0..<98 { memory.recordAfterSpace(isSpace: index == 0) }
+        #expect(LanguageModel(lexicon: testLexicon, memory: memory).next(after: "")[" "] == 0.02)
+    }
+}
+
+struct StraySpaceTests {
+    @Test func aSecondSpaceThatMeantBStartsTheWord() throws {
+        var engine = TypingEngine()
+        let corrector = Corrector(source: testLexicon)
+        engine.corrector = corrector
+        let b = grid.frame(of: "b")!
+        corrector.learn(samples("b", dx: 0, dy: 0.6))
+        let document = TestDocument()
+        engine.documentChanged(document)
+        type("the ", into: &engine, document)
+        engine.perform(.space, in: document, tap: Tap(x: b.midX, y: b.midY + 0.6, key: " "))
+        #expect(document.text == "The. ")
+        type("out ", into: &engine, document)
+        #expect(document.text == "The about ")
+        engine.perform(.delete, in: document)
+        engine.accept(try #require(engine.suggestions.first), in: document)
+        #expect(document.text == "The. Out ")
+    }
+
+    @Test func aDeliberatePeriodStays() {
+        var engine = TypingEngine()
+        engine.corrector = Corrector(source: testLexicon)
+        let document = TestDocument()
+        engine.documentChanged(document)
+        type("the  out ", into: &engine, document)
+        #expect(document.text == "The. Out ")
+    }
+}

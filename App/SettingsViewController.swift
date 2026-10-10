@@ -51,7 +51,7 @@ final class SettingsViewController: UITableViewController {
     }
 
     override func tableView(_ tableView: UITableView, titleForFooterInSection section: Int) -> String? {
-        section == resetSection ? "Removes the words Hex has learned from your typing." : sections[section].footer
+        section == resetSection ? "Removes the words and typing habits Hex has learned from you." : sections[section].footer
     }
 
     override func tableView(_ tableView: UITableView, shouldHighlightRowAt indexPath: IndexPath) -> Bool {
@@ -60,7 +60,7 @@ final class SettingsViewController: UITableViewController {
 
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
-        let alert = UIAlertController(title: nil, message: "This will delete all custom words you’ve typed.", preferredStyle: .actionSheet)
+        let alert = UIAlertController(title: nil, message: "This will delete all custom words you’ve typed and how Hex learned your taps.", preferredStyle: .actionSheet)
         alert.addAction(UIAlertAction(title: "Reset Dictionary", style: .destructive) { _ in MemoryStore.reset() })
         alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
         alert.popoverPresentationController?.sourceView = tableView.cellForRow(at: indexPath)

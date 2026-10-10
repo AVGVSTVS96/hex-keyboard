@@ -21,6 +21,13 @@ public struct LayoutContext: Hashable, Sendable {
     }
 }
 
+extension LayoutContext {
+    /// What a touch model is kept per: the same keys under the same hands.
+    public var signature: String {
+        "\(device)-\(isLandscape ? "landscape" : "portrait")-\(layer)"
+    }
+}
+
 public enum Layouts {
     public static func layout(for context: LayoutContext) -> KeyboardLayout {
         switch context.device {

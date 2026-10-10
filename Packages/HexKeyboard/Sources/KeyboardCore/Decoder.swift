@@ -46,14 +46,15 @@ struct Decoder {
         var terminal: Bool
     }
 
-    func decode(_ taps: [TapEvidence], corrections: Int = 4, completions: Int = 4) -> [Result] {
+    /// The `count` likeliest words, completions included, and at least the likeliest word of exactly the typed length.
+    func decode(_ taps: [TapEvidence], count: Int = 4) -> [Result] {
         guard !taps.isEmpty else { return [] }
         let best = taps.map(\.best)
         let offset = best.reduce(0, +)
         var heap = Heap<State>()
         var found: [Result] = []
         var seen: Set<String> = []
-        var exact = 0, completed = 0, pops = 0
+        var exact = 0, pops = 0
 
         func push(_ state: State) {
             let bound = state.terminal ? state.score : state.score + lexicon.logMass(state.node)
@@ -68,16 +69,14 @@ struct Decoder {
         }
         push(State(node: lexicon.root, tap: 0, edits: 0, completing: false, score: 0, spelling: [], terminal: false))
 
-        while let state = heap.pop(), pops < Self.budget, exact < corrections || completed < completions {
+        while found.count < count || exact == 0, pops < Self.budget, let state = heap.pop() {
             pops += 1
             if state.terminal {
                 let word = String(decoding: state.spelling, as: UTF8.self)
                 guard seen.insert(word).inserted else { continue }
                 let logPrior = lexicon.logWord(state.node) ?? 0
-                if state.completing ? completed < completions : exact < corrections {
-                    found.append(Result(word: lexicon.canonical(word) ?? word, logLikelihood: state.score - logPrior + offset, logPrior: logPrior, isCompletion: state.completing))
-                }
-                if state.completing { completed += 1 } else { exact += 1 }
+                found.append(Result(word: lexicon.canonical(word) ?? word, logLikelihood: state.score - logPrior + offset, logPrior: logPrior, isCompletion: state.completing))
+                if !state.completing { exact += 1 }
                 continue
             }
             let i = state.tap

@@ -17,6 +17,7 @@ struct Revert: Hashable {
 /// A committed word whose taps become labels once you move on without changing it.
 struct PendingWord: Hashable {
     var word: String
+    var typed: String
     var taps: [Tap]
     var retyped: [TapSample]
     var ending: Tap?
@@ -68,11 +69,11 @@ extension TypingEngine {
             pending?.word = revert.original
         case .literal:
             corrector?.memory.keep(suggestion.text)
-            hold(suggestion.text)
+            hold(suggestion.text, typed: String(word))
         case .correction, .candidate:
             document.deleteBackward(word.count)
             document.insert(suggestion.text)
-            hold(suggestion.text)
+            hold(suggestion.text, typed: String(word))
         }
         if !suggestion.text.contains(" ") { corrector?.memory.record(suggestion.text, after: previous) }
         revert = nil
@@ -83,32 +84,73 @@ extension TypingEngine {
     }
 
     mutating func commitWord(in document: some TextDocument, ending: Tap? = nil) {
+        let shortcut = self.shortcut
         defer {
             taps = []
             erased = [:]
             retyped = []
+            self.shortcut = nil
         }
         guard let corrector else { return }
         let text = document.textBeforeInput ?? ""
         let word = Words.current(in: text)
         guard !word.isEmpty else { return }
-        var final = String(word)
-        let previous = Words.previous(before: word, in: text)
+        var final = String(word), typedText = final
+        var previous = Words.previous(before: word, in: text)
         let midWord = document.textAfterInput?.first.map(Words.isWordCharacter) ?? false
-        if correcting, !midWord, Words.isCorrectable(word, in: text),
-           let correction = corrector.correction(for: TypedWord(final, taps: taps, previous: previous), guessing: traits.spellChecking) {
+        guard correcting, !midWord, Words.isCorrectable(word, in: text) else { return settle(final, typed: final, after: previous, ending: ending) }
+        let typed = TypedWord(final, taps: taps, previous: previous)
+        if let shortcut, text.dropLast(word.count).hasSuffix(". "),
+           case let before = Words.current(in: String(text.dropLast(word.count + 2))).lowercased(),
+           let joined = corrector.joined(nil, space: shortcut, TypedWord(final.lowercased(), taps: taps, previous: before)) {
+            document.deleteBackward(word.count + 2)
+            document.insert(" " + joined)
+            revert = Revert(original: ". " + final, replacement: " " + joined)
+            corrector.memory.unrecordSpaceAfterSpace()
+            taps = [shortcut] + taps
+            final = joined
+            typedText = joined
+            previous = before
+        } else if let pending, let join = join(typed, after: pending, in: text) {
+            document.deleteBackward(pending.word.count + 1 + word.count)
+            document.insert(join.word)
+            revert = Revert(original: "\(pending.word) \(final)", replacement: join.word)
+            corrector.memory.forget(pending.word, after: join.previous)
+            taps = pending.taps + [join.space] + taps
+            self.pending = nil
+            final = join.word
+            typedText = join.word
+            previous = join.previous
+        } else if let correction = corrector.correction(for: typed, guessing: traits.spellChecking) {
             document.deleteBackward(word.count)
             document.insert(correction)
             revert = Revert(original: final, replacement: correction)
             final = correction
         }
-        if !final.contains(" ") { corrector.memory.record(final, after: previous) }
-        hold(final, ending: ending)
+        settle(final, typed: typedText, after: previous, ending: ending)
     }
 
-    private mutating func hold(_ word: String, ending: Tap? = nil) {
+    private mutating func settle(_ word: String, typed: String, after previous: String?, ending: Tap?) {
+        if !word.contains(" ") { corrector?.memory.record(word, after: previous) }
+        hold(word, typed: typed, ending: ending)
+    }
+
+    /// Whether the space between the last word and this one was really a letter you missed ("a out" → "about").
+    private func join(_ typed: TypedWord, after pending: PendingWord, in text: String) -> (word: String, space: Tap, previous: String?)? {
+        guard let corrector, let space = pending.ending, pending.taps.count == pending.typed.count else { return nil }
+        let head = String(text.dropLast(typed.text.count))
+        guard head.hasSuffix(pending.word + " ") else { return nil }
+        let firstText = Words.current(in: String(head.dropLast()))
+        guard firstText == pending.word[...] else { return nil }
+        let before = Words.previous(before: firstText, in: String(head.dropLast()))
+        let first = TypedWord(pending.typed, taps: pending.taps, previous: before)
+        guard let joined = corrector.joined(first, space: space, TypedWord(typed.text, taps: typed.taps, previous: pending.word.lowercased())) else { return nil }
+        return (Words.matchCase(joined, to: Substring(pending.typed)), space, before)
+    }
+
+    private mutating func hold(_ word: String, typed: String, ending: Tap? = nil) {
         learnPending()
-        pending = PendingWord(word: word, taps: taps, retyped: retyped, ending: ending)
+        pending = PendingWord(word: word, typed: typed, taps: taps, retyped: retyped, ending: ending)
     }
 
     mutating func learnPending() {

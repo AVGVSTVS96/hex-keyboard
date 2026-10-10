@@ -4,6 +4,8 @@ public struct TypingMemory: Codable, Hashable, Sendable {
     public private(set) var kept: Set<String> = []
     public private(set) var following: [String: [String: Int]] = [:]
     public private(set) var total = 0
+    public private(set) var spacesAfterSpace = 0
+    public private(set) var keysAfterSpace = 0
     public var touches = TouchModel()
 
     static let capacity = 20_000
@@ -15,6 +17,23 @@ public struct TypingMemory: Codable, Hashable, Sendable {
         total += 1
         if let previous { following[previous, default: [:]][word, default: 0] += 1 }
         if counts.count > Self.capacity { forgetRarest() }
+    }
+
+    public mutating func forget(_ word: String, after previous: String?) {
+        guard let count = counts[word] else { return }
+        counts[word] = count > 1 ? count - 1 : nil
+        total -= 1
+        if let previous, let next = following[previous]?[word] { following[previous]?[word] = next > 1 ? next - 1 : nil }
+    }
+
+    /// Counts what you type right after a space, so a second space (the "." shortcut) is as likely as you make it.
+    public mutating func recordAfterSpace(isSpace: Bool) {
+        keysAfterSpace += 1
+        if isSpace { spacesAfterSpace += 1 }
+    }
+
+    mutating func unrecordSpaceAfterSpace() {
+        spacesAfterSpace -= 1
     }
 
     public mutating func keep(_ word: String) {

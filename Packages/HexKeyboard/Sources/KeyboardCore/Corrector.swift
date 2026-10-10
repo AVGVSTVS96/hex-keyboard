@@ -146,24 +146,53 @@ extension Corrector {
 extension Corrector {
     /// The key a tap most likely meant: the touch model's likelihood for each key the tap reaches, times how likely
     /// that key is to come next after `prefix` (pass `nil` where words aren't expected). Keys without a label (shift,
-    /// delete, return…) keep exactly the taps that land on them, and the space bar only trades taps with letters
-    /// mid-word.
+    /// delete, return…) keep exactly the taps that land on them.
     public func key(atX x: Double, y: Double, in grid: KeyGrid, after prefix: String?) -> (row: Int, key: Int)? {
-        guard let nearest = grid.index(atX: x, y: y), let nearestLabel = grid.rows[nearest.row][nearest.key].key.label else {
+        guard let nearest = grid.index(atX: x, y: y), grid.rows[nearest.row][nearest.key].key.label != nil else {
             return grid.index(atX: x, y: y)
         }
-        let midWord = prefix.map { !$0.isEmpty } ?? false
-        if nearestLabel == " ", !midWord { return nearest }
         let next = prefix.flatMap { prefix in lexicon.map { languageModel($0).next(after: prefix.lowercased()) } }
         var best = nearest, bestScore = -Double.infinity
         for (r, row) in grid.rows.enumerated() {
             for (k, item) in row.enumerated() {
-                guard let label = item.key.label, label != " " || midWord, grid.reaches(label, x: x, y: y),
+                guard let label = item.key.label, grid.reaches(label, x: x, y: y),
                       let likelihood = memory.touches.logLikelihood(x: x, y: y, for: label, on: grid) else { continue }
                 let score = likelihood + (next?[label.lowercased()].map(Math.log) ?? 0)
                 if score > bestScore { (best, bestScore) = ((r, k), score) }
             }
         }
         return best
+    }
+}
+
+extension Corrector {
+    /// Whether a space tap more likely meant a letter: between two words ("a out" → "about"), or as a second space
+    /// before a word (`first` is nil; "ut" → "but"), where the alternative is the "." shortcut you meant.
+    func joined(_ first: TypedWord?, space: Tap, _ second: TypedWord) -> String? {
+        guard let lexicon, first.map({ !$0.text.isEmpty && $0.taps.count == $0.text.count }) ?? true,
+              !second.text.isEmpty, second.taps.count == second.text.count,
+              let asSpace = memory.touches.logLikelihood(x: space.x, y: space.y, for: " ", on: grid),
+              let letter = Self.letters.max(by: { likelihood(space, $0) < likelihood(space, $1) }) else { return nil }
+        let together = TypedWord((first?.text ?? "") + letter + second.text, taps: (first?.taps ?? []) + [space] + second.taps,
+                                 previous: first?.previous ?? second.previous)
+        let secondSpace = languageModel(lexicon).next(after: "")[" "] ?? 0.5
+        let best = { (word: TypedWord) in self.ranked(word).first { !$0.isCompletion } }
+        guard let word = ranked(together).first(where: { !$0.isCompletion && (lexicon.isWord($0.word) || memory.count(of: $0.word) > 1) }),
+              let two = best(TypedWord(second.text, taps: second.taps, previous: first == nil ? "" : second.previous)) else { return nil }
+        let apart: Double
+        if let first {
+            guard let one = best(first) else { return nil }
+            apart = one.logPosterior + asSpace + two.logPosterior
+        } else {
+            apart = Math.log(secondSpace) + asSpace + two.logPosterior
+        }
+        let joined = word.logPosterior + (first == nil ? Math.log(1 - secondSpace) : 0)
+        return joined > apart ? word.word : nil
+    }
+
+    private static let letters = (0..<26).map { String(UnicodeScalar(Lexicon.letter(at: $0))) }
+
+    private func likelihood(_ tap: Tap, _ label: String) -> Double {
+        memory.touches.logLikelihood(x: tap.x, y: tap.y, for: label, on: grid) ?? -.infinity
     }
 }
