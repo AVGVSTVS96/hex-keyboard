@@ -100,3 +100,20 @@
 - 18:20 Without taps (text already in the field), "helo" gets "help" (substitution at the o's center) over "hello" (missed l); with real taps the touch model decides.
 - 18:20 Persistence: memory (words + touch model) lives in the extension's own container, saved when the keyboard disappears. Without Full Access a keyboard can't write the App Group, so the app can't touch that file; "Reset Keyboard Dictionary" bumps a counter in the group's defaults and the keyboard starts over when it sees it moved. Nothing syncs from the keyboard to the app. Whether a keyboard without Full Access can even read the group's defaults (settings rely on it too) needs a device check.
 - 18:40 Tests: 73 core (31 new: math, touch model, labels, joins, decoder, language model, lexicon), all pass on macOS and the iOS 26.3 simulator. UI tests on iPhone 17 26.3: 12 of 13 pass; `testExpandsTextReplacements` fails at adding the replacement in the Settings app (line 86, the new entry never appears), and the pre-branch build fails it identically on this simulator today, so it's the Settings flow, not the keyboard.
+
+## 2026-10-09 · over-correction
+
+- 19:30 Rule: a word that stands on its own (kept, or one that you typing it with every tap on its key's center would get read back as itself, by your touches and the lexicon without your word counts) is replaced only when your touches fit the other word better. Frequencies can choose among readings of your fingers but never overrule them. A missed key or apostrophe never counts against a real word, so "tie" stays "tie" however often you type "time", and "presidents" stays plural. A rare word your own perfect taps would still be read past gets no cover. No constant: both tests compare the model's own likelihoods.
+- 19:30 Tried and dropped: requiring the replacement to also win without your word counts (robust Bayes). It kept 98.1–98.3% but broke 6–7 words at σ 0.25. A center prior worth 4 taps (κ₀ = 4) changed nothing, so κ₀ stays 1.
+- 19:30 Lexicon now includes SCOWL's British and Canadian spellings (137,578 words, 2.42 MB), so "favourite" and "labour" are words, not typos.
+- 19:30 Stray spaces: a space typed where no word ended (start of text, after a space) is re-read as the next word's first letter like the "." shortcut's, and a "." shortcut right after a word can be the word's last letter instead ("jo." → "job"; backspace offers "jo." back). The biased run has no more " ut"/"jo." misses.
+- 19:30 Scorer, same procedure (broken = correctly typed words changed):
+
+  | σ | (a) raw / final | (b) raw / final | (c) raw / final | broken a / b / c |
+  | --- | --- | --- | --- | --- |
+  | 0 | 100.0 / 99.9 | 100.0 / 99.9 | 100.0 / 100.0 | 2 / 2 / 0 |
+  | 0.15 | 99.2 / 99.6 | 99.4 / 99.7 | 99.7 / 99.8 | 2 / 2 / 0 |
+  | 0.25 | 72.0 / 89.3 | 88.2 / 97.3 | 88.2 / 96.5 | 2 / 2 / 2 |
+  | 0.35 | 35.1 / 59.5 | 60.4 / 88.8 | 60.9 / 90.3 | 1 / 1 / 7 |
+
+  Biased thumbs, 5,428 words: (a) 85.2% (broken 5), (b) 95.3% (4), (c) 97.4% (2); (c) per 500 words 96.0, 97.0, 96.6, 98.0, 97.0, 97.2, 97.0, 97.8, 97.4, 98.8. Cost of the rule versus the last run: σ 0.25 (c) 98.0 → 96.5, biased (c) 98.6 → 97.4. What's lost is rare lexicon words your touches really did land on ("os" for "is", "mot" for "not"); the suggestion bar still offers the common word.
