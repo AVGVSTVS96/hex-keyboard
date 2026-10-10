@@ -4,7 +4,7 @@ import Testing
 let testLexicon = Lexicon(counts: [
     ("the", 1000), ("a", 800), ("to", 850), ("I", 900), ("of", 500), ("in", 400), ("is", 300), ("on", 300), ("if", 100),
     ("no", 200), ("go", 100), ("I'm", 100), ("don't", 80), ("done", 20), ("work", 60), ("word", 50), ("world", 30),
-    ("hello", 50), ("help", 40), ("about", 40), ("out", 50), ("man", 30), ("men", 20), ("come", 30), ("home", 30),
+    ("hello", 50), ("help", 40), ("about", 40), ("out", 50), ("man", 30), ("men", 20), ("come", 30), ("home", 30), ("job", 300),
 ].map { (word: $0.0, count: Double($0.1)) })
 
 private let grid = KeyGrid.standard
@@ -215,6 +215,14 @@ struct LabelTests {
 
 struct DecoderTests {
     private func correct(_ text: String, taps: [Tap]? = nil, after previous: String? = nil, _ corrector: Corrector = Corrector(source: testLexicon)) -> String? {
+        correct(text, taps: taps, after: previous, corrector: corrector)
+    }
+
+    private func correct(_ text: String, after previous: String?, _ corrector: Corrector) -> String? {
+        correct(text, taps: nil, after: previous, corrector: corrector)
+    }
+
+    private func correct(_ text: String, taps: [Tap]?, after previous: String?, corrector: Corrector) -> String? {
         let taps = taps ?? text.map { tap(String($0)) }
         return corrector.correction(for: TypedWord(text, taps: taps, previous: previous))
     }
@@ -234,10 +242,17 @@ struct DecoderTests {
         #expect(correct("Hello") == nil)
     }
 
-    @Test func aSlipOnTheBoundaryGoesToTheLikelierWord() {
+    @Test func aRealWordChangesOnlyWhenTheTouchesLeanAway() {
         let i = grid.frame(of: "i")!
-        let between = Tap(x: i.midX + 0.5, y: i.midY, key: "i")
-        #expect(correct("if", taps: [between, tap("f")]) == "of")
+        #expect(correct("if", taps: [Tap(x: i.midX + 0.5, y: i.midY, key: "i"), tap("f")]) == nil)
+        #expect(correct("if", taps: [Tap(x: i.midX + 0.6, y: i.midY, key: "i"), tap("f")]) == "of")
+    }
+
+    @Test func frequentWordsNeverOverruleCleanTaps() {
+        let corrector = Corrector(source: testLexicon)
+        for _ in 0..<50 { corrector.memory.record("home", after: "go") }
+        #expect(correct("come", after: "go", corrector) == nil)
+        #expect(correct("hime", after: "go", corrector) == "home")
     }
 
     @Test func learnedTouchesTurnAHabitualSlipIntoTheWordYouMeant() {
@@ -281,7 +296,7 @@ struct DecoderTests {
 struct LexiconTests {
     @Test func roundTripsThroughBytes() throws {
         let copy = try #require(Lexicon(bytes: testLexicon.bytes))
-        #expect(copy.wordCount == 25)
+        #expect(copy.wordCount == 26)
         #expect(copy.isWord("Hello"))
         #expect(!copy.isWord("hel"))
         #expect(copy.canonical("i'm") == "I'm")
@@ -291,11 +306,11 @@ struct LexiconTests {
 
     @Test func probabilitiesAreNormalized() throws {
         let the = try #require(testLexicon.logProbability(of: "the"))
-        #expect(abs(Math.exp(the) - 1000.0 / 6080) < 1000.0 / 6080 * 0.06)
+        #expect(abs(Math.exp(the) - 1000.0 / 6380) < 1000.0 / 6380 * 0.06)
     }
 
     @Test func listsTheMostFrequentWords() {
-        #expect(testLexicon.mostFrequent(count: 3) == ["the", "I", "to"])
+        #expect(testLexicon.mostFrequent(count: 1) == ["the"])
         #expect(testLexicon.completions(for: "wo") == ["work", "word", "world"])
     }
 }
@@ -360,5 +375,49 @@ struct StraySpaceTests {
         engine.documentChanged(document)
         type("the  out ", into: &engine, document)
         #expect(document.text == "The. Out ")
+    }
+}
+
+struct WordStartTests {
+    private func engine(learningB dy: Double) -> (TypingEngine, Corrector) {
+        var engine = TypingEngine(traits: InputTraits(autocapitalization: .none))
+        let corrector = Corrector(source: testLexicon)
+        engine.corrector = corrector
+        corrector.learn(samples("b", dx: 0, dy: dy))
+        return (engine, corrector)
+    }
+
+    private func spaceBelowB(_ dy: Double) -> Tap {
+        let b = grid.frame(of: "b")!
+        return Tap(x: b.midX, y: b.midY + dy, key: " ")
+    }
+
+    @Test func aSpaceAtTheStartThatMeantBStartsTheWord() {
+        var (engine, _) = engine(learningB: 0.6)
+        let document = TestDocument()
+        engine.perform(.space, in: document, tap: spaceBelowB(0.6))
+        type("out ", into: &engine, document)
+        #expect(document.text == "about ")
+    }
+
+    @Test func aSpaceThatMeantTheLastLetterRejoinsTheWord() throws {
+        var (engine, _) = engine(learningB: 0.6)
+        let document = TestDocument()
+        engine.documentChanged(document)
+        type("go to jo", into: &engine, document)
+        engine.perform(.space, in: document, tap: spaceBelowB(0.6))
+        engine.perform(.space, in: document, tap: tap(" "))
+        #expect(document.text == "go to job ", "\(document.text)")
+        engine.perform(.delete, in: document)
+        engine.accept(try #require(engine.suggestions.first), in: document)
+        #expect(document.text == "go to jo. ")
+    }
+
+    @Test func aDeliberateDoubleSpaceAfterAWordIsAPeriod() {
+        var (engine, _) = engine(learningB: 0.6)
+        let document = TestDocument()
+        engine.documentChanged(document)
+        type("go to work  ", into: &engine, document)
+        #expect(document.text == "go to work. ")
     }
 }

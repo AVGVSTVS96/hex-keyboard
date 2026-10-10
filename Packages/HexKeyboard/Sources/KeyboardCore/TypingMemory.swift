@@ -32,8 +32,9 @@ public struct TypingMemory: Codable, Hashable, Sendable {
         if isSpace { spacesAfterSpace += 1 }
     }
 
-    mutating func unrecordSpaceAfterSpace() {
+    mutating func unrecordSpaceAfterSpace(keepingKey: Bool) {
         spacesAfterSpace -= 1
+        if !keepingKey { keysAfterSpace -= 1 }
     }
 
     public mutating func keep(_ word: String) {

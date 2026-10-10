@@ -14,6 +14,14 @@ struct Revert: Hashable {
     }
 }
 
+/// A space tap that may have been a letter: the "." shortcut's second space, or a space typed where no word ended.
+struct StraySpace: Hashable {
+    var tap: Tap
+    var swallowed: String
+    var restored: String
+    var counted: Bool
+}
+
 /// A committed word whose taps become labels once you move on without changing it.
 struct PendingWord: Hashable {
     var word: String
@@ -84,12 +92,12 @@ extension TypingEngine {
     }
 
     mutating func commitWord(in document: some TextDocument, ending: Tap? = nil) {
-        let shortcut = self.shortcut
+        let stray = self.stray
         defer {
             taps = []
             erased = [:]
             retyped = []
-            self.shortcut = nil
+            self.stray = nil
         }
         guard let corrector else { return }
         let text = document.textBeforeInput ?? ""
@@ -100,14 +108,14 @@ extension TypingEngine {
         let midWord = document.textAfterInput?.first.map(Words.isWordCharacter) ?? false
         guard correcting, !midWord, Words.isCorrectable(word, in: text) else { return settle(final, typed: final, after: previous, ending: ending) }
         let typed = TypedWord(final, taps: taps, previous: previous)
-        if let shortcut, text.dropLast(word.count).hasSuffix(". "),
-           case let before = Words.current(in: String(text.dropLast(word.count + 2))).lowercased(),
-           let joined = corrector.joined(nil, space: shortcut, TypedWord(final.lowercased(), taps: taps, previous: before)) {
-            document.deleteBackward(word.count + 2)
-            document.insert(" " + joined)
-            revert = Revert(original: ". " + final, replacement: " " + joined)
-            corrector.memory.unrecordSpaceAfterSpace()
-            taps = [shortcut] + taps
+        if let stray, text.dropLast(word.count).hasSuffix(stray.swallowed),
+           case let before = Words.current(in: String(text.dropLast(word.count + stray.swallowed.count))).lowercased(),
+           let joined = corrector.joined(nil, space: stray.tap, TypedWord(final.lowercased(), taps: taps, previous: before)) {
+            document.deleteBackward(word.count + stray.swallowed.count)
+            document.insert(stray.restored + joined)
+            revert = Revert(original: stray.swallowed + final, replacement: stray.restored + joined)
+            if stray.counted { corrector.memory.unrecordSpaceAfterSpace(keepingKey: true) }
+            taps = [stray.tap] + taps
             final = joined
             typedText = joined
             previous = before
@@ -146,6 +154,25 @@ extension TypingEngine {
         let first = TypedWord(pending.typed, taps: pending.taps, previous: before)
         guard let joined = corrector.joined(first, space: space, TypedWord(typed.text, taps: typed.taps, previous: pending.word.lowercased())) else { return nil }
         return (Words.matchCase(joined, to: Substring(pending.typed)), space, before)
+    }
+
+    /// A second space right after a word: whether the first one was really the word's last letter ("jo" → "job").
+    mutating func joinBack(space: Tap, in document: some TextDocument) -> Bool {
+        guard correcting, let corrector, let pending, let end = pending.ending, pending.taps.count == pending.typed.count else { return false }
+        let text = document.textBeforeInput ?? ""
+        let head = String(text.dropLast())
+        guard text.hasSuffix(pending.word + " "), Words.current(in: head) == pending.word[...] else { return false }
+        let previous = Words.previous(before: Words.current(in: head), in: head)
+        guard let joined = corrector.joined(TypedWord(pending.typed, taps: pending.taps, previous: previous), space: end, nil) else { return false }
+        let word = Words.matchCase(joined, to: Substring(pending.typed))
+        document.deleteBackward(pending.word.count + 1)
+        document.insert(word + " ")
+        revert = Revert(original: pending.word + ".", replacement: word, trailing: " ")
+        corrector.memory.forget(pending.word, after: previous)
+        corrector.memory.record(word, after: previous)
+        corrector.memory.unrecordSpaceAfterSpace(keepingKey: false)
+        self.pending = PendingWord(word: word, typed: word, taps: pending.taps + [end], retyped: pending.retyped, ending: space)
+        return true
     }
 
     private mutating func hold(_ word: String, typed: String, ending: Tap? = nil) {

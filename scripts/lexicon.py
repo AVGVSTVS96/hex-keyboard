@@ -1,6 +1,7 @@
 """Builds the English word counts behind Packages/HexKeyboard/Sources/KeyboardUI/Resources/en.lexicon.
 
-Words: SCOWL 2020.12.07, en_US up to size 60 (the size spell checkers use) and its proper names up to 50, plus any
+Words: SCOWL 2020.12.07, English with its American, British and Canadian spellings up to size 60 (the size spell
+checkers use) and proper names up to 50, plus any
 word from SCOWL's larger lists (up to 95, abbreviations included) at least as common as the median size-60 word,
 which brings in "ok" and "app".
 Counts: Google Books Ngram (20200217) English Fiction, books from 1980 on. Its tokenizer splits contractions,
@@ -103,7 +104,7 @@ def contraction(word, pairs):
     return pairs.get(f"{stem} '{suffix}", 0)
 
 
-base = scowl_words(r"final/(english|american)-(words|contractions|upper)\.(10|20|35|40|50|55|60)$"
+base = scowl_words(r"final/(english|american|british|canadian)-(words|contractions|upper)\.(10|20|35|40|50|55|60)$"
                    r"|final/(english|american)-proper-names\.(35|40|50)$")
 larger = scowl_words(r"final/(english|american)-(words|contractions|upper|proper-names|abbreviations)\.\d+$")
 singles = unigrams()

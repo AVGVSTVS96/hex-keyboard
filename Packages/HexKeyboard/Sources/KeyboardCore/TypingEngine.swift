@@ -12,7 +12,7 @@ public struct TypingEngine {
     var erased: [Int: Tap] = [:]
     var retyped: [TapSample] = []
     var pending: PendingWord?
-    var shortcut: Tap?
+    var stray: StraySpace?
     var revert: Revert?
 
     private enum ShiftHold { case pressed, typedWhileHeld }
@@ -72,15 +72,19 @@ public struct TypingEngine {
             if layer != .letters, Self.returnsToLetters.contains(text) { layer = .letters }
             if shiftHold != nil { shiftHold = .typedWhileHeld }
         case .space:
-            if wasSpace, settings.periodShortcut, traits.smartPunctuation, Self.endsSentenceable(document.textBeforeInput) {
+            if wasSpace, let tap, joinBack(space: tap, in: document) {
+                spaceJustTyped = true
+            } else if wasSpace, settings.periodShortcut, traits.smartPunctuation, Self.endsSentenceable(document.textBeforeInput) {
                 document.deleteBackward(1)
                 document.insert(". ")
-                shortcut = tap
+                stray = tap.map { StraySpace(tap: $0, swallowed: ". ", restored: " ", counted: true) }
             } else {
+                let blank = document.textBeforeInput?.last.map(\.isWhitespace) ?? true
                 commitWord(in: document, ending: tap)
                 document.insert(" ")
                 self.revert?.trailing = " "
                 spaceJustTyped = true
+                if blank, let tap { stray = StraySpace(tap: tap, swallowed: " ", restored: "", counted: wasSpace) }
             }
             if layer != .letters { layer = .letters }
         case .return:
@@ -90,7 +94,7 @@ public struct TypingEngine {
         case .tab:
             document.insert("\t")
         case .delete:
-            shortcut = nil
+            stray = nil
             let offersRevert = revert?.isCommitted(before: document.textBeforeInput) == true
             document.deleteBackward(1)
             if offersRevert {
