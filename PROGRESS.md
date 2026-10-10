@@ -66,3 +66,37 @@
 | Slide to Type, Delete Slide-to-Type by Word | Later: swipe typing isn't built |
 | One-Handed Keyboard | Later: possible, a layout feature |
 | Keyboards, Hardware Keyboard | System-only |
+
+## 2026-10-09 · typing-model branch
+
+- 16:15 KeyboardCore: `TouchModel` (each key a 2D Gaussian, conjugate Normal-Inverse-Wishart, offsets in key cells, one model per device class/orientation/layer), `Lexicon` (flat byte trie: letter, word log-p, subtree log-mass, flags, first child), `Decoder` (exact A* over the trie; the subtree mass bounds every word below a node), `LanguageModel` (Witten-Bell: your next-word counts → your words → lexicon → letter-by-letter novel words, novelty by the rule of succession). `Math.log/exp` in pure Swift since Core can't import libc (Wasm).
+- 16:20 Labels from real events only: a committed word's taps become labels when you move on (next word, keyboard hidden); a revert teaches the typed letters; deleting the word teaches nothing; backspace-then-retype labels the erased tap with the retyped letter if it's within a quarter key of it.
+- 16:25 Lexicon: SCOWL 2020.12.07 en_US ≤ 60 + proper names ≤ 50 + larger-list words as common as the median size-60 word ("ok", "app"); counts from Google Books Ngram 20200217 English Fiction, 1980+ (CC BY 3.0). Google splits contractions, so "I'm" comes from the 2-gram "i 'm" and "don't" from "do not" (also counts the uncontracted phrase). 133,733 words, 2.36 MB. Licenses in `Sources/KeyboardUI/Resources/LEXICON-LICENSE`; `scripts/lexicon` rebuilds it.
+- 16:40 Hit-testing uses the model: likelihood × P(next letter | prefix) over keys within a quarter key of the tap; control keys keep their own taps; the pop-up shows the resolved key. Alone (no learning) this takes raw letter accuracy at σ 0.25 from 72.0% to 88.1%.
+- 17:00 "Space when he means b": a space tap between two words is re-decoded as a letter when "about" beats "a" + "out" (posterior vs posterior, no threshold), and a second space (the "." shortcut) before a word likewise ("so. Ut" → "so but"). P(second space) is learned from what you type after a space, starting at 1/2.
+- 17:30 First prior (ν₀ = 4, the weakest Wishart) has Student-t₃ tails, which corrected clean real words two keys away ("tie" → "the"). Now keys of a kind (letters, space bar) share your overall spread as their prior, anchored on population tap spread (σ ≈ 0.2 key, Azenkot & Zhai 2012) and worth ν₀ = 10 taps (spread known to ~±30%). σ 0.25 broken words 21 → 15, accuracy 97.7% → 98.0%.
+- 18:10 Scorer (Release build in the simulator; (a) nearest key + UITextChecker, (b) decoder with the touch model at its prior, (c) decoder learning). Unbiased, same seed and procedure as the 10-08 table, (a) reproduces it exactly:
+
+  | σ | (a) raw / final | (b) raw / final | (c) raw / final | broken a / b / c |
+  | --- | --- | --- | --- | --- |
+  | 0 | 100.0 / 99.9 | 100.0 / 99.6 | 100.0 / 99.8 | 2 / 10 / 5 |
+  | 0.15 | 99.2 / 99.6 | 99.4 / 99.5 | 99.7 / 99.7 | 2 / 12 / 6 |
+  | 0.25 | 72.0 / 89.3 | 88.1 / 98.0 | 88.7 / 98.0 | 2 / 15 / 13 |
+  | 0.35 | 35.1 / 59.5 | 60.4 / 92.6 | 60.8 / 92.2 | 1 / 25 / 40 |
+
+  Biased thumbs (m 0.4 key toward n, b 0.55 down into the space bar, o 0.45 toward i, every tap 0.1 low, noise σ 0.2, corpus typed twice, 5,428 words, the simulated user never fixes anything), final accuracy per 500 words:
+
+  | words | (a) | (b) | (c) |
+  | --- | --- | --- | --- |
+  | 1–500 | 83.2 | 94.6 | 97.2 |
+  | 1,001–1,500 | 85.0 | 97.2 | 99.2 |
+  | 2,501–3,000 | 87.4 | 97.6 | 98.6 |
+  | 4,501–5,000 | 85.8 | 96.6 | 99.4 |
+  | all | 85.2 (raw 69.6) | 96.7 (raw 83.3) | 98.6 (raw 89.9) |
+
+  Learned centers after the run: m (−0.41, +0.10), b (−0.01, +0.56), o (−0.45, +0.09), e (0.00, +0.10): the biases it was given, recovered.
+- 18:10 Broken words are the cost: the decoder corrects real words when the evidence says so ("tie" → "time" via a missed m, because "time" is frequent in what you've typed; "ides" → "idea"; "presidents" → "president's"). One revert keeps a word forever. British spellings outside the US lexicon get corrected, as with UITextChecker.
+- 18:20 Memory (`scripts/memory`: app launched with text in the field so the corrector runs, no XCUITest, iPhone 17 26.3, Mac heavily loaded): old build (UITextChecker) 26 MB idle / 28 MB with suggestions showing; this branch 27 MB / 28 MB, lexicon (2.4 MB, copied out of a mapped file) included. The 46–49 MB jump measured on 10-08 did not reproduce this way even though UITextChecker was answering ("help", "hilo" for "helo"), so the saving from dropping it is unconfirmed; it needs the same typing-based measurement as 10-08 or a device.
+- 18:20 Without taps (text already in the field), "helo" gets "help" (substitution at the o's center) over "hello" (missed l); with real taps the touch model decides.
+- 18:20 Persistence: memory (words + touch model) lives in the extension's own container, saved when the keyboard disappears. Without Full Access a keyboard can't write the App Group, so the app can't touch that file; "Reset Keyboard Dictionary" bumps a counter in the group's defaults and the keyboard starts over when it sees it moved. Nothing syncs from the keyboard to the app. Whether a keyboard without Full Access can even read the group's defaults (settings rely on it too) needs a device check.
+- 18:40 Tests: 73 core (31 new: math, touch model, labels, joins, decoder, language model, lexicon), all pass on macOS and the iOS 26.3 simulator. UI tests on iPhone 17 26.3: 12 of 13 pass; `testExpandsTextReplacements` fails at adding the replacement in the Settings app (line 86, the new entry never appears), and the pre-branch build fails it identically on this simulator today, so it's the Settings flow, not the keyboard.

@@ -3,7 +3,7 @@
 # and prints the extension's memory footprint. No XCUITest, which inflates the extension.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-ID=$(scripts/sim ensure "iPhone 17" iPhone-17)
+ID=$(scripts/sim ensure "${NAME:-iPhone 17}" "${TYPE:-iPhone-17}")
 BOOTED=$(xcrun simctl list devices | grep -c "$ID) (Booted)" || true)
 scripts/sim boot "$ID"
 scripts/sim use "$ID" hex
