@@ -10,3 +10,4 @@ xcuserdata/
 /App/Info.plist
 /Keyboard/Info.plist
 /web/dist/
+.vercel
