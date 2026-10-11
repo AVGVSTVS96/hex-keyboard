@@ -118,3 +118,9 @@
 
   Biased thumbs, 5,428 words: (a) 85.2% (broken 5), (b) 95.3% (4), (c) 97.4% (2); (c) per 500 words 96.0, 97.0, 96.6, 98.0, 97.0, 97.2, 97.0, 97.8, 97.4, 98.8. Cost of the rule versus the last run: σ 0.25 (c) 98.0 → 96.5, biased (c) 98.6 → 97.4. What's lost is rare lexicon words your touches really did land on ("os" for "is", "mot" for "not"); the suggestion bar still offers the common word.
 - Oct 10: Bassim picked A for the suggestion bar: keys and keyboard height exact, the pill stays 27pt (Apple's is 38pt).
+
+## 2026-10-10 · web-demo branch
+
+- 19:30 `KeyboardCore` builds for WebAssembly unchanged (Swift 6.4.0 Wasm SDK). Key metrics, key faces and colors moved from `KeyboardUI` into Core so the web draws from the same numbers; iOS builds and 77 core tests pass.
+- 19:45 `web/`: the engine in Wasm (4.2 MB, 1.6 MB brotli; Foundation for saving the touch model would double it, so learning lasts one page visit) plus the lexicon (1.2 MB brotli). Key rects, backdrop top and colors match the iOS 26.3 iPhone 17 reference pixel for pixel; glyphs differ because SF Compact and SF Symbols can't ship on the web (system font and drawn icons instead). The suggestion bar uses Apple's 38pt pill, since a page has no 27pt strip limit.
+- 19:45 iOS Safari (simulator, iOS 26.3) loads it with a caret in the field and no system keyboard (`inputmode="none"`).

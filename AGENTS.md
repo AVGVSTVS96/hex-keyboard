@@ -8,6 +8,7 @@ An iOS custom keyboard (UIKit, Swift 6, iOS 26+) that looks and types like Apple
 - `Packages/HexKeyboard/Sources/KeyboardUI`: UIKit. `HexKeyboardViewController` (the extension's principal class), `KeyboardView` (one view owns all touches: rollover, slide-off, callouts, long-press accents, spacebar trackpad, iPad flicks), `KeyView`, `SuggestionBar`, `Lexicon.english` (`Resources/en.lexicon`, built by `scripts/lexicon`, sources and licenses in `Resources/LEXICON-LICENSE`), `TextCheckerSource` (the old `UITextChecker` source, kept as the scorer's baseline), `SettingsStore` (App Group) and `MemoryStore` (the extension's own container; the app resets it through a counter in the App Group), metrics and theme.
 - `Packages/HexKeyboard/Tools/LexiconBuilder`: turns `scripts/lexicon.py`'s word counts into `en.lexicon` with `Lexicon(counts:)`, so the format has one implementation.
 - `Packages/HexKeyboard/Tests/KeyboardUITests`: `Evaluation`, the autocorrect scorer (see below).
+- `web/`: the web demo. `Sources/HexWeb` exports a `Keyboard` class to JavaScript (JavaScriptKit BridgeJS) that wraps `TypingEngine` the way `HexKeyboardViewController` does, against the page's text field; `site/` draws the keys from `KeyboardCore`'s metrics, faces and colors and ports `KeyboardView+Touches` to pointer events. Deployed to Vercel as `hex-keyboard`.
 - `Keyboard/`: the extension target, a one-line subclass.
 - `App/`: the containing app (setup steps and a test field).
 - `UITests/`: types through the real extension in the simulator.
@@ -26,6 +27,7 @@ scripts/mac 'scripts/sim variants "iPhone 17" v7'  # return key types, keyboard 
 scripts/mac 'scripts/capture "iPhone 17" iPhone-17 hex'  # frames of held keys: pop-ups, accent panel
 scripts/mac 'scripts/shots "iPhone 17" iPhone-17 system light "hel:hel|helo:o"'  # type through a keyboard, screenshot each step
 scripts/mac scripts/eval                        # scorer: the phrase corpus typed with tap noise and with biased thumbs
+scripts/web                                     # web demo into web/dist (swift.org 6.4.0 toolchain + its Wasm SDK + binaryen; on the Mac: rsync, then run it there)
 scripts/lexicon                                 # rebuild en.lexicon (downloads ~1 GB, streams ~30 GB of 2-grams)
 uv run --with pillow --with numpy --with scipy scripts/shotdiff.py v7   # key-by-key geometry vs Apple
 ```
