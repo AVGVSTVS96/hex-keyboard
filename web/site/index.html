@@ -13,7 +13,10 @@
 <body>
 <div class="stage">
   <main class="screen" id="screen">
-    <h1>Hex</h1>
+    <header class="nav">
+      <h1>Hex</h1>
+      <button class="glass" id="open-settings" aria-label="Keyboard settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+    </header>
     <textarea id="field" inputmode="none" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Text"></textarea>
     <section class="keyboard" id="keyboard" aria-label="Hex keyboard">
       <div class="bar" id="bar"></div>
@@ -21,6 +24,16 @@
       <div class="system" aria-hidden="true"><span class="globe"></span><span class="mic"></span></div>
       <p class="status" id="status">Loading the typing engine…</p>
     </section>
+    <div class="settings" id="settings">
+      <div class="scrim"></div>
+      <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+        <header class="nav">
+          <h2 id="settings-title">Keyboards</h2>
+          <button class="glass done" aria-label="Done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.6 4.6 4.6L19 7.4"/></svg></button>
+        </header>
+        <div class="sections"></div>
+      </div>
+    </div>
   </main>
   <p class="about">Hex is an open-source iOS keyboard. This page runs its Swift typing engine, compiled to WebAssembly: the same autocorrect, and the same touch model that learns where your thumbs land. <a href="https://github.com/AVGVSTVS96/hex-keyboard">GitHub</a> · MIT</p>
 </div>

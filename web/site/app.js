@@ -1,4 +1,6 @@
 import { init } from "./engine/index.js";
+import { haptics } from "./haptics.js";
+import { settings, settingsSheet } from "./settings.js";
 
 const screen = document.getElementById("screen");
 const field = document.getElementById("field");
@@ -70,6 +72,24 @@ const lexicon = fetch("en.lexicon").then((response) => response.arrayBuffer());
 const { exports } = await init();
 const kb = new exports.Keyboard(new Uint8Array(await lexicon), textDocument);
 status.hidden = true;
+const haptic = haptics(keysView);
+
+function applySettings() {
+  kb.configure(settings.autoCapitalization, settings.autoCorrection, settings.capsLock, settings.predictiveText, settings.smartPunctuation, settings.periodShortcut);
+  haptic.enabled = settings.haptic;
+}
+
+settingsSheet({
+  root: document.getElementById("settings"),
+  opener: document.getElementById("open-settings"),
+  haptics: haptic,
+  onChange() {
+    applySettings();
+    render();
+  },
+  onClose: () => field.focus({ preventScroll: true }),
+});
+applySettings();
 
 let frame;
 let look;
@@ -203,6 +223,7 @@ keyboard.addEventListener("pointerdown", (event) => {
   const p = point(event);
   const index = kb.resolve(p.x, p.y);
   if (index < 0) return;
+  haptic.keyDown();
   rollOver();
   const now = performance.now();
   const tapCount = lastDown.index === index && now - lastDown.time < 350 ? 2 : 1;
@@ -238,7 +259,8 @@ keyboard.addEventListener("pointermove", (event) => {
   scheduleHold(touch);
 });
 
-keyboard.addEventListener("touchstart", (event) => event.preventDefault(), { passive: false });
+keyboard.addEventListener("touchstart", (event) => haptic.needsClicks || event.preventDefault(), { passive: false });
+keyboard.addEventListener("mousedown", (event) => event.preventDefault());
 keyboard.addEventListener("pointerup", (event) => end(event, true));
 keyboard.addEventListener("pointercancel", (event) => end(event, false));
 
@@ -297,7 +319,7 @@ function paintTouches() {
     const view = caps[touch.index];
     if (!cap || !view || touch.mode === "trackpad") continue;
     if (touch.mode === "alternates") view.classList.toggle("pressed", look.dimsKeyUnderAccents);
-    else if (cap.typed != null) preview = cap;
+    else if (cap.typed != null && settings.characterPreview) preview = cap;
     else view.classList.add("pressed");
   }
   if (preview) showCallout(preview);

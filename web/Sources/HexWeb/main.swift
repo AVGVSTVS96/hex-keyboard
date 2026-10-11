@@ -30,6 +30,16 @@ import KeyboardCore
         render()
     }
 
+    @JS func configure(autoCapitalization: Bool, autoCorrection: Bool, capsLock: Bool, predictiveText: Bool, smartPunctuation: Bool, periodShortcut: Bool) {
+        engine.settings.autoCapitalization = autoCapitalization
+        engine.settings.autoCorrection = autoCorrection
+        engine.settings.capsLock = capsLock
+        engine.settings.predictiveText = predictiveText
+        engine.settings.smartPunctuation = smartPunctuation
+        engine.settings.periodShortcut = periodShortcut
+        engine.documentChanged(document)
+    }
+
     @JS func frame() -> Frame {
         render()
         let metrics = metrics
