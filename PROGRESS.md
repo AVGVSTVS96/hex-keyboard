@@ -58,7 +58,7 @@
 | Auto-Capitalization, Auto-Correction, Enable Caps Lock, Smart Punctuation, “.” Shortcut, Predictive Text, Character Preview, Sound | Done, Apple's defaults (all on) |
 | Text Replacement | Done, read from the system list; edited only in Settings (no API to write it) |
 | Reset Keyboard Dictionary (Transfer or Reset) | Done, in Hex's settings |
-| Haptic Feedback (default off) | Later: haptics in a keyboard need Full Access, which Hex doesn't ask for |
+| Haptic Feedback (default off) | Hex app setting, default on; plays only with Allow Full Access, which a keyboard needs for haptics. Hex asks for Full Access as of Oct 11 |
 | Show Predictions Inline | Not possible as Apple draws it: a keyboard can only set marked text, which hosts underline instead of graying |
 | Check Spelling / Check Spelling and Grammar (27) | Not possible in the extension: the red underlines are drawn by the host text view from the system setting. The web demo draws its own (spelling only) |
 | Show Math Results | Not possible: computed and drawn by the host's text system |
