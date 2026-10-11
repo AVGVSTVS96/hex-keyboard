@@ -11,7 +11,7 @@ open class HexKeyboardViewController: UIInputViewController {
     private lazy var barHeightConstraint = suggestionBar.heightAnchor.constraint(equalToConstant: 0)
     private lazy var keyboardHeightConstraint = keyboardView.heightAnchor.constraint(equalToConstant: 0)
     private var deleteRepeat: DeleteRepeat?
-    private var haptics: UIImpactFeedbackGenerator?
+    private lazy var haptics = UIImpactFeedbackGenerator(style: .light, view: view)
 
     override open func loadView() {
         inputView = KeyboardInputView(frame: .zero, inputViewStyle: .default)
@@ -71,6 +71,7 @@ open class HexKeyboardViewController: UIInputViewController {
 
     override open func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
+        if hapticsEnabled { haptics.prepare() }
         Task { [weak self] in
             guard let lexicon = await self?.requestSupplementaryLexicon() else { return }
             self?.engine.corrector?.learn(lexicon)
@@ -200,7 +201,7 @@ open class HexKeyboardViewController: UIInputViewController {
     private func feedback() {
         if engine.settings.sound { UIDevice.current.playInputClick() }
         guard hapticsEnabled else { return }
-        if haptics == nil { haptics = UIImpactFeedbackGenerator(style: .light, view: view) }
-        haptics?.impactOccurred()
+        haptics.impactOccurred()
+        haptics.prepare()
     }
 }

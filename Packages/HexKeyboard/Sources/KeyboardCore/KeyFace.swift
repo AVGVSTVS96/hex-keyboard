@@ -13,6 +13,7 @@ public struct KeyFace: Hashable, Sendable {
 
     public var content: Content
     public var secondary: String?
+    public var corner: String?
     public var secondaryIsDimmed = true
     public var alignment: Alignment = .center
     public var isProminent = false
@@ -56,6 +57,7 @@ extension KeyFace {
             secondaryIsDimmed = !key.isPair
         case .space:
             self.init(content: .none)
+            corner = "hex"
         case .delete:
             self.init(content: .symbol("delete.left"), alignment: edge)
         case .shift:

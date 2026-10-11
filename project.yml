@@ -95,5 +95,8 @@ schemes:
       targets:
         Hex: all
         Keyboard: all
+    run:
+      config: Release
     test:
+      config: Debug
       targets: [HexUITests]

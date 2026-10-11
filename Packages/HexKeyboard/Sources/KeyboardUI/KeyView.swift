@@ -5,6 +5,7 @@ final class KeyView: UIView {
     let key: Key
     private let label = UILabel()
     private let secondaryLabel = UILabel()
+    private let cornerLabel = UILabel()
     private let icon = UIImageView()
     private var face = KeyFace(content: .none)
     private var metrics: KeyboardMetrics?
@@ -22,7 +23,7 @@ final class KeyView: UIView {
     }
 
     private var contentAlpha: CGFloat = 1 {
-        didSet { [label, secondaryLabel, icon].forEach { $0.alpha = contentAlpha } }
+        didSet { [label, secondaryLabel, cornerLabel, icon].forEach { $0.alpha = contentAlpha } }
     }
 
     init(key: Key) {
@@ -35,7 +36,7 @@ final class KeyView: UIView {
         icon.contentMode = .center
         label.textAlignment = .center
         secondaryLabel.textAlignment = .center
-        [secondaryLabel, label, icon].forEach(addSubview)
+        [secondaryLabel, cornerLabel, label, icon].forEach(addSubview)
     }
 
     required init?(coder: NSCoder) { fatalError() }
@@ -70,6 +71,8 @@ final class KeyView: UIView {
         accessibilityLabel = accessibilityName
         accessibilityIdentifier = if case .character(let value) = key.action { "hex.\(value)" } else { "hex.\(accessibilityName)" }
         secondaryLabel.text = face.secondary
+        cornerLabel.text = face.corner
+        cornerLabel.font = .systemFont(ofSize: metrics.secondarySize, weight: .regular)
         if face.secondary != nil, !face.secondaryIsDimmed {
             label.font = .systemFont(ofSize: metrics.pairSize, weight: .regular)
             secondaryLabel.font = label.font
@@ -85,6 +88,7 @@ final class KeyView: UIView {
         guard let metrics else { return }
         label.sizeToFit()
         icon.sizeToFit()
+        layoutCorner(inset: metrics.cornerRadius)
 
         switch face.alignment {
         case .center:
@@ -121,6 +125,12 @@ final class KeyView: UIView {
         label.frame.origin = CGPoint(x: bounds.midX - label.bounds.width / 2, y: baseline - font.ascender)
     }
 
+    private func layoutCorner(inset: CGFloat) {
+        guard face.corner != nil, let font = cornerLabel.font else { return cornerLabel.frame = .zero }
+        cornerLabel.sizeToFit()
+        cornerLabel.frame.origin = CGPoint(x: bounds.width - inset - cornerLabel.bounds.width, y: inset - (font.ascender - font.capHeight))
+    }
+
     private var accessibilityName: String {
         switch key.action {
         case .character: label.text ?? ""
@@ -149,5 +159,6 @@ final class KeyView: UIView {
         label.textColor = foreground
         icon.tintColor = foreground
         secondaryLabel.textColor = face.secondaryIsDimmed ? theme.secondaryLabel.ui : foreground
+        cornerLabel.textColor = theme.secondaryLabel.ui
     }
 }
