@@ -6,15 +6,20 @@ public final class Corrector {
         didSet {
             cachedModel = nil
             rankings = [:]
+            generation += 1
         }
     }
     public var grid = KeyGrid.standard {
-        didSet { rankings = [:] }
+        didSet {
+            rankings = [:]
+            generation += 1
+        }
     }
 
     private let lexicon: Lexicon?
     private var cachedModel: LanguageModel?
     private var rankings: [Ranking: [Candidate]] = [:]
+    private var generation = 0
 
     private struct Ranking: Hashable {
         var typed: TypedWord
@@ -26,6 +31,29 @@ public final class Corrector {
     public init(source: any CandidateSource) {
         self.source = source
         self.lexicon = source as? Lexicon
+    }
+
+    /// Whether ranking only reads immutable or copied state, so a `snapshot` can rank on another thread.
+    var ranksAnywhere: Bool { lexicon != nil }
+
+    /// A corrector with the same words, touches and grid, and caches of its own.
+    func snapshot() -> Corrector {
+        let copy = Corrector(source: source)
+        copy.replacements = replacements
+        copy.names = names
+        copy.memory = memory
+        copy.grid = grid
+        copy.cachedModel = cachedModel
+        copy.rankings = rankings
+        copy.generation = generation
+        return copy
+    }
+
+    /// Keeps what a snapshot ranked, if this corrector's words, touches and grid haven't changed since.
+    func adopt(_ snapshot: Corrector) {
+        guard snapshot.generation == generation else { return }
+        rankings.merge(snapshot.rankings) { mine, _ in mine }
+        if cachedModel == nil { cachedModel = snapshot.cachedModel }
     }
 
     public func setReplacements(_ pairs: [(shortcut: String, phrase: String)]) {

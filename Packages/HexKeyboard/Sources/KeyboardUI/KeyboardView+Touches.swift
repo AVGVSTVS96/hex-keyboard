@@ -22,7 +22,9 @@ extension KeyboardView {
     }
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        for touch in touches {
+        let start = CACurrentMediaTime()
+        defer { TouchTrace.shared.record("began", touches, event, since: start) }
+        for touch in touches.inOrder {
             let point = touch.location(in: self)
             guard let view = keyView(at: point) else { continue }
             rollOver()
@@ -36,6 +38,8 @@ extension KeyboardView {
     }
 
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
+        let start = CACurrentMediaTime()
+        defer { TouchTrace.shared.record("moved", touches, event, since: start) }
         for touch in touches {
             guard let tracked = tracked[ObjectIdentifier(touch)] else { continue }
             let point = touch.location(in: self)
@@ -69,7 +73,9 @@ extension KeyboardView {
     }
 
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
-        for touch in touches {
+        let start = CACurrentMediaTime()
+        defer { TouchTrace.shared.record("ended", touches, event, since: start) }
+        for touch in touches.inOrder {
             guard let tracked = tracked.removeValue(forKey: ObjectIdentifier(touch)) else { continue }
             tracked.point = touch.location(in: self)
             finish(tracked, commit: true)
@@ -77,6 +83,8 @@ extension KeyboardView {
     }
 
     override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
+        let start = CACurrentMediaTime()
+        defer { TouchTrace.shared.record("cancelled", touches, event, since: start) }
         for touch in touches {
             guard let tracked = tracked.removeValue(forKey: ObjectIdentifier(touch)) else { continue }
             finish(tracked, commit: false)
@@ -176,4 +184,8 @@ extension KeyboardView {
             self.keyViews.forEach { $0.showsLabel = visible }
         }
     }
+}
+
+private extension Set<UITouch> {
+    var inOrder: [UITouch] { sorted { $0.timestamp < $1.timestamp } }
 }

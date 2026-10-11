@@ -88,7 +88,35 @@ extension TypingEngine {
         taps = []
         document.insert(" ")
         refreshShift(in: document)
+        suggestionsChanged(in: document)
+    }
+
+    mutating func suggestionsChanged(in document: some TextDocument) {
+        revision += 1
+        if defersSuggestions { suggestionsAreStale = true } else { refreshSuggestions(in: document) }
+    }
+
+    public mutating func refreshSuggestionsIfNeeded(in document: some TextDocument) {
+        guard suggestionsAreStale else { return }
         refreshSuggestions(in: document)
+    }
+
+    /// The ranking behind the current suggestions, packed to run on another thread; `nil` when the corrector's source
+    /// must stay on this one (`UITextChecker`).
+    public func suggestionJob(in document: some TextDocument) -> SuggestionJob? {
+        guard suggestionsAreStale, let corrector, corrector.ranksAnywhere else { return nil }
+        var copy = self
+        copy.corrector = corrector.snapshot()
+        return SuggestionJob(engine: copy, text: FixedText(before: document.textBeforeInput, after: document.textAfterInput))
+    }
+
+    /// Shows a finished job's suggestions and keeps its rankings (so the space's autocorrect finds them ready), unless
+    /// the text changed after the job was packed.
+    public mutating func finish(_ job: SuggestionJob) {
+        guard job.engine.revision == revision, let snapshot = job.engine.corrector else { return }
+        suggestions = job.engine.suggestions
+        suggestionsAreStale = false
+        corrector?.adopt(snapshot)
     }
 
     mutating func commitWord(in document: some TextDocument, ending: Tap? = nil) {
@@ -141,6 +169,16 @@ extension TypingEngine {
     private mutating func settle(_ word: String, typed: String, after previous: String?, ending: Tap?) {
         if !word.contains(" ") { corrector?.memory.record(word, after: previous) }
         hold(word, typed: typed, ending: ending)
+    }
+
+    /// Ranks what a space would check now, whether this word and the last were one ("a out" → "about"), so the
+    /// rankings are cached by the time the space comes.
+    func rankJoin(in document: some TextDocument) {
+        guard correcting, let pending else { return }
+        let text = document.textBeforeInput ?? ""
+        let word = Words.current(in: text)
+        guard !word.isEmpty, Words.isCorrectable(word, in: text) else { return }
+        _ = join(TypedWord(String(word), taps: taps, previous: Words.previous(before: word, in: text)), after: pending, in: text)
     }
 
     /// Whether the space between the last word and this one was really a letter you missed ("a out" → "about").
@@ -206,6 +244,7 @@ extension TypingEngine {
     }
 
     mutating func refreshSuggestions(in document: some TextDocument) {
+        suggestionsAreStale = false
         guard let corrector, showsSuggestions else { return suggestions = [] }
         let text = document.textBeforeInput ?? ""
         let word = Words.current(in: text)
@@ -220,4 +259,29 @@ extension TypingEngine {
             suggestions = corrector.suggestions(for: typed, correcting: correcting, guessing: traits.spellChecking)
         }
     }
+}
+
+/// A copy of the engine with a corrector of its own: nothing else references it, so it may run on any thread.
+public struct SuggestionJob: @unchecked Sendable {
+    fileprivate var engine: TypingEngine
+    fileprivate let text: FixedText
+
+    public mutating func run() {
+        engine.refreshSuggestions(in: text)
+        engine.rankJoin(in: text)
+    }
+}
+
+final class FixedText: TextDocument {
+    let textBeforeInput: String?
+    let textAfterInput: String?
+
+    init(before: String?, after: String?) {
+        textBeforeInput = before
+        textAfterInput = after
+    }
+
+    func insert(_ text: String) {}
+    func deleteBackward(_ count: Int) {}
+    func moveCursor(by offset: Int) {}
 }

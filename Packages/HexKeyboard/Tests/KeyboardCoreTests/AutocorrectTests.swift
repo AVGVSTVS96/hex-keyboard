@@ -34,6 +34,43 @@ struct AutocorrectTests {
         #expect(engine.suggestions.map(\.kind) == [.literal, .correction, .candidate])
     }
 
+    @Test func suggestionJobMatchesRankingInline() {
+        var inline = TypingEngine()
+        inline.corrector = Corrector(source: testLexicon)
+        var deferred = TypingEngine()
+        deferred.corrector = Corrector(source: testLexicon)
+        deferred.defersSuggestions = true
+        let (a, b) = (TestDocument("so "), TestDocument("so "))
+        inline.documentChanged(a)
+        deferred.documentChanged(b)
+        inline.type("helo", in: a)
+        deferred.type("helo", in: b)
+        #expect(deferred.suggestionsAreStale)
+        var job = try! #require(deferred.suggestionJob(in: b))
+        job.run()
+        deferred.finish(job)
+        #expect(!deferred.suggestionsAreStale)
+        #expect(deferred.suggestions == inline.suggestions)
+        inline.type(" ", in: a)
+        deferred.type(" ", in: b)
+        #expect(b.text == a.text)
+    }
+
+    @Test func suggestionJobForOlderTextIsDropped() {
+        var engine = TypingEngine()
+        engine.corrector = Corrector(source: testLexicon)
+        engine.defersSuggestions = true
+        let document = TestDocument()
+        engine.documentChanged(document)
+        engine.type("hel", in: document)
+        var job = try! #require(engine.suggestionJob(in: document))
+        engine.type("o", in: document)
+        job.run()
+        engine.finish(job)
+        #expect(engine.suggestionsAreStale)
+        #expect(engine.suggestions.isEmpty)
+    }
+
     @Test func completesPartialWords() {
         var engine = TypingEngine.correcting()
         let document = TestDocument()

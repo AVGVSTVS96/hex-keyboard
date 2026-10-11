@@ -35,6 +35,7 @@ open class HexKeyboardViewController: UIInputViewController {
             keyboardView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             keyboardHeightConstraint,
         ])
+        engine.defersSuggestions = true
         keyboardView.onEvent = { [unowned self] in handle($0) }
         suggestionBar.onSelect = { [unowned self] in
             feedback()
@@ -72,6 +73,11 @@ open class HexKeyboardViewController: UIInputViewController {
     override open func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         if hapticsEnabled { haptics.prepare() }
+        view.window?.gestureRecognizers?.forEach {
+            $0.delaysTouchesBegan = false
+            $0.delaysTouchesEnded = false
+        }
+        TouchTrace.shared.watch(view.window)
         Task { [weak self] in
             guard let lexicon = await self?.requestSupplementaryLexicon() else { return }
             self?.engine.corrector?.learn(lexicon)
@@ -82,6 +88,7 @@ open class HexKeyboardViewController: UIInputViewController {
     override open func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         engine.endSession()
+        TouchTrace.shared.flush()
         if let memory = engine.corrector?.memory { MemoryStore.save(memory) }
     }
 
@@ -129,7 +136,7 @@ open class HexKeyboardViewController: UIInputViewController {
             isLandscape: screenSize.width > screenSize.height
         ))
         let metrics = metrics
-        let theme = KeyboardTheme.current(for: traitCollection, appearance: textDocumentProxy.keyboardAppearance)
+        let theme = theme
         let faces = KeyFaceContext(
             device: device,
             layer: engine.layer,
@@ -141,11 +148,40 @@ open class HexKeyboardViewController: UIInputViewController {
         let signature = LayoutContext(device: device, layer: engine.layer, isLandscape: screenSize.width > screenSize.height).signature
         keyboardView.update(layout: layout, signature: signature, metrics: metrics, faces: faces, theme: theme)
         suggestionBar.maximumSlotWidth = device == .phone ? .infinity : 154.5
-        suggestionBar.update(engine.suggestions, enabled: engine.showsSuggestions, theme: theme)
+        renderSuggestions()
 
         let height = metrics.height(rows: layout.rows.count, hasNumberRow: layout.hasNumberRow)
         if keyboardHeightConstraint.constant != height { keyboardHeightConstraint.constant = height }
         if barHeightConstraint.constant != barHeight { barHeightConstraint.constant = barHeight }
+    }
+
+    private var theme: KeyboardTheme {
+        KeyboardTheme.current(for: traitCollection, appearance: textDocumentProxy.keyboardAppearance)
+    }
+
+    private var ranking = false
+
+    private func renderSuggestions() {
+        guard engine.suggestionsAreStale else {
+            return suggestionBar.update(engine.suggestions, enabled: engine.showsSuggestions, theme: theme)
+        }
+        guard !ranking else { return }
+        guard let job = engine.suggestionJob(in: document) else {
+            engine.refreshSuggestionsIfNeeded(in: document)
+            return renderSuggestions()
+        }
+        ranking = true
+        Task.detached(priority: .userInitiated) { [weak self] in
+            var job = job
+            job.run()
+            await self?.finish(job)
+        }
+    }
+
+    private func finish(_ job: SuggestionJob) {
+        ranking = false
+        engine.finish(job)
+        renderSuggestions()
     }
 
     private func handle(_ event: KeyboardEvent) {

@@ -3,6 +3,10 @@ public struct TypingEngine {
     public private(set) var shift: ShiftState = .off
     public private(set) var traits: InputTraits
     public internal(set) var suggestions: [Suggestion] = []
+    /// Leaves `suggestions` stale after each change, for a `SuggestionJob` to rank off the keystroke's path.
+    public var defersSuggestions = false
+    public internal(set) var suggestionsAreStale = false
+    var revision = 0
     public var settings = KeyboardSettings()
     public var corrector: Corrector?
 
@@ -37,7 +41,7 @@ public struct TypingEngine {
             return
         case .layer(let target):
             layer = target
-            refreshSuggestions(in: document)
+            suggestionsChanged(in: document)
             return
         case .nextKeyboard, .dismiss:
             return
@@ -107,7 +111,7 @@ public struct TypingEngine {
             break
         }
         refreshShift(in: document)
-        refreshSuggestions(in: document)
+        suggestionsChanged(in: document)
     }
 
     public mutating func deleteWord(in document: some TextDocument) {
@@ -119,7 +123,7 @@ public struct TypingEngine {
         retyped = []
         document.deleteBackward(Self.wordLength(before: document.textBeforeInput))
         refreshShift(in: document)
-        refreshSuggestions(in: document)
+        suggestionsChanged(in: document)
     }
 
     public mutating func pressShift(doubleTap: Bool) {
@@ -142,7 +146,7 @@ public struct TypingEngine {
             retyped = []
         }
         refreshShift(in: document)
-        refreshSuggestions(in: document)
+        suggestionsChanged(in: document)
     }
 
     public mutating func refreshShift(in document: some TextDocument) {

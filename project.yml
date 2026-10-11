@@ -87,6 +87,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.shahidy.hexkeyboard.uitests
         GENERATE_INFOPLIST_FILE: YES
         TEST_TARGET_NAME: Hex
+        SWIFT_OBJC_BRIDGING_HEADER: UITests/EventSynthesis.h
         SWIFT_VERSION: "5.0"
         SWIFT_DEFAULT_ACTOR_ISOLATION: nonisolated
 schemes:
