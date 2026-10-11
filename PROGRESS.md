@@ -117,3 +117,4 @@
   | 0.35 | 35.1 / 59.5 | 60.4 / 88.8 | 60.9 / 90.3 | 1 / 1 / 7 |
 
   Biased thumbs, 5,428 words: (a) 85.2% (broken 5), (b) 95.3% (4), (c) 97.4% (2); (c) per 500 words 96.0, 97.0, 96.6, 98.0, 97.0, 97.2, 97.0, 97.8, 97.4, 98.8. Cost of the rule versus the last run: σ 0.25 (c) 98.0 → 96.5, biased (c) 98.6 → 97.4. What's lost is rare lexicon words your touches really did land on ("os" for "is", "mot" for "not"); the suggestion bar still offers the common word.
+- Oct 10: Bassim picked A for the suggestion bar: keys and keyboard height exact, the pill stays 27pt (Apple's is 38pt).
