@@ -1,6 +1,7 @@
 import { init } from "./engine/index.js";
 import { haptics } from "./haptics.js";
 import { settings, settingsSheet } from "./settings.js";
+import { spelling } from "./spelling.js";
 
 const screen = document.getElementById("screen");
 const field = document.getElementById("field");
@@ -49,6 +50,7 @@ const textDocument = {
   after: () => field.value.slice(field.selectionEnd),
   insert(text) {
     field.setRangeText(text, field.selectionStart, field.selectionEnd, "end");
+    spell.editing = true;
     remember();
   },
   deleteBackward(count) {
@@ -58,12 +60,14 @@ const textDocument = {
       if (start === end) break;
       field.setRangeText("", start, end, "end");
     }
+    spell.editing = true;
     remember();
   },
   moveCursor(offset) {
     let position = field.selectionEnd;
     for (let i = 0; i < Math.abs(offset); i++) position = offset < 0 ? graphemeBefore(position) : graphemeAfter(position);
     field.setSelectionRange(position, position);
+    spell.editing = false;
     remember();
   },
 };
@@ -73,10 +77,12 @@ const { exports } = await init();
 const kb = new exports.Keyboard(new Uint8Array(await lexicon), textDocument);
 status.hidden = true;
 const haptic = haptics(keysView);
+const spell = spelling(field, (text) => kb.misspellings(text));
 
 function applySettings() {
   kb.configure(settings.autoCapitalization, settings.autoCorrection, settings.capsLock, settings.predictiveText, settings.smartPunctuation, settings.periodShortcut);
   haptic.enabled = settings.haptic;
+  spell.enabled = settings.checkSpelling;
 }
 
 settingsSheet({
@@ -141,6 +147,7 @@ function render() {
   }
   renderKeys();
   renderBar();
+  spell.render();
 }
 
 function renderKeys() {
@@ -446,6 +453,7 @@ function stopDeleteRepeat() {
 const external = () => {
   if (expected && expected.value === field.value && expected.start === field.selectionStart && expected.end === field.selectionEnd) return;
   remember();
+  spell.editing = false;
   kb.documentChanged();
   render();
 };

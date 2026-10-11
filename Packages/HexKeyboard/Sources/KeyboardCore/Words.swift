@@ -36,7 +36,7 @@ enum Words {
 }
 
 extension Substring {
-    fileprivate func dropLast(while predicate: (Character) -> Bool) -> Substring {
+    func dropLast(while predicate: (Character) -> Bool) -> Substring {
         var result = self
         while let last = result.last, predicate(last) { result.removeLast() }
         return result

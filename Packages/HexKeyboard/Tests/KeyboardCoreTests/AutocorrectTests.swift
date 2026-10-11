@@ -2,6 +2,13 @@ import Testing
 @testable import KeyboardCore
 
 struct AutocorrectTests {
+    @Test func findsMisspelledWords() {
+        let corrector = Corrector(source: testLexicon)
+        corrector.memory.keep("qzxv")
+        let text = "I’m done, helo world's qzxv 42nd 'wrld' hello"
+        #expect(corrector.misspellings(in: text).map { String(text[$0]) } == ["helo", "wrld"])
+    }
+
     @Test func correctsOnSpaceKeepingCase() {
         var engine = TypingEngine.correcting()
         let document = TestDocument()

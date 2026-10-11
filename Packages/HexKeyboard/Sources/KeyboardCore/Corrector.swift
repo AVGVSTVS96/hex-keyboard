@@ -84,6 +84,21 @@ public final class Corrector {
             .prefix(3)
             .map { Suggestion($0, .candidate) }
     }
+
+    /// The words Check Spelling underlines: words with no digits that aren't in the lexicon (nor its possessive),
+    /// a name, a text replacement or a word you've kept.
+    public func misspellings(in text: String) -> [Range<String.Index>] {
+        text.split { !Words.isWordCharacter($0) }
+            .map { $0.drop(while: Words.apostrophes.contains).dropLast(while: Words.apostrophes.contains) }
+            .filter { !$0.isEmpty && !$0.contains(where: \.isNumber) && !isSpelled(String($0.map { $0 == "’" ? "'" : $0 })) }
+            .map { $0.startIndex..<$0.endIndex }
+    }
+
+    private func isSpelled(_ word: String) -> Bool {
+        let lower = word.lowercased()
+        if source.isWord(word) || memory.isKept(lower) || names[lower] != nil || replacements[lower] != nil { return true }
+        return lower.hasSuffix("'s") && source.isWord(String(word.dropLast(2)))
+    }
 }
 
 extension Corrector {

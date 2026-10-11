@@ -116,6 +116,21 @@ import KeyboardCore
         engine.accept(engine.suggestions[index], in: document)
     }
 
+    @JS func misspellings(text: String) -> [Int] {
+        guard let corrector = engine.corrector else { return [] }
+        var offsets: [Int] = []
+        var index = text.startIndex
+        var offset = 0
+        for range in corrector.misspellings(in: text) {
+            offset += text.utf16.distance(from: index, to: range.lowerBound)
+            let length = text.utf16.distance(from: range.lowerBound, to: range.upperBound)
+            offsets += [offset, offset + length]
+            offset += length
+            index = range.upperBound
+        }
+        return offsets
+    }
+
     @JS func cursor(offset: Int) {
         document.moveCursor(by: offset)
     }

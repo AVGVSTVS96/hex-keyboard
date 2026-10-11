@@ -16,6 +16,7 @@
   --glass-edge: rgb(0 0 0 / 0.08);
   --blue: #007aff;
   --switch-off: #e9e9ea;
+  --spelling: rgb(255 59 48 / 0.75);
   color-scheme: light;
 }
 
@@ -36,6 +37,7 @@
     --glass-edge: rgb(255 255 255 / 0.1);
     --blue: #0a84ff;
     --switch-off: #39393d;
+    --spelling: rgb(255 140 140 / 0.85);
     color-scheme: dark;
   }
 }
@@ -106,21 +108,45 @@ html, body {
 .glass svg { display: block; width: 22px; height: 22px; }
 .glass:active { transform: scale(0.92); }
 
+.screen textarea, .spelling {
+  padding: 12px 14px;
+  font: 17px/1.3 var(--system);
+  letter-spacing: -0.4px;
+}
+
 .screen textarea {
   display: block;
   width: calc(100% - 24px);
   margin: 9px 12px 0;
   height: 122px;
-  padding: 12px 14px;
   border: 0;
   border-radius: 16px;
   background: var(--field);
   color: var(--text);
-  font: 17px/1.3 var(--system);
-  letter-spacing: -0.4px;
   resize: none;
   outline: none;
   caret-color: #007aff;
+}
+
+.spelling {
+  position: absolute;
+  overflow: hidden;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: transparent;
+  pointer-events: none;
+}
+
+.spelling::after {
+  content: "";
+  display: block;
+  height: 100%;
+}
+
+.spelling svg {
+  position: absolute;
+  overflow: visible;
+  fill: var(--spelling);
 }
 
 @media (prefers-color-scheme: dark) {
