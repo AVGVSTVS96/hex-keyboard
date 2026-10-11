@@ -75,7 +75,7 @@ targets:
             IsASCIICapable: true
             PrefersRightToLeft: false
             PrimaryLanguage: en-US
-            RequestsOpenAccess: false
+            RequestsOpenAccess: true
   HexUITests:
     type: bundle.ui-testing
     platform: iOS

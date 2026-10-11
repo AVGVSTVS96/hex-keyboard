@@ -12,6 +12,7 @@ public enum SettingsStore {
         ("periodShortcut", \.periodShortcut),
         ("predictiveText", \.predictiveText),
         ("characterPreview", \.characterPreview),
+        ("haptics", \.haptics),
         ("sound", \.sound),
     ]
 

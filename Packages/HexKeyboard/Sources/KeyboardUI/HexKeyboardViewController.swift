@@ -2,7 +2,7 @@ import UIKit
 import KeyboardCore
 
 open class HexKeyboardViewController: UIInputViewController {
-    open var hapticsEnabled: Bool { false }
+    open var hapticsEnabled: Bool { hasFullAccess && engine.settings.haptics }
 
     private let keyboardView = KeyboardView()
     private let suggestionBar = SuggestionBar()

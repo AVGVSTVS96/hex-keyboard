@@ -6,6 +6,7 @@ public struct KeyboardSettings: Hashable, Sendable {
     public var periodShortcut = true
     public var predictiveText = true
     public var characterPreview = true
+    public var haptics = true
     public var sound = true
 
     public init() {}

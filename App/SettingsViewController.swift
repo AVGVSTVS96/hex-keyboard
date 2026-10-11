@@ -10,7 +10,7 @@ final class SettingsViewController: UITableViewController {
     }
 
     private let sections = [
-        Section(rows: [("Character Preview", \.characterPreview), ("Sound", \.sound)]),
+        Section(footer: "Haptic Feedback needs Allow Full Access in Settings › General › Keyboard › Keyboards › Hex.", rows: [("Character Preview", \.characterPreview), ("Haptic Feedback", \.haptics), ("Sound", \.sound)]),
         Section(title: "All Keyboards", footer: "Double tapping the space bar will insert a period followed by a space.", rows: [
             ("Auto-Capitalization", \.autoCapitalization),
             ("Auto-Correction", \.autoCorrection),
