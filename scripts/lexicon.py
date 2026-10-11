@@ -7,6 +7,8 @@ which brings in "ok" and "app".
 Counts: Google Books Ngram (20200217) English Fiction, books from 1980 on. Its tokenizer splits contractions,
 so "I'm" is counted from the 2-gram "i 'm" and "don't" from "do not"/"do n't" (which also holds the uncontracted
 phrase, an overestimate we accept). Words SCOWL has but the corpus never saw get a count of 1.
+A word SCOWL spells both ways keeps its capital only if writers lowercase it no more often than they lowercase the
+names SCOWL only capitalizes ("london", about 2%): "I" and "English" keep it, "fox", "mark" and "may" don't.
 
 Usage: scripts/lexicon (builds the words, then en.lexicon with the LexiconBuilder tool on the Mac)
 The build dir caches the downloads (about 1 GB for 1-grams; the 2-grams, about 30 GB, are streamed and filtered).
@@ -120,8 +122,16 @@ def count(word):
     return singles.get(word, 0)
 
 
+def lowercase_share(lower):
+    lower = lower.partition("'")[0]
+    return (singles.get(lower, 0) + 1) / (singles.get(lower, 0) + singles.get(lower.capitalize(), 0) + 2)
+
+
 threshold = sorted(count(word) for word in base)[len(base) // 2]
 words = base | {word for word in larger - base if count(word) >= threshold}
+spelled = base | larger
+names = [word for word in spelled if word[0].isupper() and "'" not in word and word.lower() not in spelled]
+slips = sum(singles.get(name.lower(), 0) for name in names) / sum(singles.get(name.lower(), 0) + singles.get(name, 0) for name in names)
 merged = {}
 for word in words:
     lower = word.lower()
@@ -129,7 +139,7 @@ for word in words:
         continue
     total = count(word)
     capitalized = lower.capitalize()
-    canonical = capitalized if lower in words and capitalized in words and singles.get(capitalized, 0) > singles.get(lower, 0) else word
+    canonical = capitalized if lower in words and capitalized in words and lowercase_share(lower) <= slips else word
     merged[canonical] = max(total, 1)
 
 for word, total in sorted(merged.items(), key=lambda item: -item[1]):

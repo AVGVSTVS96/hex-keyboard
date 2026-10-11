@@ -286,6 +286,15 @@ struct DecoderTests {
         #expect(correct("its", corrector: corrector) == nil)
     }
 
+    @Test func aWordKeepsTheCaseYouTypedUnlessTheLexiconOnlyCapitalizesIt() {
+        let lexicon = Lexicon(counts: [("the", 900), ("quick", 50), ("fox", 40), ("London", 60), ("I", 800)].map { (word: $0.0, count: Double($0.1)) })
+        let corrector = Corrector(source: lexicon)
+        #expect(correct("fox", after: "quick", corrector) == nil)
+        #expect(correct("Fox", after: "quick", corrector) == nil)
+        #expect(correct("london", after: "the", corrector) == "London")
+        #expect(correct("i", after: "the", corrector) == "I")
+    }
+
     @Test func aDoubledLetterTypedOnceCountsBothWays() {
         let letters = { (word: String) in Array(word.utf8).compactMap(Lexicon.index(of:)) }
         #expect(Decoder.readings(of: letters("hello"), taps: 4, completing: false).filter { $0.letters == letters("helo") }.count == 2)
