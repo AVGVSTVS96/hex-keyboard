@@ -34,6 +34,18 @@ document.querySelector(".system .globe").innerHTML = symbols.globe;
 document.querySelector(".system .mic").innerHTML = icon(`<rect x="8.5" y="2.5" width="7" height="12" rx="3.5"/><path d="M5 11.5a7 7 0 0 0 14 0M12 18.5v3M8.5 21.5h7"/>`);
 
 let expected = null;
+const mirror = Object.assign(document.createElement("div"), { className: "caret-mirror" });
+mirror.setAttribute("aria-hidden", "true");
+field.after(mirror);
+const reveal = () => {
+  mirror.style.width = `${field.clientWidth}px`;
+  mirror.textContent = field.value.slice(0, field.selectionEnd);
+  const caret = mirror.appendChild(document.createElement("span"));
+  caret.textContent = "\u200b";
+  const padding = parseFloat(getComputedStyle(field).paddingTop);
+  const lowest = caret.offsetTop + caret.offsetHeight + padding - field.clientHeight;
+  field.scrollTop = Math.min(caret.offsetTop - padding, Math.max(field.scrollTop, lowest));
+};
 const remember = () => (expected = { value: field.value, start: field.selectionStart, end: field.selectionEnd });
 const graphemeBefore = (index) => {
   let boundary = 0;
@@ -51,6 +63,7 @@ const textDocument = {
   insert(text) {
     field.setRangeText(text, field.selectionStart, field.selectionEnd, "end");
     spell.editing = true;
+    reveal();
     remember();
   },
   deleteBackward(count) {
@@ -61,6 +74,7 @@ const textDocument = {
       field.setRangeText("", start, end, "end");
     }
     spell.editing = true;
+    reveal();
     remember();
   },
   moveCursor(offset) {
@@ -68,6 +82,7 @@ const textDocument = {
     for (let i = 0; i < Math.abs(offset); i++) position = offset < 0 ? graphemeBefore(position) : graphemeAfter(position);
     field.setSelectionRange(position, position);
     spell.editing = false;
+    reveal();
     remember();
   },
 };
