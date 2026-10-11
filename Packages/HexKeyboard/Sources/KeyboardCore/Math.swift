@@ -30,6 +30,12 @@ enum Math {
         return Double(sign: .plus, exponent: Int(k), significand: 1) * sum
     }
 
+    static func logSumExp(_ a: Double, _ b: Double) -> Double {
+        let high = max(a, b)
+        guard high > -.infinity else { return high }
+        return high + log1p(exp(min(a, b) - high))
+    }
+
     static func log1p(_ x: Double) -> Double {
         let u = 1 + x
         return u == 1 ? x : log(u) * x / (u - 1)

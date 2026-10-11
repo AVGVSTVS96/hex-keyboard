@@ -1,12 +1,14 @@
 /// How well one tap fits each letter: log densities per square point, indexed a–z then the apostrophe, plus the
-/// density of a stray tap (one that meant no letter at all).
+/// density of a stray tap (one that meant no letter at all), and where it landed.
 public struct TapEvidence: Hashable, Sendable {
     public var letters: [Double]
     public var stray: Double
+    public var point: Tap?
 
-    public init(letters: [Double], stray: Double) {
+    public init(letters: [Double], stray: Double, point: Tap? = nil) {
         self.letters = letters
         self.stray = stray
+        self.point = point
     }
 
     static func exact(_ letter: UInt8) -> TapEvidence {
@@ -117,27 +119,64 @@ struct Decoder {
         return found
     }
 
-    /// Scores one word against taps the way the search does, for words outside the lexicon. `completing` lets the
-    /// taps cover only the start of the word.
-    static func logLikelihood(of word: String, given taps: [TapEvidence], completing: Bool = false) -> Double {
-        let letters = Array(word.lowercased().utf8).compactMap(Lexicon.index(of:))
-        guard letters.count == word.utf8.count else { return -.infinity }
-        let n = letters.count, m = taps.count
-        var rows = [[Double]](repeating: [Double](repeating: -.infinity, count: m + 1), count: n + 1)
-        rows[0][0] = 0
-        for i in 0...n {
-            for j in 0...m where !(i == 0 && j == 0) {
-                var value = -Double.infinity
-                if i > 0, j > 0 { value = max(value, rows[i - 1][j - 1] + taps[j - 1].letters[letters[i - 1]]) }
-                if i > 0 { value = max(value, rows[i - 1][j] + (letters[i - 1] == 26 ? apostropheLogProbability : editLogProbability)) }
-                if j > 0 { value = max(value, rows[i][j - 1] + taps[j - 1].stray + editLogProbability) }
-                if i > 1, j > 1, letters[i - 1] != letters[i - 2] {
-                    value = max(value, rows[i - 2][j - 2] + taps[j - 2].letters[letters[i - 1]] + taps[j - 1].letters[letters[i - 2]] + editLogProbability)
+    /// P(taps | word), summed over every reading of the taps as the word: each tap one of its letters, with at most one
+    /// missed, extra or swapped tap and any skipped apostrophes, so a doubled letter typed once counts both ways it
+    /// could have happened. Within a reading the taps are scored in order, each after the ones before it have taught
+    /// the touch model what they meant (the joint predictive): taps that land dead center on their keys say how
+    /// steady you are, so a tap far from the key it supposedly meant counts for less. `completing` lets the taps cover
+    /// only the start of the word.
+    static func logLikelihood(of word: String, given taps: [TapEvidence], touches: TouchModel, on grid: KeyGrid, completing: Bool = false) -> Double {
+        let lower = word.lowercased()
+        let letters = Array(lower.utf8).compactMap(Lexicon.index(of:))
+        guard letters.count == lower.utf8.count else { return -.infinity }
+        var total = -Double.infinity
+        for reading in readings(of: letters, taps: taps.count, completing: completing) {
+            var model = touches
+            var score = reading.logPenalty
+            for (tap, letter) in zip(taps, reading.letters) {
+                guard let letter else { score += tap.stray; continue }
+                let label = Lexicon.labels[letter]
+                if let point = tap.point, let likelihood = model.logLikelihood(x: point.x, y: point.y, for: label, on: grid) {
+                    score += likelihood
+                    model.learn([TapSample(tap: point, intended: label)], on: grid)
+                } else {
+                    score += tap.letters[letter]
                 }
-                rows[i][j] = value
+            }
+            total = Math.logSumExp(total, score)
+        }
+        return total
+    }
+
+    struct Reading {
+        var letters: [Int?]
+        var logPenalty: Double
+    }
+
+    /// Every way `taps` taps can spell `letters` (each tap a letter index, or nil for a stray), as the search allows.
+    static func readings(of letters: [Int], taps: Int, completing: Bool) -> [Reading] {
+        var found: [Reading] = []
+        func walk(_ i: Int, _ j: Int, _ edited: Bool, _ reading: Reading) {
+            if j == taps {
+                if completing ? (i > 0 && i < letters.count) : i == letters.count { found.append(reading) }
+                if completing { return }
+            }
+            if i < letters.count, j < taps {
+                walk(i + 1, j + 1, edited, Reading(letters: reading.letters + [letters[i]], logPenalty: reading.logPenalty))
+            }
+            if i < letters.count, letters[i] == 26 || !edited {
+                walk(i + 1, j, edited || letters[i] != 26, Reading(letters: reading.letters, logPenalty: reading.logPenalty + (letters[i] == 26 ? apostropheLogProbability : editLogProbability)))
+            }
+            guard !edited else { return }
+            if j < taps {
+                walk(i, j + 1, true, Reading(letters: reading.letters + [nil], logPenalty: reading.logPenalty + editLogProbability))
+            }
+            if i + 1 < letters.count, j + 1 < taps, letters[i] != letters[i + 1] {
+                walk(i + 2, j + 2, true, Reading(letters: reading.letters + [letters[i + 1], letters[i]], logPenalty: reading.logPenalty + editLogProbability))
             }
         }
-        return completing ? (1..<n).map { rows[$0][m] }.max() ?? -.infinity : rows[n][m]
+        walk(0, 0, false, Reading(letters: [], logPenalty: 0))
+        return found
     }
 }
 

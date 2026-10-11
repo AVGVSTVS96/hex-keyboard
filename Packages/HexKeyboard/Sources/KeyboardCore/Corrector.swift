@@ -111,14 +111,17 @@ extension Corrector {
             guard score > -.infinity, score > candidates[lower]?.logPosterior ?? -.infinity else { return }
             candidates[lower] = Candidate(word: word, logLikelihood: logLikelihood, logPosterior: score, isCompletion: isCompletion && !isLiteral, isLiteral: isLiteral)
         }
+        func likelihood(_ word: String, completing: Bool = false) -> Double {
+            Decoder.logLikelihood(of: word, given: taps, touches: memory.touches, on: grid, completing: completing)
+        }
         for result in Decoder(lexicon: lexicon).decode(taps) {
-            consider(result.word, logLikelihood: result.logLikelihood, isCompletion: result.isCompletion)
+            consider(result.word, logLikelihood: likelihood(result.word, completing: result.isCompletion), isCompletion: result.isCompletion)
         }
         let literalWord = lexicon.canonical(literal) ?? typed.text
-        consider(literalWord, logLikelihood: Decoder.logLikelihood(of: literalWord, given: taps), isCompletion: false)
+        consider(literalWord, logLikelihood: likelihood(literalWord), isCompletion: false)
         for word in words.familiar where word.utf8.count + 1 >= taps.count && lexicon.logProbability(of: word) == nil {
-            let exact = Decoder.logLikelihood(of: word, given: taps)
-            let completed = Decoder.logLikelihood(of: word, given: taps, completing: true)
+            let exact = likelihood(word)
+            let completed = likelihood(word, completing: true)
             consider(word, logLikelihood: max(exact, completed), isCompletion: completed > exact)
         }
         return candidates.values.sorted { $0.logPosterior > $1.logPosterior }
@@ -127,13 +130,15 @@ extension Corrector {
     /// A word that stands on its own: one you've kept, or a word that, typed with every tap on its key's center, your
     /// touches and the lexicon would read as itself rather than as other keys. Such a word is only replaced when your
     /// touches fit the other word better; how common a word is can choose between what your fingers might have meant
-    /// but never overrule what they did. A rare word your own perfect taps would still be read past ("mot" → "not")
-    /// gets no such cover, and a missed key or apostrophe never counts against a real word.
+    /// but never overrule what they did. A rare word your own perfect taps would still be read past gets no such
+    /// cover, whether the reading is another key ("mot" → "not") or a missed, extra or doubled letter ("helo" →
+    /// "hello"): each is the same kind of slip. Leaving out an apostrophe isn't a slip, so it never counts against a
+    /// real word ("its" stays).
     func isKnown(_ word: TypedWord) -> Bool {
         if memory.isKept(word.text) { return true }
         guard lexicon?.isWord(word.text) == true || memory.count(of: word.text) > 1 else { return false }
         guard let perfect = ranked(TypedWord(word.text), alone: true).first(where: { !$0.isCompletion }), !perfect.isLiteral else { return true }
-        return perfect.word.count != word.text.count || perfect.word.contains("'")
+        return perfect.word.contains("'")
     }
 
     func evidence(for typed: TypedWord, touches: TouchModel) -> [TapEvidence] {
@@ -146,7 +151,7 @@ extension Corrector {
             guard let index = Lexicon.index(of: letter), let typed = grid.frame(of: Lexicon.labels[index]) else { return .exact(letter) }
             let point = tap.map { ($0.x, $0.y) } ?? (typed.midX, typed.midY)
             let likelihoods = Lexicon.labels.map { keys.logLikelihood(x: point.0, y: point.1, for: $0) ?? -.infinity }
-            return TapEvidence(letters: likelihoods, stray: stray)
+            return TapEvidence(letters: likelihoods, stray: stray, point: Tap(x: point.0, y: point.1, key: Lexicon.labels[index]))
         }
     }
 

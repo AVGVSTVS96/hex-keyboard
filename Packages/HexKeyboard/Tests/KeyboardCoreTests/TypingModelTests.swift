@@ -222,6 +222,10 @@ struct DecoderTests {
         correct(text, taps: nil, after: previous, corrector: corrector)
     }
 
+    private func correct(_ text: String, corrector: Corrector) -> String? {
+        correct(text, taps: nil, after: nil, corrector: corrector)
+    }
+
     private func correct(_ text: String, taps: [Tap]?, after previous: String?, corrector: Corrector) -> String? {
         let taps = taps ?? text.map { tap(String($0)) }
         return corrector.correction(for: TypedWord(text, taps: taps, previous: previous))
@@ -261,6 +265,36 @@ struct DecoderTests {
         #expect(correct("if", taps: slip, corrector) == nil)
         corrector.learn(samples("o", dx: -0.75))
         #expect(correct("if", taps: slip, corrector) == "of")
+    }
+
+    @Test func missedExtraAndDoubledLettersAreSlipsLikeWrongKeys() {
+        let lexicon = Lexicon(counts: [
+            ("help", 9000), ("hello", 1000), ("helo", 6), ("really", 3000), ("realty", 40), ("office", 2000), ("good", 8000),
+            ("better", 4000), ("writing", 1500), ("beginning", 1200), ("coming", 3000), ("dinner", 2000), ("diner", 300),
+            ("it's", 9000), ("its", 5000),
+        ].map { (word: $0.0, count: Double($0.1)) })
+        let corrector = Corrector(source: lexicon)
+        #expect(correct("helo", corrector: corrector) == "hello")
+        #expect(correct("realy", corrector: corrector) == "really")
+        #expect(correct("ofice", corrector: corrector) == "office")
+        #expect(correct("goood", corrector: corrector) == "good")
+        #expect(correct("bettter", corrector: corrector) == "better")
+        #expect(correct("writting", corrector: corrector) == "writing")
+        #expect(correct("begining", corrector: corrector) == "beginning")
+        #expect(correct("comming", corrector: corrector) == "coming")
+        #expect(correct("diner", corrector: corrector) == nil)
+        #expect(correct("its", corrector: corrector) == nil)
+    }
+
+    @Test func aDoubledLetterTypedOnceCountsBothWays() {
+        let letters = { (word: String) in Array(word.utf8).compactMap(Lexicon.index(of:)) }
+        #expect(Decoder.readings(of: letters("hello"), taps: 4, completing: false).filter { $0.letters == letters("helo") }.count == 2)
+    }
+
+    @Test func deadCenterTapsMakeAFarTapCountForLess() {
+        let taps = Corrector(source: testLexicon).evidence(for: TypedWord("helo", taps: "helo".map { tap(String($0)) }), touches: TouchModel())
+        let alone = taps.map { $0.letters[Lexicon.index(of: UInt8(ascii: "p"))!] }.last! + taps.dropLast().map(\.best).reduce(0, +)
+        #expect(Decoder.logLikelihood(of: "help", given: taps, touches: TouchModel(), on: grid) < alone)
     }
 
     @Test func wordsWithoutTapsUseKeyCenters() {
