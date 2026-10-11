@@ -29,7 +29,7 @@ final class SuggestionBar: UIView {
             slot.isHidden = !enabled
             slot.configure(suggestions.indices.contains(index) ? suggestions[index] : nil, theme: theme)
         }
-        dividers.forEach { $0.backgroundColor = theme.candidateDivider }
+        dividers.forEach { $0.backgroundColor = theme.candidateDivider.ui }
         refreshDividers()
     }
 
@@ -60,7 +60,7 @@ private final class SuggestionSlot: UIControl {
     var onHighlight: () -> Void = {}
     private let label = UILabel()
     private let pill = UIView()
-    private var theme = KeyboardTheme.light
+    private var theme = KeyboardTheme.lightCurrent
 
     init(index: Int) {
         super.init(frame: .zero)
@@ -97,8 +97,8 @@ private final class SuggestionSlot: UIControl {
 
     private func refresh() {
         pill.isHidden = !showsPill
-        pill.backgroundColor = theme.candidatePill
-        label.textColor = showsPill ? theme.candidateHighlighted : theme.candidate
+        pill.backgroundColor = theme.candidatePill.ui
+        label.textColor = showsPill ? theme.candidateHighlighted.ui : theme.candidate.ui
     }
 
     override func layoutSubviews() {

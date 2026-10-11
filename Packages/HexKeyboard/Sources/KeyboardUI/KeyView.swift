@@ -9,7 +9,7 @@ final class KeyView: UIView {
     private var face = KeyFace(content: .none)
     private var metrics: KeyboardMetrics?
 
-    var theme = KeyboardTheme.light { didSet { updateColors() } }
+    var theme = KeyboardTheme.lightCurrent { didSet { updateColors() } }
     var isPressed = false { didSet { if isPressed != oldValue { updateColors() } } }
     var showsLabel = true { didSet { contentAlpha = showsLabel ? 1 : 0 } }
     var isFlicked = false {
@@ -144,10 +144,10 @@ final class KeyView: UIView {
 
     private func updateColors() {
         let prominent = face.isProminent
-        backgroundColor = prominent ? theme.prominent : isPressed ? theme.keyPressed : theme.key
-        let foreground = prominent ? theme.prominentLabel : theme.label
+        backgroundColor = prominent ? theme.prominent.ui : isPressed ? theme.keyPressed.ui : theme.key.ui
+        let foreground = prominent ? theme.prominentLabel.ui : theme.label.ui
         label.textColor = foreground
         icon.tintColor = foreground
-        secondaryLabel.textColor = face.secondaryIsDimmed ? theme.secondaryLabel : foreground
+        secondaryLabel.textColor = face.secondaryIsDimmed ? theme.secondaryLabel.ui : foreground
     }
 }

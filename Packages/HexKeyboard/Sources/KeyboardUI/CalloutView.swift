@@ -1,4 +1,5 @@
 import UIKit
+import KeyboardCore
 
 final class CalloutView: UIView {
     private let shape = CAShapeLayer()
@@ -22,10 +23,10 @@ final class CalloutView: UIView {
         frame = bubble.union(key)
         let local = { (rect: CGRect) in rect.offsetBy(dx: -self.frame.minX, dy: -self.frame.minY) }
         shape.path = Self.path(bubble: local(bubble), key: local(key), radius: metrics.cornerRadius)
-        shape.fillColor = theme.key.cgColor
-        shape.shadowColor = theme.shadow.cgColor
+        shape.fillColor = theme.key.ui.cgColor
+        shape.shadowColor = theme.shadow.ui.cgColor
         label.text = text
-        label.textColor = theme.label
+        label.textColor = theme.label.ui
         label.font = .systemFont(ofSize: metrics.letterSize * 1.55, weight: .regular)
         label.frame = local(bubble).offsetBy(dx: 0, dy: -metrics.keyHeight * 0.06)
         isHidden = false

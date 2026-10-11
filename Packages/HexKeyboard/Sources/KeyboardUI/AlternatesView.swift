@@ -1,4 +1,5 @@
 import UIKit
+import KeyboardCore
 
 final class AlternatesView: UIView {
     private let panel = UIView()
@@ -45,9 +46,9 @@ final class AlternatesView: UIView {
         panel.frame = bounds
         panel.layer.cornerRadius = metrics.cornerRadius * 2
         panel.layer.shadowPath = UIBezierPath(roundedRect: panel.bounds, cornerRadius: panel.layer.cornerRadius).cgPath
-        panel.backgroundColor = theme.key
-        panel.layer.shadowColor = theme.shadow.cgColor
-        highlight.backgroundColor = theme.selection
+        panel.backgroundColor = theme.key.ui
+        panel.layer.shadowColor = theme.shadow.ui.cgColor
+        highlight.backgroundColor = theme.selection.ui
         highlight.layer.cornerRadius = metrics.cornerRadius * 1.25
 
         labels = options.enumerated().map { index, option in
@@ -55,13 +56,13 @@ final class AlternatesView: UIView {
             label.text = option
             label.textAlignment = .center
             label.font = KeyboardFont.letter(metrics.letterSize)
-            label.textColor = theme.label
+            label.textColor = theme.label.ui
             panel.addSubview(label)
             return label
         }
         highlightHeight = key.height + 4
-        labelColor = theme.label
-        selectedLabelColor = theme.selectionLabel
+        labelColor = theme.label.ui
+        selectedLabelColor = theme.selectionLabel.ui
         select(baseIndex)
         isHidden = false
     }

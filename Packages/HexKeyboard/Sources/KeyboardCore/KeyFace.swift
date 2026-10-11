@@ -1,8 +1,5 @@
-import UIKit
-import KeyboardCore
-
-struct KeyFace: Equatable {
-    enum Content: Equatable {
+public struct KeyFace: Hashable, Sendable {
+    public enum Content: Hashable, Sendable {
         case letter(String)
         case text(String)
         case smallText(String)
@@ -10,28 +7,45 @@ struct KeyFace: Equatable {
         case none
     }
 
-    enum Alignment: Equatable {
+    public enum Alignment: Hashable, Sendable {
         case center, bottomLeading, bottomTrailing
     }
 
-    var content: Content
-    var secondary: String?
-    var secondaryIsDimmed = true
-    var alignment: Alignment = .center
-    var isProminent = false
+    public var content: Content
+    public var secondary: String?
+    public var secondaryIsDimmed = true
+    public var alignment: Alignment = .center
+    public var isProminent = false
+
+    public init(content: Content, secondary: String? = nil, secondaryIsDimmed: Bool = true, alignment: Alignment = .center, isProminent: Bool = false) {
+        self.content = content
+        self.secondary = secondary
+        self.secondaryIsDimmed = secondaryIsDimmed
+        self.alignment = alignment
+        self.isProminent = isProminent
+    }
 }
 
-struct KeyFaceContext {
-    var device: DeviceClass
-    var layer: KeyboardLayer
-    var kind: InputKind
-    var shift: ShiftState
-    var returnKind: ReturnKind
-    var returnEnabled: Bool
+public struct KeyFaceContext: Hashable, Sendable {
+    public var device: DeviceClass
+    public var layer: KeyboardLayer
+    public var kind: InputKind
+    public var shift: ShiftState
+    public var returnKind: ReturnKind
+    public var returnEnabled: Bool
+
+    public init(device: DeviceClass, layer: KeyboardLayer, kind: InputKind, shift: ShiftState, returnKind: ReturnKind, returnEnabled: Bool) {
+        self.device = device
+        self.layer = layer
+        self.kind = kind
+        self.shift = shift
+        self.returnKind = returnKind
+        self.returnEnabled = returnEnabled
+    }
 }
 
 extension KeyFace {
-    init(_ key: Key, trailing: Bool, context: KeyFaceContext) {
+    public init(_ key: Key, trailing: Bool, context: KeyFaceContext) {
         let isPad = context.device != .phone
         let edge: Alignment = isPad ? (trailing ? .bottomTrailing : .bottomLeading) : .center
         switch key.action {

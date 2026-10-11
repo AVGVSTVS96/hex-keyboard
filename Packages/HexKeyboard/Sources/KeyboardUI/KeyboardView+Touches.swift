@@ -161,7 +161,7 @@ extension KeyboardView {
                     self.onEvent(.trackpad(active: true))
                 } else {
                     tracked.mode = .alternates
-                    view.isPressed = KeyboardTheme.dimsKeyUnderAccents
+                    view.isPressed = KeyboardStyle.current.dimsKeyUnderAccents
                     self.callout.hide()
                     let shown = view.key.alternates.map(self.displayed)
                     let base = self.displayed(self.text(for: view.key, flicked: false) ?? "")

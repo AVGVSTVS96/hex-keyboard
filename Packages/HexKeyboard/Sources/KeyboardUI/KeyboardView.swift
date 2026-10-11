@@ -21,7 +21,7 @@ final class KeyboardView: UIView {
     private(set) var signature = ""
     private(set) var metrics = KeyboardMetrics.phone(width: 390)
     private(set) var faceContext = KeyFaceContext(device: .phone, layer: .letters, kind: .text, shift: .off, returnKind: .default, returnEnabled: true)
-    private(set) var theme = KeyboardTheme.light
+    private(set) var theme = KeyboardTheme.lightCurrent
     private(set) var keyViews: [KeyView] = []
     private var grid = KeyGrid()
     private var rowKeys: [[KeyView]] = []
