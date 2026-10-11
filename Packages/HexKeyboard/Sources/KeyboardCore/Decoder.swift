@@ -44,8 +44,30 @@ struct Decoder {
         var edits: Int
         var completing: Bool
         var score: Double
-        var spelling: [UInt8]
+        var spelling: Int
         var terminal: Bool
+    }
+
+    /// Spellings as a trail of letters, each pointing at the spelling it extends, so a search step costs no allocation.
+    private struct Trail {
+        private var steps: [(previous: Int, letter: UInt8)] = []
+
+        static let empty = -1
+
+        mutating func extend(_ spelling: Int, with letter: UInt8) -> Int {
+            steps.append((spelling, letter))
+            return steps.count - 1
+        }
+
+        func word(_ spelling: Int) -> String {
+            var letters: [UInt8] = []
+            var step = spelling
+            while step != Self.empty {
+                letters.append(steps[step].letter)
+                step = steps[step].previous
+            }
+            return String(decoding: letters.reversed(), as: UTF8.self)
+        }
     }
 
     /// The `count` likeliest words, completions included, and at least the likeliest word of exactly the typed length.
@@ -55,7 +77,8 @@ struct Decoder {
         let offset = best.reduce(0, +)
         var heap = Heap<State>()
         var found: [Result] = []
-        var seen: Set<String> = []
+        var seen: Set<Lexicon.Node> = []
+        var trail = Trail()
         var exact = 0, pops = 0
 
         func push(_ state: State) {
@@ -69,20 +92,20 @@ struct Decoder {
             terminal.score += word
             push(terminal)
         }
-        push(State(node: lexicon.root, tap: 0, edits: 0, completing: false, score: 0, spelling: [], terminal: false))
+        push(State(node: lexicon.root, tap: 0, edits: 0, completing: false, score: 0, spelling: Trail.empty, terminal: false))
 
         while found.count < count || exact == 0, pops < Self.budget, let state = heap.pop() {
             pops += 1
             if state.terminal {
-                let word = String(decoding: state.spelling, as: UTF8.self)
-                guard seen.insert(word).inserted else { continue }
+                guard seen.insert(state.node).inserted else { continue }
+                let word = trail.word(state.spelling)
                 let logPrior = lexicon.logWord(state.node) ?? 0
                 found.append(Result(word: lexicon.canonical(word) ?? word, logLikelihood: state.score - logPrior + offset, logPrior: logPrior, isCompletion: state.completing))
                 if !state.completing { exact += 1 }
                 continue
             }
             let i = state.tap
-            if i == taps.count, state.spelling.count > 0 {
+            if i == taps.count, state.spelling != Trail.empty {
                 if !state.completing { emit(state) }
             }
             if i < taps.count, state.edits == 0 {
@@ -92,7 +115,7 @@ struct Decoder {
             for child in lexicon.children(state.node) {
                 let letter = lexicon.letter(child)
                 guard let index = Lexicon.index(of: letter) else { continue }
-                let spelling = state.spelling + [letter]
+                let spelling = trail.extend(state.spelling, with: letter)
                 if i == taps.count {
                     let next = State(node: child, tap: i, edits: state.edits, completing: true, score: state.score, spelling: spelling, terminal: false)
                     if lexicon.logWord(child) != nil { emit(next) }
@@ -111,7 +134,7 @@ struct Decoder {
                         guard let second = Lexicon.index(of: lexicon.letter(grandchild)), second != index else { continue }
                         let swapped = taps[i].letters[second] + taps[i + 1].letters[index] - best[i] - best[i + 1]
                         push(State(node: grandchild, tap: i + 2, edits: 1, completing: false,
-                                   score: state.score + swapped + Self.editLogProbability, spelling: spelling + [lexicon.letter(grandchild)], terminal: false))
+                                   score: state.score + swapped + Self.editLogProbability, spelling: trail.extend(spelling, with: lexicon.letter(grandchild)), terminal: false))
                     }
                 }
             }
@@ -130,15 +153,16 @@ struct Decoder {
         let letters = Array(lower.utf8).compactMap(Lexicon.index(of:))
         guard letters.count == lower.utf8.count else { return -.infinity }
         var total = -Double.infinity
+        let start = touches.layout(grid)
         for reading in readings(of: letters, taps: taps.count, completing: completing) {
-            var model = touches
+            var model = start
             var score = reading.logPenalty
             for (tap, letter) in zip(taps, reading.letters) {
                 guard let letter else { score += tap.stray; continue }
                 let label = Lexicon.labels[letter]
-                if let point = tap.point, let likelihood = model.logLikelihood(x: point.x, y: point.y, for: label, on: grid) {
+                if let point = tap.point, let likelihood = model.logLikelihood(x: point.x, y: point.y, for: label) {
                     score += likelihood
-                    model.learn([TapSample(tap: point, intended: label)], on: grid)
+                    model.learn(TapSample(tap: point, intended: label))
                 } else {
                     score += tap.letters[letter]
                 }

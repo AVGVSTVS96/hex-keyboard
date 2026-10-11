@@ -36,6 +36,36 @@ struct Evaluation {
         }
     }
 
+    /// Main-thread cost per keystroke of what the extension runs for one key: hit-testing on touch down, the key on
+    /// touch up, and the document refresh the host's `textDidChange` triggers.
+    @Test func latency() throws {
+        let phrases = try Self.phrases().prefix(100)
+        var user = SimulatedUser(width: Self.width, noise: 0.2, seed: 2026)
+        var session = Session(.learning, grid: user.grid)
+        var down: [Duration] = [], letters: [Duration] = [], spaces: [Duration] = [], changed: [Duration] = []
+        let clock = ContinuousClock()
+        for phrase in phrases {
+            session.startPhrase()
+            for character in phrase + " " {
+                let (x, y) = user.tap(character)
+                var hit: (row: Int, key: Int)?
+                down.append(clock.measure { hit = session.engine.key(atX: x, y: y, in: session.grid, document: session.document) })
+                guard let hit, let label = session.grid.rows[hit.row][hit.key].key.label else { continue }
+                let up = clock.measure {
+                    session.engine.perform(label == " " ? .space : .character(label), in: session.document, tap: Tap(x: x, y: y, key: label))
+                }
+                if label == " " { spaces.append(up) } else { letters.append(up) }
+                changed.append(clock.measure { session.engine.documentChanged(session.document) })
+            }
+        }
+        func summary(_ name: String, _ samples: [Duration]) -> String {
+            let ms = samples.map { Double($0.components.attoseconds) / 1e15 + Double($0.components.seconds) * 1000 }.sorted()
+            let at = { (q: Double) in String(format: "%.2f", ms[min(ms.count - 1, Int(Double(ms.count) * q))]) }
+            return "\(name) median=\(at(0.5)) p95=\(at(0.95)) p99=\(at(0.99)) max=\(at(1))"
+        }
+        print("EVAL latency ms keys=\(down.count) \(summary("down", down)) | \(summary("letter up", letters)) | \(summary("space up", spaces)) | \(summary("textDidChange", changed))")
+    }
+
     @Test func biasedThumbs() throws {
         let phrases = try Self.phrases()
         let block = 500

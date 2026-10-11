@@ -50,15 +50,27 @@ public struct TouchModel: Codable, Hashable, Sendable {
 
     public struct Layout {
         let grid: KeyGrid
-        let keys: [String: Touches]
-        private let letters: Spread
-        private let space: Spread
+        private(set) var keys: [String: Touches]
+        private var letters: Spread
+        private var space: Spread
 
         init(grid: KeyGrid, keys: [String: Touches]) {
             self.grid = grid
             self.keys = keys
-            letters = Spread(pooling: keys.filter { $0.key != " " }.values)
+            letters = Spread(pooling: keys.lazy.filter { $0.key != " " }.map(\.value))
             space = Spread(pooling: keys[" "].map { [$0] } ?? [])
+        }
+
+        /// Learns one tap, as `TouchModel.learn` would on this layout's grid.
+        mutating func learn(_ sample: TapSample) {
+            guard let frame = grid.frame(of: sample.intended) else { return }
+            let (u, v) = TouchModel.offset(x: sample.tap.x, y: sample.tap.y, in: grid.cell(of: frame))
+            keys[sample.intended, default: Touches()].add(u, v)
+            if sample.intended == " " {
+                space = Spread(pooling: keys[" "].map { [$0] } ?? [])
+            } else {
+                letters = Spread(pooling: keys.lazy.filter { $0.key != " " }.map(\.value))
+            }
         }
 
         /// Log density, per square point, of a tap at (x, y) when you meant the key labeled `label`.

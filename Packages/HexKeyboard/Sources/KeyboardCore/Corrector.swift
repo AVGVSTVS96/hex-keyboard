@@ -3,12 +3,23 @@ public final class Corrector {
     public var replacements: [String: String] = [:]
     public var names: [String: String] = [:]
     public var memory = TypingMemory() {
-        didSet { cachedModel = nil }
+        didSet {
+            cachedModel = nil
+            rankings = [:]
+        }
     }
-    public var grid = KeyGrid.standard
+    public var grid = KeyGrid.standard {
+        didSet { rankings = [:] }
+    }
 
     private let lexicon: Lexicon?
     private var cachedModel: LanguageModel?
+    private var rankings: [Ranking: [Candidate]] = [:]
+
+    private struct Ranking: Hashable {
+        var typed: TypedWord
+        var alone: Bool
+    }
 
     /// With a `Lexicon` as its source, the corrector decodes your taps against your own touch model and words;
     /// any other source (like `UITextChecker`) only corrects spelling.
@@ -113,6 +124,14 @@ extension Corrector {
     /// Candidates for what you meant, likeliest first. `alone` leaves out the words you've typed, so only the lexicon
     /// and your touches speak.
     func ranked(_ typed: TypedWord, alone: Bool = false) -> [Candidate] {
+        let key = Ranking(typed: typed, alone: alone)
+        if let cached = rankings[key] { return cached }
+        let candidates = rank(typed, alone: alone)
+        rankings[key] = candidates
+        return candidates
+    }
+
+    private func rank(_ typed: TypedWord, alone: Bool) -> [Candidate] {
         guard let lexicon, !typed.text.isEmpty else { return [] }
         let words = alone ? TypingMemory() : memory
         let model = alone ? LanguageModel(lexicon: lexicon, memory: words) : languageModel(lexicon)
