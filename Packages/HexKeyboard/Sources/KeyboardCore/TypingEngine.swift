@@ -6,9 +6,19 @@ public struct TypingEngine {
     /// Leaves `suggestions` stale after each change, for a `SuggestionJob` to rank off the keystroke's path.
     public var defersSuggestions = false
     public internal(set) var suggestionsAreStale = false
+    /// Which key a touch means, made with the suggestions (off the main thread when they're deferred).
+    public internal(set) var keyMap: KeyMap?
+    /// The text before the word the suggestions were ranked for. A tap on a suggestion applies only to that word, so a
+    /// bar that hasn't caught up with a space or a delete can't replace a different word.
+    var suggestionsBefore = ""
     var revision = 0
-    public var settings = KeyboardSettings()
+    public var settings = KeyboardSettings() {
+        didSet { if settings != oldValue { suggestionsChanged() } }
+    }
     public var corrector: Corrector?
+    /// The one copy of the text the engine reads. Every edit goes through `write`, which changes it and the host
+    /// together; the host's reports only reach it through `documentChanged`.
+    public private(set) var text = TextState()
 
     private var spaceJustTyped = false
     private var shiftHold: ShiftHold?
@@ -27,11 +37,14 @@ public struct TypingEngine {
     }
 
     public mutating func update(_ traits: InputTraits) {
+        guard traits != self.traits else { return }
         if traits.kind != self.traits.kind { layer = Self.initialLayer(for: traits.kind) }
         self.traits = traits
+        suggestionsChanged()
     }
 
     public mutating func perform(_ action: KeyAction, in document: some TextDocument, tap: Tap? = nil) {
+        attach(document)
         switch action {
         case .shift:
             shift = shift == .off ? .on : .off
@@ -41,7 +54,7 @@ public struct TypingEngine {
             return
         case .layer(let target):
             layer = target
-            suggestionsChanged(in: document)
+            suggestionsChanged()
             return
         case .nextKeyboard, .dismiss:
             return
@@ -56,36 +69,35 @@ public struct TypingEngine {
         if wasSpace, action != .delete { corrector?.memory.recordAfterSpace(isSpace: action == .space) }
 
         switch action {
-        case .character(let text):
-            var typed = shift.isUppercase && layer == .letters ? text.uppercased() : text
+        case .character(let key):
+            var typed = shift.isUppercase && layer == .letters ? key.uppercased() : key
             if settings.smartPunctuation, traits.smartPunctuation {
-                if typed == "-", document.textBeforeInput?.last == "-" {
-                    document.deleteBackward(1)
+                if typed == "-", text.before.last == "-", text.owned >= 1 {
+                    write("", replacing: 1, in: document)
                     typed = "—"
                 } else {
-                    typed = Self.smartQuote(typed, after: document.textBeforeInput)
+                    typed = Self.smartQuote(typed, after: text.before)
                 }
             }
             if Self.wordEnders.contains(typed) {
                 commitWord(in: document)
             } else if let tap, typed.allSatisfy(Words.isWordCharacter) {
-                recordTap(tap, for: typed.lowercased(), in: document)
+                recordTap(tap, for: typed.lowercased())
             }
-            document.insert(typed)
+            write(typed, in: document)
             self.revert?.trailing = typed
-            if layer != .letters, Self.returnsToLetters.contains(text) { layer = .letters }
+            if layer != .letters, Self.returnsToLetters.contains(key) { layer = .letters }
             if shiftHold != nil { shiftHold = .typedWhileHeld }
         case .space:
             if wasSpace, let tap, joinBack(space: tap, in: document) {
                 spaceJustTyped = true
-            } else if wasSpace, settings.periodShortcut, traits.smartPunctuation, Self.endsSentenceable(document.textBeforeInput) {
-                document.deleteBackward(1)
-                document.insert(". ")
+            } else if wasSpace, settings.periodShortcut, traits.smartPunctuation, text.owned >= 1, Self.endsSentenceable(text.before) {
+                write(". ", replacing: 1, in: document)
                 stray = tap.map { StraySpace(tap: $0, swallowed: ". ", restored: " ", counted: true) }
             } else {
-                let blank = document.textBeforeInput?.last.map(\.isWhitespace) ?? true
+                let blank = text.before.last.map(\.isWhitespace) ?? true
                 commitWord(in: document, ending: tap)
-                document.insert(" ")
+                write(" ", in: document)
                 self.revert?.trailing = " "
                 spaceJustTyped = true
                 if blank, let tap { stray = StraySpace(tap: tap, swallowed: " ", restored: "", counted: wasSpace) }
@@ -93,37 +105,48 @@ public struct TypingEngine {
             if layer != .letters { layer = .letters }
         case .return:
             commitWord(in: document)
-            document.insert("\n")
+            write("\n", in: document)
             self.revert?.trailing = "\n"
         case .tab:
-            document.insert("\t")
+            write("\t", in: document)
         case .delete:
             stray = nil
-            let offersRevert = revert?.isCommitted(before: document.textBeforeInput) == true
-            document.deleteBackward(1)
+            let offersRevert = revert?.isCommitted(before: text.before) == true
+            write("", replacing: 1, in: document)
             if offersRevert {
                 self.revert = revert
                 self.revert?.offered = true
             } else {
-                eraseTap(in: document)
+                eraseTap()
             }
         default:
             break
         }
-        refreshShift(in: document)
-        suggestionsChanged(in: document)
+        refreshShift()
+        suggestionsChanged()
     }
 
     public mutating func deleteWord(in document: some TextDocument) {
+        attach(document)
         spaceJustTyped = false
         revert = nil
         if taps.isEmpty { pending = nil }
         taps = []
         erased = [:]
         retyped = []
-        document.deleteBackward(Self.wordLength(before: document.textBeforeInput))
-        refreshShift(in: document)
-        suggestionsChanged(in: document)
+        write("", replacing: Self.wordLength(before: text.before), in: document)
+        refreshShift()
+        suggestionsChanged()
+    }
+
+    /// Moves the caret, as the space bar trackpad does.
+    public mutating func moveCursor(by offset: Int, in document: some TextDocument) {
+        attach(document)
+        document.moveCursor(by: offset)
+        text.moveCursor(by: offset)
+        forgetWord()
+        refreshShift()
+        suggestionsChanged()
     }
 
     public mutating func pressShift(doubleTap: Bool) {
@@ -135,25 +158,62 @@ public struct TypingEngine {
         let typed = shiftHold == .typedWhileHeld
         shiftHold = nil
         guard typed, shift == .on else { return }
-        refreshShift(in: document)
+        attach(document)
+        refreshShift()
     }
 
-    public mutating func documentChanged(_ document: some TextDocument) {
-        spaceJustTyped = false
-        if Words.current(in: document.textBeforeInput ?? "").count != taps.count {
-            taps = []
-            erased = [:]
-            retyped = []
+    /// The host says its text or selection changed (`textDidChange`, `selectionDidChange`). A report that only shows
+    /// the keyboard's own edits, or shows them late, changes nothing; anything else replaces what the engine knows and
+    /// forgets the word in progress.
+    @discardableResult
+    public mutating func documentChanged(_ document: some TextDocument) -> TextState.Report {
+        let report = text.reconcile(before: document.textBeforeInput, after: document.textAfterInput)
+        if report == .changed {
+            forgetWord()
+            suggestionsChanged()
         }
-        refreshShift(in: document)
-        suggestionsChanged(in: document)
+        refreshShift()
+        return report
     }
 
     public mutating func refreshShift(in document: some TextDocument) {
+        attach(document)
+        refreshShift()
+    }
+
+    mutating func refreshShift() {
         guard shift != .locked, shiftHold == nil else { return }
         let mode = settings.autoCapitalization ? traits.autocapitalization : .none
-        let capitalize = layer == .letters && Self.shouldCapitalize(document.textBeforeInput, mode: mode)
+        let capitalize = layer == .letters && Self.shouldCapitalize(text.before, mode: mode)
         shift = capitalize ? .on : .off
+    }
+
+    /// The one way text changes: deletes `count` characters before the caret and inserts `string`, in the host and in
+    /// `text` alike, in that order.
+    mutating func write(_ string: String, replacing count: Int = 0, in document: some TextDocument) {
+        if count > 0 {
+            document.deleteBackward(count)
+            text.deleteBackward(count)
+        }
+        if !string.isEmpty {
+            document.insert(string)
+            text.insert(string)
+        }
+    }
+
+    /// Reads the host once, the first time the engine meets it.
+    mutating func attach(_ document: some TextDocument) {
+        guard !text.isKnown else { return }
+        text.reconcile(before: document.textBeforeInput, after: document.textAfterInput)
+    }
+
+    private mutating func forgetWord() {
+        spaceJustTyped = false
+        taps = []
+        erased = [:]
+        retyped = []
+        stray = nil
+        revert = nil
     }
 }
 

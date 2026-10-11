@@ -8,7 +8,6 @@ enum KeyboardEvent {
     case trigger(Key)
     case slideTyped(Key, text: String)
     case cursor(offset: Int)
-    case trackpad(active: Bool)
 }
 
 final class KeyboardView: UIView {

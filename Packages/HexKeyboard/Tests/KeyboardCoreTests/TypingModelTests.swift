@@ -82,27 +82,43 @@ struct TouchModelTests {
         let corrector = Corrector(source: testLexicon)
         let m = grid.frame(of: "m")!
         let between = (x: m.midX - 0.6, y: m.midY)
-        #expect(corrector.key(atX: between.x, y: between.y, in: grid, after: nil).map { grid.rows[$0.row][$0.key].key.label } == "n")
+        #expect(corrector.keyMap(revision: 0, after: nil).key(atX: between.x, y: between.y, in: grid).map { grid.rows[$0.row][$0.key].key.label } == "n")
         corrector.learn(samples("m", dx: -0.4))
-        #expect(corrector.key(atX: between.x, y: between.y, in: grid, after: nil).map { grid.rows[$0.row][$0.key].key.label } == "m")
+        #expect(corrector.keyMap(revision: 0, after: nil).key(atX: between.x, y: between.y, in: grid).map { grid.rows[$0.row][$0.key].key.label } == "m")
         corrector.learn(samples("m", dx: -0.8, count: 300))
-        #expect(corrector.key(atX: m.midX - 1, y: m.midY, in: grid, after: nil).map { grid.rows[$0.row][$0.key].key.label } == "n")
+        #expect(corrector.keyMap(revision: 0, after: nil).key(atX: m.midX - 1, y: m.midY, in: grid).map { grid.rows[$0.row][$0.key].key.label } == "n")
     }
 
     @Test func nextLetterOddsResizeKeysInsideWords() {
         let corrector = Corrector(source: testLexicon)
         let o = grid.frame(of: "o")!
         let label = { (prefix: String?) in
-            corrector.key(atX: o.midX - 0.55, y: o.midY, in: grid, after: prefix).map { grid.rows[$0.row][$0.key].key.label }
+            corrector.keyMap(revision: 0, after: prefix).key(atX: o.midX - 0.55, y: o.midY, in: grid).map { grid.rows[$0.row][$0.key].key.label }
         }
         #expect(label(nil) == "i")
         #expect(label("hell") == "o")
     }
 
+    @Test func aTouchTakesTheKeyUnderItUntilTheMapForTheTextIsReady() throws {
+        var engine = TypingEngine()
+        engine.corrector = Corrector(source: testLexicon)
+        engine.defersSuggestions = true
+        let document = TestDocument()
+        engine.documentChanged(document)
+        engine.type("hell", in: document)
+        let o = grid.frame(of: "o")!
+        let label = { (engine: TypingEngine) in engine.key(atX: o.midX - 0.55, y: o.midY, in: grid).map { grid.rows[$0.row][$0.key].key.label } }
+        #expect(label(engine) == "i")
+        var job = try #require(engine.suggestionJob(in: document))
+        job.run()
+        engine.finish(job)
+        #expect(label(engine) == "o")
+    }
+
     @Test func controlKeysKeepTheirTaps() {
         let corrector = Corrector(source: testLexicon)
         let delete = grid.rows[2].last!.frame
-        let hit = corrector.key(atX: delete.x + 0.01, y: delete.midY, in: grid, after: "hel")
+        let hit = corrector.keyMap(revision: 0, after: "hel").key(atX: delete.x + 0.01, y: delete.midY, in: grid)
         #expect(hit.map { grid.rows[$0.row][$0.key].key.action } == .delete)
     }
 }

@@ -1,9 +1,10 @@
 import UIKit
+import KeyboardCore
 
 /// Records how touches reach the keyboard on a real device, when `Library/Caches/touch-trace.tsv` exists in the
 /// extension's container (create it with `devicectl device copy to`, read it with `copy from`). One line per touch
 /// phase: when it happened, how late it arrived, how long the main thread spent on it, how many fingers were down;
-/// plus every state change of the window's gesture recognizers. No characters and no positions.
+/// plus every state change of the window's gesture recognizers and every host text report. No characters and no positions.
 final class TouchTrace: NSObject {
     static let shared = TouchTrace()
 
@@ -24,6 +25,19 @@ final class TouchTrace: NSObject {
                                 (now - start) * 1000, event?.allTouches?.count ?? 0))
         }
         if lines.count >= 200 { flush() }
+    }
+
+    /// A host report (`textDidChange`, `selectionDidChange`) and how it compared with the text the keyboard knows:
+    /// lengths only.
+    func record(_ report: TextState.Report, host: Int, known: Int) {
+        guard isOn else { return }
+        lines.append(String(format: "%.4f\ttext\t%@\t%ld\t%ld", CACurrentMediaTime(), "\(report)", host, known))
+    }
+
+    /// Something the keyboard did, like typing a key, so a trace can count taps against what they typed.
+    func mark(_ name: String) {
+        guard isOn else { return }
+        lines.append(String(format: "%.4f\t%@", CACurrentMediaTime(), name))
     }
 
     func watch(_ window: UIWindow?) {

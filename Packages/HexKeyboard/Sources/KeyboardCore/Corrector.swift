@@ -16,7 +16,7 @@ public final class Corrector {
         }
     }
 
-    private let lexicon: Lexicon?
+    let lexicon: Lexicon?
     private var cachedModel: LanguageModel?
     private var rankings: [Ranking: [Candidate]] = [:]
     private var generation = 0
@@ -222,28 +222,6 @@ extension Corrector {
         let model = LanguageModel(lexicon: lexicon, memory: memory)
         cachedModel = model
         return model
-    }
-}
-
-extension Corrector {
-    /// The key a tap most likely meant: the touch model's likelihood for each key the tap reaches, times how likely
-    /// that key is to come next after `prefix` (pass `nil` where words aren't expected). Keys without a label (shift,
-    /// delete, return…) keep exactly the taps that land on them.
-    public func key(atX x: Double, y: Double, in grid: KeyGrid, after prefix: String?) -> (row: Int, key: Int)? {
-        guard let nearest = grid.index(atX: x, y: y) else { return nil }
-        guard grid.rows[nearest.row][nearest.key].key.label != nil else { return nearest }
-        let next = prefix.flatMap { prefix in lexicon.map { languageModel($0).next(after: prefix.lowercased()) } }
-        let keys = memory.touches.layout(grid)
-        var best = nearest, bestScore = -Double.infinity
-        for (r, row) in grid.rows.enumerated() {
-            for (k, item) in row.enumerated() {
-                guard let label = item.key.label, grid.reaches(label, x: x, y: y),
-                      let likelihood = keys.logLikelihood(x: x, y: y, for: label) else { continue }
-                let score = likelihood + (next?[label.lowercased()].map(Math.log) ?? 0)
-                if score > bestScore { (best, bestScore) = ((r, k), score) }
-            }
-        }
-        return best
     }
 }
 

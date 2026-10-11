@@ -39,7 +39,7 @@ public enum ReturnKind: Hashable, Sendable {
     }
 }
 
-public struct InputTraits: Sendable {
+public struct InputTraits: Hashable, Sendable {
     public var kind: InputKind
     public var returnKind: ReturnKind
     public var autocapitalization: Autocapitalization

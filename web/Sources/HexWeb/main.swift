@@ -71,7 +71,7 @@ import KeyboardCore
     }
 
     @JS func resolve(x: Double, y: Double) -> Int {
-        guard let index = engine.key(atX: x, y: y, in: grid, document: document) else { return -1 }
+        guard let index = engine.key(atX: x, y: y, in: grid) else { return -1 }
         return offsets[index.row] + index.key
     }
 
@@ -132,7 +132,7 @@ import KeyboardCore
     }
 
     @JS func cursor(offset: Int) {
-        document.moveCursor(by: offset)
+        engine.moveCursor(by: offset, in: document)
     }
 
     @JS func documentChanged() {

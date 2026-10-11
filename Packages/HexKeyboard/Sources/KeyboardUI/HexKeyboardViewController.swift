@@ -44,7 +44,7 @@ open class HexKeyboardViewController: UIInputViewController {
         }
         let words: any CandidateSource = Lexicon.english ?? TextCheckerSource(language: primaryLanguage ?? "en-US")
         engine.corrector = Corrector(source: words)
-        keyboardView.resolve = { [unowned self] grid, point in engine.key(atX: point.x, y: point.y, in: grid, document: document) }
+        keyboardView.resolve = { [unowned self] grid, point in engine.key(atX: point.x, y: point.y, in: grid) }
         keyboardView.onGrid = { [unowned self] grid in
             guard let corrector = engine.corrector, engine.layer == .letters else { return }
             if grid.signature != corrector.grid.signature { engine.endSession() }
@@ -66,6 +66,7 @@ open class HexKeyboardViewController: UIInputViewController {
         super.viewWillAppear(animated)
         engine.settings = SettingsStore.load()
         engine.corrector?.memory = MemoryStore.load()
+        engine.suggestionsChanged()
         keyboardView.characterPreview = engine.settings.characterPreview
         syncWithDocument()
     }
@@ -81,7 +82,8 @@ open class HexKeyboardViewController: UIInputViewController {
         Task { [weak self] in
             guard let lexicon = await self?.requestSupplementaryLexicon() else { return }
             self?.engine.corrector?.learn(lexicon)
-            self?.syncWithDocument()
+            self?.engine.suggestionsChanged()
+            self?.render()
         }
     }
 
@@ -102,7 +104,9 @@ open class HexKeyboardViewController: UIInputViewController {
 
     private func syncWithDocument() {
         engine.update(InputTraits(textDocumentProxy))
-        engine.documentChanged(document)
+        let known = engine.text.before.count
+        let report = engine.documentChanged(document)
+        TouchTrace.shared.record(report, host: textDocumentProxy.documentContextBeforeInput?.count ?? 0, known: known)
         render()
     }
 
@@ -143,7 +147,7 @@ open class HexKeyboardViewController: UIInputViewController {
             kind: engine.traits.kind,
             shift: engine.shift,
             returnKind: engine.traits.returnKind,
-            returnEnabled: !engine.traits.returnRequiresText || textDocumentProxy.hasText
+            returnEnabled: !engine.traits.returnRequiresText || !engine.text.before.isEmpty || !(engine.text.after ?? "").isEmpty
         )
         let signature = LayoutContext(device: device, layer: engine.layer, isLandscape: screenSize.width > screenSize.height).signature
         keyboardView.update(layout: layout, signature: signature, metrics: metrics, faces: faces, theme: theme)
@@ -214,6 +218,7 @@ open class HexKeyboardViewController: UIInputViewController {
         case .type(let key, let text, let point):
             let tap = Tap(x: point.x, y: point.y, key: text)
             engine.perform(key.action == .space ? .space : .character(text), in: document, tap: tap)
+            TouchTrace.shared.mark("typed")
         case .slideTyped(_, let text):
             let layer = engine.layer
             engine.perform(.character(text), in: document)
@@ -226,10 +231,7 @@ open class HexKeyboardViewController: UIInputViewController {
             default: return
             }
         case .cursor(let offset):
-            document.moveCursor(by: offset)
-        case .trackpad(let active):
-            if active { return }
-            engine.documentChanged(document)
+            engine.moveCursor(by: offset, in: document)
         }
         render()
     }

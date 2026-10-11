@@ -31,7 +31,7 @@ final class TestDocument: TextDocument {
 }
 
 extension TypingEngine {
-    mutating func type(_ string: String, in document: TestDocument) {
+    mutating func type(_ string: String, in document: some TextDocument) {
         for character in string {
             perform(character == " " ? .space : .character(String(character).lowercased()), in: document)
         }

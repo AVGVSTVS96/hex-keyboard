@@ -49,7 +49,7 @@ struct Evaluation {
             for character in phrase + " " {
                 let (x, y) = user.tap(character)
                 var hit: (row: Int, key: Int)?
-                down.append(clock.measure { hit = session.engine.key(atX: x, y: y, in: session.grid, document: session.document) })
+                down.append(clock.measure { hit = session.engine.key(atX: x, y: y, in: session.grid) })
                 guard let hit, let label = session.grid.rows[hit.row][hit.key].key.label else { continue }
                 let up = clock.measure {
                     session.engine.perform(label == " " ? .space : .character(label), in: session.document, tap: Tap(x: x, y: y, key: label))
@@ -119,6 +119,7 @@ struct Session {
         engine = TypingEngine(traits: InputTraits(autocapitalization: .none))
         engine.corrector = corrector
         document = Document()
+        engine.suggestionsChanged()
     }
 
     mutating func type(_ word: String, by user: inout SimulatedUser, tappingSpace: Bool) {
@@ -126,7 +127,7 @@ struct Session {
         var typed = ""
         for character in word + (tappingSpace ? " " : "") {
             let (x, y) = user.tap(character)
-            let hit = keyboard == .baseline ? grid.index(atX: x, y: y) : engine.key(atX: x, y: y, in: grid, document: document)
+            let hit = keyboard == .baseline ? grid.index(atX: x, y: y) : engine.key(atX: x, y: y, in: grid)
             guard let hit, let label = grid.rows[hit.row][hit.key].key.label, tappingSpace || label != " " else { continue }
             if character != " " { typed += label }
             if character == " " { shown = engine.suggestions.map { $0.text.lowercased() } }

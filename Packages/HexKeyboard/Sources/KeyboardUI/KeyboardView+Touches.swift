@@ -5,6 +5,7 @@ extension KeyboardView {
     final class TrackedTouch {
         enum Mode { case typing, alternates, trackpad, slide }
 
+        var key: Key
         weak var keyView: KeyView?
         var mode = Mode.typing
         var flicked = false
@@ -14,6 +15,7 @@ extension KeyboardView {
         var hold: Timer?
 
         init(keyView: KeyView, start: CGPoint) {
+            self.key = keyView.key
             self.keyView = keyView
             self.start = start
             self.point = start
@@ -25,9 +27,9 @@ extension KeyboardView {
         let start = CACurrentMediaTime()
         defer { TouchTrace.shared.record("began", touches, event, since: start) }
         for touch in touches.inOrder {
+            rollOver()
             let point = touch.location(in: self)
             guard let view = keyView(at: point) else { continue }
-            rollOver()
             let tracked = TrackedTouch(keyView: view, start: point)
             self.tracked[ObjectIdentifier(touch)] = tracked
             press(view, tracked: tracked)
@@ -61,9 +63,10 @@ extension KeyboardView {
                     tracked.keyView?.isFlicked = flick
                     continue
                 }
-                guard let view = keyView(at: point), view !== tracked.keyView,
-                      tracked.mode == .slide || (view.key.isInput && tracked.keyView?.key.isInput == true) else { continue }
+                guard let view = keyView(at: point), view.key != tracked.key,
+                      tracked.mode == .slide || (view.key.isInput && tracked.key.isInput) else { continue }
                 tracked.keyView?.isPressed = false
+                tracked.key = view.key
                 tracked.keyView = view
                 tracked.hold?.invalidate()
                 press(view, tracked: tracked)
@@ -92,39 +95,40 @@ extension KeyboardView {
     }
 
     private func rollOver() {
-        for (id, other) in tracked where other.mode == .typing && other.keyView?.key.isInput == true {
+        for (id, other) in tracked where other.mode == .typing && other.key.isInput {
             tracked.removeValue(forKey: id)
             finish(other, commit: true)
         }
     }
 
+    /// Commits the key the touch is on. The key is kept with the touch, so it commits even if the key views were
+    /// rebuilt while the finger was down.
     private func finish(_ tracked: TrackedTouch, commit: Bool) {
         tracked.hold?.invalidate()
         callout.hide()
-        guard let view = tracked.keyView else { return }
-        view.isPressed = false
-        view.isFlicked = false
-        defer { onEvent(.up(view.key)) }
+        let key = tracked.key
+        tracked.keyView?.isPressed = false
+        tracked.keyView?.isFlicked = false
+        defer { onEvent(.up(key)) }
 
         switch tracked.mode {
         case .alternates:
-            if commit, let text = alternates.selected { onEvent(.type(view.key, text: text, at: tracked.point)) }
+            if commit, let text = alternates.selected { onEvent(.type(key, text: text, at: tracked.point)) }
             alternates.hide()
         case .trackpad:
             setLabelsVisible(true)
-            onEvent(.trackpad(active: false))
         case .slide:
-            if commit, view.key.isInput, let text = text(for: view.key, flicked: tracked.flicked) {
-                onEvent(.slideTyped(view.key, text: text))
+            if commit, key.isInput, let text = text(for: key, flicked: tracked.flicked) {
+                onEvent(.slideTyped(key, text: text))
             }
         case .typing:
             guard commit else { return }
-            if let text = text(for: view.key, flicked: tracked.flicked) {
-                onEvent(.type(view.key, text: text, at: tracked.point))
-            } else if view.key.action == .space {
-                onEvent(.type(view.key, text: " ", at: tracked.point))
+            if let text = text(for: key, flicked: tracked.flicked) {
+                onEvent(.type(key, text: text, at: tracked.point))
+            } else if key.action == .space {
+                onEvent(.type(key, text: " ", at: tracked.point))
             } else {
-                onEvent(.trigger(view.key))
+                onEvent(.trigger(key))
             }
         }
     }
@@ -150,13 +154,14 @@ extension KeyboardView {
 
     private func flickTarget(_ tracked: TrackedTouch, _ point: CGPoint) -> Bool? {
         guard faceContext.device == .pad || faceContext.device == .compactPad,
-              tracked.mode == .typing, tracked.keyView?.key.secondary != nil else { return nil }
+              tracked.mode == .typing, tracked.key.secondary != nil else { return nil }
         let dy = point.y - tracked.start.y
         return abs(point.x - tracked.start.x) < metrics.keyHeight * 0.6 ? dy > metrics.keyHeight * 0.35 : nil
     }
 
     private func scheduleHold(for tracked: TrackedTouch) {
-        guard let key = tracked.keyView?.key, tracked.mode == .typing else { return }
+        let key = tracked.key
+        guard tracked.mode == .typing else { return }
         let isSpace = key.action == .space
         guard isSpace || key.alternates.count > 1 else { return }
         tracked.hold = Timer.scheduledTimer(withTimeInterval: isSpace ? 0.4 : 0.45, repeats: false) { [weak self, weak tracked] _ in
@@ -166,7 +171,6 @@ extension KeyboardView {
                     tracked.mode = .trackpad
                     view.isPressed = false
                     self.setLabelsVisible(false)
-                    self.onEvent(.trackpad(active: true))
                 } else {
                     tracked.mode = .alternates
                     view.isPressed = KeyboardStyle.current.dimsKeyUnderAccents
