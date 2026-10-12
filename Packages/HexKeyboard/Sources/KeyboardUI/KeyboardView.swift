@@ -118,6 +118,10 @@ final class KeyboardView: UIView {
         bounds.inset(by: UIEdgeInsets(top: -frame.minY, left: 0, bottom: 0, right: 0))
     }
 
+    func isOnLeftHalf(_ key: Key) -> Bool {
+        keyViews.first { $0.key == key }.map { $0.center.x < bounds.midX } ?? false
+    }
+
     func keyView(at point: CGPoint) -> KeyView? {
         resolve(grid, point).map { rowKeys[$0.row][$0.key] }
     }

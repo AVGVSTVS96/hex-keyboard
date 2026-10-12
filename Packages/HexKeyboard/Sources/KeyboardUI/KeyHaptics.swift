@@ -43,6 +43,7 @@ final class KeyHaptics {
 
     private var engine: CHHapticEngine?
     private var players: [Kind: CHHapticPatternPlayer] = [:]
+    private var applePlayers: [Kind: CHHapticPatternPlayer] = [:]
     private var running = false
 
     func start() {
@@ -56,9 +57,9 @@ final class KeyHaptics {
         running = false
     }
 
-    func play(_ kind: Kind) {
+    func play(_ kind: Kind, apple: Bool = false) {
         start()
-        try? players[kind]?.start(atTime: CHHapticTimeImmediate)
+        try? (apple ? applePlayers : players)[kind]?.start(atTime: CHHapticTimeImmediate)
     }
 
     private func makeEngine() -> CHHapticEngine? {
@@ -77,11 +78,26 @@ final class KeyHaptics {
                 TouchTrace.shared.mark("haptics reset")
                 self.running = false
                 self.players = Self.players(on: engine)
+                self.applePlayers = Self.applePlayers(on: engine)
                 self.start()
             }
         }
         players = Self.players(on: engine)
+        applePlayers = Self.applePlayers(on: engine)
         return engine
+    }
+
+    private static func applePlayers(on engine: CHHapticEngine) -> [Kind: CHHapticPatternPlayer] {
+        let names: [Kind: String] = [.input: "InputText", .separator: "InputSeparator", .deletion: "Deletion", .deletionRepeat: "DeletionRepeat", .deletionRapid: "DeletionRapid", .other: "Other"]
+        let selector = NSSelectorFromString("patternForKey:error:")
+        var players: [Kind: CHHapticPatternPlayer] = [:]
+        for (kind, name) in names {
+            guard let symbol = dlsym(UnsafeMutableRawPointer(bitPattern: -2), "CHHapticPatternLibraryKeyKeyboard\(name)") else { continue }
+            let key = symbol.assumingMemoryBound(to: NSString.self).pointee
+            let pattern = (CHHapticPattern.self as AnyObject).perform(selector, with: key, with: nil)?.takeUnretainedValue() as? CHHapticPattern
+            if let pattern, let player = try? engine.makePlayer(with: pattern) { players[kind] = player } else { TouchTrace.shared.mark("haptics no apple \(name)") }
+        }
+        return players
     }
 
     private static func players(on engine: CHHapticEngine) -> [Kind: CHHapticPatternPlayer] {

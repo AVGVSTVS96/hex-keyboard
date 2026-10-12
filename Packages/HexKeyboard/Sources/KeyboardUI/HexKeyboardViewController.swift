@@ -169,7 +169,7 @@ open class HexKeyboardViewController: UIInputViewController {
     private func handle(_ event: KeyboardEvent) {
         switch event {
         case .down(let key, _):
-            feedback(Self.haptic(for: key))
+            feedback(Self.haptic(for: key), apple: keyboardView.isOnLeftHalf(key))
             if key.action == .delete { startDeleteRepeat() }
         case .up(let key) where key.action == .delete:
             deleteRepeat = nil
@@ -202,9 +202,9 @@ open class HexKeyboardViewController: UIInputViewController {
         }
     }
 
-    private func feedback(_ haptic: KeyHaptics.Kind) {
+    private func feedback(_ haptic: KeyHaptics.Kind, apple: Bool = false) {
         if engine.settings.sound { UIDevice.current.playInputClick() }
-        if hapticsEnabled { haptics.play(haptic) }
+        if hapticsEnabled { haptics.play(haptic, apple: apple) }
     }
 
     private static func haptic(for key: Key) -> KeyHaptics.Kind {
