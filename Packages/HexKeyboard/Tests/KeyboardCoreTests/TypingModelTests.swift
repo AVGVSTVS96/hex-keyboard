@@ -53,10 +53,25 @@ struct TouchModelTests {
     @Test func eachTapMovesTheCenterByItsShareOfTheEvidence() {
         var model = TouchModel()
         model.learn([TapSample(tap: tap("m", dx: -0.4), intended: "m")], on: grid)
-        #expect(abs(model.center(of: "m", on: grid).x + 0.2) < 1e-12)
+        #expect(abs(model.center(of: "m", on: grid).x + (0.2 + 0.3 + 0.3) / 3) < 1e-12)
         model.learn(samples("m", dx: -0.4, count: 99), on: grid)
         #expect(abs(model.center(of: "m", on: grid).x + 0.4 * 100 / 101) < 0.01)
         #expect(model.taps(for: "m", on: grid) == 100)
+    }
+
+    @Test func theSameMissThreeTimesRunningMovesTheKeyAndTwoGoodTapsMoveItBack() {
+        var model = TouchModel()
+        let steady = { (label: String, i: Int) in TapSample(tap: tap(label, dx: Double(i % 5 - 2) * 0.06, dy: Double(i % 3 - 1) * 0.06), intended: label) }
+        model.learn((0..<300).flatMap { [steady("m", $0), steady("n", $0)] }, on: grid)
+        let miss = tap("m", dx: -0.7)
+        let favorsM = { model.logLikelihood(x: miss.x, y: miss.y, for: "m", on: grid)! - model.logLikelihood(x: miss.x, y: miss.y, for: "n", on: grid)! }
+        #expect(favorsM() < -20)
+        model.learn([TapSample(tap: miss, intended: "m")], on: grid)
+        #expect(favorsM() < -5)
+        model.learn([TapSample(tap: miss, intended: "m"), TapSample(tap: miss, intended: "m")], on: grid)
+        #expect(favorsM() > 0)
+        model.learn([steady("m", 1), steady("m", 2)], on: grid)
+        #expect(favorsM() < -3)
     }
 
     @Test func steadyTapsAnywhereTightenEveryKey() {

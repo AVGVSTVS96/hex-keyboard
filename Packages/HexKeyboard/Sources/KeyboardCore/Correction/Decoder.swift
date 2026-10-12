@@ -162,7 +162,7 @@ struct Decoder {
                 let label = Lexicon.labels[letter]
                 if let point = tap.point, let likelihood = model.logLikelihood(x: point.x, y: point.y, for: label) {
                     score += likelihood
-                    model.learn(TapSample(tap: point, intended: label))
+                    model.suppose(TapSample(tap: point, intended: label))
                 } else {
                     score += tap.letters[letter]
                 }

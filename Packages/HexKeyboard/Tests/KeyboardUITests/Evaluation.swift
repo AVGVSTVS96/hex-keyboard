@@ -93,6 +93,33 @@ struct Evaluation {
             }
         }
     }
+
+    /// A user who has typed the corpus with `thumbs`, then changes how they hold the phone: every tap lands lower and
+    /// to the right, o and e swing to the other side, b and m drop further. Prints the corpus typed after the change,
+    /// with the first 500 words per 100.
+    @Test func aimShift() throws {
+        let phrases = try Self.phrases()
+        var user = SimulatedUser(width: Self.width, noise: 0.2, seed: 11, bias: SimulatedUser.thumbs)
+        var session = Session(.learning, grid: user.grid)
+        for phrase in phrases {
+            session.startPhrase()
+            for word in phrase.split(separator: " ") { session.type(String(word), by: &user, tappingSpace: true) }
+        }
+        user = SimulatedUser(width: Self.width, noise: 0.2, seed: 12, bias: SimulatedUser.shifted)
+        session.score = Score()
+        session.window = Score()
+        var curve: [String] = []
+        for phrase in phrases {
+            session.startPhrase()
+            for word in phrase.split(separator: " ") {
+                session.type(String(word), by: &user, tappingSpace: true)
+                let words = session.score.words
+                if words <= 500 ? words % 100 == 0 : words % 500 == 0 { curve.append(session.window.summary); session.window = Score() }
+            }
+        }
+        print("EVAL aimShift keyboard=learning after: \(session.score)")
+        print("EVAL aimShift keyboard=learning per 100 words to 500, then per 500 (raw/final): \(curve.joined(separator: " "))")
+    }
 }
 
 @MainActor
@@ -159,6 +186,7 @@ struct SimulatedUser {
 
     /// Offsets in key pitches: m drifts toward n, b toward the space bar, o toward i, and every tap lands a bit low.
     static let thumbs: [Character: (x: Double, y: Double)] = ["m": (-0.4, 0.1), "b": (0, 0.55), "o": (-0.45, 0.1), "*": (0, 0.1)]
+    static let shifted: [Character: (x: Double, y: Double)] = ["m": (-0.4, 0.4), "b": (0, 0.7), "o": (0.4, 0.3), "e": (-0.45, 0.3), "*": (0.1, 0.3)]
 
     init(width: Double, noise: Double, seed: UInt64, bias: [Character: (x: Double, y: Double)] = [:]) {
         let layout = Layouts.layout(for: LayoutContext(device: .phone, layer: .letters))

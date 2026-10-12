@@ -1,6 +1,6 @@
 #!/bin/bash
 # Runs on the Mac. Types the phrase corpus with simulated taps and prints word accuracy for the old and new correctors.
-# Optional argument: one test (noise or biasedThumbs). A full run must match eval.expected; a change that moves the
+# Optional argument: one test (noise, biasedThumbs or aimShift). A full run must match eval.expected; a change that moves the
 # numbers updates that file in the same commit.
 set -euo pipefail
 cd "$(dirname "$0")/../Packages/HexKeyboard"
