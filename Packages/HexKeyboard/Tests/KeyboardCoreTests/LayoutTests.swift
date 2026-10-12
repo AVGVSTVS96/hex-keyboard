@@ -74,4 +74,16 @@ struct LayoutTests {
             }
         }
     }
+
+    private func rowsAboveBottom(width: Double, style: KeyboardStyle) -> Double {
+        let metrics = KeyboardMetrics.phone(width: width, style: style)
+        let grid = KeyGrid(Layouts.layout(for: LayoutContext(device: .phone, layer: .letters)), width: width, metrics: metrics.grid)
+        return metrics.height(rows: 4, hasNumberRow: false) - grid.rows[0][0].frame.y
+    }
+
+    @Test func iOS27MovesRowsAsAppleDoesWithinTheKeyboardsArea() {
+        #expect(rowsAboveBottom(width: 402, style: .ios27) - rowsAboveBottom(width: 402, style: .ios26) == -3)
+        #expect(rowsAboveBottom(width: 420, style: .ios27) - rowsAboveBottom(width: 420, style: .ios26) == 2)
+        #expect(rowsAboveBottom(width: 440, style: .ios27) - rowsAboveBottom(width: 440, style: .ios26) == 2)
+    }
 }

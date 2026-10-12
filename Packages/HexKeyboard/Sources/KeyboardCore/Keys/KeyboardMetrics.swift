@@ -29,9 +29,10 @@ public struct KeyboardMetrics: Hashable, Sendable {
     public var pairSize: Double = 20
     public var pairCapTop: Double = 12.5
     public var pairBaselineRatio: Double = 0.216
+    public var margin = Margin.none
 
     public var grid: GridMetrics {
-        GridMetrics(columns: columns, sideInset: sideInset, keyGap: keyGap, rowGap: rowGap, keyHeight: keyHeight, numberRowHeight: numberRowHeight, topInset: topInset)
+        GridMetrics(columns: columns, sideInset: sideInset, keyGap: keyGap, rowGap: rowGap, keyHeight: keyHeight, numberRowHeight: numberRowHeight, topInset: topInset, margin: margin)
     }
 
     public func height(rows: Int, hasNumberRow: Bool) -> Double {
@@ -41,10 +42,10 @@ public struct KeyboardMetrics: Hashable, Sendable {
 }
 
 extension KeyboardMetrics {
-    public static func `for`(_ device: DeviceClass, width: Double, height: Double, style: KeyboardStyle = .ios26) -> KeyboardMetrics {
+    public static func `for`(_ device: DeviceClass, width: Double, height: Double, style: KeyboardStyle = .ios26, oneHanded: OneHanded = .off) -> KeyboardMetrics {
         let landscape = width > height
         switch device {
-        case .phone: return landscape ? phoneLandscape(width: width) : phone(width: width, style: style)
+        case .phone: return landscape ? phoneLandscape(width: width) : phone(width: width, style: style).oneHanded(oneHanded, width: width)
         case .compactPad: return compactPad
         case .pad: return pad(shortSide: min(width, height))
         case .largePad: return largePad
@@ -53,8 +54,9 @@ extension KeyboardMetrics {
 
     public static func phone(width: Double, style: KeyboardStyle = .ios26) -> KeyboardMetrics {
         let large = width >= 415
-        // iOS 27 draws its rows 7pt lower, but a third-party keyboard's area ends where iOS 26's did: it can follow by 3pt.
-        let lowered = style == .ios27 ? 3.0 : 0
+        // iOS 27 draws its rows 7pt lower on 6.1" phones, but a third-party keyboard's area ends where iOS 26's did: it
+        // can follow by 3pt. On the large phones (Air, Pro Max) iOS 27's rows sit 2pt higher instead.
+        let lowered = style == .ios27 ? (large ? -2.0 : 3) : 0
         return KeyboardMetrics(
             columns: 10, sideInset: 6.5, keyGap: 6, rowGap: 11,
             keyHeight: large ? 45 : 43, numberRowHeight: 0,
@@ -62,6 +64,18 @@ extension KeyboardMetrics {
             letterSize: 23, labelSize: 18, secondarySize: 12, symbolSize: 19,
             letterOffset: -1.67
         )
+    }
+
+    /// Measured on iOS 27: one-handed keys span 320pt on every iPhone (322pt toward the right hand), 4pt in from their edges.
+    func oneHanded(_ hand: OneHanded, width: Double) -> KeyboardMetrics {
+        var metrics = self
+        switch hand {
+        case .off: return self
+        case .left: metrics.margin = Margin(trailing: width - 320)
+        case .right: metrics.margin = Margin(leading: width - 322)
+        }
+        metrics.sideInset = 4
+        return metrics
     }
 
     static func phoneLandscape(width: Double) -> KeyboardMetrics {

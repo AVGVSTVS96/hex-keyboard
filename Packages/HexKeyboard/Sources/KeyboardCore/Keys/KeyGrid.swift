@@ -20,8 +20,9 @@ public struct Rect: Hashable, Sendable {
 
 public struct GridMetrics: Hashable, Sendable {
     public var columns, sideInset, keyGap, rowGap, keyHeight, numberRowHeight, topInset: Double
+    public var margin: Margin
 
-    public init(columns: Double, sideInset: Double, keyGap: Double, rowGap: Double, keyHeight: Double, numberRowHeight: Double, topInset: Double) {
+    public init(columns: Double, sideInset: Double, keyGap: Double, rowGap: Double, keyHeight: Double, numberRowHeight: Double, topInset: Double, margin: Margin = .none) {
         self.columns = columns
         self.sideInset = sideInset
         self.keyGap = keyGap
@@ -29,7 +30,23 @@ public struct GridMetrics: Hashable, Sendable {
         self.keyHeight = keyHeight
         self.numberRowHeight = numberRowHeight
         self.topInset = topInset
+        self.margin = margin
     }
+
+    func available(in width: Double) -> Double {
+        width - margin.leading - margin.trailing - sideInset * 2 + keyGap
+    }
+}
+
+public struct Margin: Hashable, Sendable {
+    public var leading, trailing: Double
+
+    public init(leading: Double = 0, trailing: Double = 0) {
+        self.leading = leading
+        self.trailing = trailing
+    }
+
+    public static let none = Margin()
 }
 
 public struct KeyGrid: Sendable {
@@ -46,7 +63,7 @@ public struct KeyGrid: Sendable {
         self.metrics = metrics
         self.signature = signature
         self.width = width
-        let available = width - metrics.sideInset * 2 + metrics.keyGap
+        let available = metrics.available(in: width)
         let pitch = available / metrics.columns
         var y = metrics.topInset
         for (index, row) in layout.rows.enumerated() {
@@ -54,7 +71,7 @@ public struct KeyGrid: Sendable {
             let fixed = row.compactMap(\.width.span).reduce(0, +)
             let fills = row.count { $0.width == .fill }
             let fillSpan = fills > 0 ? max(available / pitch - fixed, 0) / Double(fills) : 0
-            var x = metrics.sideInset - metrics.keyGap / 2
+            var x = metrics.margin.leading + metrics.sideInset - metrics.keyGap / 2
             var keys: [(key: Key, frame: Rect)] = []
             for item in row {
                 let span = (item.width.span ?? fillSpan) * pitch
@@ -81,6 +98,16 @@ public struct KeyGrid: Sendable {
         return (row, key)
     }
 
+    /// The chevron a one-handed keyboard draws in its margin to bring both hands back, as Apple places it: 40pt in from
+    /// the screen's edge (27.67pt toward the right hand) and 13/3pt below the middle of the keys.
+    public var expander: (frame: Rect, pointsRight: Bool)? {
+        guard metrics.margin != .none, let top = rows.first?.first?.frame.y, let bottom = rows.last?.first?.frame else { return nil }
+        let size = Size(width: 34.0 / 3, height: 107.0 / 3)
+        let pointsRight = metrics.margin.trailing > 0
+        let midY = (top + bottom.y + bottom.height) / 2 + 13.0 / 3
+        return (Rect(x: pointsRight ? width - 40 : 83.0 / 3, y: midY - size.height / 2, width: size.width, height: size.height), pointsRight)
+    }
+
     public func key(atX x: Double, y: Double) -> Key? {
         index(atX: x, y: y).map { rows[$0.row][$0.key].key }
     }
@@ -103,8 +130,7 @@ public struct KeyGrid: Sendable {
     }
 
     var pitch: (x: Double, y: Double) {
-        let available = width - metrics.sideInset * 2 + metrics.keyGap
-        return (available / metrics.columns, metrics.keyHeight + metrics.rowGap)
+        (metrics.available(in: width) / metrics.columns, metrics.keyHeight + metrics.rowGap)
     }
 
     func cell(of frame: Rect) -> Rect {

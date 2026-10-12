@@ -10,6 +10,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let scene = scene as? UIWindowScene else { return }
         let window = UIWindow(windowScene: scene)
         LaunchOptions.resetSettingsIfAsked()
+        LaunchOptions.applyOneHanded()
         let home = HomeViewController()
         window.rootViewController = UINavigationController(rootViewController: home)
         if LaunchOptions.settings { home.showSettings() }

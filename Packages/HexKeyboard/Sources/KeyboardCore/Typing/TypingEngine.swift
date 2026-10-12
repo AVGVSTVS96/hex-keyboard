@@ -147,6 +147,11 @@ public struct TypingEngine {
             perform(key.action, in: document)
         case .cursor(let offset):
             moveCursor(by: offset, in: document)
+        case .oneHanded(let hand):
+            settings.oneHanded = hand
+        case .pickHand(let hand):
+            settings.oneHanded = hand
+            perform(.layer(.letters), in: document)
         }
         return true
     }

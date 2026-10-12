@@ -118,8 +118,6 @@ open class HexKeyboardViewController: UIInputViewController {
         return shortSide >= 1000 ? .largePad : shortSide < 800 ? .compactPad : .pad
     }
 
-    private var metrics: KeyboardMetrics { .for(device, width: screenSize.width, height: screenSize.height, style: .current) }
-
     private var barHeight: CGFloat {
         switch (device, engine.showsSuggestions) {
         case (.phone, _): 27
@@ -132,7 +130,8 @@ open class HexKeyboardViewController: UIInputViewController {
         let device = device
         let context = engine.layout(on: device, showsGlobe: needsInputModeSwitchKey, isLandscape: screenSize.width > screenSize.height)
         let layout = Layouts.layout(for: context)
-        let metrics = metrics
+        let metrics = KeyboardMetrics.for(device, width: screenSize.width, height: screenSize.height, style: .current, oneHanded: context.oneHanded)
+        keyboardView.oneHanded = (context.oneHandedKey(in: layout), context.oneHanded)
         keyboardView.update(layout: layout, signature: context.signature, metrics: metrics, faces: engine.faces(on: device), theme: theme)
         suggestionBar.maximumSlotWidth = device == .phone ? .infinity : 154.5
         renderSuggestions()
@@ -180,6 +179,8 @@ open class HexKeyboardViewController: UIInputViewController {
             return advanceToNextInputMode()
         case .type:
             TouchTrace.shared.mark("typed")
+        case .oneHanded(let hand), .pickHand(let hand):
+            SettingsStore.set(hand, sharing: hasFullAccess)
         default:
             break
         }

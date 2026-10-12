@@ -3,24 +3,36 @@ import KeyboardUI
 import UIKit
 
 final class SettingsViewController: UITableViewController {
+    private enum Row {
+        case toggle(String, WritableKeyPath<KeyboardSettings, Bool>)
+        case oneHanded
+        case reset
+    }
+
     private struct Section {
         var title: String?
         var footer: String?
-        var rows: [(title: String, path: WritableKeyPath<KeyboardSettings, Bool>)]
+        var rows: [Row]
     }
 
     private let sections = [
-        Section(footer: "Haptic Feedback needs Allow Full Access in Settings › General › Keyboard › Keyboards › Hex.", rows: [("Character Preview", \.characterPreview), ("Haptic Feedback", \.haptics), ("Sound", \.sound)]),
+        Section(rows: [.oneHanded]),
+        Section(footer: "Haptic Feedback needs Allow Full Access in Settings › General › Keyboard › Keyboards › Hex.", rows: [
+            .toggle("Character Preview", \.characterPreview),
+            .toggle("Haptic Feedback", \.haptics),
+            .toggle("Sound", \.sound),
+        ]),
         Section(title: "All Keyboards", footer: "Double tapping the space bar will insert a period followed by a space.", rows: [
-            ("Auto-Capitalization", \.autoCapitalization),
-            ("Auto-Correction", \.autoCorrection),
-            ("Enable Caps Lock", \.capsLock),
-            ("Smart Punctuation", \.smartPunctuation),
-            ("“.” Shortcut", \.periodShortcut),
+            .toggle("Auto-Capitalization", \.autoCapitalization),
+            .toggle("Auto-Correction", \.autoCorrection),
+            .toggle("Enable Caps Lock", \.capsLock),
+            .toggle("Smart Punctuation", \.smartPunctuation),
+            .toggle("“.” Shortcut", \.periodShortcut),
         ]),
         Section(title: "English", footer: "Hex expands your Text Replacements from Settings › General › Keyboard › Text Replacement.", rows: [
-            ("Predictive Text", \.predictiveText),
+            .toggle("Predictive Text", \.predictiveText),
         ]),
+        Section(footer: "Removes the words and typing habits Hex has learned from you.", rows: [.reset]),
     ]
 
     private var settings = SettingsStore.load()
@@ -34,31 +46,31 @@ final class SettingsViewController: UITableViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        tableView.register(UITableViewCell.self, forCellReuseIdentifier: "toggle")
-        tableView.register(UITableViewCell.self, forCellReuseIdentifier: "reset")
+        tableView.register(UITableViewCell.self, forCellReuseIdentifier: "cell")
     }
 
-    private var resetSection: Int { sections.count }
+    override func numberOfSections(in tableView: UITableView) -> Int { sections.count }
 
-    override func numberOfSections(in tableView: UITableView) -> Int { sections.count + 1 }
+    override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int { sections[section].rows.count }
 
-    override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        section == resetSection ? 1 : sections[section].rows.count
-    }
+    override func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? { sections[section].title }
 
-    override func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
-        section == resetSection ? nil : sections[section].title
-    }
+    override func tableView(_ tableView: UITableView, titleForFooterInSection section: Int) -> String? { sections[section].footer }
 
-    override func tableView(_ tableView: UITableView, titleForFooterInSection section: Int) -> String? {
-        section == resetSection ? "Removes the words and typing habits Hex has learned from you." : sections[section].footer
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        settings = SettingsStore.load()
+        tableView.reloadData()
     }
 
     override func tableView(_ tableView: UITableView, shouldHighlightRowAt indexPath: IndexPath) -> Bool {
-        indexPath.section == resetSection
+        if case .toggle = row(at: indexPath) { false } else { true }
     }
 
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        if case .oneHanded = row(at: indexPath) {
+            return navigationController?.pushViewController(OneHandedViewController(), animated: true) ?? ()
+        }
         tableView.deselectRow(at: indexPath, animated: true)
         let alert = UIAlertController(title: nil, message: "This will delete all custom words you’ve typed and how Hex learned your taps.", preferredStyle: .actionSheet)
         alert.addAction(UIAlertAction(title: "Reset Dictionary", style: .destructive) { _ in MemoryStore.reset() })
@@ -68,27 +80,35 @@ final class SettingsViewController: UITableViewController {
     }
 
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        if indexPath.section == resetSection {
-            let cell = tableView.dequeueReusableCell(withIdentifier: "reset", for: indexPath)
-            var content = cell.defaultContentConfiguration()
+        let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
+        var content = UIListContentConfiguration.valueCell()
+        cell.accessoryType = .none
+        switch row(at: indexPath) {
+        case .toggle(let title, let path):
+            content.text = title
+            let toggle = UISwitch()
+            toggle.isOn = settings[keyPath: path]
+            toggle.accessibilityIdentifier = title
+            toggle.addAction(UIAction { [unowned self, unowned toggle] _ in
+                settings[keyPath: path] = toggle.isOn
+                SettingsStore.set(toggle.isOn, for: path)
+            }, for: .valueChanged)
+            cell.accessoryView = toggle
+        case .oneHanded:
+            content.text = "One-Handed Keyboard"
+            content.secondaryText = OneHandedViewController.title(of: settings.oneHanded)
+            cell.accessoryView = nil
+            cell.accessoryType = .disclosureIndicator
+        case .reset:
             content.text = "Reset Keyboard Dictionary"
             content.textProperties.color = .tintColor
-            cell.contentConfiguration = content
-            return cell
+            cell.accessoryView = nil
         }
-        let row = sections[indexPath.section].rows[indexPath.row]
-        let cell = tableView.dequeueReusableCell(withIdentifier: "toggle", for: indexPath)
-        var content = cell.defaultContentConfiguration()
-        content.text = row.title
         cell.contentConfiguration = content
-        let toggle = UISwitch()
-        toggle.isOn = settings[keyPath: row.path]
-        toggle.accessibilityIdentifier = row.title
-        toggle.addAction(UIAction { [unowned self, unowned toggle] _ in
-            settings[keyPath: row.path] = toggle.isOn
-            SettingsStore.set(toggle.isOn, for: row.path)
-        }, for: .valueChanged)
-        cell.accessoryView = toggle
         return cell
+    }
+
+    private func row(at indexPath: IndexPath) -> Row {
+        sections[indexPath.section].rows[indexPath.row]
     }
 }

@@ -40,6 +40,7 @@ public struct KeyboardTheme: Hashable, Sendable {
     public let candidateHighlighted: RGBA
     public let candidatePill: RGBA
     public let candidateDivider: RGBA
+    public let expander: RGBA
 
     public static func light(_ style: KeyboardStyle) -> KeyboardTheme {
         let ios27 = style == .ios27
@@ -56,7 +57,8 @@ public struct KeyboardTheme: Hashable, Sendable {
             candidate: ios27 ? .rgb(74, 74, 76) : .rgb(54, 56, 60),
             candidateHighlighted: .rgb(44, 46, 49),
             candidatePill: .rgb(235, 237, 240),
-            candidateDivider: .rgb(211, 212, 217)
+            candidateDivider: .rgb(211, 212, 217),
+            expander: .white
         )
     }
 
@@ -75,7 +77,8 @@ public struct KeyboardTheme: Hashable, Sendable {
             candidate: ios27 ? .rgb(162, 162, 162) : .rgb(172, 172, 172),
             candidateHighlighted: .white,
             candidatePill: .rgb(115, 115, 115),
-            candidateDivider: ios27 ? .rgb(49, 49, 51) : .rgb(50, 50, 52)
+            candidateDivider: ios27 ? .rgb(49, 49, 51) : .rgb(50, 50, 52),
+            expander: RGBA(white: 90 / 255)
         )
     }
 }

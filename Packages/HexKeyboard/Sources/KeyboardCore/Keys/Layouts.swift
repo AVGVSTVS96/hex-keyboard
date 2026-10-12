@@ -11,27 +11,44 @@ public struct LayoutContext: Hashable, Sendable {
     public var kind: InputKind
     public var showsGlobe: Bool
     public var isLandscape: Bool
+    public var oneHanded: OneHanded
 
-    public init(device: DeviceClass, layer: KeyboardLayer, kind: InputKind = .text, showsGlobe: Bool = false, isLandscape: Bool = false) {
+    public init(device: DeviceClass, layer: KeyboardLayer, kind: InputKind = .text, showsGlobe: Bool = false, isLandscape: Bool = false, oneHanded: OneHanded = .off) {
         self.device = device
         self.layer = layer
         self.kind = kind
         self.showsGlobe = showsGlobe
         self.isLandscape = isLandscape
+        self.oneHanded = oneHanded
+        if !allowsOneHanded { self.oneHanded = .off }
+    }
+
+    /// Like Apple's, only an upright iPhone narrows its keys for one hand.
+    public var allowsOneHanded: Bool { device == .phone && !isLandscape }
+
+    /// The key whose hold offers the one-handed layouts, as Apple's globe does: the layer key in the bottom row, Hex's
+    /// own key nearest where the system draws its globe.
+    public func oneHandedKey(in layout: KeyboardLayout) -> Key? {
+        guard allowsOneHanded else { return nil }
+        return layout.rows.last?.lazy.compactMap { item -> Key? in
+            if case .key(let key) = item, case .layer = key.action { key } else { nil }
+        }.first
     }
 }
 
 extension LayoutContext {
     /// What a touch model is kept per: the same keys under the same hands.
     public var signature: String {
-        "\(device)-\(isLandscape ? "landscape" : "portrait")-\(layer)"
+        "\(device)-\(isLandscape ? "landscape" : "portrait")-\(layer)" + (oneHanded == .off ? "" : "-\(oneHanded)")
     }
 
     /// The layout a touch model's signature was kept for.
     public init?(signature: String) {
         let contexts = DeviceClass.allCases.flatMap { device in
             KeyboardLayer.allCases.flatMap { layer in
-                [false, true].map { LayoutContext(device: device, layer: layer, isLandscape: $0) }
+                [false, true].flatMap { landscape in
+                    OneHanded.allCases.map { LayoutContext(device: device, layer: layer, isLandscape: landscape, oneHanded: $0) }
+                }
             }
         }
         guard let context = contexts.first(where: { $0.signature == signature }) else { return nil }

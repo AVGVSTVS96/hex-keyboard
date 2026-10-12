@@ -7,6 +7,32 @@
 	<key>PreferenceSpecifiers</key>
 	<array>
 		<dict>
+			<key>Type</key>
+			<string>PSGroupSpecifier</string>
+		</dict>
+		<dict>
+			<key>DefaultValue</key>
+			<string>off</string>
+			<key>Key</key>
+			<string>oneHanded</string>
+			<key>Title</key>
+			<string>One-Handed Keyboard</string>
+			<key>Titles</key>
+			<array>
+				<string>Off</string>
+				<string>Left</string>
+				<string>Right</string>
+			</array>
+			<key>Type</key>
+			<string>PSMultiValueSpecifier</string>
+			<key>Values</key>
+			<array>
+				<string>off</string>
+				<string>left</string>
+				<string>right</string>
+			</array>
+		</dict>
+		<dict>
 			<key>FooterText</key>
 			<string>Haptic Feedback needs Allow Full Access in Settings › General › Keyboard › Keyboards › Hex.</string>
 			<key>Type</key>

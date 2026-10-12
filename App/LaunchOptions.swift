@@ -1,3 +1,4 @@
+import KeyboardCore
 import KeyboardUI
 import UIKit
 
@@ -24,7 +25,12 @@ enum LaunchOptions {
     static func resetSettingsIfAsked() {
         guard defaults.bool(forKey: "HexResetSettings") else { return }
         SettingsStore.toggles.forEach { SettingsStore.defaults.removeObject(forKey: $0.key) }
+        SettingsStore.set(OneHanded.off)
         MemoryStore.reset()
+    }
+
+    static func applyOneHanded() {
+        if let hand = defaults.string(forKey: "HexOneHanded").flatMap(OneHanded.init) { SettingsStore.set(hand) }
     }
 
     static func configure(_ field: UITextView) {

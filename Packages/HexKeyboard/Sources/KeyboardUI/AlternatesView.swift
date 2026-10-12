@@ -30,13 +30,24 @@ final class AlternatesView: UIView {
     required init?(coder: NSCoder) { fatalError() }
 
     func show(_ options: [String], base: String, over key: CGRect, in area: CGRect, metrics: KeyboardMetrics, theme: KeyboardTheme) {
+        present(options.map { NSAttributedString(string: $0, attributes: [.font: KeyboardFont.letter(metrics.letterSize)]) },
+                selected: options.firstIndex(of: base) ?? 0, cellWidth: key.width + 4, over: key, in: area, metrics: metrics, theme: theme)
         self.options = options
+    }
+
+    func show(symbols: [String], selected: Int, over key: CGRect, in area: CGRect, metrics: KeyboardMetrics, theme: KeyboardTheme) {
+        let configuration = UIImage.SymbolConfiguration(pointSize: metrics.symbolSize, weight: .regular)
+        present(symbols.map { NSAttributedString(attachment: NSTextAttachment(image: UIImage(systemName: $0, withConfiguration: configuration) ?? UIImage())) },
+                selected: selected, cellWidth: 48, over: key, in: area, metrics: metrics, theme: theme)
+        options = symbols
+    }
+
+    private func present(_ contents: [NSAttributedString], selected: Int, cellWidth: CGFloat, over key: CGRect, in area: CGRect, metrics: KeyboardMetrics, theme: KeyboardTheme) {
         labels.forEach { $0.removeFromSuperview() }
-        cellWidth = key.width + 4
+        self.cellWidth = cellWidth
         let height = key.height * 1.57
-        let width = cellWidth * CGFloat(options.count) + padding * 2
-        let baseIndex = options.firstIndex(of: base) ?? 0
-        let x = key.midX - padding - cellWidth * (CGFloat(baseIndex) + 0.5)
+        let width = cellWidth * CGFloat(contents.count) + padding * 2
+        let x = key.midX - padding - cellWidth * (CGFloat(selected) + 0.5)
         frame = CGRect(
             x: min(max(x, area.minX + 7), area.maxX - width - 7),
             y: max(key.minY - height - 3, area.minY + 1),
@@ -51,11 +62,10 @@ final class AlternatesView: UIView {
         highlight.backgroundColor = theme.selection.ui
         highlight.layer.cornerRadius = metrics.cornerRadius * 1.25
 
-        labels = options.enumerated().map { index, option in
+        labels = contents.enumerated().map { index, content in
             let label = UILabel(frame: CGRect(x: padding + CGFloat(index) * cellWidth, y: 0, width: cellWidth, height: height))
-            label.text = option
+            label.attributedText = content
             label.textAlignment = .center
-            label.font = KeyboardFont.letter(metrics.letterSize)
             label.textColor = theme.label.ui
             panel.addSubview(label)
             return label
@@ -63,7 +73,7 @@ final class AlternatesView: UIView {
         highlightHeight = key.height + 4
         labelColor = theme.label.ui
         selectedLabelColor = theme.selectionLabel.ui
-        select(baseIndex)
+        select(selected)
         isHidden = false
     }
 

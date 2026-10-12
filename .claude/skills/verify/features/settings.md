@@ -2,7 +2,7 @@
 
 ## Sub-features
 
-The app's settings screen (styled like Settings › General › Keyboard), the same switches in Settings › Apps › Hex, and Reset Keyboard Dictionary.
+The app's settings screen (styled like Settings › General › Keyboard), the same switches in Settings › Apps › Hex, One-Handed Keyboard (Off/Left/Right), and Reset Keyboard Dictionary.
 
 ## How to get to it (user POV)
 

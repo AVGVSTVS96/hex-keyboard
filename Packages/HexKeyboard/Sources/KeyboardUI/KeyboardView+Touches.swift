@@ -3,7 +3,7 @@ import KeyboardCore
 
 extension KeyboardView {
     final class TrackedTouch {
-        enum Mode { case typing, alternates, trackpad, slide }
+        enum Mode { case typing, alternates, trackpad, slide, hands }
 
         var key: Key
         weak var keyView: KeyView?
@@ -13,6 +13,7 @@ extension KeyboardView {
         var point: CGPoint
         var lastCursorX: CGFloat
         var hold: Timer?
+        var handFrame: CGRect?
 
         init(keyView: KeyView, start: CGPoint) {
             self.key = keyView.key
@@ -32,6 +33,7 @@ extension KeyboardView {
             guard let view = keyView(at: point) else { continue }
             let tracked = TrackedTouch(keyView: view, start: point)
             self.tracked[ObjectIdentifier(touch)] = tracked
+            if view.key == oneHanded.key { tracked.handFrame = view.frame }
             press(view, tracked: tracked)
             onEvent(.down(view.key, tapCount: touch.tapCount))
             if case .layer = view.key.action { tracked.mode = .slide }
@@ -47,7 +49,7 @@ extension KeyboardView {
             let point = touch.location(in: self)
             tracked.point = point
             switch tracked.mode {
-            case .alternates:
+            case .alternates, .hands:
                 alternates.track(point)
             case .trackpad:
                 let step: CGFloat = 9
@@ -63,13 +65,18 @@ extension KeyboardView {
                     tracked.keyView?.isFlicked = flick
                     continue
                 }
+                if let frame = tracked.handFrame, !frame.contains(point) {
+                    tracked.handFrame = nil
+                    tracked.hold?.invalidate()
+                }
                 guard let view = keyView(at: point), view.key != tracked.key,
                       tracked.mode == .slide || (view.key.isInput && tracked.key.isInput) else { continue }
                 tracked.keyView?.isPressed = false
                 tracked.key = view.key
                 tracked.keyView = view
-                tracked.hold?.invalidate()
                 press(view, tracked: tracked)
+                guard tracked.handFrame == nil else { continue }
+                tracked.hold?.invalidate()
                 scheduleHold(for: tracked)
             }
         }
@@ -112,6 +119,9 @@ extension KeyboardView {
         switch tracked.mode {
         case .alternates:
             if commit, let text = alternates.selected { onEvent(.type(key, tap(tracked, text))) }
+            alternates.hide()
+        case .hands:
+            if commit, Self.hands.indices.contains(alternates.selectedIndex) { onEvent(.pickHand(Self.hands[alternates.selectedIndex])) }
             alternates.hide()
         case .trackpad:
             setLabelsVisible(true)
@@ -161,8 +171,11 @@ extension KeyboardView {
         return abs(point.x - tracked.start.x) < metrics.keyHeight * 0.6 ? dy > metrics.keyHeight * 0.35 : nil
     }
 
+    private static let hands: [OneHanded] = [.left, .off, .right]
+
     private func scheduleHold(for tracked: TrackedTouch) {
         let key = tracked.key
+        if tracked.mode == .slide, tracked.handFrame != nil { return scheduleHands(for: tracked) }
         guard tracked.mode == .typing else { return }
         let isSpace = key.action == .space
         guard isSpace || key.alternates.count > 1 else { return }
@@ -181,6 +194,19 @@ extension KeyboardView {
                     let base = self.displayed(self.text(for: view.key, flicked: false) ?? "")
                     self.alternates.show(shown, base: base, over: view.frame, in: self.drawableBounds, metrics: self.metrics, theme: self.theme)
                 }
+            }
+        }
+    }
+
+    private func scheduleHands(for tracked: TrackedTouch) {
+        tracked.hold = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: false) { [weak self, weak tracked] _ in
+            MainActor.assumeIsolated {
+                guard let self, let tracked, tracked.mode == .slide, let frame = tracked.handFrame else { return }
+                tracked.mode = .hands
+                self.callout.hide()
+                let symbols = ["keyboard.onehanded.left", "keyboard", "keyboard.onehanded.right"]
+                self.alternates.show(symbols: symbols, selected: Self.hands.firstIndex(of: self.oneHanded.current) ?? 1,
+                                     over: frame, in: self.drawableBounds, metrics: self.metrics, theme: self.theme)
             }
         }
     }

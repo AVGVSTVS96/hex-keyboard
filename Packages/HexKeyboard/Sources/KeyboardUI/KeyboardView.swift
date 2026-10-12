@@ -18,9 +18,12 @@ final class KeyboardView: UIView {
     private var globeControls: [UIControl] = []
     let callout = CalloutView()
     let alternates = AlternatesView()
+    private let expander = ExpanderView()
+    private var animatesLayout = false
     var tracked: [ObjectIdentifier: TrackedTouch] = [:]
 
     var characterPreview = true
+    var oneHanded: (key: Key?, current: OneHanded) = (nil, .off)
     var showsCallouts: Bool { characterPreview && faceContext.device == .phone }
 
     override init(frame: CGRect) {
@@ -30,6 +33,9 @@ final class KeyboardView: UIView {
         clipsToBounds = false
         callout.isHidden = true
         alternates.isHidden = true
+        expander.isHidden = true
+        expander.addAction(UIAction { [unowned self] _ in onEvent(.oneHanded(.off)) }, for: .touchUpInside)
+        addSubview(expander)
         addSubview(callout)
         addSubview(alternates)
     }
@@ -38,7 +44,12 @@ final class KeyboardView: UIView {
 
     func update(layout: KeyboardLayout, signature: String, metrics: KeyboardMetrics, faces: KeyFaceContext, theme: KeyboardTheme) {
         let rebuild = layout != self.layout
-        let relayout = rebuild || metrics != self.metrics || signature != self.signature
+        let relayout = rebuild || metrics != self.metrics || signature != self.signature || theme != self.theme
+        if rebuild {
+            animatesLayout = false
+        } else if metrics.margin != self.metrics.margin, window != nil {
+            animatesLayout = true
+        }
         self.layout = layout
         self.signature = signature
         self.metrics = metrics
@@ -75,13 +86,24 @@ final class KeyboardView: UIView {
         super.layoutSubviews()
         grid = KeyGrid(layout, width: bounds.width, metrics: metrics.grid, signature: signature)
         onGrid(grid)
+        guard animatesLayout else { return placeKeys() }
+        animatesLayout = false
+        UIView.animate(springDuration: 0.35, bounce: 0, options: .allowUserInteraction) { placeKeys() }
+    }
+
+    private func placeKeys() {
         var globes = globeControls.makeIterator()
         for (views, keys) in zip(rowKeys, grid.rows) {
             for (view, key) in zip(views, keys) {
                 view.frame = CGRect(key.frame)
+                view.layoutIfNeeded()
                 if view.key.action == .nextKeyboard { globes.next()?.frame = view.frame }
             }
         }
+        if case let (glyph, pointsRight)? = grid.expander {
+            expander.place(CGRect(glyph), pointsRight: pointsRight, in: bounds, color: theme.expander.ui)
+        }
+        expander.isHidden = grid.expander == nil
         refreshFaces()
     }
 

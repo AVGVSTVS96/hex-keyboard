@@ -8,6 +8,7 @@ public struct KeyboardSettings: Hashable, Sendable {
     public var characterPreview = true
     public var haptics = true
     public var sound = true
+    public var oneHanded = OneHanded.off
 
     public init() {}
 }
