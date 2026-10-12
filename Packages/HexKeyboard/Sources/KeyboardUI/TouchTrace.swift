@@ -4,7 +4,8 @@ import KeyboardCore
 /// Records how touches reach the keyboard on a real device, when `Library/Caches/touch-trace.tsv` exists in the
 /// extension's container (create it with `devicectl device copy to`, read it with `copy from`). One line per touch
 /// phase: when it happened, how late it arrived, how long the main thread spent on it, how many fingers were down;
-/// plus every state change of the window's gesture recognizers and every host text report. No characters and no positions.
+/// plus every state change of the window's gesture recognizers, every host text report and the frames the keyboard is
+/// laid out in. No characters and no touch positions.
 final class TouchTrace: NSObject {
     static let shared = TouchTrace()
 
@@ -39,6 +40,19 @@ final class TouchTrace: NSObject {
         guard isOn else { return }
         lines.append(String(format: "%.4f\t%@", CACurrentMediaTime(), name))
     }
+
+    /// The keyboard view's frame and those of every view and window above it, when they change: what the host gives
+    /// the keyboard to draw in.
+    func layout(_ view: UIView) {
+        guard isOn else { return }
+        let chain = sequence(first: view, next: \.superview).map { "\(type(of: $0)) \(NSCoder.string(for: $0.frame))" }
+        let line = (chain + [view.window.map { "window \(NSCoder.string(for: $0.bounds)) safe \(NSCoder.string(for: $0.safeAreaInsets))" } ?? "no window"]).joined(separator: " | ")
+        guard line != lastLayout else { return }
+        lastLayout = line
+        lines.append(String(format: "%.4f\tlayout\t%@", CACurrentMediaTime(), line))
+    }
+
+    private var lastLayout = ""
 
     func watch(_ window: UIWindow?) {
         guard isOn else { return }

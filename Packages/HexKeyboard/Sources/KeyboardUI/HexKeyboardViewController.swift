@@ -11,7 +11,7 @@ open class HexKeyboardViewController: UIInputViewController {
     private lazy var barHeightConstraint = suggestionBar.heightAnchor.constraint(equalToConstant: 0)
     private lazy var keyboardHeightConstraint = keyboardView.heightAnchor.constraint(equalToConstant: 0)
     private var deleteRepeat: DeleteRepeat?
-    private lazy var haptics = UIImpactFeedbackGenerator(style: .light, view: view)
+    private let haptics = KeyHaptics()
 
     override open func loadView() {
         inputView = KeyboardInputView(frame: .zero, inputViewStyle: .default)
@@ -38,7 +38,7 @@ open class HexKeyboardViewController: UIInputViewController {
         engine.defersSuggestions = true
         keyboardView.onEvent = { [unowned self] in handle($0) }
         suggestionBar.onSelect = { [unowned self] in
-            feedback()
+            feedback(.input)
             engine.accept($0, in: document)
             render()
         }
@@ -57,6 +57,11 @@ open class HexKeyboardViewController: UIInputViewController {
         render()
     }
 
+    override open func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        TouchTrace.shared.layout(view)
+    }
+
     override open func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         engine.settings = SettingsStore.load()
@@ -68,7 +73,7 @@ open class HexKeyboardViewController: UIInputViewController {
 
     override open func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        if hapticsEnabled { haptics.prepare() }
+        if hapticsEnabled { haptics.start() }
         stopSystemGesturesDelayingTouches()
         TouchTrace.shared.watch(view.window)
         Task { [weak self] in
@@ -82,8 +87,9 @@ open class HexKeyboardViewController: UIInputViewController {
     override open func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         engine.endSession()
+        haptics.stop()
         TouchTrace.shared.flush()
-        if let memory = engine.corrector?.memory { MemoryStore.save(memory) }
+        if let memory = engine.corrector?.memory { MemoryStore.save(memory, sharing: hasFullAccess) }
     }
 
     override open func selectionDidChange(_ textInput: UITextInput?) {
@@ -164,7 +170,7 @@ open class HexKeyboardViewController: UIInputViewController {
     private func handle(_ event: KeyboardEvent) {
         switch event {
         case .down(let key, _):
-            feedback()
+            feedback(Self.haptic(for: key))
             if key.action == .delete { startDeleteRepeat() }
         case .up(let key) where key.action == .delete:
             deleteRepeat = nil
@@ -183,7 +189,7 @@ open class HexKeyboardViewController: UIInputViewController {
     private func startDeleteRepeat() {
         deleteRepeat = DeleteRepeat { [unowned self] words in
             if words { engine.deleteWord(in: document) } else { engine.perform(.delete, in: document) }
-            feedback()
+            feedback(words ? .deletionRapid : .deletionRepeat)
             render()
         }
     }
@@ -195,11 +201,18 @@ open class HexKeyboardViewController: UIInputViewController {
         }
     }
 
-    private func feedback() {
+    private func feedback(_ haptic: KeyHaptics.Kind) {
         if engine.settings.sound { UIDevice.current.playInputClick() }
-        guard hapticsEnabled else { return }
-        haptics.impactOccurred()
-        haptics.prepare()
+        if hapticsEnabled { haptics.play(haptic) }
+    }
+
+    private static func haptic(for key: Key) -> KeyHaptics.Kind {
+        switch key.action {
+        case .character: .input
+        case .space, .return, .tab: .separator
+        case .delete: .deletion
+        default: .other
+        }
     }
 }
 

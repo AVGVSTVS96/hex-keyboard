@@ -69,6 +69,43 @@ struct TouchModelTests {
         #expect(model.center(of: "q", on: grid) == (0, 0))
     }
 
+    @Test func anUntouchedKeyAimsAtItsCenterAndMostlyLandsOnItself() throws {
+        let q = try #require(TouchModel().aims(on: grid).first { $0.key.label == "q" })
+        #expect(q.taps == 0 && q.recent.isEmpty)
+        #expect(q.drift == (0, 0))
+        #expect(q.onTarget > 0.9 && q.onTarget < 1)
+        #expect(q.landing.first?.key.label == "q")
+        #expect(abs(q.landing.map(\.share).reduce(0, +) - 1) < 1e-9)
+        #expect(Set(q.landing.dropFirst().prefix(2).compactMap(\.key.label)) == ["w", "a"])
+    }
+
+    @Test func tapsThatDriftOffAKeyLandOnItsNeighbor() throws {
+        var model = TouchModel()
+        model.learn(samples("m", dx: -0.6, count: 200), on: grid)
+        let m = try #require(model.aims(on: grid).first { $0.key.label == "m" })
+        #expect(m.taps == 200)
+        #expect(m.drift.x < -0.55 && abs(m.drift.y) < 0.05)
+        #expect(m.landing.first?.key.label == "n")
+        #expect(m.onTarget < 0.4)
+    }
+
+    @Test func eachKeyShowsOnlyItsLastTaps() throws {
+        var model = TouchModel()
+        model.learn(samples("m", dx: 0.1, count: 60), on: grid)
+        model.learn([TapSample(tap: tap("m", dx: 0.3, dy: -0.2), intended: "m")], on: grid)
+        let m = try #require(model.aims(on: grid).first { $0.key.label == "m" })
+        let frame = try #require(grid.frame(of: "m"))
+        #expect(m.recent.count == TouchModel.recentTaps)
+        #expect(abs(m.recent.last!.x - (frame.midX + 0.3)) < 1e-3 && abs(m.recent.last!.y - (frame.midY - 0.2)) < 1e-3)
+        #expect(model.signatures.map(\.signature) == ["standard"] && model.signatures.first?.taps == 61)
+    }
+
+    @Test func signaturesNameTheirLayouts() {
+        let context = LayoutContext(device: .phone, layer: .letters, isLandscape: true)
+        #expect(LayoutContext(signature: context.signature) == context)
+        #expect(LayoutContext(signature: "standard") == nil)
+    }
+
     @Test func layoutsLearnSeparately() {
         var model = TouchModel()
         let landscape = KeyGrid(Layouts.layout(for: LayoutContext(device: .phone, layer: .letters)), width: 20,

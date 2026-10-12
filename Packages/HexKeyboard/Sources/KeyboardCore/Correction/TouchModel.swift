@@ -9,13 +9,24 @@
 ///
 /// Offsets are in key cells, so a model survives small width changes; each layout signature (device class,
 /// orientation, layer) keeps its own keys.
+///
+/// `recent` keeps each key's last taps for showing you where they land. The model never reads it, and it holds no
+/// order across keys, so it can't spell out what you typed.
 public struct TouchModel: Codable, Hashable, Sendable {
     private var layouts: [String: [String: Touches]] = [:]
+    private(set) var recent: [String: [String: [Offset]]] = [:]
 
     static let priorSpread = 0.2
     static let priorWeight = 10.0
+    static let recentTaps = 48
 
     public init() {}
+
+    public init(from decoder: any Swift.Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        layouts = try container.decode([String: [String: Touches]].self, forKey: .layouts)
+        recent = try container.decodeIfPresent([String: [String: [Offset]]].self, forKey: .recent) ?? [:]
+    }
 
     public var isEmpty: Bool { layouts.isEmpty }
 
@@ -28,7 +39,15 @@ public struct TouchModel: Codable, Hashable, Sendable {
             guard let frame = grid.frame(of: sample.intended) else { continue }
             let (u, v) = Self.offset(x: sample.tap.x, y: sample.tap.y, in: grid.cell(of: frame))
             layouts[grid.signature, default: [:]][sample.intended, default: Touches()].add(u, v)
+            var taps = recent[grid.signature, default: [:]][sample.intended, default: []]
+            taps.append(Offset(x: (u * 1000).rounded() / 1000, y: (v * 1000).rounded() / 1000))
+            recent[grid.signature, default: [:]][sample.intended] = Array(taps.suffix(Self.recentTaps))
         }
+    }
+
+    /// The layouts you've typed on, most taps first.
+    public var signatures: [(signature: String, taps: Int)] {
+        layouts.map { ($0.key, Int($0.value.values.reduce(0) { $0 + $1.count })) }.sorted { $0.taps > $1.taps }
     }
 
     /// The model for one keyboard layout, with the shared spreads worked out once.
@@ -110,6 +129,10 @@ struct Spread {
         let scale = 1 / (weight + count)
         (self.xx, self.xy, self.yy) = (xx * scale, xy * scale, yy * scale)
     }
+}
+
+struct Offset: Codable, Hashable, Sendable {
+    var x, y: Double
 }
 
 struct Touches: Codable, Hashable, Sendable {

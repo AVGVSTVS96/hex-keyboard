@@ -1,4 +1,4 @@
-public enum DeviceClass: Hashable, Sendable {
+public enum DeviceClass: Hashable, Sendable, CaseIterable {
     case phone
     case compactPad
     case pad
@@ -25,6 +25,17 @@ extension LayoutContext {
     /// What a touch model is kept per: the same keys under the same hands.
     public var signature: String {
         "\(device)-\(isLandscape ? "landscape" : "portrait")-\(layer)"
+    }
+
+    /// The layout a touch model's signature was kept for.
+    public init?(signature: String) {
+        let contexts = DeviceClass.allCases.flatMap { device in
+            KeyboardLayer.allCases.flatMap { layer in
+                [false, true].map { LayoutContext(device: device, layer: layer, isLandscape: $0) }
+            }
+        }
+        guard let context = contexts.first(where: { $0.signature == signature }) else { return nil }
+        self = context
     }
 }
 

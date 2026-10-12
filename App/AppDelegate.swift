@@ -13,6 +13,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         let home = HomeViewController()
         window.rootViewController = UINavigationController(rootViewController: home)
         if LaunchOptions.settings { home.showSettings() }
+        if LaunchOptions.taps { home.showTaps() }
         window.makeKeyAndVisible()
         self.window = window
     }

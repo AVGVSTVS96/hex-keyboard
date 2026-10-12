@@ -103,4 +103,33 @@ VARIANTS
   [ -n "${KEEP:-}" ] || xcrun simctl shutdown "$id"
 }
 
+# Screenshots the app's Your Taps screen showing a touch model (JSON, as the keyboard shares it), light and dark:
+# Aim and Accuracy, each alone and with KEY selected.
+taps() {
+  local name=$1 type=$2 touches=$3 tag=$4 id slug group attempt
+  id=$(ensure "$name" "$type")
+  slug=$(echo "$name" | tr 'A-Z ' 'a-z-')
+  boot "$id"
+  group=$(xcrun simctl get_app_container "$id" "$BUNDLE" group.com.shahidy.hexkeyboard)
+  cp "$touches" "$group/touches.json"
+  for appearance in light dark; do
+    xcrun simctl ui "$id" appearance "$appearance"
+    while read -r variant args; do
+      xcrun simctl terminate "$id" "$BUNDLE" 2>/dev/null || true
+      for attempt in 1 2 3; do
+        xcrun simctl launch "$id" "$BUNDLE" -HexTaps YES $args >/dev/null 2>&1 && break
+        sleep 2
+      done
+      sleep "${SETTLE:-3}"
+      xcrun simctl io "$id" screenshot "shots/raw/$slug-$tag-taps-$variant-$appearance.png" >/dev/null 2>&1
+    done <<VARIANTS
+aim
+aim-key -HexTapsKey ${KEY:-p}
+accuracy -HexTapsMode accuracy
+accuracy-key -HexTapsMode accuracy -HexTapsKey ${KEY:-p}
+VARIANTS
+  done
+  [ -n "${KEEP:-}" ] || xcrun simctl shutdown "$id"
+}
+
 "$@"

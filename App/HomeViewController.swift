@@ -30,7 +30,11 @@ final class HomeViewController: UIViewController {
         field.textContainerInset = UIEdgeInsets(top: 12, left: 8, bottom: 12, right: 8)
         LaunchOptions.configure(field)
 
-        let stack = UIStackView(arrangedSubviews: [steps, settings, field])
+        let taps = UIButton(configuration: .glass(), primaryAction: UIAction(title: "Your Taps", image: UIImage(systemName: "hand.tap")) { [unowned self] _ in
+            showTaps()
+        })
+
+        let stack = UIStackView(arrangedSubviews: [steps, settings, taps, field])
         stack.axis = .vertical
         stack.spacing = 16
         stack.alignment = .fill
@@ -54,5 +58,9 @@ final class HomeViewController: UIViewController {
 
     func showSettings() {
         navigationController?.pushViewController(SettingsViewController(), animated: false)
+    }
+
+    func showTaps() {
+        navigationController?.pushViewController(TapsViewController(), animated: true)
     }
 }

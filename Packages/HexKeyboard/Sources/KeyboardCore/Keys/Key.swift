@@ -1,4 +1,4 @@
-public enum KeyboardLayer: Hashable, Sendable {
+public enum KeyboardLayer: Hashable, Sendable, CaseIterable {
     case letters, numbers, symbols
 }
 
