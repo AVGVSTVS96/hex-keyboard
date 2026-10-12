@@ -193,6 +193,20 @@ struct LabelTests {
         #expect(engine.corrector!.memory.touches.center(of: "m", on: grid).x < -0.2)
     }
 
+    @Test func acceptingASuggestionDropsTheWordsErasedTaps() {
+        var engine = engine()
+        engine.settings.autoCorrection = false
+        let document = TestDocument()
+        type("hel", into: &engine, document)
+        engine.perform(.delete, in: document)
+        engine.perform(.delete, in: document)
+        engine.accept(engine.suggestions[0], in: document)
+        type("he ", into: &engine, document)
+        engine.endSession()
+        #expect(document.text == "h he ")
+        #expect(count("e", engine) == 1)
+    }
+
     @Test func retypingFarAwayIsAChangeOfMindNotASlip() {
         var engine = engine()
         let document = TestDocument()

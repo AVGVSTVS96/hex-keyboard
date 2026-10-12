@@ -118,7 +118,7 @@ extension TypingEngine {
         }
         if !suggestion.text.contains(" ") { corrector?.memory.record(suggestion.text, after: previous) }
         revert = nil
-        typing.letters = []
+        typing = WordTaps()
         write(" ", in: document)
         refreshShift()
         suggestionsChanged()
