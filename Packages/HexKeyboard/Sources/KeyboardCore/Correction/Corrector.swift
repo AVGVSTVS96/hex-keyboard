@@ -57,8 +57,11 @@ public final class Corrector {
         replacements = Dictionary(pairs.map { ($0.shortcut.lowercased(), $0.phrase) }) { first, _ in first }
     }
 
+    /// Contact names from `UILexicon` include everyday words ("A", "My", "The"). Typed lowercase, those mean the word,
+    /// so a name the lexicon spells lowercase is left out.
     public func setNames(_ words: [String]) {
-        names = Dictionary(words.map { ($0.lowercased(), $0) }) { first, _ in first }
+        let names = words.filter { lexicon?.canonical($0) != $0.lowercased() }
+        self.names = Dictionary(names.map { ($0.lowercased(), $0) }) { first, _ in first }
     }
 
     public func learn(_ samples: [TapSample]) {

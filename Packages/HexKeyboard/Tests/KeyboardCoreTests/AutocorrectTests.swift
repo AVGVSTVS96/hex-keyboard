@@ -149,6 +149,16 @@ struct AutocorrectTests {
         #expect(document.text == "hi Bassim ")
     }
 
+    @Test func namesThatAreEverydayWordsStayLowercase() {
+        var engine = TypingEngine()
+        engine.corrector = Corrector(source: testLexicon)
+        engine.corrector?.setNames(["A", "The", "Man", "Bassim"])
+        let document = TestDocument("so ")
+        engine.documentChanged(document)
+        engine.type("the man is a bassim ", in: document)
+        #expect(document.text == "so the man is a Bassim ")
+    }
+
     @Test func respectsFieldsAndSettings() {
         for traits in [InputTraits(kind: .url), InputTraits(kind: .email), InputTraits(autocorrection: false)] {
             var engine = TypingEngine.correcting()
