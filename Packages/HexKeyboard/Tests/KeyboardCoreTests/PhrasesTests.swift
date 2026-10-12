@@ -43,6 +43,13 @@ struct PhrasesTests {
         #expect(corrector.predictions(after: "", earlier: nil, context: "").first?.text == "I")
     }
 
+    @Test func aWordTypedOnceAfterAnotherIsOfferedNextTime() {
+        let corrector = Corrector(source: testLexicon)
+        corrector.memory.record("zorp", after: "want")
+        corrector.memory.record("blip", after: "want")
+        #expect(corrector.predictions(after: "want", earlier: nil, context: "want ").map(\.text).prefix(2) == ["blip", "zorp"])
+    }
+
     @Test func predictionsAreCapitalizedWhereTheNextWordIs() {
         var engine = TypingEngine()
         engine.corrector = Corrector(source: testLexicon, phrases: testPhrases)

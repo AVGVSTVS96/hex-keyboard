@@ -68,7 +68,7 @@ public struct TypingMemory: Codable, Hashable, Sendable {
     }
 
     func predictions(after previous: String) -> [String] {
-        (following[previous] ?? [:]).filter { $0.value > 1 }.sorted(by: Self.frequent).map(\.key)
+        (following[previous] ?? [:]).sorted(by: Self.frequent).map(\.key)
     }
 
     private mutating func forgetRarest() {
