@@ -108,7 +108,7 @@ struct Session {
         self.keyboard = keyboard
         self.grid = grid
         let source: any CandidateSource = keyboard == .baseline ? TextCheckerSource(language: "en-US") : Lexicon.english
-        let corrector = Corrector(source: source)
+        let corrector = Corrector(source: source, next: keyboard == .baseline ? nil : .english)
         corrector.grid = grid
         engine.corrector = corrector
     }
@@ -124,6 +124,7 @@ struct Session {
 
     mutating func type(_ word: String, by user: inout SimulatedUser, tappingSpace: Bool) {
         let start = document.text.count
+        let predictions = engine.suggestions.map { $0.text.lowercased() }
         var typed = ""
         for character in word + (tappingSpace ? " " : "") {
             let (x, y) = user.tap(character)
@@ -142,8 +143,8 @@ struct Session {
             engine.corrector?.memory.touches = TouchModel()
         }
         let final = String(document.text.dropFirst(start)).trimmingCharacters(in: .whitespaces).lowercased()
-        score.add(word: word, typed: typed, final: final, shown: shown)
-        window.add(word: word, typed: typed, final: final, shown: shown)
+        score.add(word: word, typed: typed, final: final, shown: shown, predictions: predictions)
+        window.add(word: word, typed: typed, final: final, shown: shown, predictions: predictions)
     }
 
     private var shown: [String] = []
@@ -177,11 +178,12 @@ struct SimulatedUser {
 }
 
 struct Score: CustomStringConvertible {
-    var words = 0, raw = 0, corrected = 0, topThree = 0, fixed = 0, broken = 0
+    var words = 0, raw = 0, corrected = 0, topThree = 0, predicted = 0, fixed = 0, broken = 0
     var brokenWords: [String] = []
 
-    mutating func add(word: String, typed: String, final: String, shown: [String]) {
+    mutating func add(word: String, typed: String, final: String, shown: [String], predictions: [String]) {
         words += 1
+        if predictions.contains(word) { predicted += 1 }
         if typed == word { raw += 1 }
         if final == word { corrected += 1 }
         if shown.contains(word) { topThree += 1 }
@@ -199,7 +201,7 @@ struct Score: CustomStringConvertible {
     var summary: String { "\(percent(raw))/\(percent(corrected))" }
 
     var description: String {
-        "words=\(words) raw=\(percent(raw)) autocorrect=\(percent(corrected)) top3=\(percent(topThree)) fixed=\(fixed) broken=\(broken) \(brokenWords.prefix(8))"
+        "words=\(words) raw=\(percent(raw)) autocorrect=\(percent(corrected)) top3=\(percent(topThree)) next3=\(percent(predicted)) fixed=\(fixed) broken=\(broken) \(brokenWords.prefix(8))"
     }
 }
 

@@ -229,3 +229,10 @@
 
 - iOS 27 draws dark-mode keys #444444 (68), every kind, where iOS 26 drew #3D3D3D (61); Hex drew 61 on both. Measured on the iPhone 17 simulator, iOS 27.0; Hex now draws 68 on iOS 27 (pixel-checked).
 - The app's home was a line of directions and two buttons. It's now a Settings-style list: Set Up (Hex Keyboard, with a green check once `AppleKeyboards` in the global defaults lists it, rechecked each time the app comes back from Settings; Allow Full Access, what it's for), Try It (the field), Keyboard Settings and Your Taps. Its footer says what Full Access does and that Hex has no network code (true: no URL loading anywhere in the app or keyboard).
+
+## 2026-10-12 · next-word predictions
+
+- The bar before a word showed the same three words after anything ("the", "to", "and"): next-word predictions came only from your own counts, and a fresh keyboard has none. Apple's shows "I", "The", "I'm" at a sentence start and follows the previous word.
+- `NextWords` (`Resources/en.next`, 1.6 MB, built by `scripts/nextwords.py`): the 12 likeliest followers of each of the 20,000 commonest words and of a sentence start, from the same Google Books fiction corpus as the lexicon (2-grams since 1980, pairs seen 200+ times), with Witten-Bell weights, so whatever isn't listed backs off to the lexicon. It sits between your own counts and the lexicon in the language model, for predictions: your habits still come first. "Thank" → you, God, goodness; "I'm" → not, sorry, sure; a sentence start → I, The, He. Predictions follow shift, so they're capitalized where the next letter would be.
+- Measured with a new `scripts/eval` column, `next3`: how often the bar offered the word before its first letter. Static predictions 16.1% → 22.3% (σ 0); 15.1% → 20.9% (σ 0.35). Autocorrect and raw accuracy unchanged. `top3` drops 0.1 in a few rows: words whose only letter tap became a space, where the old fixed "the/a/to" happened to hold the word.
+- Also tried the corpus context in autocorrect's ranking: flat on the eval (σ 0.35 learning 90.9 → 90.7, thumbs decoder +2 fixed), so it stays out of ranking.

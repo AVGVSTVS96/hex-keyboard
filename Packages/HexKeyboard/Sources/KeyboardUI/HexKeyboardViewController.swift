@@ -42,7 +42,7 @@ open class HexKeyboardViewController: UIInputViewController {
             engine.accept($0, in: document)
             render()
         }
-        engine.corrector = Corrector(source: Lexicon.english)
+        engine.corrector = Corrector(source: Lexicon.english, next: .english)
         keyboardView.resolve = { [unowned self] grid, point in engine.key(atX: point.x, y: point.y, in: grid) }
         keyboardView.onGrid = { [unowned self] in engine.use($0) }
         keyboardView.globeTarget = { [unowned self] control in

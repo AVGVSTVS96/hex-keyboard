@@ -1,4 +1,5 @@
-en.lexicon is built by scripts/lexicon from two sources. Hex's own code is MIT (see LICENSE at the repository root);
+en.lexicon is built by scripts/lexicon, and en.next (the words that usually follow each common word) by
+scripts/nextwords.py, from two sources. Hex's own code is MIT (see LICENSE at the repository root);
 the word list and counts inside en.lexicon carry these notices.
 
 Words: SCOWL (Spell Checker Oriented Word Lists) 2020.12.07 by Kevin Atkinson, http://wordlist.aspell.net/
@@ -23,4 +24,5 @@ https://storage.googleapis.com/books/ngrams/books/datasetsv3.html
 
   This compilation is licensed under a Creative Commons Attribution 3.0 Unported License,
   https://creativecommons.org/licenses/by/3.0/
-  en.lexicon contains counts derived from it (summed per word, rounded to tenths of a nat of log-probability).
+  en.lexicon contains counts derived from it (summed per word, rounded to tenths of a nat of log-probability), and
+  en.next contains next-word probabilities derived from its 2-grams (rounded the same way).

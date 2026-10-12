@@ -17,6 +17,7 @@ public final class Corrector {
     }
 
     let lexicon: Lexicon?
+    let next: NextWords?
     private var cachedModel: LanguageModel?
     private var rankings: [Ranking: [Candidate]] = [:]
     private var generation = 0
@@ -28,14 +29,15 @@ public final class Corrector {
 
     /// With a `Lexicon` as its source, the corrector decodes your taps against your own touch model and words;
     /// any other source (like `UITextChecker`) only corrects spelling.
-    public init(source: any CandidateSource) {
+    public init(source: any CandidateSource, next: NextWords? = nil) {
         self.source = source
         self.lexicon = source as? Lexicon
+        self.next = next
     }
 
     /// A corrector with the same words, touches and grid, and caches of its own.
     func snapshot() -> Corrector {
-        let copy = Corrector(source: source)
+        let copy = Corrector(source: source, next: next)
         copy.replacements = replacements
         copy.names = names
         copy.memory = memory
@@ -115,8 +117,10 @@ public final class Corrector {
         var seen: Set<String> = []
         var words = (previous.map(memory.predictions(after:)) ?? []) + source.predictions(after: context)
         if let lexicon {
-            let model = languageModel(lexicon)
-            words = (words + lexicon.mostFrequent(count: 6)).sorted { model.logProbability($0, after: previous) > model.logProbability($1, after: previous) }
+            var model = languageModel(lexicon)
+            model.next = next
+            let following = previous.flatMap { next?.context($0)?.followers.map(\.word) } ?? []
+            words = (words + following + lexicon.mostFrequent(count: 6)).sorted { model.logProbability($0, after: previous) > model.logProbability($1, after: previous) }
         }
         return words
             .filter { seen.insert($0.lowercased()).inserted }

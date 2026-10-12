@@ -278,7 +278,15 @@ extension TypingEngine {
             let completions = corrector.suggestions(for: typed, correcting: false, guessing: false).dropFirst()
             suggestions = [Suggestion(revert.original, .revert)] + completions
         } else if word.isEmpty {
-            suggestions = corrector.predictions(after: Words.previous(before: word, in: text), context: text)
+            suggestions = corrector.predictions(after: Words.previous(before: word, in: text), context: text).map { prediction in
+                var prediction = prediction
+                switch shift {
+                case .off: break
+                case .on: prediction.text = prediction.text.prefix(1).uppercased() + prediction.text.dropFirst()
+                case .locked: prediction.text = prediction.text.uppercased()
+                }
+                return prediction
+            }
         } else {
             let correcting = correcting && Words.isCorrectable(word, in: text)
             suggestions = corrector.suggestions(for: typed, correcting: correcting, guessing: traits.spellChecking)
