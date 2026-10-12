@@ -224,3 +224,8 @@
 - Found while measuring: on iOS 27 the large phones (Air, Pro Max) draw their rows 2pt higher than iOS 26, not 7pt lower like the 6.1" phones, so Hex sat 5pt low on them, Bassim's iPhone 16 Pro Max included. Now 661 (Pro Max) and 617 (Air), Apple's exactly.
 - Tests: 107 package tests pass; UI tests `OneHandedTests` (hold 123, pick each hand, type, tap the chevron) and all of `TypingTests` pass on iOS 27.
 
+
+## 2026-10-12 · dark keys on iOS 27, the app's home
+
+- iOS 27 draws dark-mode keys #444444 (68), every kind, where iOS 26 drew #3D3D3D (61); Hex drew 61 on both. Measured on the iPhone 17 simulator, iOS 27.0; Hex now draws 68 on iOS 27 (pixel-checked).
+- The app's home was a line of directions and two buttons. It's now a Settings-style list: Set Up (Hex Keyboard, with a green check once `AppleKeyboards` in the global defaults lists it, rechecked each time the app comes back from Settings; Allow Full Access, what it's for), Try It (the field), Keyboard Settings and Your Taps. Its footer says what Full Access does and that Hex has no network code (true: no URL loading anywhere in the app or keyboard).

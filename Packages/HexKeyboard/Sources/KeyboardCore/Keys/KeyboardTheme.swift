@@ -65,7 +65,7 @@ public struct KeyboardTheme: Hashable, Sendable {
     public static func dark(_ style: KeyboardStyle) -> KeyboardTheme {
         let ios27 = style == .ios27
         return KeyboardTheme(
-            key: RGBA(white: 61 / 255),
+            key: RGBA(white: (ios27 ? 68 : 61) / 255),
             keyPressed: RGBA(white: 0.42),
             label: .white,
             secondaryLabel: RGBA(white: 1, alpha: 0.4),
