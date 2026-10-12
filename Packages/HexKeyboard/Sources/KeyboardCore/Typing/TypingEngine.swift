@@ -15,7 +15,8 @@ public struct TypingEngine {
         didSet { if settings != oldValue { suggestionsChanged() } }
     }
     public var corrector: Corrector?
-    /// The one copy of the text the engine reads. Only `write` and `documentChanged` change it.
+    /// The one copy of the text the engine reads. The keyboard's edits reach it through `write` and `moveCursor`, the
+    /// host's reports through `documentChanged`.
     public private(set) var text = TextState()
 
     private var spaceJustTyped = false

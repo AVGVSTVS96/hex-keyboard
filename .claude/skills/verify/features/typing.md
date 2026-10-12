@@ -1,0 +1,17 @@
+# Typing
+
+## Sub-features
+
+Autocapitalization, double-space period, shift and double-tap caps lock, holding shift, `123` and `#+=` layers, sliding from a layer key to type one symbol and come back, delete and its speed-up to words, return, the space bar trackpad, long-press accents, iPad flick-down secondaries, smart punctuation.
+
+## How to get to it (user POV)
+
+Open the Hex app, tap the text field, and Hex is the keyboard.
+
+## Driving it with XCUITest
+
+`UITests/TypingTests.swift` launches the app with `-HexFocus YES`, finds keys by accessibility identifier (`hex.q`, `hex.space`, `hex.delete`, `hex.numbers`, …) and reads the field's value. `scripts/mac scripts/uitest` runs it. Engine-level behavior (what each `KeyboardEvent` does) is pinned in `TypingEngineTests`.
+
+## Gotchas
+
+Flicks exist only on iPad, so `testFlickDownTypesSecondaryOnPad` skips on iPhone. Run the iPad simulator to cover it.

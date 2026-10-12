@@ -4,11 +4,14 @@ An iOS custom keyboard (UIKit, Swift 6, iOS 26+) that looks and types like Apple
 
 ## Layout
 
-- `Packages/HexKeyboard/Sources/KeyboardCore`: pure Swift, no Foundation or UIKit (it should compile to WebAssembly later). Layouts per device class, `KeyGrid` (key frames and hit testing), `TypingEngine` (shift, caps lock, autocap, double-space period, smart punctuation, layer switching, word delete, autocorrect and reverts, and the tap labels it learns from) with `TextState` (the one copy of the text it reads; see Rules), `KeyMap` (which key a touch means, made off the main thread after every edit), `Corrector` (the decisions: hit-testing, what to correct, text replacements, names, learned words) over a `CandidateSource`. With a `Lexicon` (a flat byte trie of words and frequencies) as its source it decodes taps (`Decoder`, exact A* over the trie) against your `TouchModel` (each key a 2D Gaussian with a conjugate Normal-Inverse-Wishart prior) and a `LanguageModel` (Witten-Bell over your next-word counts, your words and the lexicon). `TypingMemory` holds everything learned and is `Codable`. Fully unit tested.
-- `Packages/HexKeyboard/Sources/KeyboardUI`: UIKit. `HexKeyboardViewController` (the extension's principal class), `KeyboardView` (one view owns all touches: rollover, slide-off, callouts, long-press accents, spacebar trackpad, iPad flicks), `KeyView`, `SuggestionBar`, `Lexicon.english` (`Resources/en.lexicon`, built by `scripts/lexicon`, sources and licenses in `Resources/LEXICON-LICENSE`), `TextCheckerSource` (the old `UITextChecker` source, kept as the scorer's baseline), `SettingsStore` (App Group) and `MemoryStore` (the extension's own container; the app resets it through a counter in the App Group), metrics and theme.
+- `Packages/HexKeyboard/Sources/KeyboardCore`: pure Swift, no Foundation or UIKit (it also compiles to WebAssembly). Everything the keyboard does lives here, so the extension and the web demo share it. Fully unit tested.
+  - `Keys/`: layouts per device class, `KeyGrid` (key frames and hit testing), metrics, key faces and theme.
+  - `Typing/`: `TypingEngine` takes `KeyboardEvent`s (`handle`) and does shift, caps lock, autocap, double-space period, smart punctuation, layers, word delete, autocorrect and reverts, and the tap labels it learns from. It reads the text only from `TextState` (see Rules).
+  - `Correction/`: `Corrector` (what to correct, text replacements, names, learned words) over a `CandidateSource`. With a `Lexicon` (a flat byte trie of words and frequencies) as its source it decodes taps (`Decoder`, exact A* over the trie) against your `TouchModel` (each key a 2D Gaussian with a conjugate Normal-Inverse-Wishart prior) and a `LanguageModel` (Witten-Bell over your next-word counts, your words and the lexicon). `KeyMap` (which key a touch means) is made off the main thread after every edit. `TypingMemory` holds everything learned and is `Codable`.
+- `Packages/HexKeyboard/Sources/KeyboardUI`: UIKit. `HexKeyboardViewController` (the extension's principal class: forwards events to the engine, renders, runs ranking jobs), `KeyboardView` (one view owns all touches: rollover, slide-off, callouts, long-press accents, spacebar trackpad, iPad flicks), `KeyView`, `SuggestionBar`, `Lexicon.english` (`Resources/en.lexicon`, built by `scripts/lexicon`, sources and licenses in `Resources/LEXICON-LICENSE`), `SettingsStore` (App Group) and `MemoryStore` (the extension's own container; the app resets it through a counter in the App Group).
 - `Packages/HexKeyboard/Tools/LexiconBuilder`: turns `scripts/lexicon.py`'s word counts into `en.lexicon` with `Lexicon(counts:)`, so the format has one implementation.
-- `Packages/HexKeyboard/Tests/KeyboardUITests`: `Evaluation`, the autocorrect scorer (see below).
-- `web/`: the web demo. `Sources/HexWeb` exports a `Keyboard` class to JavaScript (JavaScriptKit BridgeJS) that wraps `TypingEngine` the way `HexKeyboardViewController` does, against the page's text field; `site/` draws the keys from `KeyboardCore`'s metrics, faces and colors and ports `KeyboardView+Touches` to pointer events. Deployed to Vercel as `hex-keyboard`.
+- `Packages/HexKeyboard/Tests/KeyboardUITests`: `Evaluation`, the autocorrect scorer (see below), with `TextCheckerSource` (`UITextChecker`) as its baseline keyboard.
+- `web/`: the web demo. `Sources/HexWeb` exports a `Keyboard` class to JavaScript (JavaScriptKit BridgeJS) that forwards to `TypingEngine` the way `HexKeyboardViewController` does, against the page's text field; `site/` draws the keys from `KeyboardCore`'s metrics, faces and colors and ports `KeyboardView+Touches` to pointer events. Deployed to Vercel as `hex-keyboard`.
 - `Keyboard/`: the extension target, a one-line subclass.
 - `App/`: the containing app (setup steps and a test field).
 - `UITests/`: types through the real extension in the simulator.
@@ -16,7 +19,7 @@ An iOS custom keyboard (UIKit, Swift 6, iOS 26+) that looks and types like Apple
 
 ## Build and test
 
-Development happens on a Linux box; builds run on a Mac over ssh (`ssh mac`).
+Development happens on a Linux box; builds run on a Mac over ssh (`ssh mac`). `scripts/mac <command>` syncs the tree to `~/Developer/hex-keyboard` on the Mac and runs the command there. Device builds take the team from `Config/Team.xcconfig` (`DEVELOPMENT_TEAM = …`, not committed), which syncing leaves in place. To prove a change works, follow the `verify` skill (`.claude/skills/verify`).
 
 ```sh
 scripts/mac scripts/build                       # sync to the Mac, xcodegen, build for the simulator
@@ -26,7 +29,7 @@ scripts/mac 'scripts/sim all v7'                # screenshots: system vs Hex, li
 scripts/mac 'scripts/sim variants "iPhone 17" v7'  # return key types, keyboard types, landscape
 scripts/mac 'scripts/capture "iPhone 17" iPhone-17 hex'  # frames of held keys: pop-ups, accent panel
 scripts/mac 'scripts/shots "iPhone 17" iPhone-17 system light "hel:hel|helo:o"'  # type through a keyboard, screenshot each step
-scripts/mac scripts/eval                        # scorer: the phrase corpus typed with tap noise and with biased thumbs
+scripts/mac scripts/eval                        # scorer: the phrase corpus typed with tap noise and with biased thumbs, checked against scripts/eval.expected
 scripts/web                                     # web demo into web/dist (swift.org 6.4.0 toolchain + its Wasm SDK + binaryen; on the Mac: rsync, then run it there)
 scripts/lexicon                                 # rebuild en.lexicon (downloads ~1 GB, streams ~30 GB of 2-grams)
 uv run --with pillow --with numpy --with scipy scripts/shotdiff.py v7   # key-by-key geometry vs Apple
@@ -36,7 +39,7 @@ uv run --with pillow --with numpy --with scipy scripts/shotdiff.py v7   # key-by
 
 Builds are ad-hoc signed for the simulator (`CODE_SIGN_IDENTITY = -`), which embeds simulated entitlements, so the App Group works in the simulator without a team. Device builds need a team with the group `group.com.shahidy.hexkeyboard` registered.
 
-`scripts/eval` types the MacKenzie & Soukoreff phrase set (500 phrases, 2,714 words) through `TypingEngine` with taps drawn from a Gaussian around the real key centers (`KeyGrid`, iPhone 17 width), seeded, and prints word accuracy without and with autocorrect and the top-3 suggestion hit rate, for three keyboards: (a) nearest key + `UITextChecker`, (b) Hex's decoder with the touch model held at its prior, (c) the decoder learning. `noise` reruns the original noise levels; `biasedThumbs` types the corpus twice as a user whose m, b and o land off target and prints a learning curve. It runs a Release build (the decoder is slow in Debug). Any change must beat its numbers in `PROGRESS.md`.
+`scripts/eval` types the MacKenzie & Soukoreff phrase set (500 phrases, 2,714 words) through `TypingEngine` with taps drawn from a Gaussian around the real key centers (`KeyGrid`, iPhone 17 width), seeded, and prints word accuracy without and with autocorrect and the top-3 suggestion hit rate, for three keyboards: (a) nearest key + `UITextChecker`, (b) Hex's decoder with the touch model held at its prior, (c) the decoder learning. `noise` reruns the original noise levels; `biasedThumbs` types the corpus twice as a user whose m, b and o land off target and prints a learning curve. It runs a Release build (the decoder is slow in Debug). A full run is diffed against `scripts/eval.expected`: a change that moves the numbers must beat them, and updates that file in the same commit.
 
 ## Rules
 
@@ -52,4 +55,5 @@ Builds are ad-hoc signed for the simulator (`CODE_SIGN_IDENTITY = -`), which emb
 - Learning comes only from real events: the letters of a word you kept once you move on (next word, keyboard hidden), a reverted correction teaches what you typed, and a backspace-then-retype within a quarter key labels the erased tap. Words you delete teach nothing. Nothing in the model has a rate, schedule or decay; every weight is a posterior or a count.
 - The engine reads the text only from its `TextState`. Every edit goes through `TypingEngine.write`, which changes the host and `TextState` together; the host's reports (`textDidChange`, `selectionDidChange`) reach it only through `documentChanged`, which ignores reports that show the keyboard's own edits late or in a shorter window and adopts anything else. Automatic edits only replace characters the keyboard typed itself (`TextState.owned`).
 - iOS doesn't deliver touches that land on fully transparent pixels of a third-party keyboard. `KeyboardInputView` has an invisible fill (alpha 0.001, pixel-identical in screenshots) so gaps between keys still take taps; `FirstTapTests` checks it.
-- `KeyboardCore` takes no Foundation or UIKit import. Platform services (UITextChecker, UILexicon, files) live in `KeyboardUI` behind Core protocols.
+- Keyboard behavior goes in `KeyboardCore`; `KeyboardUI` and `web/` only draw, play feedback and forward events, so the two never drift.
+- `KeyboardCore` takes no Foundation or UIKit import (`ArchitectureTests` checks). Platform services (UILexicon, files, the scorer's UITextChecker) live outside it behind Core protocols.
