@@ -76,6 +76,10 @@ private final class SuggestionSlot: UIControl {
 
     required init?(coder: NSCoder) { fatalError() }
 
+    /// Apple's pills stop 8px (@3x) short of each slot's edge, so neighbors sit 16px apart and the outer ones keep
+    /// clear of the keyboard's edge (iOS 27 simulator, held suggestions).
+    private static let pillInset: CGFloat = 8 / 3
+
     var showsPill: Bool { suggestion != nil && (suggestion?.kind == .correction || isHighlighted) }
 
     override var isHighlighted: Bool {
@@ -103,7 +107,7 @@ private final class SuggestionSlot: UIControl {
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        pill.frame = bounds
+        pill.frame = bounds.insetBy(dx: Self.pillInset, dy: 0)
         pill.layer.cornerRadius = bounds.height / 2
         guard let font = label.font else { return }
         let baseline = (bounds.midY + font.capHeight / 2).rounded(scale: traitCollection.displayScale)

@@ -1,21 +1,44 @@
 import CoreHaptics
 import Foundation
 
-/// Plays Apple's own keyboard haptics on an engine the keyboard owns.
+/// Plays the system keyboard's haptics on an engine the keyboard owns.
 ///
-/// The system keyboard plays Core Haptics library patterns (`CHHapticPatternLibraryKeyKeyboard…`), loaded with the
-/// private `+[CHHapticPattern patternForKey:error:]` (UIKitCore's `_UIKBFeedbackGenerator`, iOS 26.1). When that
-/// isn't there, a light transient stands in. UIKit's feedback generators share one engine per process that suspends
-/// itself when a host goes to the background and only wakes on the host's next foreground notification, so a
-/// keyboard that hops between hosts runs its own engine instead.
+/// UIKit's feedback generators share one engine per process that suspends itself when a host goes to the background
+/// and only wakes on that host's next foreground notification, so a keyboard that hops between hosts runs its own.
 final class KeyHaptics {
-    enum Kind: String, CaseIterable {
-        case input = "InputText"
-        case separator = "InputSeparator"
-        case deletion = "Deletion"
-        case deletionRepeat = "DeletionRepeat"
-        case deletionRapid = "DeletionRapid"
-        case other = "Other"
+    /// Apple's keyboard patterns are Core Haptics library entries (`CHHapticPatternLibraryKeyKeyboard…`) of one
+    /// transient each, plus a click sound. These are their haptic values, exported on iOS 27 (iPhone 16 Pro Max).
+    enum Kind: CaseIterable {
+        case input, separator, deletion, deletionRepeat, deletionRapid, other
+
+        var intensity: Float {
+            switch self {
+            case .input: 0.51
+            case .separator: 0.43
+            case .deletion: 0.45
+            case .deletionRepeat: 0.35
+            case .deletionRapid: 0.4
+            case .other: 0.49
+            }
+        }
+
+        var sharpness: Float {
+            switch self {
+            case .input: 0.31
+            case .separator: 0.64
+            case .deletion, .deletionRepeat, .deletionRapid: 0.313
+            case .other: 0.229
+            }
+        }
+
+        var pattern: CHHapticPattern? {
+            try? CHHapticPattern(events: [
+                CHHapticEvent(eventType: .hapticTransient, parameters: [
+                    CHHapticEventParameter(parameterID: .hapticIntensity, value: intensity),
+                    CHHapticEventParameter(parameterID: .hapticSharpness, value: sharpness),
+                ], relativeTime: 0),
+            ], parameters: [])
+        }
     }
 
     private var engine: CHHapticEngine?
@@ -64,26 +87,8 @@ final class KeyHaptics {
     private static func players(on engine: CHHapticEngine) -> [Kind: CHHapticPatternPlayer] {
         var players: [Kind: CHHapticPatternPlayer] = [:]
         for kind in Kind.allCases {
-            let system = systemPattern(kind)
-            if system == nil { TouchTrace.shared.mark("haptics fallback \(kind.rawValue)") }
-            if let pattern = system ?? fallback, let player = try? engine.makePlayer(with: pattern) { players[kind] = player }
+            if let pattern = kind.pattern, let player = try? engine.makePlayer(with: pattern) { players[kind] = player }
         }
         return players
     }
-
-    private static func systemPattern(_ kind: Kind) -> CHHapticPattern? {
-        let selector = NSSelectorFromString("patternForKey:error:")
-        guard let symbol = dlsym(UnsafeMutableRawPointer(bitPattern: -2), "CHHapticPatternLibraryKeyKeyboard\(kind.rawValue)"),
-              CHHapticPattern.responds(to: selector)
-        else { return nil }
-        let key = symbol.assumingMemoryBound(to: NSString.self).pointee
-        return (CHHapticPattern.self as AnyObject).perform(selector, with: key, with: nil)?.takeUnretainedValue() as? CHHapticPattern
-    }
-
-    private static let fallback = try? CHHapticPattern(events: [
-        CHHapticEvent(eventType: .hapticTransient, parameters: [
-            CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.5),
-            CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.5),
-        ], relativeTime: 0),
-    ], parameters: [])
 }

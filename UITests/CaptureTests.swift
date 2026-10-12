@@ -8,8 +8,18 @@ final class CaptureTests: XCTestCase {
         app.launch()
         let g = key("g", in: app)
         XCTAssertTrue(g.waitForExistence(timeout: 10))
-        g.press(forDuration: 4)
-        key("e", in: app).press(forDuration: 6)
+        guard ProcessInfo.processInfo.environment["HEX_CAPTURE"] == "bar" else {
+            g.press(forDuration: 4)
+            key("e", in: app).press(forDuration: 6)
+            return
+        }
+        for letter in "hel" { key(String(letter), in: app).tap() }
+        let q = key("q", in: app).frame, p = key("p", in: app).frame
+        let window = app.windows.firstMatch.frame
+        for x in [q.minX + 30, window.width / 2, p.maxX - 30] {
+            app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: x, dy: q.minY - 26)).press(forDuration: 4)
+            for letter in "hel" { key(String(letter), in: app).tap() }
+        }
     }
 
     private func key(_ name: String, in app: XCUIApplication) -> XCUIElement {
