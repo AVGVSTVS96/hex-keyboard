@@ -8,16 +8,14 @@ public struct TypingEngine {
     public internal(set) var suggestionsAreStale = false
     /// Which key a touch means, made with the suggestions (off the main thread when they're deferred).
     public internal(set) var keyMap: KeyMap?
-    /// The text before the word the suggestions were ranked for. A tap on a suggestion applies only to that word, so a
-    /// bar that hasn't caught up with a space or a delete can't replace a different word.
+    /// The text before the word the suggestions were ranked for: a tap on one replaces only that word.
     var suggestionsBefore = ""
     var revision = 0
     public var settings = KeyboardSettings() {
         didSet { if settings != oldValue { suggestionsChanged() } }
     }
     public var corrector: Corrector?
-    /// The one copy of the text the engine reads. Every edit goes through `write`, which changes it and the host
-    /// together; the host's reports only reach it through `documentChanged`.
+    /// The one copy of the text the engine reads. Only `write` and `documentChanged` change it.
     public private(set) var text = TextState()
 
     private var spaceJustTyped = false
@@ -186,9 +184,8 @@ public struct TypingEngine {
         refreshShift()
     }
 
-    /// The host says its text or selection changed (`textDidChange`, `selectionDidChange`). A report that only shows
-    /// the keyboard's own edits, or shows them late, changes nothing; anything else replaces what the engine knows and
-    /// forgets the word in progress.
+    /// The host's `textDidChange` or `selectionDidChange`. A report showing the keyboard's own edits, even late, changes
+    /// nothing; anything else replaces what the engine knows and forgets the word in progress.
     @discardableResult
     public mutating func documentChanged(_ document: some TextDocument) -> TextState.Report {
         let report = text.reconcile(before: document.textBeforeInput, after: document.textAfterInput)
@@ -207,8 +204,8 @@ public struct TypingEngine {
         shift = capitalize ? .on : .off
     }
 
-    /// The one way text changes: deletes `count` characters before the caret and inserts `string`, in the host and in
-    /// `text` alike, in that order.
+    /// The one way text changes: deletes `count` characters before the caret, then inserts `string`, in the host and
+    /// in `text` alike.
     mutating func write(_ string: String, replacing count: Int = 0, in document: some TextDocument) {
         if count > 0 {
             document.deleteBackward(count)

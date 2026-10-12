@@ -186,13 +186,9 @@ extension Corrector {
         return candidates.values.sorted { $0.logPosterior > $1.logPosterior }
     }
 
-    /// A word that stands on its own: one you've kept, or a word that, typed with every tap on its key's center, your
-    /// touches and the lexicon would read as itself rather than as other keys. Such a word is only replaced when your
-    /// touches fit the other word better; how common a word is can choose between what your fingers might have meant
-    /// but never overrule what they did. A rare word your own perfect taps would still be read past gets no such
-    /// cover, whether the reading is another key ("mot" → "not") or a missed, extra or doubled letter ("helo" →
-    /// "hello"): each is the same kind of slip. Leaving out an apostrophe isn't a slip, so it never counts against a
-    /// real word ("its" stays).
+    /// A word that stands on its own, which autocorrect replaces only when your touches fit the other word better: one
+    /// you've kept, or a real word that, typed dead center on its keys, still reads as itself. Reading it with an
+    /// apostrophe added ("its" → "it's") doesn't count against it.
     func isKnown(_ word: TypedWord) -> Bool {
         if memory.isKept(word.text) { return true }
         guard lexicon?.isWord(word.text) == true || memory.count(of: word.text) > 1 else { return false }
@@ -223,10 +219,8 @@ extension Corrector {
 }
 
 extension Corrector {
-    /// Whether a space tap more likely meant a letter. Between two words ("a out" → "about"), or when one side is
-    /// missing, a space that the "." shortcut or the start of the text swallowed: before a word ("ut" → "but") or
-    /// after one ("jo" → "job"), where the alternative is a second space you meant. As with any correction, words
-    /// you typed that are words already stay unless your touches fit the joined word better.
+    /// The word a space tap spelled if it meant a letter: between two words ("a out" → "about"), or with one side
+    /// missing when it was a stray space before a word ("ut" → "but") or after one ("jo" → "job").
     func joined(_ first: TypedWord?, space: Tap, _ second: TypedWord?) -> String? {
         let parts = [first, second].compactMap { $0 }
         guard let lexicon, !parts.isEmpty, parts.allSatisfy({ !$0.text.isEmpty && $0.taps.count == $0.text.count }),

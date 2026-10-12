@@ -68,8 +68,7 @@ extension TypingEngine {
         }
     }
 
-    /// The key a touch at (x, y) means: looked up in the key map made for the text as it is now, or, until that map
-    /// is ready, the key under the touch. It reads nothing and ranks nothing.
+    /// The key a touch means: from the key map made for the text as it is now, or, until that's ready, the key under it.
     public func key(atX x: Double, y: Double, in grid: KeyGrid) -> (row: Int, key: Int)? {
         guard let keyMap, keyMap.revision == revision else { return grid.index(atX: x, y: y) }
         return keyMap.key(atX: x, y: y, in: grid)
@@ -287,8 +286,7 @@ extension TypingEngine {
     }
 }
 
-/// A copy of the engine, its text included, with a corrector of its own: nothing else references it, so it may run on
-/// any thread. It only ranks; it has no document to write to.
+/// A copy of the engine with a corrector of its own: nothing else references it, so it may rank on any thread.
 public struct SuggestionJob: @unchecked Sendable {
     fileprivate var engine: TypingEngine
 

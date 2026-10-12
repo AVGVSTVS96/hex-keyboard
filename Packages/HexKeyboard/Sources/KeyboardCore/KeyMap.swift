@@ -1,7 +1,5 @@
-/// Which key a touch means, worked out before the touch comes: after every change the engine works out, off the main
-/// thread, how likely each key is to come next and where your taps for each key land, and publishes it here. A touch
-/// then costs a few multiplications for the keys it reaches, and always comes out as a key. A map applies only to the
-/// text it was made for; until a fresh one is ready, a touch takes the key under it.
+/// Which key a touch means, worked out off the main thread after every edit from where your taps for each key land and
+/// how likely each key is next, so a touch costs a few multiplications. It holds only for the text it was made for.
 public struct KeyMap: Sendable {
     let revision: Int
     let signature: String

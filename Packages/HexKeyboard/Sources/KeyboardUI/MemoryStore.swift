@@ -1,9 +1,8 @@
 import Foundation
 import KeyboardCore
 
-/// Keeps what the keyboard learns in the extension's own container: without Full Access a keyboard can't write to
-/// the App Group, so the app can't reach the file. The app resets it by bumping a counter in the group's defaults,
-/// which the keyboard reads, and the keyboard starts over when the counter moved since it last saved.
+/// Keeps what the keyboard learns in the extension's own container, since without Full Access it can't write to the
+/// App Group. The app resets it by bumping a counter in the group's defaults; the keyboard starts over when it moved.
 public enum MemoryStore {
     private struct Saved: Codable {
         var resets: Int

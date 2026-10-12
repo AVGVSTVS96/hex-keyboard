@@ -101,8 +101,6 @@ extension KeyboardView {
         }
     }
 
-    /// Commits the key the touch is on. The key is kept with the touch, so it commits even if the key views were
-    /// rebuilt while the finger was down.
     private func finish(_ tracked: TrackedTouch, commit: Bool) {
         tracked.hold?.invalidate()
         callout.hide()

@@ -21,9 +21,9 @@ public struct TapEvidence: Hashable, Sendable {
 }
 
 /// Finds the words a sequence of taps most likely meant: exact A* over the lexicon trie, scoring each word as
-/// P(taps | word) × P(word). A word may also differ by one missed, extra or swapped tap (about 1 in 100 keystrokes),
-/// and whether you bother typing a contraction's apostrophe is a coin flip. The subtree mass stored in the trie bounds every word below a node, so the search returns the true
-/// best words first.
+/// P(taps | word) × P(word). A word may differ by one missed, extra or swapped tap (about 1 in 100 keystrokes), and
+/// typing a contraction's apostrophe is a coin flip. Each node's subtree mass bounds every word below it, so the
+/// search finds the best words first.
 struct Decoder {
     let lexicon: Lexicon
 
