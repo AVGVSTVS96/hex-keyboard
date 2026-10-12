@@ -10,4 +10,8 @@ public struct Suggestion: Hashable, Sendable {
         self.text = text
         self.kind = kind
     }
+
+    public var title: String {
+        kind == .literal ? "“\(text)”" : text
+    }
 }

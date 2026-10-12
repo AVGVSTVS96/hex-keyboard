@@ -41,23 +41,24 @@ public struct KeyboardMetrics: Hashable, Sendable {
 }
 
 extension KeyboardMetrics {
-    /// `systemBottomShift` is how far the system keyboard's rows sit below iOS 26's (iOS 27: 3pt, the most a third-party keyboard can follow).
-    public static func `for`(_ device: DeviceClass, width: Double, height: Double, systemBottomShift: Double = 0) -> KeyboardMetrics {
+    public static func `for`(_ device: DeviceClass, width: Double, height: Double, style: KeyboardStyle = .ios26) -> KeyboardMetrics {
         let landscape = width > height
         switch device {
-        case .phone: return landscape ? phoneLandscape(width: width) : phone(width: width, systemBottomShift: systemBottomShift)
+        case .phone: return landscape ? phoneLandscape(width: width) : phone(width: width, style: style)
         case .compactPad: return compactPad
         case .pad: return pad(shortSide: min(width, height))
         case .largePad: return largePad
         }
     }
 
-    public static func phone(width: Double, systemBottomShift: Double = 0) -> KeyboardMetrics {
+    public static func phone(width: Double, style: KeyboardStyle = .ios26) -> KeyboardMetrics {
         let large = width >= 415
+        // iOS 27 draws its rows 7pt lower, but a third-party keyboard's area ends where iOS 26's did: it can follow by 3pt.
+        let lowered = style == .ios27 ? 3.0 : 0
         return KeyboardMetrics(
             columns: 10, sideInset: 6.5, keyGap: 6, rowGap: 11,
             keyHeight: large ? 45 : 43, numberRowHeight: 0,
-            topInset: 8, bottomInset: (large ? 5 : 3) - systemBottomShift, cornerRadius: 8,
+            topInset: 8, bottomInset: (large ? 5 : 3) - lowered, cornerRadius: 8,
             letterSize: 23, labelSize: 18, secondarySize: 12, symbolSize: 19,
             letterOffset: -1.67
         )

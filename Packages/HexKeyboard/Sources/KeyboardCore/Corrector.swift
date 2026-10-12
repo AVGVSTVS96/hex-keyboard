@@ -33,9 +33,6 @@ public final class Corrector {
         self.lexicon = source as? Lexicon
     }
 
-    /// Whether ranking only reads immutable or copied state, so a `snapshot` can rank on another thread.
-    var ranksAnywhere: Bool { lexicon != nil }
-
     /// A corrector with the same words, touches and grid, and caches of its own.
     func snapshot() -> Corrector {
         let copy = Corrector(source: source)

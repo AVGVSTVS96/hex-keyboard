@@ -18,7 +18,7 @@ struct TouchReplayTests {
         var random = SeededRandom(seed: 7)
         let keyboard = Self.keyboard()
         var typed = ""
-        keyboard.onEvent = { if case .type(_, let text, _) = $0 { typed += text } }
+        keyboard.onEvent = { if case .type(_, let tap) = $0 { typed += tap.key } }
         let taps = Self.taps(Self.passage, wordsPerMinute: wordsPerMinute, dwell: dwell, centers: Self.centers(keyboard), random: &random)
         for frame in Self.frames(taps) {
             if !frame.began.isEmpty { keyboard.touchesBegan(frame.began, with: nil) }
@@ -42,13 +42,13 @@ struct TouchReplayTests {
         var random = SeededRandom(seed: 11)
         let view = KeyboardView(frame: CGRect(x: 0, y: 0, width: 402, height: 226))
         var engine = TypingEngine(traits: InputTraits(autocapitalization: .none))
-        engine.corrector = Corrector(source: Lexicon.english!)
+        engine.corrector = Corrector(source: Lexicon.english)
         let document = ReplayDocument()
-        view.onGrid = { engine.corrector?.grid = $0 }
+        view.onGrid = { engine.use($0) }
         view.resolve = { grid, point in engine.key(atX: point.x, y: point.y, in: grid) }
         view.onEvent = { event in
-            guard case .type(let key, let text, let point) = event else { return }
-            engine.perform(key.action == .space ? .space : .character(text), in: document, tap: Tap(x: point.x, y: point.y, key: text))
+            guard case .type = event else { return }
+            engine.handle(event, in: document)
         }
         let layout = Layouts.layout(for: LayoutContext(device: .phone, layer: .letters))
         let faces = KeyFaceContext(device: .phone, layer: .letters, kind: .text, shift: .off, returnKind: .default, returnEnabled: true)

@@ -16,13 +16,6 @@ extension KeyboardTheme {
     }
 }
 
-extension KeyboardMetrics {
-    // iOS 27 moved the system keyboard's rows 7pt lower, but a third-party keyboard's area still ends where it did on iOS 26, so we can only follow it 3pt.
-    static func `for`(_ device: DeviceClass, size: CGSize) -> KeyboardMetrics {
-        .for(device, width: size.width, height: size.height, systemBottomShift: KeyboardStyle.current == .ios27 ? 3 : 0)
-    }
-}
-
 extension RGBA {
     var ui: UIColor { UIColor(red: red, green: green, blue: blue, alpha: alpha) }
 }

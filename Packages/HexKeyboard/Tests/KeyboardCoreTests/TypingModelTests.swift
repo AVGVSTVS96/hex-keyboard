@@ -109,7 +109,7 @@ struct TouchModelTests {
         let o = grid.frame(of: "o")!
         let label = { (engine: TypingEngine) in engine.key(atX: o.midX - 0.55, y: o.midY, in: grid).map { grid.rows[$0.row][$0.key].key.label } }
         #expect(label(engine) == "i")
-        var job = try #require(engine.suggestionJob(in: document))
+        var job = try #require(engine.suggestionJob())
         job.run()
         engine.finish(job)
         #expect(label(engine) == "o")

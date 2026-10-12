@@ -43,7 +43,7 @@ import KeyboardCore
     @JS func frame() -> Frame {
         render()
         let metrics = metrics
-        let faces = faceContext
+        let faces = engine.faces(on: .phone)
         let theme = dark ? KeyboardTheme.dark(style) : KeyboardTheme.light(style)
         let uppercase = engine.shift.isUppercase
         let caps = grid.rows.joined().map { key, frame in
@@ -65,7 +65,7 @@ import KeyboardCore
             height: metrics.height(rows: layout.rows.count, hasNumberRow: layout.hasNumberRow),
             showsSuggestions: engine.showsSuggestions,
             caps: caps,
-            chips: engine.suggestions.map { Chip(text: $0.kind == .literal ? "“\($0.text)”" : $0.text, correction: $0.kind == .correction) },
+            chips: engine.suggestions.map { Chip(text: $0.title, correction: $0.kind == .correction) },
             look: Look(metrics: metrics, theme: theme, style: style)
         )
     }
@@ -77,34 +77,26 @@ import KeyboardCore
 
     @JS func down(index: Int, tapCount: Int) {
         guard let key = key(at: index) else { return }
-        switch key.action {
-        case .shift: engine.pressShift(doubleTap: tapCount == 2)
-        case .capsLock: engine.perform(.capsLock, in: document)
-        case .delete: engine.perform(.delete, in: document)
-        case .layer(let layer): engine.perform(.layer(layer), in: document)
-        default: break
-        }
+        engine.handle(.down(key, tapCount: tapCount), in: document)
     }
 
     @JS func up(index: Int) {
-        if key(at: index)?.action == .shift { engine.releaseShift(in: document) }
+        guard let key = key(at: index) else { return }
+        engine.handle(.up(key), in: document)
     }
 
     @JS func type(index: Int, text: String, x: Double, y: Double) {
         guard let key = key(at: index) else { return }
-        let tap = Tap(x: x, y: y, key: text)
-        engine.perform(key.action == .space ? .space : .character(text), in: document, tap: tap)
+        engine.handle(.type(key, Tap(x: x, y: y, key: text)), in: document)
     }
 
     @JS func slideTyped(text: String) {
-        let layer = engine.layer
-        engine.perform(.character(text), in: document)
-        if engine.layer == layer { engine.perform(.layer(.letters), in: document) }
+        engine.handle(.slide(text), in: document)
     }
 
     @JS func trigger(index: Int) {
         guard let key = key(at: index) else { return }
-        if key.action == .return || key.action == .tab { engine.perform(key.action, in: document) }
+        engine.handle(.trigger(key), in: document)
     }
 
     @JS func repeatDelete(words: Bool) {
@@ -132,7 +124,7 @@ import KeyboardCore
     }
 
     @JS func cursor(offset: Int) {
-        engine.moveCursor(by: offset, in: document)
+        engine.handle(.cursor(offset: offset), in: document)
     }
 
     @JS func documentChanged() {
@@ -144,29 +136,15 @@ import KeyboardCore
     }
 
     private var metrics: KeyboardMetrics {
-        .for(.phone, width: width, height: height)
-    }
-
-    private var context: LayoutContext {
-        LayoutContext(device: .phone, layer: engine.layer, kind: engine.traits.kind, isLandscape: width > height)
-    }
-
-    private var faceContext: KeyFaceContext {
-        KeyFaceContext(
-            device: .phone, layer: engine.layer, kind: engine.traits.kind, shift: engine.shift,
-            returnKind: engine.traits.returnKind,
-            returnEnabled: !engine.traits.returnRequiresText || !(document.textBeforeInput ?? "").isEmpty || !(document.textAfterInput ?? "").isEmpty
-        )
+        .for(.phone, width: width, height: height, style: style)
     }
 
     private func render() {
-        let context = context
+        let context = engine.layout(on: .phone, isLandscape: width > height)
         layout = Layouts.layout(for: context)
-        grid = KeyGrid(layout, width: width, metrics: metrics.grid, signature: LayoutContext(device: .phone, layer: engine.layer, isLandscape: width > height).signature)
+        grid = KeyGrid(layout, width: width, metrics: metrics.grid, signature: context.signature)
         offsets = grid.rows.reduce(into: [0]) { $0.append($0.last! + $1.count) }
-        guard let corrector = engine.corrector, engine.layer == .letters else { return }
-        if grid.signature != corrector.grid.signature { engine.endSession() }
-        corrector.grid = grid
+        engine.use(grid)
     }
 
     private func key(at index: Int) -> Key? {

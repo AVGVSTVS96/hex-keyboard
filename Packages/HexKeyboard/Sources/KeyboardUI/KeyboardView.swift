@@ -1,15 +1,6 @@
 import UIKit
 import KeyboardCore
 
-enum KeyboardEvent {
-    case down(Key, tapCount: Int)
-    case up(Key)
-    case type(Key, text: String, at: CGPoint)
-    case trigger(Key)
-    case slideTyped(Key, text: String)
-    case cursor(offset: Int)
-}
-
 final class KeyboardView: UIView {
     var onEvent: (KeyboardEvent) -> Void = { _ in }
     var onGrid: (KeyGrid) -> Void = { _ in }

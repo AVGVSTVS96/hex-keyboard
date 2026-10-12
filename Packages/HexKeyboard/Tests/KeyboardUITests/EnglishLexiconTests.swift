@@ -5,14 +5,14 @@ import KeyboardCore
 @MainActor
 struct EnglishLexiconTests {
     @Test func wordsWrittenInLowercaseKeepTheirCase() throws {
-        let lexicon = try #require(Lexicon.english)
+        let lexicon = Lexicon.english
         for word in ["fox", "mark", "bill", "march", "may", "us", "it", "apple", "hey", "god", "china"] {
             #expect(lexicon.canonical(word) == word)
         }
     }
 
     @Test func wordsOnlyWrittenCapitalizedGetTheirCapital() throws {
-        let lexicon = try #require(Lexicon.english)
+        let lexicon = Lexicon.english
         #expect(lexicon.canonical("i") == "I")
         #expect(lexicon.canonical("i'm") == "I'm")
         #expect(lexicon.canonical("london") == "London")
@@ -21,7 +21,7 @@ struct EnglishLexiconTests {
     }
 
     @Test func typingALowercaseWordKeepsIt() throws {
-        let corrector = Corrector(source: try #require(Lexicon.english))
+        let corrector = Corrector(source: Lexicon.english)
         let grid = KeyGrid.standard
         func correct(_ word: String, after previous: String) -> String? {
             let taps = word.map { letter in

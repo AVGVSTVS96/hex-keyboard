@@ -42,14 +42,9 @@ open class HexKeyboardViewController: UIInputViewController {
             engine.accept($0, in: document)
             render()
         }
-        let words: any CandidateSource = Lexicon.english ?? TextCheckerSource(language: primaryLanguage ?? "en-US")
-        engine.corrector = Corrector(source: words)
+        engine.corrector = Corrector(source: Lexicon.english)
         keyboardView.resolve = { [unowned self] grid, point in engine.key(atX: point.x, y: point.y, in: grid) }
-        keyboardView.onGrid = { [unowned self] grid in
-            guard let corrector = engine.corrector, engine.layer == .letters else { return }
-            if grid.signature != corrector.grid.signature { engine.endSession() }
-            corrector.grid = grid
-        }
+        keyboardView.onGrid = { [unowned self] in engine.use($0) }
         keyboardView.globeTarget = { [unowned self] control in
             control.addTarget(self, action: #selector(handleInputModeList(from:with:)), for: .allTouchEvents)
         }
@@ -74,10 +69,7 @@ open class HexKeyboardViewController: UIInputViewController {
     override open func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         if hapticsEnabled { haptics.prepare() }
-        view.window?.gestureRecognizers?.forEach {
-            $0.delaysTouchesBegan = false
-            $0.delaysTouchesEnded = false
-        }
+        stopSystemGesturesDelayingTouches()
         TouchTrace.shared.watch(view.window)
         Task { [weak self] in
             guard let lexicon = await self?.requestSupplementaryLexicon() else { return }
@@ -120,7 +112,7 @@ open class HexKeyboardViewController: UIInputViewController {
         return shortSide >= 1000 ? .largePad : shortSide < 800 ? .compactPad : .pad
     }
 
-    private var metrics: KeyboardMetrics { .for(device, size: screenSize) }
+    private var metrics: KeyboardMetrics { .for(device, width: screenSize.width, height: screenSize.height, style: .current) }
 
     private var barHeight: CGFloat {
         switch (device, engine.showsSuggestions) {
@@ -132,25 +124,10 @@ open class HexKeyboardViewController: UIInputViewController {
 
     private func render() {
         let device = device
-        let layout = Layouts.layout(for: LayoutContext(
-            device: device,
-            layer: engine.layer,
-            kind: engine.traits.kind,
-            showsGlobe: needsInputModeSwitchKey,
-            isLandscape: screenSize.width > screenSize.height
-        ))
+        let context = engine.layout(on: device, showsGlobe: needsInputModeSwitchKey, isLandscape: screenSize.width > screenSize.height)
+        let layout = Layouts.layout(for: context)
         let metrics = metrics
-        let theme = theme
-        let faces = KeyFaceContext(
-            device: device,
-            layer: engine.layer,
-            kind: engine.traits.kind,
-            shift: engine.shift,
-            returnKind: engine.traits.returnKind,
-            returnEnabled: !engine.traits.returnRequiresText || !engine.text.before.isEmpty || !(engine.text.after ?? "").isEmpty
-        )
-        let signature = LayoutContext(device: device, layer: engine.layer, isLandscape: screenSize.width > screenSize.height).signature
-        keyboardView.update(layout: layout, signature: signature, metrics: metrics, faces: faces, theme: theme)
+        keyboardView.update(layout: layout, signature: context.signature, metrics: metrics, faces: engine.faces(on: device), theme: theme)
         suggestionBar.maximumSlotWidth = device == .phone ? .infinity : 154.5
         renderSuggestions()
 
@@ -169,11 +146,7 @@ open class HexKeyboardViewController: UIInputViewController {
         guard engine.suggestionsAreStale else {
             return suggestionBar.update(engine.suggestions, enabled: engine.showsSuggestions, theme: theme)
         }
-        guard !ranking else { return }
-        guard let job = engine.suggestionJob(in: document) else {
-            engine.refreshSuggestionsIfNeeded(in: document)
-            return renderSuggestions()
-        }
+        guard !ranking, let job = engine.suggestionJob() else { return }
         ranking = true
         Task.detached(priority: .userInitiated) { [weak self] in
             var job = job
@@ -190,50 +163,36 @@ open class HexKeyboardViewController: UIInputViewController {
 
     private func handle(_ event: KeyboardEvent) {
         switch event {
-        case .down(let key, let tapCount):
+        case .down(let key, _):
             feedback()
-            switch key.action {
-            case .shift:
-                engine.pressShift(doubleTap: tapCount == 2)
-            case .capsLock:
-                engine.perform(.capsLock, in: document)
-            case .delete:
-                engine.perform(.delete, in: document)
-                deleteRepeat = DeleteRepeat { [unowned self] words in
-                    if words { engine.deleteWord(in: document) } else { engine.perform(.delete, in: document) }
-                    feedback()
-                    render()
-                }
-            case .layer(let layer):
-                engine.perform(.layer(layer), in: document)
-            default:
-                return
-            }
-        case .up(let key):
-            switch key.action {
-            case .delete: deleteRepeat = nil
-            case .shift: engine.releaseShift(in: document)
-            default: return
-            }
-        case .type(let key, let text, let point):
-            let tap = Tap(x: point.x, y: point.y, key: text)
-            engine.perform(key.action == .space ? .space : .character(text), in: document, tap: tap)
+            if key.action == .delete { startDeleteRepeat() }
+        case .up(let key) where key.action == .delete:
+            deleteRepeat = nil
+        case .trigger(let key) where key.action == .dismiss:
+            return dismissKeyboard()
+        case .trigger(let key) where key.action == .nextKeyboard:
+            return advanceToNextInputMode()
+        case .type:
             TouchTrace.shared.mark("typed")
-        case .slideTyped(_, let text):
-            let layer = engine.layer
-            engine.perform(.character(text), in: document)
-            if engine.layer == layer { engine.perform(.layer(.letters), in: document) }
-        case .trigger(let key):
-            switch key.action {
-            case .return, .tab: engine.perform(key.action, in: document)
-            case .dismiss: dismissKeyboard()
-            case .nextKeyboard: advanceToNextInputMode()
-            default: return
-            }
-        case .cursor(let offset):
-            engine.moveCursor(by: offset, in: document)
+        default:
+            break
         }
-        render()
+        if engine.handle(event, in: document) { render() }
+    }
+
+    private func startDeleteRepeat() {
+        deleteRepeat = DeleteRepeat { [unowned self] words in
+            if words { engine.deleteWord(in: document) } else { engine.perform(.delete, in: document) }
+            feedback()
+            render()
+        }
+    }
+
+    private func stopSystemGesturesDelayingTouches() {
+        view.window?.gestureRecognizers?.forEach {
+            $0.delaysTouchesBegan = false
+            $0.delaysTouchesEnded = false
+        }
     }
 
     private func feedback() {
@@ -241,5 +200,13 @@ open class HexKeyboardViewController: UIInputViewController {
         guard hapticsEnabled else { return }
         haptics.impactOccurred()
         haptics.prepare()
+    }
+}
+
+private extension Corrector {
+    func learn(_ lexicon: UILexicon) {
+        let entries = lexicon.entries
+        setReplacements(entries.filter { $0.userInput != $0.documentText }.map { ($0.userInput, $0.documentText) })
+        setNames(entries.filter { $0.userInput == $0.documentText }.map(\.documentText))
     }
 }

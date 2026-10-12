@@ -89,7 +89,7 @@ private final class SuggestionSlot: UIControl {
     func configure(_ suggestion: Suggestion?, theme: KeyboardTheme) {
         self.suggestion = suggestion
         self.theme = theme
-        label.text = suggestion.map { $0.kind == .literal ? "“\($0.text)”" : $0.text }
+        label.text = suggestion?.title
         accessibilityLabel = suggestion?.text
         refresh()
         setNeedsLayout()

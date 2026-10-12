@@ -151,4 +151,26 @@ struct TypingEngineTests {
         engine.type(" 'x'", in: document)
         #expect(document.text == "“don’t” a—b 'x'")
     }
+
+    @Test func keysActOnTheirOwnPhaseOfTheTouch() {
+        var engine = TypingEngine(traits: InputTraits(autocapitalization: .none))
+        let document = TestDocument("ab")
+        let letter = Key.character("c")
+        let events: [KeyboardEvent] = [
+            .down(letter, tapCount: 1), .type(letter, Tap(x: 0, y: 0, key: "c")), .down(Key(.delete), tapCount: 1),
+            .trigger(Key(.return)), .trigger(Key(.dismiss)),
+        ]
+        let handled = events.map { engine.handle($0, in: document) }
+        #expect(handled == [false, true, true, true, false])
+        #expect(document.text == "ab\n")
+    }
+
+    @Test func slidingFromALayerKeyTypesOneSymbolAndComesBack() {
+        var engine = TypingEngine()
+        let document = TestDocument()
+        engine.handle(.down(Key(.layer(.numbers)), tapCount: 1), in: document)
+        engine.handle(.slide("4"), in: document)
+        #expect(document.text == "4")
+        #expect(engine.layer == .letters)
+    }
 }

@@ -107,7 +107,7 @@ struct Session {
     init(_ keyboard: Evaluation.Keyboard, grid: KeyGrid) {
         self.keyboard = keyboard
         self.grid = grid
-        let source: any CandidateSource = keyboard == .baseline ? TextCheckerSource(language: "en-US") : Lexicon.english!
+        let source: any CandidateSource = keyboard == .baseline ? TextCheckerSource(language: "en-US") : Lexicon.english
         let corrector = Corrector(source: source)
         corrector.grid = grid
         engine.corrector = corrector

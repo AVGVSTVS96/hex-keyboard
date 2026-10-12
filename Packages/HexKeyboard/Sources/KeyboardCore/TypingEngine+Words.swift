@@ -54,6 +54,22 @@ extension TypingEngine {
         return keyMap.key(atX: x, y: y, in: grid)
     }
 
+    /// The keys as they're laid out now. Taps are learned per layout, so a new layout ends the session first.
+    public mutating func use(_ grid: KeyGrid) {
+        guard let corrector, layer == .letters else { return }
+        if grid.signature != corrector.grid.signature { endSession() }
+        corrector.grid = grid
+    }
+
+    public func layout(on device: DeviceClass, showsGlobe: Bool = false, isLandscape: Bool = false) -> LayoutContext {
+        LayoutContext(device: device, layer: layer, kind: traits.kind, showsGlobe: showsGlobe, isLandscape: isLandscape)
+    }
+
+    public func faces(on device: DeviceClass) -> KeyFaceContext {
+        let returnEnabled = !traits.returnRequiresText || !text.before.isEmpty || !(text.after ?? "").isEmpty
+        return KeyFaceContext(device: device, layer: layer, kind: traits.kind, shift: shift, returnKind: traits.returnKind, returnEnabled: returnEnabled)
+    }
+
     /// Learns from the last word you kept. Call when typing pauses for good, like when the keyboard goes away.
     public mutating func endSession() {
         learnPending()
@@ -95,16 +111,9 @@ extension TypingEngine {
         if defersSuggestions { suggestionsAreStale = true } else { refreshSuggestions() }
     }
 
-    public mutating func refreshSuggestionsIfNeeded(in document: some TextDocument) {
-        guard suggestionsAreStale else { return }
-        attach(document)
-        refreshSuggestions()
-    }
-
-    /// The ranking behind the current suggestions, packed to run on another thread; `nil` when the corrector's source
-    /// must stay on this one (`UITextChecker`).
-    public func suggestionJob(in document: some TextDocument) -> SuggestionJob? {
-        guard suggestionsAreStale, let corrector, corrector.ranksAnywhere else { return nil }
+    /// The ranking behind stale suggestions, packed to run on another thread. Only a lexicon ranks off the main thread.
+    public func suggestionJob() -> SuggestionJob? {
+        guard suggestionsAreStale, let corrector, corrector.lexicon != nil else { return nil }
         var copy = self
         copy.corrector = corrector.snapshot()
         return SuggestionJob(engine: copy)

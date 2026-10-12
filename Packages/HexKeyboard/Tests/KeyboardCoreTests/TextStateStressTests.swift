@@ -137,7 +137,7 @@ struct TextStateStressTests {
 
             if random.unit() < 0.5 {
                 for index in keyboards.indices where keyboards[index].job == nil {
-                    keyboards[index].job = keyboards[index].engine.suggestionJob(in: documents[index])
+                    keyboards[index].job = keyboards[index].engine.suggestionJob()
                 }
                 stats.jobs += 1
             }

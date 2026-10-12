@@ -1,6 +1,7 @@
 import UIKit
 import KeyboardCore
 
+@MainActor
 final class TextCheckerSource {
     private let checker = UITextChecker()
     private let language: String
@@ -28,13 +29,5 @@ extension TextCheckerSource: @MainActor CandidateSource {
 
     func completions(for prefix: String) -> [String] {
         checker.completions(forPartialWordRange: range(prefix), in: prefix, language: language) ?? []
-    }
-}
-
-extension Corrector {
-    func learn(_ lexicon: UILexicon) {
-        let entries = lexicon.entries
-        setReplacements(entries.filter { $0.userInput != $0.documentText }.map { ($0.userInput, $0.documentText) })
-        setNames(entries.filter { $0.userInput == $0.documentText }.map(\.documentText))
     }
 }

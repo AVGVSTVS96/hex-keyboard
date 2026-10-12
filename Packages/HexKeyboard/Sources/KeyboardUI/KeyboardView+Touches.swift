@@ -113,24 +113,28 @@ extension KeyboardView {
 
         switch tracked.mode {
         case .alternates:
-            if commit, let text = alternates.selected { onEvent(.type(key, text: text, at: tracked.point)) }
+            if commit, let text = alternates.selected { onEvent(.type(key, tap(tracked, text))) }
             alternates.hide()
         case .trackpad:
             setLabelsVisible(true)
         case .slide:
             if commit, key.isInput, let text = text(for: key, flicked: tracked.flicked) {
-                onEvent(.slideTyped(key, text: text))
+                onEvent(.slide(text))
             }
         case .typing:
             guard commit else { return }
             if let text = text(for: key, flicked: tracked.flicked) {
-                onEvent(.type(key, text: text, at: tracked.point))
+                onEvent(.type(key, tap(tracked, text)))
             } else if key.action == .space {
-                onEvent(.type(key, text: " ", at: tracked.point))
+                onEvent(.type(key, tap(tracked, " ")))
             } else {
                 onEvent(.trigger(key))
             }
         }
+    }
+
+    private func tap(_ tracked: TrackedTouch, _ text: String) -> Tap {
+        Tap(x: tracked.point.x, y: tracked.point.y, key: text)
     }
 
     private func press(_ view: KeyView, tracked: TrackedTouch) {

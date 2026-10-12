@@ -126,6 +126,34 @@ public struct TypingEngine {
         suggestionsChanged()
     }
 
+    /// Returns false for events the engine ignores, like a letter's touch down: those change nothing to redraw.
+    @discardableResult
+    public mutating func handle(_ event: KeyboardEvent, in document: some TextDocument) -> Bool {
+        switch event {
+        case .down(let key, let tapCount):
+            switch key.action {
+            case .shift: pressShift(doubleTap: tapCount == 2)
+            case .capsLock, .delete, .layer: perform(key.action, in: document)
+            default: return false
+            }
+        case .up(let key):
+            guard key.action == .shift else { return false }
+            releaseShift(in: document)
+        case .type(let key, let tap):
+            perform(key.action == .space ? .space : .character(tap.key), in: document, tap: tap)
+        case .slide(let text):
+            let layer = self.layer
+            perform(.character(text), in: document)
+            if self.layer == layer { perform(.layer(.letters), in: document) }
+        case .trigger(let key):
+            guard key.action == .return || key.action == .tab else { return false }
+            perform(key.action, in: document)
+        case .cursor(let offset):
+            moveCursor(by: offset, in: document)
+        }
+        return true
+    }
+
     public mutating func deleteWord(in document: some TextDocument) {
         attach(document)
         spaceJustTyped = false
@@ -140,7 +168,7 @@ public struct TypingEngine {
     }
 
     /// Moves the caret, as the space bar trackpad does.
-    public mutating func moveCursor(by offset: Int, in document: some TextDocument) {
+    mutating func moveCursor(by offset: Int, in document: some TextDocument) {
         attach(document)
         document.moveCursor(by: offset)
         text.moveCursor(by: offset)
@@ -149,12 +177,12 @@ public struct TypingEngine {
         suggestionsChanged()
     }
 
-    public mutating func pressShift(doubleTap: Bool) {
+    mutating func pressShift(doubleTap: Bool) {
         shift = doubleTap && settings.capsLock ? .locked : shift == .off ? .on : .off
         shiftHold = .pressed
     }
 
-    public mutating func releaseShift(in document: some TextDocument) {
+    mutating func releaseShift(in document: some TextDocument) {
         let typed = shiftHold == .typedWhileHeld
         shiftHold = nil
         guard typed, shift == .on else { return }
@@ -174,11 +202,6 @@ public struct TypingEngine {
         }
         refreshShift()
         return report
-    }
-
-    public mutating func refreshShift(in document: some TextDocument) {
-        attach(document)
-        refreshShift()
     }
 
     mutating func refreshShift() {
