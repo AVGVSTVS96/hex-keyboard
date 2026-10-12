@@ -19,7 +19,8 @@ struct TextStateStressTests {
         let runs = 3000
         var failures: [String] = []
         var stats = Stats()
-        for seed in 0..<UInt64(runs) {
+        let only = ProcessInfo.processInfo.environment["SEED"].flatMap { UInt64($0) }
+        for seed in 0..<UInt64(runs) where only == nil || only == seed {
             if let failure = Self.run(seed: seed, stats: &stats) { failures.append(failure) }
         }
         print("STRESS runs=\(runs) events=\(stats.events) keys=\(stats.keys) reports=\(stats.reports) behind=\(stats.behind) "
