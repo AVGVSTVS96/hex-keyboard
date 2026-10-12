@@ -22,9 +22,7 @@ public struct TypingEngine {
 
     private var spaceJustTyped = false
     private var shiftHold: ShiftHold?
-    var taps: [Tap] = []
-    var erased: [Int: Tap] = [:]
-    var retyped: [TapSample] = []
+    var typing = WordTaps()
     var pending: PendingWord?
     var stray: StraySpace?
     var revert: Revert?
@@ -158,10 +156,8 @@ public struct TypingEngine {
         attach(document)
         spaceJustTyped = false
         revert = nil
-        if taps.isEmpty { pending = nil }
-        taps = []
-        erased = [:]
-        retyped = []
+        if typing.letters.isEmpty { pending = nil }
+        typing = WordTaps()
         write("", replacing: Self.wordLength(before: text.before), in: document)
         refreshShift()
         suggestionsChanged()
@@ -232,9 +228,7 @@ public struct TypingEngine {
 
     private mutating func forgetWord() {
         spaceJustTyped = false
-        taps = []
-        erased = [:]
-        retyped = []
+        typing = WordTaps()
         stray = nil
         revert = nil
     }
