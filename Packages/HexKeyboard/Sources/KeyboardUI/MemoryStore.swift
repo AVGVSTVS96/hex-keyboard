@@ -3,7 +3,8 @@ import KeyboardCore
 import notify
 
 /// Keeps what the keyboard learns in the extension's own container, since without Full Access it can't write to the
-/// App Group. The app resets it by bumping a counter in the group's defaults; the keyboard starts over when it moved.
+/// App Group. The app resets it by sharing a new reset token through `SettingsStore`; the keyboard starts over when the
+/// token it sees differs from the one its memory was saved under.
 /// With Full Access the keyboard also shares its touch model through the group, for the app to show.
 public enum MemoryStore {
     private struct Saved: Codable {
@@ -22,22 +23,22 @@ public enum MemoryStore {
         FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: SettingsStore.appGroup)?.appending(path: "touches.json")
     }
 
-    private static var resets: Int { SettingsStore.defaults.integer(forKey: resetsKey) }
+    private static var resets: Int? { SettingsStore.value(forKey: resetsKey, sharing: false) as? Int }
 
     static func load() -> TypingMemory {
-        guard let saved = try? JSONDecoder().decode(Saved.self, from: Data(contentsOf: url)), saved.resets == resets else { return TypingMemory() }
+        guard let saved = try? JSONDecoder().decode(Saved.self, from: Data(contentsOf: url)), saved.resets == resets ?? saved.resets else { return TypingMemory() }
         return saved.memory
     }
 
     static func save(_ memory: TypingMemory, sharing: Bool) {
         try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-        try? JSONEncoder().encode(Saved(resets: resets, memory: memory)).write(to: url, options: .atomic)
+        try? JSONEncoder().encode(Saved(resets: resets ?? 0, memory: memory)).write(to: url, options: .atomic)
         guard sharing, let sharedTouchesURL, (try? JSONEncoder().encode(memory.touches).write(to: sharedTouchesURL, options: .atomic)) != nil else { return }
         notify_post(touchesChanged)
     }
 
     public static func reset() {
-        SettingsStore.defaults.set(resets + 1, forKey: resetsKey)
+        SettingsStore.set(Int.random(in: 1 ... .max), forKey: resetsKey)
         if let sharedTouchesURL { try? FileManager.default.removeItem(at: sharedTouchesURL) }
         notify_post(touchesChanged)
     }

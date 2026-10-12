@@ -1,6 +1,10 @@
 import Foundation
 import KeyboardCore
 
+/// Settings travel from the app to the keyboard through the App Group, but iOS deletes the group's container whenever
+/// an install leaves no app claiming the group, and the keyboard can write it only with Full Access. So each side also
+/// keeps its own copy of every value and takes the group's only when the group holds one it hasn't seen: a missing
+/// value changes nothing, and a side that may write the group puts its copy back.
 public enum SettingsStore {
     public static let appGroup = "group.com.shahidy.hexkeyboard"
 
@@ -16,41 +20,53 @@ public enum SettingsStore {
         ("sound", \.sound),
     ]
 
-    public static var defaults: UserDefaults { UserDefaults(suiteName: appGroup) ?? .standard }
+    private static let oneHandedKey = "oneHanded"
 
-    public static func load() -> KeyboardSettings {
+    private static var group: UserDefaults { UserDefaults(suiteName: appGroup) ?? .standard }
+    private static var own: UserDefaults { .standard }
+
+    public static func load(sharing: Bool = true) -> KeyboardSettings {
         var settings = KeyboardSettings()
         for (key, path) in toggles {
-            if let value = defaults.object(forKey: key) as? Bool { settings[keyPath: path] = value }
+            if let value = value(forKey: key, sharing: sharing) as? Bool { settings[keyPath: path] = value }
         }
-        settings.oneHanded = oneHanded
+        settings.oneHanded = (value(forKey: oneHandedKey, sharing: sharing) as? String).flatMap(OneHanded.init) ?? .off
         return settings
-    }
-
-    private static let oneHandedKey = "oneHanded"
-    private static let seenOneHandedKey = "seenOneHanded"
-
-    /// The keyboard switches hands itself but can write the App Group only with Full Access, so each side keeps its own
-    /// copy and adopts the group's value whenever it changed since that side last saw it.
-    private static var oneHanded: OneHanded {
-        let own = UserDefaults.standard
-        let shared = defaults.string(forKey: oneHandedKey)
-        if shared != own.string(forKey: seenOneHandedKey) {
-            own.set(shared, forKey: seenOneHandedKey)
-            own.set(shared, forKey: oneHandedKey)
-        }
-        return own.string(forKey: oneHandedKey).flatMap(OneHanded.init) ?? .off
-    }
-
-    public static func set(_ oneHanded: OneHanded, sharing: Bool = true) {
-        UserDefaults.standard.set(oneHanded.rawValue, forKey: oneHandedKey)
-        guard sharing else { return }
-        defaults.set(oneHanded.rawValue, forKey: oneHandedKey)
-        UserDefaults.standard.set(oneHanded.rawValue, forKey: seenOneHandedKey)
     }
 
     public static func set(_ value: Bool, for path: WritableKeyPath<KeyboardSettings, Bool>) {
         guard let key = toggles.first(where: { $0.path == path })?.key else { return }
-        defaults.set(value, forKey: key)
+        set(value, forKey: key)
+    }
+
+    public static func set(_ oneHanded: OneHanded, sharing: Bool = true) {
+        set(oneHanded.rawValue, forKey: oneHandedKey, sharing: sharing)
+    }
+
+    public static func reset() {
+        let settings = KeyboardSettings()
+        for (key, path) in toggles { set(settings[keyPath: path], forKey: key) }
+        set(OneHanded.off)
+    }
+
+    static func value(forKey key: String, sharing: Bool) -> Any? {
+        let seen = "seen." + key
+        if let shared = group.object(forKey: key) as? NSObject {
+            if !shared.isEqual(own.object(forKey: seen)) {
+                own.set(shared, forKey: seen)
+                own.set(shared, forKey: key)
+            }
+        } else if sharing, let mine = own.object(forKey: key) {
+            group.set(mine, forKey: key)
+            own.set(mine, forKey: seen)
+        }
+        return own.object(forKey: key)
+    }
+
+    static func set(_ value: Any, forKey key: String, sharing: Bool = true) {
+        own.set(value, forKey: key)
+        guard sharing else { return }
+        group.set(value, forKey: key)
+        own.set(value, forKey: "seen." + key)
     }
 }

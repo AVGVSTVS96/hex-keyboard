@@ -64,7 +64,7 @@ open class HexKeyboardViewController: UIInputViewController {
 
     override open func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        engine.settings = SettingsStore.load()
+        engine.settings = SettingsStore.load(sharing: hasFullAccess)
         engine.corrector?.memory = MemoryStore.load()
         engine.suggestionsChanged()
         keyboardView.characterPreview = engine.settings.characterPreview
