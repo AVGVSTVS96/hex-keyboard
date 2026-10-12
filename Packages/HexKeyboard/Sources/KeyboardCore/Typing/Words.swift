@@ -28,6 +28,14 @@ enum Words {
         return previous.isEmpty ? nil : previous.lowercased()
     }
 
+    /// The two words before a word, each read like `previous`.
+    static func context(before word: Substring, in text: String) -> (previous: String?, earlier: String?) {
+        let previous = previous(before: word, in: text)
+        guard let previous, !previous.isEmpty else { return (previous, nil) }
+        let head = String(text[..<word.startIndex].dropLast { $0 == " " })
+        return (previous, Self.previous(before: current(in: head), in: head))
+    }
+
     static func matchCase(_ candidate: String, to typed: Substring) -> String {
         guard let first = typed.first, first.isUppercase else { return candidate }
         if typed.count > 1, typed.allSatisfy({ !$0.isLetter || $0.isUppercase }) { return candidate.uppercased() }

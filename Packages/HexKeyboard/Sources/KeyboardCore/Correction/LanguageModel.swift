@@ -2,36 +2,47 @@
 ///
 /// Every level backs off to the next with Witten-Bell weights, which come from the counts themselves (a context
 /// seen N times with T different words trusts itself N / (N + T)), so there is nothing to tune:
-/// your next-word counts → your word counts → the words that usually follow the previous one (`next`, set for
-/// predictions) → the lexicon → a word the lexicon doesn't know, spelled letter by letter. How often you keep such
-/// new words is itself learned: (new + 1) / (all + 2), Laplace's rule of succession.
+/// your next-word counts → your word counts → the lexicon → a word the lexicon doesn't know, spelled letter by
+/// letter. How often you keep such new words is itself learned: (new + 1) / (all + 2), Laplace's rule of succession.
 struct LanguageModel {
     let lexicon: Lexicon
     let memory: TypingMemory
-    var next: NextWords?
+    let phrases: Phrases?
     let novelty: Double
 
     static let spellingLogProbability = -Math.log(Double(Lexicon.alphabet))
 
-    init(lexicon: Lexicon, memory: TypingMemory) {
+    init(lexicon: Lexicon, memory: TypingMemory, phrases: Phrases? = nil) {
         self.lexicon = lexicon
         self.memory = memory
+        self.phrases = phrases
         let novel = memory.counts.reduce(0) { $0 + (lexicon.logProbability(of: $1.key) == nil ? $1.value : 0) }
         novelty = (Double(novel) + 1) / (Double(memory.total) + 2)
     }
 
     func logProbability(_ word: String, after previous: String?) -> Double {
+        Math.log(probability(word, after: previous, earlier: nil, phrased: false))
+    }
+
+    /// The same with the corpus's phrases under your next-word counts, for the word you'll type next. Corrections
+    /// leave them out: a phrase table keeps only each context's likeliest words, so it would push every other word down.
+    /// `previous` is "" at a sentence's start and nil when unknown; `earlier` is the word before it, read the same way.
+    func logPrediction(_ word: String, after previous: String?, earlier: String?) -> Double {
+        Math.log(probability(word, after: previous, earlier: earlier, phrased: true))
+    }
+
+    private func probability(_ word: String, after previous: String?, earlier: String?, phrased: Bool) -> Double {
         var p = lexical(word)
-        if let previous, let context = next?.context(previous) { p = context.probability(of: word, backingOffTo: p) }
         if memory.total > 0 {
             let types = Double(memory.counts.count)
             p = (Double(memory.count(of: word)) + types * p) / (Double(memory.total) + types)
         }
+        if phrased, let phrases { p = phrases.probability(of: word, after: previous, earlier: earlier, below: p) }
         if let previous {
             let (count, total, types) = memory.count(of: word, after: previous)
             if total > 0 { p = (Double(count) + Double(types) * p) / Double(total + types) }
         }
-        return Math.log(p)
+        return p
     }
 
     func lexical(_ word: String) -> Double {

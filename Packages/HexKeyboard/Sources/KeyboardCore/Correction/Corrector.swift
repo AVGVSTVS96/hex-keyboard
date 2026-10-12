@@ -1,5 +1,6 @@
 public final class Corrector {
     public let source: any CandidateSource
+    public let phrases: Phrases?
     public var replacements: [String: String] = [:]
     public var names: [String: String] = [:]
     public var memory = TypingMemory() {
@@ -17,7 +18,6 @@ public final class Corrector {
     }
 
     let lexicon: Lexicon?
-    let next: NextWords?
     private var cachedModel: LanguageModel?
     private var rankings: [Ranking: [Candidate]] = [:]
     private var generation = 0
@@ -28,16 +28,16 @@ public final class Corrector {
     }
 
     /// With a `Lexicon` as its source, the corrector decodes your taps against your own touch model and words;
-    /// any other source (like `UITextChecker`) only corrects spelling.
-    public init(source: any CandidateSource, next: NextWords? = nil) {
+    /// any other source (like `UITextChecker`) only corrects spelling. `Phrases` tell it what words follow which.
+    public init(source: any CandidateSource, phrases: Phrases? = nil) {
         self.source = source
+        self.phrases = phrases
         self.lexicon = source as? Lexicon
-        self.next = next
     }
 
     /// A corrector with the same words, touches and grid, and caches of its own.
     func snapshot() -> Corrector {
-        let copy = Corrector(source: source, next: next)
+        let copy = Corrector(source: source, phrases: phrases)
         copy.replacements = replacements
         copy.names = names
         copy.memory = memory
@@ -113,14 +113,16 @@ public final class Corrector {
         return [Suggestion(word.text, .literal)] + alternatives
     }
 
-    func predictions(after previous: String?, context: String) -> [Suggestion] {
+    func predictions(after previous: String?, earlier: String?, context: String) -> [Suggestion] {
         var seen: Set<String> = []
         var words = (previous.map(memory.predictions(after:)) ?? []) + source.predictions(after: context)
         if let lexicon {
-            var model = languageModel(lexicon)
-            model.next = next
-            let following = previous.flatMap { next?.context($0)?.followers.map(\.word) } ?? []
-            words = (words + following + lexicon.mostFrequent(count: 6)).sorted { model.logProbability($0, after: previous) > model.logProbability($1, after: previous) }
+            let model = languageModel(lexicon)
+            let phrased = phrases?.next(after: previous, earlier: earlier).map { lexicon.canonical($0) ?? $0 } ?? []
+            words = (words + phrased + lexicon.mostFrequent(count: 6))
+                .map { ($0, model.logPrediction($0, after: previous, earlier: earlier)) }
+                .sorted { $0.1 > $1.1 }
+                .map(\.0)
         }
         return words
             .filter { seen.insert($0.lowercased()).inserted }
@@ -219,7 +221,7 @@ extension Corrector {
 
     func languageModel(_ lexicon: Lexicon) -> LanguageModel {
         if let cachedModel { return cachedModel }
-        let model = LanguageModel(lexicon: lexicon, memory: memory)
+        let model = LanguageModel(lexicon: lexicon, memory: memory, phrases: phrases)
         cachedModel = model
         return model
     }

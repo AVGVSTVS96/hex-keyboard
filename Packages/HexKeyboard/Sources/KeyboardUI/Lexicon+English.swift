@@ -8,9 +8,9 @@ extension Lexicon {
     }()
 }
 
-extension NextWords {
-    static let english: NextWords = {
-        let url = Bundle.module.url(forResource: "en", withExtension: "next")!
-        return NextWords(bytes: [UInt8](try! Data(contentsOf: url, options: .alwaysMapped)))!
+extension Phrases {
+    static let english: Phrases = {
+        let url = Bundle.module.url(forResource: "en", withExtension: "phrases")!
+        return Phrases(bytes: [UInt8](try! Data(contentsOf: url, options: .alwaysMapped)))!
     }()
 }

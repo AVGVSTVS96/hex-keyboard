@@ -278,7 +278,8 @@ extension TypingEngine {
             let completions = corrector.suggestions(for: typed, correcting: false, guessing: false).dropFirst()
             suggestions = [Suggestion(revert.original, .revert)] + completions
         } else if word.isEmpty {
-            suggestions = corrector.predictions(after: Words.previous(before: word, in: text), context: text).map { prediction in
+            let context = Words.context(before: word, in: text)
+            suggestions = corrector.predictions(after: context.previous, earlier: context.earlier, context: text).map { prediction in
                 var prediction = prediction
                 switch shift {
                 case .off: break

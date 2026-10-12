@@ -66,6 +66,25 @@ struct Evaluation {
         print("EVAL latency ms keys=\(down.count) \(summary("down", down)) | \(summary("letter up", letters)) | \(summary("space up", spaces)) | \(summary("textDidChange", changed))")
     }
 
+    /// The suggestion bar before each word: how often the word you type next is one of the three it shows, and how
+    /// often it's the first. Each corpus is typed once by a new user (memory cleared every phrase) and once by a user
+    /// whose memory keeps every phrase before it. `chat.txt` is one sentence from each of 1,000 user turns in Google's
+    /// Taskmaster-1 self-dialogs (CC BY 4.0, github.com/google-research-datasets/Taskmaster).
+    @Test func predictions() throws {
+        for corpus in ["phrases", "chat"] {
+            let url = try #require(Bundle.module.url(forResource: corpus, withExtension: "txt"))
+            let phrases = try String(contentsOf: url, encoding: .utf8).split(separator: "\n")
+            for learning in [false, true] {
+                var prediction = Prediction()
+                for phrase in phrases {
+                    if !learning { prediction.engine.corrector?.memory = TypingMemory() }
+                    prediction.type(phrase.split(separator: " ").map(String.init))
+                }
+                print("EVAL predict corpus=\(corpus) user=\(learning ? "learning" : "new") \(prediction.summary)")
+            }
+        }
+    }
+
     @Test func biasedThumbs() throws {
         let phrases = try Self.phrases()
         let block = 500
@@ -135,7 +154,7 @@ struct Session {
         self.keyboard = keyboard
         self.grid = grid
         let source: any CandidateSource = keyboard == .baseline ? TextCheckerSource(language: "en-US") : Lexicon.english
-        let corrector = Corrector(source: source, next: keyboard == .baseline ? nil : .english)
+        let corrector = Corrector(source: source, phrases: keyboard == .baseline ? nil : .english)
         corrector.grid = grid
         engine.corrector = corrector
     }
@@ -175,6 +194,38 @@ struct Session {
     }
 
     private var shown: [String] = []
+}
+
+@MainActor
+struct Prediction {
+    var engine = TypingEngine(traits: InputTraits(autocapitalization: .none))
+    var words = 0, first = 0, topThree = 0
+
+    init() {
+        engine.corrector = Corrector(source: Lexicon.english, phrases: .english)
+    }
+
+    mutating func type(_ phrase: [String]) {
+        engine.endSession()
+        let corrector = engine.corrector
+        engine = TypingEngine(traits: InputTraits(autocapitalization: .none))
+        engine.corrector = corrector
+        let document = Document()
+        engine.suggestionsChanged()
+        for word in phrase {
+            let shown = engine.suggestions.map { $0.text.lowercased() }
+            words += 1
+            if shown.first == word.lowercased() { first += 1 }
+            if shown.contains(word.lowercased()) { topThree += 1 }
+            for character in word { engine.perform(.character(String(character)), in: document) }
+            engine.perform(.space, in: document)
+        }
+    }
+
+    var summary: String {
+        func percent(_ count: Int) -> String { String(format: "%.1f%%", Double(count) * 100 / Double(max(words, 1))) }
+        return "words=\(words) top1=\(percent(first)) top3=\(percent(topThree))"
+    }
 }
 
 @MainActor
