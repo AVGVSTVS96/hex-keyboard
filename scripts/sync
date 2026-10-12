@@ -1,4 +1,4 @@
 #!/bin/sh
 set -e
 cd "$(dirname "$0")/.."
-rsync -az --delete --exclude .git --exclude /build --exclude /shots --exclude '*.xcodeproj' --exclude /reference --exclude /App/Info.plist --exclude /Keyboard/Info.plist ./ mac:Developer/hex-keyboard/
+rsync -az --delete --exclude .git --exclude /build --exclude /shots --exclude '*.xcodeproj' --exclude /reference --exclude /App/Info.plist --exclude /Keyboard/Info.plist --exclude /Config/Team.xcconfig ./ mac:Developer/hex-keyboard/

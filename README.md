@@ -39,7 +39,7 @@ xcodegen generate
 open HexKeyboard.xcodeproj
 ```
 
-Run the `Hex` scheme, then add the keyboard in Settings › General › Keyboard › Keyboards › Add New Keyboard… › Hex.
+To run on a device, put your team in `Config/Team.xcconfig` (`DEVELOPMENT_TEAM = <your team ID>`). Run the `Hex` scheme, then add the keyboard in Settings › General › Keyboard › Keyboards › Add New Keyboard… › Hex.
 
 Tests:
 
