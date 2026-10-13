@@ -22,6 +22,8 @@ An iOS custom keyboard (UIKit, Swift 6, iOS 26+) that looks and types like Apple
 
 Development happens on a Linux box. Simulator builds, tests and screenshots run on a Mac over ssh (`ssh mac`); the iPhone build is made and installed on the Linux box with `scripts/phone` (see below). `scripts/mac <command>` syncs the tree to `~/Developer/hex-keyboard` on the Mac and runs the command there. Device builds take the team from `Config/Team.xcconfig` (`DEVELOPMENT_TEAM = …`, not committed), which syncing leaves in place. To prove a change works, follow the `verify` skill (`.claude/skills/verify`).
 
+Work in parallel merges into main like a zipper: rebase on main, merge the moment a feature is done, and put main on the phone then. The phone only ever gets main, never a test build from a branch or worktree, because an install from one copy wipes what another put there.
+
 ```sh
 scripts/mac scripts/build                       # sync to the Mac, xcodegen, build for the simulator
 scripts/mac scripts/test                        # KeyboardCore unit tests on an iOS simulator
