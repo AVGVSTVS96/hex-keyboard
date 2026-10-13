@@ -29,5 +29,16 @@ final class EmojiShots: XCTestCase {
             food.tap()
             try shoot("food")
         }
+        let search = app.searchFields.firstMatch.exists ? app.searchFields.firstMatch : app.textFields.matching(NSPredicate(format: "placeholderValue CONTAINS[c] 'Search' OR label CONTAINS[c] 'Search'")).firstMatch
+        if search.exists {
+            search.tap()
+            try shoot("search")
+            for letter in "heart" {
+                let key = app.keys.matching(identifier: "hex.\(letter)").firstMatch
+                (key.exists ? key : app.keys.matching(NSPredicate(format: "label ==[c] %@", String(letter))).firstMatch).tap()
+            }
+            try shoot("search-heart")
+        }
+        print(app.debugDescription)
     }
 }
