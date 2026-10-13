@@ -5,13 +5,17 @@ import UIKit
 
 /// The microphone and the transcriber behind the keyboard's voice typing. It transcribes on the iPhone as you speak
 /// (Apple's SpeechTranscriber, the iOS 26 model, not the older one behind the system's dictation key), so when you're
-/// done only the last words are left to finish.
+/// done only the last words are left to finish. After you dictate it keeps the microphone on for as long as Keep Mic On
+/// says, so the keyboard can start the next dictation (`start`) without opening the app, which is the only place iOS
+/// lets a recording begin.
 @MainActor final class Listener {
     static let shared = Listener()
 
     private let engine = AVAudioEngine()
+    private let feed = Feed()
+    private var micLock: Int32?
+    private var micOff: Task<Void, Never>?
     private var analyzer: SpeechAnalyzer?
-    private var input: AsyncStream<AnalyzerInput>.Continuation?
     private var heard: Task<String, any Error>?
     private var tokens: [Int32] = []
     private(set) var state = Dictation.State.idle
@@ -22,32 +26,57 @@ import UIKit
         tokens = [
             Dictation.observe(.finish) { Task { await Listener.shared.finish() } },
             Dictation.observe(.cancel) { Task { await Listener.shared.cancel() } },
+            Dictation.observe(.start) {
+                guard Listener.shared.micLock != nil else { return }
+                Task { await Listener.shared.start() }
+            },
         ]
+        let center = NotificationCenter.default
+        center.addObserver(forName: AVAudioSession.interruptionNotification, object: nil, queue: .main) { note in
+            guard note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt == AVAudioSession.InterruptionType.began.rawValue else { return }
+            Task { await Listener.shared.micLost() }
+        }
+        center.addObserver(forName: .AVAudioEngineConfigurationChange, object: engine, queue: .main) { _ in
+            Task { @MainActor in
+                guard !Listener.shared.engine.isRunning else { return }
+                await Listener.shared.micLost()
+            }
+        }
     }
 
     func start() async {
         guard state == .idle else { return }
+        micOff?.cancel()
         set(.listening)
         do {
             guard await AVAudioApplication.requestRecordPermission() else { throw Failure.microphone }
             let (module, heard) = try await Self.transcriber()
             guard let format = await SpeechAnalyzer.bestAvailableAudioFormat(compatibleWith: [module]) else { throw Failure.language }
             let (stream, input) = AsyncStream<AnalyzerInput>.makeStream()
-            self.input = input
             self.heard = heard
-            try listen(into: input, as: format)
+            try openMic()
+            if state == .listening {
+                guard feed.start(from: engine.inputNode.outputFormat(forBus: 0), to: format, into: input) else { throw Failure.language }
+            } else {
+                input.finish()
+            }
             if let request = try await AssetInventory.assetInstallationRequest(supporting: [module]) { try await request.downloadAndInstall() }
             let analyzer = SpeechAnalyzer(modules: [module])
             self.analyzer = analyzer
             try await analyzer.start(inputSequence: stream)
             switch state {
             case .transcribing: await deliver(analyzer)
-            case .idle: await analyzer.cancelAndFinishNow()
+            case .idle:
+                await analyzer.cancelAndFinishNow()
+                reset()
             case .listening: break
             }
+            keepMicOn()
         } catch {
-            stopListening()
+            feed.stop()
+            closeMic()
             await analyzer?.cancelAndFinishNow()
+            reset()
             set(.idle, failure: (error as? Failure)?.description ?? error.localizedDescription)
         }
     }
@@ -55,9 +84,9 @@ import UIKit
     /// Stops listening and hands the keyboard everything heard, once the transcriber is up if it isn't yet.
     func finish() async {
         guard state == .listening else { return }
-        stopListening()
+        feed.stop()
         set(.transcribing)
-        input?.finish()
+        keepMicOn()
         if let analyzer { await deliver(analyzer) }
     }
 
@@ -76,17 +105,37 @@ import UIKit
 
     func cancel() async {
         guard state != .idle else { return }
-        stopListening()
-        input?.finish()
+        feed.stop()
         await analyzer?.cancelAndFinishNow()
         heard?.cancel()
         reset()
         set(.idle)
+        keepMicOn()
+    }
+
+    /// Starts Keep Mic On's countdown over, or turns the microphone off now when it's Off.
+    func keepMicOn() {
+        micOff?.cancel()
+        guard micLock != nil, state != .listening else { return }
+        let seconds = SettingsStore.keepMicOn
+        guard seconds > 0 else { return closeMic() }
+        micOff = Task {
+            try? await Task.sleep(for: .seconds(seconds))
+            guard !Task.isCancelled, state != .listening else { return }
+            closeMic()
+        }
+    }
+
+    /// Another app took the microphone (a call), or the route changed under the engine: keep what was heard, and
+    /// leave the microphone off so the next dictation opens the app and starts it afresh.
+    private func micLost() async {
+        guard micLock != nil else { return }
+        await finish()
+        closeMic()
     }
 
     private func reset() {
         analyzer = nil
-        input = nil
         heard = nil
     }
 
@@ -97,38 +146,40 @@ import UIKit
     }
 
     /// Mixes with whatever else is playing, so music keeps going while you talk.
-    private func listen(into input: AsyncStream<AnalyzerInput>.Continuation, as format: AVAudioFormat) throws {
+    private func openMic() throws {
+        guard micLock == nil else { return }
         let session = AVAudioSession.sharedInstance()
         try session.setCategory(.playAndRecord, options: [.mixWithOthers, .allowBluetoothHFP, .defaultToSpeaker])
         try session.setActive(true)
         let node = engine.inputNode
-        let natural = node.outputFormat(forBus: 0)
-        guard let converter = AVAudioConverter(from: natural, to: format) else { throw Failure.language }
-        node.installTap(onBus: 0, bufferSize: 4096, format: natural, block: Self.tap(converter: converter, format: format, input: input) { level in
+        node.installTap(onBus: 0, bufferSize: 4096, format: node.outputFormat(forBus: 0), block: Self.tap(feed) { level in
             Task { @MainActor in Listener.shared.onLevel?(level) }
         })
         engine.prepare()
-        try engine.start()
+        do {
+            try engine.start()
+        } catch {
+            node.removeTap(onBus: 0)
+            throw error
+        }
+        micLock = Dictation.lockMic() ?? -1
     }
 
-    private func stopListening() {
+    private func closeMic() {
+        micOff?.cancel()
+        micOff = nil
+        guard let micLock else { return }
         engine.inputNode.removeTap(onBus: 0)
         engine.stop()
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        if micLock >= 0 { Dictation.unlockMic(micLock) }
+        self.micLock = nil
     }
 
-    /// Runs on the audio thread: converts each buffer to the transcriber's format and reports how loud it was.
-    nonisolated private static func tap(converter: AVAudioConverter, format: AVAudioFormat, input: AsyncStream<AnalyzerInput>.Continuation, level: @escaping @Sendable (Float) -> Void) -> AVAudioNodeTapBlock {
+    /// Runs on the audio thread: hands each buffer to the dictation in progress, if there is one.
+    nonisolated private static func tap(_ feed: Feed, level: @escaping @Sendable (Float) -> Void) -> AVAudioNodeTapBlock {
         return { buffer, _ in
-            let capacity = AVAudioFrameCount(Double(buffer.frameLength) * format.sampleRate / buffer.format.sampleRate) + 1
-            guard let converted = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: capacity) else { return }
-            nonisolated(unsafe) var fed = false
-            converter.convert(to: converted, error: nil) { _, status in
-                status.pointee = fed ? .noDataNow : .haveData
-                defer { fed = true }
-                return fed ? nil : buffer
-            }
-            input.yield(AnalyzerInput(buffer: converted))
+            guard feed.yield(buffer) else { return }
             if let samples = buffer.floatChannelData?[0], buffer.frameLength > 0 {
                 let frames = Int(buffer.frameLength)
                 var sum: Float = 0
@@ -165,6 +216,53 @@ import UIKit
             case .microphone: "Hex needs the microphone. Turn it on in Settings › Apps › Hex."
             case .language: "Voice typing doesn't support this iPhone's language yet."
             }
+        }
+    }
+}
+
+/// Where the microphone's buffers go: to the dictation in progress, converted to the transcriber's format, or nowhere
+/// while the microphone is only being kept on. The audio thread reads it and the main thread swaps it, under a lock.
+nonisolated private final class Feed: @unchecked Sendable {
+    private let lock = NSLock()
+    private var converter: AVAudioConverter?
+    private var format: AVAudioFormat?
+    private var input: AsyncStream<AnalyzerInput>.Continuation?
+
+    func start(from natural: AVAudioFormat, to format: AVAudioFormat, into input: AsyncStream<AnalyzerInput>.Continuation) -> Bool {
+        guard let converter = AVAudioConverter(from: natural, to: format) else { return false }
+        lock.withLock {
+            self.converter = converter
+            self.format = format
+            self.input = input
+        }
+        return true
+    }
+
+    func stop() {
+        let input = lock.withLock {
+            let input = self.input
+            converter = nil
+            format = nil
+            self.input = nil
+            return input
+        }
+        input?.finish()
+    }
+
+    /// Whether a dictation took the buffer.
+    func yield(_ buffer: AVAudioPCMBuffer) -> Bool {
+        lock.withLock {
+            guard let converter, let format, let input else { return false }
+            let capacity = AVAudioFrameCount(Double(buffer.frameLength) * format.sampleRate / buffer.format.sampleRate) + 1
+            guard let converted = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: capacity) else { return false }
+            nonisolated(unsafe) var fed = false
+            converter.convert(to: converted, error: nil) { _, status in
+                status.pointee = fed ? .noDataNow : .haveData
+                defer { fed = true }
+                return fed ? nil : buffer
+            }
+            input.yield(AnalyzerInput(buffer: converted))
+            return true
         }
     }
 }

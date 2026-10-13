@@ -21,6 +21,7 @@ public enum SettingsStore {
     ]
 
     private static let oneHandedKey = "oneHanded"
+    private static let keepMicOnKey = "keepMicOn"
 
     private static var group: UserDefaults { UserDefaults(suiteName: appGroup) ?? .standard }
     private static var own: UserDefaults { .standard }
@@ -43,10 +44,17 @@ public enum SettingsStore {
         set(oneHanded.rawValue, forKey: oneHandedKey, sharing: sharing)
     }
 
+    /// Seconds the app keeps the microphone on after you dictate (`Dictation.micChoices`). Only the app reads it.
+    public static var keepMicOn: Int {
+        get { value(forKey: keepMicOnKey, sharing: true) as? Int ?? Dictation.micDefault }
+        set { set(newValue, forKey: keepMicOnKey) }
+    }
+
     public static func reset() {
         let settings = KeyboardSettings()
         for (key, path) in toggles { set(settings[keyPath: path], forKey: key) }
         set(OneHanded.off)
+        keepMicOn = Dictation.micDefault
     }
 
     static func value(forKey key: String, sharing: Bool) -> Any? {

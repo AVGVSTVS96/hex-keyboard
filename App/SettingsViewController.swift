@@ -6,6 +6,7 @@ final class SettingsViewController: UITableViewController {
     private enum Row {
         case toggle(String, WritableKeyPath<KeyboardSettings, Bool>)
         case oneHanded
+        case keepMicOn
         case reset
     }
 
@@ -32,8 +33,11 @@ final class SettingsViewController: UITableViewController {
         Section(title: "English", footer: "Hex expands your Text Replacements from Settings › General › Keyboard › Text Replacement.", rows: [
             .toggle("Predictive Text", \.predictiveText),
         ]),
+        Section(title: "Voice", footer: SettingsViewController.keepMicOnFooter, rows: [.keepMicOn]),
         Section(footer: "Removes the words and typing habits Hex has learned from you.", rows: [.reset]),
     ]
+
+    private static let keepMicOnFooter = "After you dictate, the mic stays on this long, so the next dictation starts right on the keyboard instead of opening Hex. Nothing is heard until you pick the mic again."
 
     private var settings = SettingsStore.load()
 
@@ -68,8 +72,20 @@ final class SettingsViewController: UITableViewController {
     }
 
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        if case .oneHanded = row(at: indexPath) {
-            return navigationController?.pushViewController(OneHandedViewController(), animated: true) ?? ()
+        switch row(at: indexPath) {
+        case .oneHanded:
+            let choices = OneHanded.allCases.map { (value: $0, title: Self.title(of: $0)) }
+            return show(ChoiceViewController(title: "One-Handed Keyboard", footer: "The keys move toward your thumb on an upright iPhone. Tap the arrow beside them to bring back the full keyboard.", choices: choices, choice: settings.oneHanded) {
+                SettingsStore.set($0)
+            }, sender: self)
+        case .keepMicOn:
+            let choices = Dictation.micChoices.map { (value: $0, title: Dictation.title(keepingMicOn: $0)) }
+            return show(ChoiceViewController(title: "Keep Mic On", footer: Self.keepMicOnFooter, choices: choices, choice: SettingsStore.keepMicOn) {
+                SettingsStore.keepMicOn = $0
+                Listener.shared.keepMicOn()
+            }, sender: self)
+        default:
+            break
         }
         tableView.deselectRow(at: indexPath, animated: true)
         let alert = UIAlertController(title: nil, message: "This will delete all custom words you’ve typed and how Hex learned your taps.", preferredStyle: .actionSheet)
@@ -96,7 +112,12 @@ final class SettingsViewController: UITableViewController {
             cell.accessoryView = toggle
         case .oneHanded:
             content.text = "One-Handed Keyboard"
-            content.secondaryText = OneHandedViewController.title(of: settings.oneHanded)
+            content.secondaryText = Self.title(of: settings.oneHanded)
+            cell.accessoryView = nil
+            cell.accessoryType = .disclosureIndicator
+        case .keepMicOn:
+            content.text = "Keep Mic On"
+            content.secondaryText = Dictation.title(keepingMicOn: SettingsStore.keepMicOn)
             cell.accessoryView = nil
             cell.accessoryType = .disclosureIndicator
         case .reset:
@@ -106,6 +127,14 @@ final class SettingsViewController: UITableViewController {
         }
         cell.contentConfiguration = content
         return cell
+    }
+
+    private static func title(of hand: OneHanded) -> String {
+        switch hand {
+        case .off: "Off"
+        case .left: "Left"
+        case .right: "Right"
+        }
     }
 
     private func row(at indexPath: IndexPath) -> Row {

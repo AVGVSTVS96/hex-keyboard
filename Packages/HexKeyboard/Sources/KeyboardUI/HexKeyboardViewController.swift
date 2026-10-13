@@ -225,14 +225,16 @@ open class HexKeyboardViewController: UIInputViewController {
         if engine.handle(event, in: document) { render() }
     }
 
-    /// Opens the app to listen, since a keyboard can't use the microphone. Apps can't be opened from a keyboard
-    /// through public API, so this goes through the responder chain to the host's UIApplication, as voice keyboards do.
+    /// Opens the app to listen, since a keyboard can't use the microphone, or, while the app still has the microphone
+    /// on from the last dictation, asks it to listen again. Apps can't be opened from a keyboard through public API, so
+    /// this goes through the responder chain to the host's UIApplication, as voice keyboards do.
     private func listen() {
         guard hasFullAccess else {
             dictation = Dictation.Status(failure: "Voice needs Allow Full Access: Settings › Apps › Hex › Keyboards.")
             return
         }
         guard dictation.state == .idle else { return }
+        if Dictation.micIsOn { return Dictation.send(.start) }
         var responder: UIResponder? = self
         while let next = responder {
             if let application = next as? UIApplication { return application.open(Dictation.url) }
