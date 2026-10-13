@@ -38,7 +38,7 @@ final class SettingsViewController: UITableViewController {
         Section(footer: "Removes the words and typing habits Hex has learned from you.", rows: [.reset]),
     ]
 
-    private static let keepMicOnFooter = "After you dictate, the mic stays on this long, so the next dictation starts right on the keyboard instead of opening Hex. Nothing is heard until you pick the mic again."
+    private static let keepMicOnFooter = "After you dictate, the mic stays on this long, and the mic beside the suggestions starts and stops dictating without opening Hex. Nothing is heard until you tap it. Hold it to turn the mic off."
 
     private static let menuPickFooter = "Holding 123 opens a menu above it. Let go right away to pick what Hold 123 says, or slide to the others."
 

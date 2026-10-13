@@ -1,13 +1,22 @@
 import UIKit
 import KeyboardCore
 
+/// Apple's three suggestions, and while the app keeps the microphone on, a mic at the right end that starts and stops
+/// dictation in place. The suggestions narrow to make room for it.
 final class SuggestionBar: UIView {
     var onSelect: (Suggestion) -> Void = { _ in }
+    var onMic: () -> Void = {}
+    var onMicHold: () -> Void = {}
     var maximumSlotWidth = CGFloat.infinity { didSet { setNeedsLayout() } }
+    /// Where the keys end, so the mic's pill lines up with the last key.
+    var keyInset: CGFloat = 0 { didSet { if keyInset != oldValue { setNeedsLayout() } } }
 
     private let slots = (0..<3).map { SuggestionSlot(index: $0) }
-    private let dividers = (0..<2).map { _ in UIView() }
+    private let dividers = (0..<3).map { _ in UIView() }
+    private let mic = MicButton()
+    private let notice = UILabel()
     private var enabled = true
+    private var noticed = false
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -19,6 +28,19 @@ final class SuggestionBar: UIView {
             addSubview(slot)
         }
         dividers.forEach(addSubview)
+        mic.addAction(UIAction { [unowned self] _ in onMic() }, for: .touchUpInside)
+        mic.onHold = { [unowned self] in onMicHold() }
+        mic.onHighlight = { [unowned self] in refreshDividers() }
+        mic.isHidden = true
+        addSubview(mic)
+        notice.isHidden = true
+        notice.font = .systemFont(ofSize: 15)
+        notice.textAlignment = .center
+        notice.adjustsFontSizeToFitWidth = true
+        notice.minimumScaleFactor = 0.7
+        notice.lineBreakMode = .byTruncatingTail
+        notice.accessibilityIdentifier = "hex.notice"
+        addSubview(notice)
     }
 
     required init?(coder: NSCoder) { fatalError() }
@@ -26,31 +48,163 @@ final class SuggestionBar: UIView {
     func update(_ suggestions: [Suggestion], enabled: Bool, theme: KeyboardTheme) {
         self.enabled = enabled
         for (index, slot) in slots.enumerated() {
-            slot.isHidden = !enabled
             slot.configure(suggestions.indices.contains(index) ? suggestions[index] : nil, theme: theme)
         }
         dividers.forEach { $0.backgroundColor = theme.candidateDivider.ui }
+        refresh()
+    }
+
+    /// `notice` (why voice couldn't start) stands in for the suggestions until the next key.
+    func update(mic: MicButton.Phase?, notice: String?, theme: KeyboardTheme) {
+        if self.mic.isHidden != (mic == nil) { setNeedsLayout() }
+        self.mic.isHidden = mic == nil
+        if let mic { self.mic.show(mic, theme: theme) }
+        self.notice.text = notice
+        self.notice.textColor = theme.candidate.ui
+        noticed = notice != nil
+        refresh()
+    }
+
+    func hear(_ level: Float) {
+        mic.hear(level)
+    }
+
+    private func refresh() {
+        notice.isHidden = !noticed
+        slots.forEach { $0.isHidden = !enabled || noticed }
         refreshDividers()
     }
 
     private func refreshDividers() {
         for (index, divider) in dividers.enumerated() {
-            divider.isHidden = !enabled || slots[index].showsPill || slots[index + 1].showsPill
+            let right = index + 1 < slots.count ? (slots[index + 1].isHidden, slots[index + 1].showsPill) : (mic.isHidden, mic.showsPill)
+            divider.isHidden = slots[index].isHidden || right.0 || right.1 || slots[index].showsPill
         }
     }
 
     override func layoutSubviews() {
         super.layoutSubviews()
         let scale = traitCollection.displayScale
-        let width = min(bounds.width / CGFloat(slots.count), maximumSlotWidth)
-        let start = bounds.midX - width * CGFloat(slots.count) / 2
+        let mic = CGRect(x: bounds.width - keyInset + MicButton.pillInset - MicButton.width, y: 0, width: MicButton.width, height: bounds.height)
+        let end = self.mic.isHidden ? bounds.width : mic.minX
+        let width = min(end / CGFloat(slots.count), maximumSlotWidth)
+        let start = min(bounds.midX - width * CGFloat(slots.count) / 2, end - width * CGFloat(slots.count))
         for (index, slot) in slots.enumerated() {
             let minX = (start + CGFloat(index) * width).rounded(scale: scale)
             let maxX = (start + CGFloat(index + 1) * width).rounded(scale: scale)
             slot.frame = CGRect(x: minX, y: 0, width: maxX - minX, height: bounds.height)
         }
+        self.mic.frame = mic
         for (index, divider) in dividers.enumerated() {
             divider.frame = CGRect(x: slots[index].frame.maxX - 1, y: bounds.midY - 12, width: 1, height: 24)
+        }
+        notice.frame = CGRect(x: 12, y: 0, width: end - 16, height: bounds.height)
+    }
+}
+
+/// The bar's mic: a glyph while the app keeps the microphone on, and a red pill whose bars move with your voice while
+/// it listens. Tap to start or stop, hold to turn the microphone off.
+final class MicButton: UIControl {
+    enum Phase { case on, listening, transcribing }
+
+    static let width: CGFloat = 52
+    static let pillInset: CGFloat = 8 / 3
+
+    var onHold: () -> Void = {}
+    var onHighlight: () -> Void = {}
+    private(set) var phase = Phase.on
+    var showsPill: Bool { !pill.isHidden }
+    private let pill = UIView()
+    private let glyph = UIImageView(image: UIImage(systemName: "mic", withConfiguration: UIImage.SymbolConfiguration(pointSize: 17, weight: .regular)))
+    private let bars = (0..<5).map { _ in UIView() }
+    private var levels = [CGFloat](repeating: 0, count: 5)
+    private var theme = KeyboardTheme.lightCurrent
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        accessibilityIdentifier = "hex.mic"
+        isAccessibilityElement = true
+        accessibilityTraits = .button
+        pill.isUserInteractionEnabled = false
+        glyph.isUserInteractionEnabled = false
+        glyph.contentMode = .center
+        addSubview(pill)
+        addSubview(glyph)
+        for bar in bars {
+            bar.isUserInteractionEnabled = false
+            bar.backgroundColor = .white
+            pill.addSubview(bar)
+        }
+        let hold = UILongPressGestureRecognizer(target: self, action: #selector(held))
+        hold.minimumPressDuration = 0.5
+        addGestureRecognizer(hold)
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    override var isHighlighted: Bool {
+        didSet {
+            guard isHighlighted != oldValue else { return }
+            refresh()
+            onHighlight()
+        }
+    }
+
+    func show(_ phase: Phase, theme: KeyboardTheme) {
+        if phase != .listening { levels = levels.map { _ in 0 } }
+        self.phase = phase
+        self.theme = theme
+        accessibilityLabel = phase == .on ? "Dictate" : "Stop Dictating"
+        refresh()
+    }
+
+    /// Each level the app publishes enters on the right and pushes the older ones left, so the bars trace your voice.
+    func hear(_ level: Float) {
+        guard phase == .listening else { return }
+        let decibels = 20 * log10(max(level, 1e-6))
+        levels = Array(levels.dropFirst()) + [CGFloat(min(max((decibels + 55) / 40, 0), 1))]
+        UIView.animate(withDuration: 0.12, delay: 0, options: [.beginFromCurrentState, .allowUserInteraction, .curveEaseOut]) {
+            self.layoutBars()
+        }
+    }
+
+    private func refresh() {
+        let recording = phase != .on
+        glyph.isHidden = recording
+        glyph.tintColor = theme.candidate.ui
+        bars.forEach { $0.isHidden = !recording }
+        pill.isHidden = !recording && !isHighlighted
+        pill.backgroundColor = recording ? UIColor.systemRed : theme.candidatePill.ui
+        pill.alpha = phase == .transcribing ? 0.5 : isHighlighted && recording ? 0.8 : 1
+        setNeedsLayout()
+    }
+
+    @objc private func held(_ gesture: UILongPressGestureRecognizer) {
+        guard gesture.state == .began else { return }
+        cancelTracking(with: nil)
+        isHighlighted = false
+        onHold()
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        pill.frame = bounds.insetBy(dx: Self.pillInset, dy: 0)
+        pill.layer.cornerRadius = pill.bounds.height / 2
+        glyph.frame = bounds
+        layoutBars()
+    }
+
+    private func layoutBars() {
+        let scale = traitCollection.displayScale
+        let width: CGFloat = 3
+        let gap: CGFloat = 3
+        let total = CGFloat(bars.count) * width + CGFloat(bars.count - 1) * gap
+        let tallest = min(pill.bounds.height - 10, 18)
+        for (index, bar) in bars.enumerated() {
+            let height = (width + (tallest - width) * levels[index]).rounded(scale: scale)
+            let x = ((pill.bounds.width - total) / 2 + CGFloat(index) * (width + gap)).rounded(scale: scale)
+            bar.frame = CGRect(x: x, y: ((pill.bounds.height - height) / 2).rounded(scale: scale), width: width, height: height)
+            bar.layer.cornerRadius = width / 2
         }
     }
 }

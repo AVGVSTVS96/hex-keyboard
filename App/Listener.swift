@@ -27,21 +27,21 @@ import UIKit
     private init() {
         tokens = [
             Dictation.observe(.finish) { Task { await Listener.shared.finish() } },
-            Dictation.observe(.cancel) { Task { await Listener.shared.cancel() } },
             Dictation.observe(.start) {
                 guard Listener.shared.micLock != nil else { return }
                 Task { await Listener.shared.start() }
             },
+            Dictation.observe(.stop) { Task { await Listener.shared.turnMicOff() } },
         ]
         let center = NotificationCenter.default
         center.addObserver(forName: AVAudioSession.interruptionNotification, object: nil, queue: .main) { note in
             guard note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt == AVAudioSession.InterruptionType.began.rawValue else { return }
-            Task { await Listener.shared.micLost() }
+            Task { await Listener.shared.turnMicOff() }
         }
         center.addObserver(forName: .AVAudioEngineConfigurationChange, object: engine, queue: .main) { _ in
             Task { @MainActor in
                 guard !Listener.shared.engine.isRunning else { return }
-                await Listener.shared.micLost()
+                await Listener.shared.turnMicOff()
             }
         }
     }
@@ -134,6 +134,7 @@ import UIKit
         guard micLock != nil, state != .listening else { return }
         let seconds = SettingsStore.keepMicOn
         guard seconds > 0 else { return closeMic() }
+        guard seconds != Dictation.micForever else { return }
         micOff = Task {
             try? await Task.sleep(for: .seconds(seconds))
             guard !Task.isCancelled, state != .listening else { return }
@@ -141,9 +142,9 @@ import UIKit
         }
     }
 
-    /// Another app took the microphone (a call), or the route changed under the engine: keep what was heard, and
-    /// leave the microphone off so the next dictation opens the app and starts it afresh.
-    private func micLost() async {
+    /// You held the keyboard's mic, another app took the microphone (a call), or the route changed under the engine:
+    /// keep what was heard, and leave the microphone off so the next dictation opens the app and starts it afresh.
+    func turnMicOff() async {
         guard micLock != nil else { return }
         await finish()
         closeMic()
@@ -168,6 +169,7 @@ import UIKit
         try session.setActive(true)
         let node = engine.inputNode
         node.installTap(onBus: 0, bufferSize: 4096, format: node.outputFormat(forBus: 0), block: Self.tap(feed) { level in
+            Dictation.publish(level: level)
             Task { @MainActor in Listener.shared.onLevel?(level) }
         })
         engine.prepare()
@@ -178,6 +180,7 @@ import UIKit
             throw error
         }
         micLock = Dictation.lockMic() ?? -1
+        Dictation.send(.changed)
     }
 
     private func closeMic() {
@@ -189,9 +192,10 @@ import UIKit
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
         if micLock >= 0 { Dictation.unlockMic(micLock) }
         self.micLock = nil
+        Dictation.send(.changed)
     }
 
-    /// Runs on the audio thread: hands each buffer to the dictation in progress, if there is one.
+    /// Runs on the audio thread: hands each buffer to the dictation in progress, if there is one, and says how loud it was.
     nonisolated private static func tap(_ feed: Feed, level: @escaping @Sendable (Float) -> Void) -> AVAudioNodeTapBlock {
         return { buffer, _ in
             guard feed.yield(buffer) else { return }

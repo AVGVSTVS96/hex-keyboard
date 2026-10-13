@@ -27,16 +27,19 @@ public enum Dictation {
         case changed = "com.shahidy.hexkeyboard.dictation"
         /// The keyboard wants what was said so far.
         case finish = "com.shahidy.hexkeyboard.dictation.finish"
-        /// The keyboard wants nothing typed.
-        case cancel = "com.shahidy.hexkeyboard.dictation.cancel"
         /// The keyboard wants to dictate again while the app still has the microphone on.
         case start = "com.shahidy.hexkeyboard.dictation.start"
+        /// The keyboard wants the microphone off, with what was said so far typed.
+        case stop = "com.shahidy.hexkeyboard.dictation.stop"
+        /// How loud you are, carried in the notification's state (`level`).
+        case level = "com.shahidy.hexkeyboard.dictation.level"
     }
 
     /// How long the app may keep the microphone on after you dictate, in seconds, so the next dictation starts right
     /// on the keyboard instead of opening the app. Nothing is transcribed until you pick the mic again.
-    public static let micChoices = [0, 30, 60, 300, 900, 3600]
+    public static let micChoices = [0, 30, 60, 300, 900, 3600, micForever]
     public static let micDefault = 300
+    public static let micForever = Int.max
 
     public static func title(keepingMicOn seconds: Int) -> String {
         switch seconds {
@@ -45,6 +48,7 @@ public enum Dictation {
         case 60: "1 Minute"
         case ..<3600: "\(seconds / 60) Minutes"
         case 3600: "1 Hour"
+        case micForever: "Until Turned Off"
         default: "\(seconds / 3600) Hours"
         }
     }
@@ -98,6 +102,29 @@ public enum Dictation {
 
     public static func send(_ signal: Signal) {
         notify_post(signal.rawValue)
+    }
+
+    nonisolated private static let levelToken: Int32 = {
+        var token: Int32 = 0
+        notify_register_check(Signal.level.rawValue, &token)
+        return token
+    }()
+
+    /// The microphone's loudness (RMS of a buffer), for the keyboard's mic to move with your voice.
+    nonisolated public static func publish(level: Float) {
+        notify_set_state(levelToken, UInt64(level.bitPattern))
+        notify_post(Signal.level.rawValue)
+    }
+
+    /// Calls `handler` on the main queue with each loudness the app publishes.
+    public static func observeLevel(_ handler: @escaping @MainActor @Sendable (Float) -> Void) -> Int32 {
+        var token: Int32 = 0
+        notify_register_dispatch(Signal.level.rawValue, &token, .main) { token in
+            var state: UInt64 = 0
+            notify_get_state(token, &state)
+            MainActor.assumeIsolated { handler(Float(bitPattern: UInt32(truncatingIfNeeded: state))) }
+        }
+        return token
     }
 
     /// Calls `handler` on the main queue on each `signal`, until the token is cancelled with `stopObserving`.

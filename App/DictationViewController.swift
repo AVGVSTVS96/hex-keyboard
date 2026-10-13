@@ -2,7 +2,7 @@ import KeyboardUI
 import UIKit
 
 /// What the app shows while the keyboard's voice typing listens: you go back to your app and keep talking, and the
-/// keyboard's Done ends it, or Done here.
+/// keyboard's mic ends it, or Done here.
 final class DictationViewController: UIViewController {
     private let orb = UIView()
     private let status = UILabel()
@@ -66,7 +66,7 @@ final class DictationViewController: UIViewController {
         switch Listener.shared.state {
         case .listening:
             status.text = "Listening"
-            hint.text = "Go back to your app and keep talking. Swipe right along the bottom edge, or tap the app's name in the top corner. Tap Done on the keyboard when you're finished."
+            hint.text = "Go back to your app and keep talking. Swipe right along the bottom edge, or tap the app's name in the top corner. Tap the red mic beside the suggestions when you're finished."
         case .transcribing:
             status.text = "Writing it down"
             hint.text = "It'll be typed where you were."
