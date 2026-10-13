@@ -5,6 +5,10 @@ open class HexKeyboardViewController: UIInputViewController {
     open var hapticsEnabled: Bool { hasFullAccess && engine.settings.haptics }
 
     private let keyboardView = KeyboardView()
+    private let emojiView = EmojiKeyboardView()
+    private let dictationPanel = DictationPanel()
+    private var dictation = Dictation.Status()
+    private var dictationToken: Int32?
     private let suggestionBar = SuggestionBar()
     private lazy var document = ProxyDocument { [unowned self] in textDocumentProxy }
     private var engine = TypingEngine()
@@ -19,10 +23,10 @@ open class HexKeyboardViewController: UIInputViewController {
 
     override open func viewDidLoad() {
         super.viewDidLoad()
-        view.addSubview(suggestionBar)
-        view.addSubview(keyboardView)
-        suggestionBar.translatesAutoresizingMaskIntoConstraints = false
-        keyboardView.translatesAutoresizingMaskIntoConstraints = false
+        [suggestionBar, keyboardView, emojiView, dictationPanel].forEach {
+            $0.translatesAutoresizingMaskIntoConstraints = false
+            view.addSubview($0)
+        }
         keyboardHeightConstraint.priority = .required - 1
         NSLayoutConstraint.activate([
             suggestionBar.topAnchor.constraint(equalTo: view.topAnchor),
@@ -34,7 +38,25 @@ open class HexKeyboardViewController: UIInputViewController {
             keyboardView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             keyboardView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             keyboardHeightConstraint,
+            emojiView.topAnchor.constraint(equalTo: view.topAnchor),
+            emojiView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            emojiView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            emojiView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            dictationPanel.topAnchor.constraint(equalTo: view.topAnchor),
+            dictationPanel.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            dictationPanel.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            dictationPanel.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
+        emojiView.isHidden = true
+        dictationPanel.isHidden = true
+        emojiView.onEvent = { [unowned self] in handle($0) }
+        dictationPanel.onFinish = { Dictation.send(.finish) }
+        dictationPanel.onCancel = { [unowned self] in
+            if dictation.state != .idle { Dictation.send(.cancel) }
+            dictation = Dictation.Status()
+            if hasFullAccess { Dictation.publish(dictation) }
+            render()
+        }
         engine.defersSuggestions = true
         keyboardView.onEvent = { [unowned self] in handle($0) }
         suggestionBar.onSelect = { [unowned self] in
@@ -66,6 +88,11 @@ open class HexKeyboardViewController: UIInputViewController {
         super.viewWillAppear(animated)
         engine.settings = SettingsStore.load(sharing: hasFullAccess)
         engine.corrector?.memory = MemoryStore.load()
+        engine.emojiHistory = MemoryStore.loadEmoji()
+        if hasFullAccess, dictationToken == nil {
+            dictationToken = Dictation.observe(.changed) { [weak self] in self?.dictationChanged() }
+            dictationChanged()
+        }
         engine.suggestionsChanged()
         keyboardView.characterPreview = engine.settings.characterPreview
         syncWithDocument()
@@ -90,6 +117,9 @@ open class HexKeyboardViewController: UIInputViewController {
         haptics.stop()
         TouchTrace.shared.flush()
         if let memory = engine.corrector?.memory { MemoryStore.save(memory, sharing: hasFullAccess) }
+        MemoryStore.save(engine.emojiHistory)
+        if let dictationToken { Dictation.stopObserving(dictationToken) }
+        dictationToken = nil
     }
 
     override open func selectionDidChange(_ textInput: UITextInput?) {
@@ -131,10 +161,16 @@ open class HexKeyboardViewController: UIInputViewController {
         let context = engine.layout(on: device, showsGlobe: needsInputModeSwitchKey, isLandscape: screenSize.width > screenSize.height)
         let layout = Layouts.layout(for: context)
         let metrics = KeyboardMetrics.for(device, width: screenSize.width, height: screenSize.height, style: .current, oneHanded: context.oneHanded)
-        keyboardView.oneHanded = (context.oneHandedKey(in: layout), context.oneHanded)
+        keyboardView.menu = (context.menuKey(in: layout), context.menu)
         keyboardView.update(layout: layout, signature: context.signature, metrics: metrics, faces: engine.faces(on: device), theme: theme)
         suggestionBar.maximumSlotWidth = device == .phone ? .infinity : 154.5
         renderSuggestions()
+        if engine.showsEmoji { emojiView.update(history: engine.emojiHistory, opening: emojiView.isHidden, theme: theme, metrics: metrics) }
+        emojiView.isHidden = !engine.showsEmoji
+        dictationPanel.isHidden = dictation == Dictation.Status()
+        if !dictationPanel.isHidden { dictationPanel.show(dictation, theme: theme, metrics: metrics) }
+        keyboardView.isHidden = !emojiView.isHidden || !dictationPanel.isHidden
+        suggestionBar.isHidden = keyboardView.isHidden
 
         let height = metrics.height(rows: layout.rows.count, hasNumberRow: layout.hasNumberRow)
         if keyboardHeightConstraint.constant != height { keyboardHeightConstraint.constant = height }
@@ -179,12 +215,41 @@ open class HexKeyboardViewController: UIInputViewController {
             return advanceToNextInputMode()
         case .type:
             TouchTrace.shared.mark("typed")
-        case .oneHanded(let hand), .pickHand(let hand):
+        case .oneHanded(let hand), .pick(.hand(let hand)):
             SettingsStore.set(hand, sharing: hasFullAccess)
+        case .pick(.voice):
+            listen()
         default:
             break
         }
         if engine.handle(event, in: document) { render() }
+    }
+
+    /// Opens the app to listen, since a keyboard can't use the microphone. Apps can't be opened from a keyboard
+    /// through public API, so this goes through the responder chain to the host's UIApplication, as voice keyboards do.
+    private func listen() {
+        guard hasFullAccess else {
+            dictation = Dictation.Status(failure: "Voice needs Allow Full Access: Settings › Apps › Hex › Keyboards.")
+            return
+        }
+        guard dictation.state == .idle else { return }
+        var responder: UIResponder? = self
+        while let next = responder {
+            if let application = next as? UIApplication { return application.open(Dictation.url) }
+            responder = next.next
+        }
+    }
+
+    /// The app listened, or stopped: type what it heard, once.
+    private func dictationChanged() {
+        var status = Dictation.status
+        if let heard = status.heard {
+            status.heard = nil
+            Dictation.publish(status)
+            engine.handle(.dictated(heard), in: document)
+        }
+        dictation = status
+        render()
     }
 
     private func startDeleteRepeat() {

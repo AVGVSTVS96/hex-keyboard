@@ -26,13 +26,19 @@ public struct LayoutContext: Hashable, Sendable {
     /// Like Apple's, only an upright iPhone narrows its keys for one hand.
     public var allowsOneHanded: Bool { device == .phone && !isLandscape }
 
-    /// The key whose hold offers the one-handed layouts, as Apple's globe does: the layer key in the bottom row, Hex's
+    /// The key whose hold opens the layer menu, as Apple's globe opens its menu: the layer key in the bottom row, Hex's
     /// own key nearest where the system draws its globe.
-    public func oneHandedKey(in layout: KeyboardLayout) -> Key? {
-        guard allowsOneHanded else { return nil }
-        return layout.rows.last?.lazy.compactMap { item -> Key? in
+    public func menuKey(in layout: KeyboardLayout) -> Key? {
+        layout.rows.last?.lazy.compactMap { item -> Key? in
             if case .key(let key) = item, case .layer = key.action { key } else { nil }
         }.first
+    }
+
+    /// What holding the layer key offers, top row first: the one-handed layouts where they apply, and emoji and voice
+    /// nearest the thumb, so they take the shortest slide.
+    public var menu: [[MenuItem]] {
+        let thumb: [MenuItem] = [.emoji, .voice]
+        return allowsOneHanded ? [OneHanded.menuOrder.map(MenuItem.hand), thumb] : [thumb]
     }
 }
 

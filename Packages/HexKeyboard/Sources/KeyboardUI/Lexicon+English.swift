@@ -14,3 +14,10 @@ extension Phrases {
         return Phrases(bytes: [UInt8](try! Data(contentsOf: url, options: .alwaysMapped)))!
     }()
 }
+
+extension EmojiCatalog {
+    static let english: EmojiCatalog = {
+        let url = Bundle.module.url(forResource: "emoji", withExtension: "txt")!
+        return EmojiCatalog(text: try! String(contentsOf: url, encoding: .utf8))
+    }()
+}

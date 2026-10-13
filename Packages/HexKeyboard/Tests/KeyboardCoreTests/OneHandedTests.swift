@@ -44,13 +44,16 @@ struct OneHandedTests {
         #expect(LayoutContext(device: .phone, layer: .letters).signature == "phone-portrait-letters")
     }
 
-    @Test func holdingTheLayerKeyOffersHands() {
+    @Test func holdingTheLayerKeyOffersEmojiAndVoiceNearestTheThumbAndHandsAbove() {
         let context = LayoutContext(device: .phone, layer: .letters)
-        #expect(context.oneHandedKey(in: Layouts.layout(for: context))?.action == .layer(.numbers))
+        #expect(context.menuKey(in: Layouts.layout(for: context))?.action == .layer(.numbers))
+        #expect(context.menu == [[.hand(.left), .hand(.off), .hand(.right)], [.emoji, .voice]])
         let numbers = LayoutContext(device: .phone, layer: .numbers)
-        #expect(numbers.oneHandedKey(in: Layouts.layout(for: numbers))?.action == .layer(.letters))
+        #expect(numbers.menuKey(in: Layouts.layout(for: numbers))?.action == .layer(.letters))
         let pad = LayoutContext(device: .pad, layer: .letters)
-        #expect(pad.oneHandedKey(in: Layouts.layout(for: pad)) == nil)
+        #expect(pad.menuKey(in: Layouts.layout(for: pad)) != nil)
+        #expect(pad.menu == [[.emoji, .voice]], "only an upright phone narrows for one hand")
+        #expect(LayoutContext(device: .phone, layer: .letters, isLandscape: true).menu == [[.emoji, .voice]])
     }
 
     @Test func pickingAHandBringsTheLettersBack() {
@@ -59,7 +62,7 @@ struct OneHandedTests {
         let numbers = Key(.layer(.numbers))
         engine.handle(.down(numbers, tapCount: 1), in: document)
         #expect(engine.layer == .numbers)
-        engine.handle(.pickHand(.right), in: document)
+        engine.handle(.pick(.hand(.right)), in: document)
         #expect(engine.layer == .letters && engine.settings.oneHanded == .right)
         #expect(engine.layout(on: .phone).oneHanded == .right)
         engine.handle(.oneHanded(.off), in: document)

@@ -8,6 +8,12 @@ final class CaptureTests: XCTestCase {
         app.launch()
         let g = key("g", in: app)
         XCTAssertTrue(g.waitForExistence(timeout: 10))
+        if ProcessInfo.processInfo.environment["HEX_CAPTURE"] == "menu" {
+            let numbers = key("numbers", in: app)
+            let top = numbers.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0)).withOffset(CGVector(dx: 0, dy: -85))
+            numbers.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).press(forDuration: 4, thenDragTo: top, withVelocity: .slow, thenHoldForDuration: 4)
+            return
+        }
         guard ProcessInfo.processInfo.environment["HEX_CAPTURE"] == "bar" else {
             g.press(forDuration: 4)
             key("e", in: app).press(forDuration: 6)

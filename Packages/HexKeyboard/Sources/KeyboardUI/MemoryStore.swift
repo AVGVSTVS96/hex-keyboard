@@ -37,6 +37,19 @@ public enum MemoryStore {
         notify_post(touchesChanged)
     }
 
+    private static var emojiURL: URL {
+        URL.applicationSupportDirectory.appending(path: "emoji-history.json")
+    }
+
+    static func loadEmoji() -> EmojiHistory {
+        (try? JSONDecoder().decode(EmojiHistory.self, from: Data(contentsOf: emojiURL))) ?? EmojiHistory()
+    }
+
+    static func save(_ emoji: EmojiHistory) {
+        try? FileManager.default.createDirectory(at: emojiURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try? JSONEncoder().encode(emoji).write(to: emojiURL, options: .atomic)
+    }
+
     public static func reset() {
         SettingsStore.set(Int.random(in: 1 ... .max), forKey: resetsKey)
         if let sharedTouchesURL { try? FileManager.default.removeItem(at: sharedTouchesURL) }

@@ -1,6 +1,9 @@
 public struct TypingEngine {
     public private(set) var layer: KeyboardLayer = .letters
     public private(set) var shift: ShiftState = .off
+    /// The emoji keyboard stands in for the keys until its ABC key.
+    public private(set) var showsEmoji = false
+    public var emojiHistory = EmojiHistory()
     public private(set) var traits: InputTraits
     public internal(set) var suggestions: [Suggestion] = []
     /// Leaves `suggestions` stale after each change, for a `SuggestionJob` to rank off the keystroke's path.
@@ -149,9 +152,21 @@ public struct TypingEngine {
             moveCursor(by: offset, in: document)
         case .oneHanded(let hand):
             settings.oneHanded = hand
-        case .pickHand(let hand):
-            settings.oneHanded = hand
+        case .pick(let item):
+            switch item {
+            case .hand(let hand): settings.oneHanded = hand
+            case .emoji: showsEmoji = true
+            case .voice: break
+            }
             perform(.layer(.letters), in: document)
+        case .emoji(let emoji, let base):
+            emojiHistory.use(emoji, base: base)
+            insertWhole(emoji, in: document)
+        case .closeEmoji:
+            showsEmoji = false
+        case .dictated(let heard):
+            let joins = text.before.last.map { !$0.isWhitespace && !Words.openers.contains($0) } ?? false
+            insertWhole((joins ? " " : "") + heard, in: document)
         }
         return true
     }
@@ -163,6 +178,17 @@ public struct TypingEngine {
         if typing.letters.isEmpty { pending = nil }
         typing = WordTaps()
         write("", replacing: Self.wordLength(before: text.before), in: document)
+        refreshShift()
+        suggestionsChanged()
+    }
+
+    /// Text that arrives whole, an emoji or what dictation heard: it ends the word in progress, then goes in as it is.
+    mutating func insertWhole(_ string: String, in document: some TextDocument) {
+        attach(document)
+        spaceJustTyped = false
+        revert = nil
+        commitWord(in: document)
+        write(string, in: document)
         refreshShift()
         suggestionsChanged()
     }

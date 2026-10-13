@@ -23,7 +23,8 @@ final class KeyboardView: UIView {
     var tracked: [ObjectIdentifier: TrackedTouch] = [:]
 
     var characterPreview = true
-    var oneHanded: (key: Key?, current: OneHanded) = (nil, .off)
+    /// The key whose hold opens the layer menu, and the menu's rows.
+    var menu: (key: Key?, items: [[MenuItem]]) = (nil, [])
     var showsCallouts: Bool { characterPreview && faceContext.device == .phone }
 
     override init(frame: CGRect) {

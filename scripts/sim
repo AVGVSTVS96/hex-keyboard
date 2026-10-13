@@ -33,6 +33,7 @@ use() {
   case $2 in
     hex) keyboards=("com.shahidy.hexkeyboard.keyboard" "en_US@sw=QWERTY;hw=Automatic") ;;
     system) keyboards=("en_US@sw=QWERTY;hw=Automatic") ;;
+    emoji) keyboards=("en_US@sw=QWERTY;hw=Automatic" "emoji@sw=Emoji") ;;
   esac
   local current expanded
   current=$(xcrun simctl spawn "$id" defaults read .GlobalPreferences AppleKeyboards 2>/dev/null | sed -n 2p | tr -d ' ",' || true)

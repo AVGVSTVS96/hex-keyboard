@@ -10,7 +10,7 @@ let package = Package(
     ],
     targets: [
         .target(name: "KeyboardCore"),
-        .target(name: "KeyboardUI", dependencies: ["KeyboardCore"], exclude: ["Resources/LEXICON-LICENSE"], resources: [.copy("Resources/en.lexicon"), .copy("Resources/en.phrases")], swiftSettings: [.defaultIsolation(MainActor.self)]),
+        .target(name: "KeyboardUI", dependencies: ["KeyboardCore"], exclude: ["Resources/LEXICON-LICENSE"], resources: [.copy("Resources/en.lexicon"), .copy("Resources/en.phrases"), .copy("Resources/emoji.txt")], swiftSettings: [.defaultIsolation(MainActor.self)]),
         .executableTarget(name: "LexiconBuilder", dependencies: ["KeyboardCore"], path: "Tools/LexiconBuilder"),
         .executableTarget(name: "PhrasesBuilder", dependencies: ["KeyboardCore"], path: "Tools/PhrasesBuilder"),
         .testTarget(name: "KeyboardCoreTests", dependencies: ["KeyboardCore"]),
