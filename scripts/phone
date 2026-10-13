@@ -2,5 +2,5 @@
 # Builds Hex on this Linux box with xtool and installs it on the iPhone over Wi-Fi through netmuxd.
 set -e
 cd "$(dirname "$0")/.."
-export USBMUXD_SOCKET_ADDRESS="UNIX:${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/netmuxd.sock" XTL_KEEP_IDENTIFIERS=1
+export USBMUXD_SOCKET_ADDRESS="UNIX:${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/netmuxd.sock"
 exec xtool dev run -c release --network "$@"
