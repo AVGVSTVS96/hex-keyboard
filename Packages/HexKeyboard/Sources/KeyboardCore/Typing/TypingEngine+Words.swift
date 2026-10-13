@@ -82,7 +82,7 @@ extension TypingEngine {
     }
 
     public func layout(on device: DeviceClass, showsGlobe: Bool = false, isLandscape: Bool = false) -> LayoutContext {
-        LayoutContext(device: device, layer: layer, kind: traits.kind, showsGlobe: showsGlobe, isLandscape: isLandscape, oneHanded: settings.oneHanded)
+        LayoutContext(device: device, layer: layer, kind: traits.kind, showsGlobe: showsGlobe, isLandscape: isLandscape, oneHanded: settings.oneHanded, menuPick: settings.menuPick)
     }
 
     public func faces(on device: DeviceClass) -> KeyFaceContext {

@@ -21,6 +21,7 @@ public enum SettingsStore {
     ]
 
     private static let oneHandedKey = "oneHanded"
+    private static let menuPickKey = "menuPick"
     private static let keepMicOnKey = "keepMicOn"
 
     private static var group: UserDefaults { UserDefaults(suiteName: appGroup) ?? .standard }
@@ -32,6 +33,7 @@ public enum SettingsStore {
             if let value = value(forKey: key, sharing: sharing) as? Bool { settings[keyPath: path] = value }
         }
         settings.oneHanded = (value(forKey: oneHandedKey, sharing: sharing) as? String).flatMap(OneHanded.init) ?? .off
+        settings.menuPick = value(forKey: menuPickKey, sharing: sharing) as? String == "voice" ? .voice : .emoji
         return settings
     }
 
@@ -44,6 +46,11 @@ public enum SettingsStore {
         set(oneHanded.rawValue, forKey: oneHandedKey, sharing: sharing)
     }
 
+    /// What letting go of a held 123 picks: emoji or voice.
+    public static func set(menuPick: MenuItem) {
+        set(menuPick == .voice ? "voice" : "emoji", forKey: menuPickKey)
+    }
+
     /// Seconds the app keeps the microphone on after you dictate (`Dictation.micChoices`). Only the app reads it.
     public static var keepMicOn: Int {
         get { value(forKey: keepMicOnKey, sharing: true) as? Int ?? Dictation.micDefault }
@@ -54,6 +61,7 @@ public enum SettingsStore {
         let settings = KeyboardSettings()
         for (key, path) in toggles { set(settings[keyPath: path], forKey: key) }
         set(OneHanded.off)
+        set(menuPick: .emoji)
         keepMicOn = Dictation.micDefault
     }
 

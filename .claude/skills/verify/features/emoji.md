@@ -2,7 +2,7 @@
 
 ## Sub-features
 
-Opening it (hold 123, let go on the smiley, which is already picked), Frequently Used (refreshed each time it opens, so nothing moves under your finger), the categories and their bar, skin tones under a held emoji (the one you pick sticks), delete with its speed-up, ABC back to the letters.
+Opening it (hold 123, let go on the smiley, which is already picked unless Settings › Hold 123 says Voice), Frequently Used (refreshed each time it opens, so nothing moves under your finger), the categories and their bar, skin tones under a held emoji (the one you pick sticks), delete with its speed-up, ABC back to the letters.
 
 ## How to get to it (user POV)
 

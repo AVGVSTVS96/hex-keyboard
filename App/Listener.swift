@@ -18,6 +18,8 @@ import UIKit
     private var analyzer: SpeechAnalyzer?
     private var heard: Task<String, any Error>?
     private var tokens: [Int32] = []
+    private var started = Date.now
+    private var listened: Double = 0
     private(set) var state = Dictation.State.idle
     var onChange: (() -> Void)?
     var onLevel: ((Float) -> Void)?
@@ -48,6 +50,7 @@ import UIKit
         guard state == .idle else { return }
         micOff?.cancel()
         set(.listening)
+        started = .now
         do {
             guard await AVAudioApplication.requestRecordPermission() else { throw Failure.microphone }
             let (module, heard) = try await Self.transcriber()
@@ -85,6 +88,7 @@ import UIKit
     func finish() async {
         guard state == .listening else { return }
         feed.stop()
+        listened = Date.now.timeIntervalSince(started)
         set(.transcribing)
         keepMicOn()
         if let analyzer { await deliver(analyzer) }
@@ -95,22 +99,33 @@ import UIKit
         defer { UIApplication.shared.endBackgroundTask(background) }
         do {
             try await analyzer.finalizeAndFinishThroughEndOfInput()
-            let text = try await heard?.value ?? ""
-            set(.idle, heard: text.trimmingCharacters(in: .whitespacesAndNewlines))
+            let text = (try await heard?.value ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            set(.idle, heard: text)
+            Transcripts.shared.add(text, at: started, seconds: listened, typed: true)
         } catch {
             set(.idle, failure: error.localizedDescription)
         }
         reset()
     }
 
+    /// Types nothing. What was said while listening is still written down, for Transcripts.
     func cancel() async {
         guard state != .idle else { return }
         feed.stop()
-        await analyzer?.cancelAndFinishNow()
-        heard?.cancel()
+        let (analyzer, heard, started, wasListening) = (analyzer, heard, started, state == .listening)
         reset()
         set(.idle)
         keepMicOn()
+        guard wasListening, let analyzer, let heard else {
+            await analyzer?.cancelAndFinishNow()
+            heard?.cancel()
+            return
+        }
+        let background = UIApplication.shared.beginBackgroundTask()
+        defer { UIApplication.shared.endBackgroundTask(background) }
+        try? await analyzer.finalizeAndFinishThroughEndOfInput()
+        guard let text = try? await heard.value.trimmingCharacters(in: .whitespacesAndNewlines) else { return }
+        Transcripts.shared.add(text, at: started, seconds: Date.now.timeIntervalSince(started), typed: false)
     }
 
     /// Starts Keep Mic On's countdown over, or turns the microphone off now when it's Off.

@@ -56,6 +56,13 @@ struct OneHandedTests {
         #expect(LayoutContext(device: .phone, layer: .letters, isLandscape: true).menu == [[.emoji, .voice]])
     }
 
+    @Test func voiceCanBeWhatLettingGoPicks() {
+        var engine = TypingEngine()
+        engine.settings.menuPick = .voice
+        #expect(engine.layout(on: .phone).menu == [[.hand(.left), .hand(.off), .hand(.right)], [.voice, .emoji]])
+        #expect(engine.layout(on: .pad).menu == [[.voice, .emoji]])
+    }
+
     @Test func pickingAHandBringsTheLettersBack() {
         var engine = TypingEngine()
         let document = TestDocument()

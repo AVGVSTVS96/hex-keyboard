@@ -13,12 +13,23 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         LaunchOptions.resetSettingsIfAsked()
         LaunchOptions.applyOneHanded()
         let home = HomeViewController()
-        window.rootViewController = UINavigationController(rootViewController: home)
+        let tabs = UITabBarController(tabs: [
+            UITab(title: "Hex", image: UIImage(systemName: "keyboard"), identifier: "home") { _ in Self.navigation(home) },
+            UITab(title: "Transcripts", image: UIImage(systemName: "waveform"), identifier: "transcripts") { _ in TranscriptsView.controller() },
+            UITab(title: "Your Taps", image: UIImage(systemName: "hand.tap"), identifier: "taps") { _ in Self.navigation(TapsViewController()) },
+        ])
+        tabs.selectedTab = tabs.tab(forIdentifier: LaunchOptions.tab)
+        window.rootViewController = tabs
         if LaunchOptions.settings { home.showSettings() }
-        if LaunchOptions.taps { home.showTaps() }
         window.makeKeyAndVisible()
         self.window = window
         open(options.urlContexts)
+    }
+
+    private static func navigation(_ root: UIViewController) -> UINavigationController {
+        let navigation = UINavigationController(rootViewController: root)
+        navigation.navigationBar.prefersLargeTitles = true
+        return navigation
     }
 
     func scene(_ scene: UIScene, openURLContexts contexts: Set<UIOpenURLContext>) {

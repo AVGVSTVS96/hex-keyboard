@@ -7,6 +7,8 @@
 	<key>PreferenceSpecifiers</key>
 	<array>
 		<dict>
+			<key>FooterText</key>
+			<string>Holding 123 opens a menu above it. Let go right away to pick what Hold 123 says, or slide to the others.</string>
 			<key>Type</key>
 			<string>PSGroupSpecifier</string>
 		</dict>
@@ -30,6 +32,26 @@
 				<string>off</string>
 				<string>left</string>
 				<string>right</string>
+			</array>
+		</dict>
+		<dict>
+			<key>DefaultValue</key>
+			<string>emoji</string>
+			<key>Key</key>
+			<string>menuPick</string>
+			<key>Title</key>
+			<string>Hold 123</string>
+			<key>Titles</key>
+			<array>
+				<string>Emoji</string>
+				<string>Voice</string>
+			</array>
+			<key>Type</key>
+			<string>PSMultiValueSpecifier</string>
+			<key>Values</key>
+			<array>
+				<string>emoji</string>
+				<string>voice</string>
 			</array>
 		</dict>
 		<dict>

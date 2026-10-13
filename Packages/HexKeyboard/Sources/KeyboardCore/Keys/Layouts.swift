@@ -12,14 +12,16 @@ public struct LayoutContext: Hashable, Sendable {
     public var showsGlobe: Bool
     public var isLandscape: Bool
     public var oneHanded: OneHanded
+    public var menuPick: MenuItem
 
-    public init(device: DeviceClass, layer: KeyboardLayer, kind: InputKind = .text, showsGlobe: Bool = false, isLandscape: Bool = false, oneHanded: OneHanded = .off) {
+    public init(device: DeviceClass, layer: KeyboardLayer, kind: InputKind = .text, showsGlobe: Bool = false, isLandscape: Bool = false, oneHanded: OneHanded = .off, menuPick: MenuItem = .emoji) {
         self.device = device
         self.layer = layer
         self.kind = kind
         self.showsGlobe = showsGlobe
         self.isLandscape = isLandscape
         self.oneHanded = oneHanded
+        self.menuPick = menuPick
         if !allowsOneHanded { self.oneHanded = .off }
     }
 
@@ -35,9 +37,10 @@ public struct LayoutContext: Hashable, Sendable {
     }
 
     /// What holding the layer key offers, top row first: the one-handed layouts where they apply, and emoji and voice
-    /// nearest the thumb, so they take the shortest slide.
+    /// nearest the thumb, so they take the shortest slide. `menuPick` comes first, right above the key, so letting go
+    /// without sliding picks it.
     public var menu: [[MenuItem]] {
-        let thumb: [MenuItem] = [.emoji, .voice]
+        let thumb: [MenuItem] = menuPick == .voice ? [.voice, .emoji] : [.emoji, .voice]
         return allowsOneHanded ? [OneHanded.menuOrder.map(MenuItem.hand), thumb] : [thumb]
     }
 }

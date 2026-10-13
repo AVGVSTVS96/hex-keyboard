@@ -11,7 +11,8 @@ enum LaunchOptions {
 
     static var focus: Bool { defaults.bool(forKey: "HexFocus") }
     static var settings: Bool { defaults.bool(forKey: "HexSettings") }
-    static var taps: Bool { defaults.bool(forKey: "HexTaps") }
+    /// The tab the app opens on: `-HexTab transcripts`, or `-HexTaps YES` for Your Taps.
+    static var tab: String { defaults.bool(forKey: "HexTaps") ? "taps" : defaults.string(forKey: "HexTab") ?? "home" }
     static var tapsMode: TapMapView.Mode? {
         switch defaults.string(forKey: "HexTapsMode") {
         case "heat": .heat
