@@ -148,6 +148,7 @@ private final class StatusCell: UITableViewCell {
         state.numberOfLines = 0
         symbol.preferredSymbolConfiguration = UIImage.SymbolConfiguration(textStyle: .subheadline)
         symbol.setContentHuggingPriority(.required, for: .horizontal)
+        symbol.setContentCompressionResistancePriority(.required, for: .horizontal)
         let line = UIStackView(arrangedSubviews: [symbol, state])
         line.spacing = 5
         line.alignment = .firstBaseline
