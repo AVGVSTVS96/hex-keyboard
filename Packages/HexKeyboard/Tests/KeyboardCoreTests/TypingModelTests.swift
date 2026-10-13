@@ -115,6 +115,19 @@ struct TouchModelTests {
         #expect(model.signatures.map(\.signature) == ["standard"] && model.signatures.first?.taps == 61)
     }
 
+    @Test func aKeyShowsWhereEachMemoryAimsAndWhichTapsMissed() throws {
+        var model = TouchModel()
+        model.learn(samples("m", dx: 0, count: 200), on: grid)
+        model.learn(samples("m", dx: -0.6, count: 3), on: grid)
+        let m = try #require(model.aims(on: grid).first { $0.key.label == "m" })
+        let x = m.memories.map(\.center.x)
+        #expect(x[0] > x[1] && x[1] > x[2])
+        #expect(abs(m.memories.map(\.weight).reduce(0, +) - 1) < 1e-9)
+        #expect(m.memories[2].weight > m.memories[0].weight)
+        #expect(m.recent.suffix(3).allSatisfy { $0.landed?.label == "n" })
+        #expect(m.recentOnTarget == Double(TouchModel.recentTaps - 3) / Double(TouchModel.recentTaps))
+    }
+
     @Test func signaturesNameTheirLayouts() {
         let context = LayoutContext(device: .phone, layer: .letters, isLandscape: true)
         #expect(LayoutContext(signature: context.signature) == context)

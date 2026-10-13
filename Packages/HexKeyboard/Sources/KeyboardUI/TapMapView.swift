@@ -1,15 +1,18 @@
 import UIKit
 import KeyboardCore
 
-/// The keyboard at its real size with what the touch model learned drawn over it: where your taps for each key land
-/// (`aim`), or how many of them land on the key you meant (`accuracy`). Tapping a key selects it.
+/// The keyboard at its real size with what the touch model learned drawn over it: how densely your taps land across
+/// the keyboard (`heat`), where your taps for each key land (`aim`), or how many of them land on the key you meant
+/// (`accuracy`). Tapping a key selects it.
 public final class TapMapView: UIView {
-    public enum Mode { case aim, accuracy }
+    public enum Mode { case heat, aim, accuracy }
 
-    public var mode = Mode.aim { didSet { if mode != oldValue { refresh(animated: true) } } }
+    public var mode = Mode.heat { didSet { if mode != oldValue { refresh(animated: true) } } }
     public var onSelect: (Aim?) -> Void = { _ in }
     public private(set) var aims: [Aim] = []
     public private(set) var selected: Aim?
+    public var keys: [(key: Key, frame: Rect)] { Array(grid.rows.joined()) }
+    public var keyboardSize: CGSize { size }
 
     private let canvas = UIView()
     private let keyboard = KeyboardView()
@@ -21,7 +24,7 @@ public final class TapMapView: UIView {
 
     override public init(frame: CGRect) {
         super.init(frame: frame)
-        backgroundColor = UIColor { $0.userInterfaceStyle == .dark ? UIColor(white: 32 / 255, alpha: 1) : UIColor(red: 226 / 255, green: 227 / 255, blue: 232 / 255, alpha: 1) }
+        backgroundColor = TapMapPalette.backdrop
         layer.cornerRadius = 26
         layer.cornerCurve = .continuous
         clipsToBounds = true
@@ -41,7 +44,7 @@ public final class TapMapView: UIView {
     public func show(_ touches: TouchModel, on context: LayoutContext, screen: CGSize) {
         let short = min(screen.width, screen.height), long = max(screen.width, screen.height)
         let width = context.isLandscape ? long : short, height = context.isLandscape ? short : long
-        let metrics = KeyboardMetrics.for(context.device, width: width, height: height, style: .current)
+        let metrics = KeyboardMetrics.for(context.device, width: width, height: height, style: .current, oneHanded: context.oneHanded)
         let layout = Layouts.layout(for: context)
         self.context = context
         grid = KeyGrid(layout, width: width, metrics: metrics.grid, signature: context.signature)
@@ -86,8 +89,8 @@ public final class TapMapView: UIView {
 
     private func refresh(animated: Bool) {
         keyboard.update(layout: keyboard.layout, signature: keyboard.signature, metrics: keyboard.metrics, faces: keyboard.faceContext, theme: theme)
-        for view in keyboard.keyViews { view.showsLabel = mode == .aim && view.key.label == nil }
-        marks.draw(aims, keys: Array(grid.rows.joined()), mode: mode, selected: selected, theme: theme)
+        for view in keyboard.keyViews { view.showsLabel = mode != .accuracy && view.key.label == nil }
+        marks.draw(aims, keys: keys, mode: mode, selected: selected, theme: theme)
         guard animated else { return marks.setNeedsDisplay() }
         UIView.transition(with: canvas, duration: 0.2, options: [.transitionCrossDissolve, .allowUserInteraction]) {
             self.marks.setNeedsDisplay()
@@ -103,14 +106,19 @@ public final class TapMapView: UIView {
     }
 }
 
-private final class TapMarksView: UIView {
+final class TapMarksView: UIView {
     private var aims: [Aim] = []
     private var keys: [(key: Key, frame: Rect)] = []
     private var mode = TapMapView.Mode.aim
     private var selected: Aim?
     private var theme = KeyboardTheme.lightCurrent
+    private var heat: (image: CGImage, isDark: Bool)?
 
     func draw(_ aims: [Aim], keys: [(key: Key, frame: Rect)], mode: TapMapView.Mode, selected: Aim?, theme: KeyboardTheme) {
+        let isDark = traitCollection.userInterfaceStyle == .dark
+        if mode == .heat, heat == nil || heat?.isDark != isDark || !self.aims.elementsEqual(aims, by: { $0.key == $1.key && $0.taps == $1.taps && $0.center == $1.center }) {
+            heat = TapHeat.image(of: aims, size: bounds.size, isDark: isDark).map { ($0, isDark) }
+        }
         self.aims = aims
         self.keys = keys
         self.mode = mode
@@ -120,9 +128,42 @@ private final class TapMarksView: UIView {
 
     override func draw(_ rect: CGRect) {
         switch (mode, selected) {
+        case (.heat, _): drawHeat()
         case (.aim, _): drawAim()
         case (.accuracy, nil): drawShares(aims.map { ($0.key, $0.onTarget) }, target: nil)
         case (.accuracy, let selected?): drawShares(selected.landing, target: selected.key)
+        }
+    }
+
+    /// How densely taps land, over every key at once, with the keys named on top and the selected one outlined.
+    private func drawHeat() {
+        if let image = heat?.image, let context = UIGraphicsGetCurrentContext() {
+            context.saveGState()
+            context.interpolationQuality = .high
+            context.translateBy(x: 0, y: bounds.height)
+            context.scaleBy(x: 1, y: -1)
+            context.draw(image, in: bounds)
+            context.restoreGState()
+        }
+        let halo = NSShadow()
+        halo.shadowColor = theme.key.ui
+        halo.shadowBlurRadius = 3
+        halo.shadowOffset = .zero
+        for (key, frame) in keys where key.label != nil {
+            let rect = CGRect(frame)
+            let name = NSAttributedString(string: TapMapPalette.name(of: key), attributes: [
+                .font: UIFont.systemFont(ofSize: key.label == " " ? 13 : 17, weight: .medium),
+                .foregroundColor: UIColor.label.withAlphaComponent(0.62),
+                .shadow: halo,
+            ])
+            let size = name.size()
+            name.draw(at: CGPoint(x: rect.midX - size.width / 2, y: key.label == " " ? rect.maxY - size.height - 4 : rect.midY - size.height / 2))
+            if key == selected?.key {
+                tintColor.setStroke()
+                let outline = UIBezierPath(roundedRect: rect.insetBy(dx: -1, dy: -1), cornerRadius: 9)
+                outline.lineWidth = 2
+                outline.stroke()
+            }
         }
     }
 
@@ -222,6 +263,10 @@ private final class TapMarksView: UIView {
 }
 
 public enum TapMapPalette {
+    public static let backdrop = UIColor {
+        $0.userInterfaceStyle == .dark ? UIColor(white: 32 / 255, alpha: 1) : UIColor(red: 226 / 255, green: 227 / 255, blue: 232 / 255, alpha: 1)
+    }
+
     public static let miss = UIColor {
         $0.userInterfaceStyle == .dark
             ? UIColor(red: 0xD9 / 255, green: 0x59 / 255, blue: 0x26 / 255, alpha: 1)

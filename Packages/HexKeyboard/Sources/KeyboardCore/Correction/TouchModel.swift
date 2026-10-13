@@ -134,6 +134,12 @@ public struct TouchModel: Codable, Hashable, Sendable {
             (keys[label] ?? KeyTouches()).posterior(spread(label))
         }
 
+        func memories(_ label: String) -> (all: Posterior, lately: Posterior, now: Posterior, weights: SIMD3<Double>) {
+            let key = keys[label] ?? KeyTouches()
+            let (all, lately, now) = key.memories(spread(label))
+            return (all, lately, now, key.weights)
+        }
+
         private func spread(_ label: String) -> Spread {
             label == " " ? space : letters
         }

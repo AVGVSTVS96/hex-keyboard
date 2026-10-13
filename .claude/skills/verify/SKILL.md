@@ -25,7 +25,7 @@ Pick by what changed, and run every row that applies.
 | the decoder, models, key map, autocorrect or what a touch types | `scripts/mac scripts/eval` | it ends with `EVAL matches eval.expected`. A change that moves the numbers must beat them and updates `scripts/eval.expected` in the same commit. |
 | anything a user touches | `scripts/mac scripts/uitest`, and `scripts/mac "scripts/uitest 'iPad Pro 11' iPad-Pro-11-inch-M5-12GB"` for iPad | every `Test Case … passed`, none failed. |
 | how keys look | `scripts/mac 'scripts/sim all <tag>'`, then `uv run --with pillow --with numpy --with scipy scripts/shotdiff.py <tag>` | key rects match Apple's within half a point, light and dark. |
-| the app's Your Taps screen or what it shows | `scripts/mac 'scripts/sim taps "iPhone 17 Pro Max" iPhone-17-Pro-Max <touches.json> <tag>'` | the eight screenshots in `shots/raw/` read right, light and dark. |
+| the app's Your Taps screen or what it shows | `scripts/mac 'scripts/sim taps "iPhone 17 Pro Max" iPhone-17-Pro-Max <touches.json> <tag>'` | the fourteen screenshots in `shots/raw/` read right, light and dark. |
 | the web demo | sync `web/` to the Mac and run `scripts/web` there | it builds `web/dist`; open `web/dist/index.html` through a local server and type. |
 
 The feature map in `features/` lists each feature, how a user reaches it, and the test that drives it.

@@ -12,7 +12,15 @@ enum LaunchOptions {
     static var focus: Bool { defaults.bool(forKey: "HexFocus") }
     static var settings: Bool { defaults.bool(forKey: "HexSettings") }
     static var taps: Bool { defaults.bool(forKey: "HexTaps") }
-    static var tapsAccuracy: Bool { defaults.string(forKey: "HexTapsMode") == "accuracy" }
+    static var tapsMode: TapMapView.Mode? {
+        switch defaults.string(forKey: "HexTapsMode") {
+        case "heat": .heat
+        case "aim": .aim
+        case "accuracy": .accuracy
+        default: nil
+        }
+    }
+    static var tapsScroll: String? { defaults.string(forKey: "HexTapsScroll") }
     static var tapsKey: String? { defaults.string(forKey: "HexTapsKey") }
     static var orientation: UIInterfaceOrientationMask? {
         switch defaults.string(forKey: "HexOrientation") {

@@ -105,7 +105,8 @@ VARIANTS
 }
 
 # Screenshots the app's Your Taps screen showing a touch model (JSON, as the keyboard shares it), light and dark:
-# Aim and Accuracy, each alone and with KEY selected.
+# Heat, Aim and Accuracy, each alone and with KEY selected (Heat's scrolled to the key's close-up), and the
+# thumbs and most-missed sections at the bottom.
 taps() {
   local name=$1 type=$2 touches=$3 tag=$4 id slug group attempt
   id=$(ensure "$name" "$type")
@@ -124,10 +125,13 @@ taps() {
       sleep "${SETTLE:-3}"
       xcrun simctl io "$id" screenshot "shots/raw/$slug-$tag-taps-$variant-$appearance.png" >/dev/null 2>&1
     done <<VARIANTS
-aim
-aim-key -HexTapsKey ${KEY:-p}
+heat
+heat-key -HexTapsKey ${KEY:-p} -HexTapsScroll detail
+aim -HexTapsMode aim
+aim-key -HexTapsMode aim -HexTapsKey ${KEY:-p}
 accuracy -HexTapsMode accuracy
 accuracy-key -HexTapsMode accuracy -HexTapsKey ${KEY:-p}
+thumbs -HexTapsScroll bottom
 VARIANTS
   done
   [ -n "${KEEP:-}" ] || xcrun simctl shutdown "$id"

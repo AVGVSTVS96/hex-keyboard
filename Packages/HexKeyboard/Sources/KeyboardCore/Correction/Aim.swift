@@ -7,11 +7,20 @@ public struct Aim: Sendable {
     public let center: (x: Double, y: Double)
     /// The covariance of one tap around `center`, in square points.
     public let spread: (xx: Double, xy: Double, yy: Double)
-    public let recent: [(x: Double, y: Double)]
+    /// The key's last taps, oldest first, each with the key the grid alone reads it as.
+    public let recent: [(x: Double, y: Double, landed: Key?)]
+    /// Where the key's taps center by each of its memories (all taps, about the last 30, about the last 3), and the
+    /// weight the key's aim gives each, which sum to 1.
+    public let memories: [(center: (x: Double, y: Double), weight: Double)]
     /// The keys under your taps for this key, by the share of taps each would get from geometry alone, largest first.
     public let landing: [(key: Key, share: Double)]
 
     public var onTarget: Double { landing.first { $0.key == key }?.share ?? 0 }
+
+    /// The share of `recent` the grid alone reads as this key, or nil without any.
+    public var recentOnTarget: Double? {
+        recent.isEmpty ? nil : Double(recent.count(where: { $0.landed == key })) / Double(recent.count)
+    }
 
     /// How far the center of your taps sits from the center of the key.
     public var drift: (x: Double, y: Double) { (center.x - frame.midX, center.y - frame.midY) }
@@ -30,8 +39,13 @@ extension TouchModel {
             let variance: Double = posterior.dof / (posterior.dof - 2)
             let w = cell.width, h = cell.height
             let spread = (xx: posterior.xx * variance * w * w, xy: posterior.xy * variance * w * h, yy: posterior.yy * variance * h * h)
-            let recent: [(x: Double, y: Double)] = (taps[label] ?? []).map { (cell.midX + $0.x * w, cell.midY + $0.y * h) }
+            let point = { (u: Double, v: Double) in (x: cell.midX + u * w, y: cell.midY + v * h) }
+            let recent: [(x: Double, y: Double, landed: Key?)] = (taps[label] ?? []).map {
+                let (x, y) = point($0.x, $0.y)
+                return (x, y, grid.index(atX: x, y: y).map { grid.rows[$0.row][$0.key].key })
+            }
             let count: Double = model.keys[label]?.count ?? 0
+            let (all, lately, now, weights) = model.memories(label)
             return Aim(
                 key: item.key,
                 frame: item.frame,
@@ -39,6 +53,7 @@ extension TouchModel {
                 center: center,
                 spread: spread,
                 recent: recent,
+                memories: [all, lately, now].enumerated().map { (point($1.mean.x, $1.mean.y), weights[$0]) },
                 landing: Self.landing(around: center, spread: spread, on: grid)
             )
         }
