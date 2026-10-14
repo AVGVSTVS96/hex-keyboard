@@ -38,9 +38,9 @@ final class SettingsViewController: UITableViewController {
         Section(footer: "Removes the words and typing habits Hex has learned from you.", rows: [.reset]),
     ]
 
-    private static let keepMicOnFooter = "After you dictate, the mic stays on this long, and the mic beside the suggestions starts and stops dictating without opening Hex. Nothing is heard until you tap it. Hold it to turn the mic off."
+    private static let keepMicOnFooter = "After you dictate, Hex keeps the mic on this long. While it’s on, a mic sits beside the suggestions: tap it to start or stop dictating without leaving your app, or hold it to turn the mic off. Nothing is recorded until you tap it."
 
-    private static let menuPickFooter = "Holding 123 opens a menu above it. Let go right away to pick what Hold 123 says, or slide to the others."
+    private static let menuPickFooter = "Hold 123 for emoji, voice and the one-handed keyboard. Letting go right away opens the one you pick here."
 
     private var settings = SettingsStore.load()
 
@@ -96,7 +96,7 @@ final class SettingsViewController: UITableViewController {
             break
         }
         tableView.deselectRow(at: indexPath, animated: true)
-        let alert = UIAlertController(title: nil, message: "This will delete all custom words you’ve typed and how Hex learned your taps.", preferredStyle: .actionSheet)
+        let alert = UIAlertController(title: nil, message: "This deletes the words Hex learned from you and everything it learned about your taps.", preferredStyle: .actionSheet)
         alert.addAction(UIAlertAction(title: "Reset Dictionary", style: .destructive) { _ in MemoryStore.reset() })
         alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
         alert.popoverPresentationController?.sourceView = tableView.cellForRow(at: indexPath)

@@ -175,9 +175,9 @@ final class TapsViewController: UIViewController {
         stats.arrangedSubviews.forEach { $0.removeFromSuperview() }
         let tiles = [
             StatView(value: taps.formatted(), caption: "taps learned"),
-            StatView(value: TapMapPalette.percent(onTarget), caption: "of letter taps land on the key you meant"),
-            StatView(value: lately.map { TapMapPalette.percent($0) } ?? "–", caption: "of your last \(recent.count.formatted()) letter taps did"),
-            StatView(value: String(format: "%.1f pt", drift), caption: "your aim off a letter’s center, on average"),
+            StatView(value: TapMapPalette.percent(onTarget), caption: "of your letter taps land on the key you meant"),
+            StatView(value: lately.map { TapMapPalette.percent($0) } ?? "–", caption: "on target in your last \(recent.count.formatted()) letter taps"),
+            StatView(value: String(format: "%.1f pt", drift), caption: "from a letter’s center to where you aim, on average"),
         ]
         for pair in [tiles[0...1], tiles[2...3]] {
             let row = UIStackView(arrangedSubviews: Array(pair))
@@ -199,7 +199,7 @@ final class TapsViewController: UIViewController {
             return "On the \(name) half you tap \(Self.describe((x, y)))."
         }
         let space = map.aims.first { $0.key.label == " " && $0.taps >= 10 }.map { " You hit the space bar \(Self.describe($0.drift)) of its center." } ?? ""
-        pullCaption.text = "Each arrow runs from a letter’s center toward where its taps center, \(Int(TapPullView.magnification))× longer than it is. "
+        pullCaption.text = "Each arrow points from a letter’s center to where you really tap it, drawn \(Int(TapPullView.magnification))× longer so you can see it. "
             + sides.joined(separator: " ") + space
     }
 
@@ -241,7 +241,7 @@ final class TapsViewController: UIViewController {
         case (.aim, _):
             "Each dot is one of your recent taps. The ring holds half of all your taps for that key, and the line runs from the key’s center to where you really aim."
         case (.accuracy, nil):
-            "How often a tap lands on the key you meant, before Hex reads it with your words. Tap a key to see where its taps go."
+            "How often a tap lands on the key you meant, judged by where it lands alone, before Hex looks at the word. Tap a key to see where its taps go."
         case (.accuracy, let aim?):
             "Where your taps for “\(TapMapPalette.name(of: aim.key))” land. Tap it again to go back."
         }

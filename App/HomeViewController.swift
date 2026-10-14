@@ -12,9 +12,9 @@ final class HomeViewController: UITableViewController {
     }
 
     private let sections = [
-        Section(footer: "What you type and say stays on your iPhone: Hex has no network code.", rows: [.status]),
+        Section(footer: "Hex never goes online, so what you type and say stays on this iPhone.", rows: [.status]),
         Section(title: "Try It", rows: [.field]),
-        Section(footer: "Full Access lets Hex play haptics, hear you through this app, and show you where your taps land.", rows: [.settings, .fullAccess]),
+        Section(footer: "Full Access lets Hex play haptics, type what you say, and show you where your taps land.", rows: [.settings, .fullAccess]),
     ]
 
     private let field = UITextView()
@@ -177,7 +177,7 @@ private final class StatusCell: UITableViewCell {
         accessoryType = isAdded ? .none : .disclosureIndicator
         symbol.image = UIImage(systemName: isAdded ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
         symbol.tintColor = isAdded ? .systemGreen : .systemOrange
-        state.text = isAdded ? "Turned on" : "Turn on in Settings › Keyboards"
+        state.text = isAdded ? "Turned on" : "Turn it on in Settings › Keyboards"
         state.textColor = isAdded ? .secondaryLabel : .label
     }
 }

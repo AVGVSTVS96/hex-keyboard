@@ -1,45 +1,88 @@
 # Hex Keyboard
 
-An open-source iOS keyboard that looks, feels and types like Apple's, built to grow into the front end for hex, a personal agent.
+**A keyboard that feels like Apple's, and learns where you tap.**
 
-MIT licensed. UIKit, Swift 6, iOS 26 and later, iPhone and iPad.
+Every key matches Apple's keyboard, down to the pixel and the haptic. Hex learns where each of your taps really lands, so it fixes more typos and leaves the words you meant alone.
 
-Apple's keyboard on the left, Hex on the right, same simulator, iOS 26.3:
+Open source, for iPhone and iPad on iOS 26 and later. Type with its engine in your browser at [hex-keyboard.vercel.app](https://hex-keyboard.vercel.app).
 
-![iPhone 17, light and dark](docs/iphone.png)
+Apple's keyboard on the left, Hex on the right, in the same simulator:
 
-![iPad Pro 11-inch, light and dark](docs/ipad.png)
+![Apple's keyboard and Hex on an iPhone 17, light and dark](docs/iphone.png)
 
-## What it does today
+## It feels like Apple's
 
-- Apple's iOS 26 layouts, measured against the system keyboard in the same simulator: iPhone, iPad mini, 11" and 13" iPads (with tab, caps lock, both shifts and number row), light and dark.
-- Keycaps in SF Compact, the face the system keyboard uses, at the same size and position.
-- Key pop-ups on iPhone, long-press accents, slide-off typing, multi-touch rollover.
-- Shift, double-tap caps lock, hold shift to type capitals, auto-capitalization, double-space period.
-- `123` and `#+=` layers; press `123` and slide to a symbol to type it and come back.
-- Delete repeats on hold and speeds up to whole words.
-- Hold the space bar to move the cursor.
-- iPad flick-down for the gray secondary characters.
-- Return key follows the field's `returnKeyType`; email, URL and search fields get their own bottom rows.
-- Globe key only when iOS asks for one (`needsInputModeSwitchKey`).
-- Landscape iPhone and wide (foldable-size) phones, which get the iPad mini layout.
-- Suggestion bar drawn like iOS 26/27's: the literal “word” in quotes, the pending autocorrection in a pill, light and dark.
-- Learns your thumbs: every key's touch spot is a personal 2D Gaussian, updated from the words you keep and from backspace-and-retype, with no settings and nothing to tune. Taps are hit-tested against it and against which letter is likely next, so keys grow and shrink invisibly like Apple's (never past a quarter key).
-- Its own autocorrect: a 138k-word English lexicon (American, British and Canadian spellings) with frequencies (2.4 MB, SCOWL words and Google Books counts, see `Packages/HexKeyboard/Sources/KeyboardUI/Resources/LEXICON-LICENSE`), decoded against your taps and the words you use. It fixes slips, swaps, missed keys, skipped apostrophes and a space tapped instead of a letter ("a out" → "about", "jo." → "job"). A real word you typed is only changed when your touches themselves fit the other word better, never just because the other word is more common. Backspace right after a correction offers the original back, and reverted words are never corrected again. Your Text Replacements and contacts (`requestSupplementaryLexicon`) still apply. Fields that turn autocorrection off, and URL, email and number fields, are left alone.
-- Smart Punctuation (curly quotes, em dashes), since host apps don't convert a third-party keyboard's input.
-- A settings screen in the app, styled like Settings › General › Keyboard and shared with the keyboard through an App Group.
-- No network, no Full Access.
+Layouts, key sizes, pop-ups, accents, the space bar cursor and the suggestion bar are measured against Apple's keyboard in the same simulator, on every iPhone and iPad size, in light and dark. The haptics play at the strength Apple's keyboard uses, read off a real iPhone. Settings have Apple's names and defaults, and your Text Replacements still work.
 
-## Build
+![Apple's keyboard and Hex on an iPad Pro 11-inch, light and dark](docs/ipad.png)
 
-Requires Xcode 27 and [XcodeGen](https://github.com/yonaskolb/XcodeGen).
+## It learns where you tap
+
+Each key remembers where your thumb really lands, from the words you keep and the letters you fix. If your grip changes, it catches up within a few taps. Autocorrect reads every tap with that in mind, and it only changes a word you spelled right when your taps fit another word better.
+
+A test types 500 phrases twice with off-target thumbs. A keyboard that takes the nearest key and corrects with Apple's spell checker gets 85% of words right; Hex gets 97.6%. The numbers and how they're measured are in [PROGRESS.md](PROGRESS.md).
+
+The suggestion bar guesses your next word from the two before it, and from what you usually type.
+
+The Hex app shows what it learned: a heat map of where your thumbs press, where each key's taps land, and the keys you miss most.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/taps-dark.png">
+  <img alt="Your Taps in the Hex app: a heat map of where your thumbs press" src="docs/taps-light.png" width="400">
+</picture>
+
+## Talk instead of typing
+
+Hold 123 and pick the mic. iOS doesn't let keyboards use the microphone, so Hex opens its app to start listening, and you swipe back and keep talking. The app can then keep the mic on for as long as you pick, and while it's on, a mic button sits beside the suggestions: tap it to start and stop dictating, in any app. What you say is turned into text on the iPhone with Apple's speech model, and every transcript is saved in the Hex app.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/voice-dark.png">
+  <img alt="The suggestion bar while dictating: pizza emoji beside a red mic" src="docs/voice-light.png" width="400">
+</picture>
+
+## Emoji
+
+Hold 123 and let go for Apple's emoji keyboard, with search. Type a word like "pizza" and its emoji shows up in the suggestion bar.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/emoji-dark.png">
+  <img alt="Searching emoji for heart" src="docs/emoji-light.png" width="400">
+</picture>
+
+## Also
+
+- One-handed keyboard: hold 123 and slide left or right.
+- Hold the space bar and slide to move the cursor, hold delete to erase whole words, flick down on iPad keys for their second character.
+- Return, email, URL and search fields get the keys Apple gives them.
+- Hex never goes online, so nothing you type or say leaves your iPhone.
+
+Not built yet: swipe typing, and languages other than English.
+
+## Install
+
+Hex isn't on the App Store, so you build it yourself.
+
+On a Mac, with Xcode and [XcodeGen](https://github.com/yonaskolb/XcodeGen):
 
 ```sh
 xcodegen generate
 open HexKeyboard.xcodeproj
 ```
 
-To run on a device, put your team in `Config/Team.xcconfig` (`DEVELOPMENT_TEAM = <your team ID>`). Run the `Hex` scheme, then add the keyboard in Settings › General › Keyboard › Keyboards › Add New Keyboard… › Hex.
+Put your team in `Config/Team.xcconfig` (`DEVELOPMENT_TEAM = <your team ID>`) and run the `Hex` scheme. On Linux, `scripts/phone` builds and installs it with [xtool](https://github.com/xtool-org/xtool); [AGENTS.md](AGENTS.md) has the details. The app and App Group IDs are Hex's own (`com.shahidy.hexkeyboard`), so a different team may need to swap in its own.
+
+Then on the phone: Settings › General › Keyboard › Keyboards › Add New Keyboard… › Hex, and turn on Allow Full Access. Hex needs it for haptics, voice and Your Taps.
+
+## How it's built
+
+| Path | What |
+| --- | --- |
+| `Packages/HexKeyboard/Sources/KeyboardCore` | Everything the keyboard does: layouts, typing, autocorrect, the tap model, emoji search. Pure Swift with no Foundation or UIKit, so it also runs in the browser as WebAssembly. Unit tested. |
+| `Packages/HexKeyboard/Sources/KeyboardUI` | Draws the keys, handles touches and haptics, and talks to the app. |
+| `Keyboard/` | The keyboard extension. |
+| `App/` | The Hex app: setup and settings, voice typing, Transcripts and Your Taps. |
+| `web/` | The browser demo. |
+| `UITests/` | Types through the real keyboard in the simulator. |
 
 Tests:
 
@@ -48,15 +91,7 @@ cd Packages/HexKeyboard
 xcodebuild test -scheme HexKeyboard-Package -destination 'platform=iOS Simulator,name=iPhone 17'
 ```
 
-## Structure
-
-| Path | What |
-| --- | --- |
-| `Packages/HexKeyboard/Sources/KeyboardCore` | Layouts, typing and autocorrect logic. Pure Swift, no Foundation or UIKit, fully unit tested. |
-| `Packages/HexKeyboard/Sources/KeyboardUI` | The keyboard view controller, key views, metrics and theme. |
-| `Keyboard/` | The keyboard extension. |
-| `App/` | The containing app: setup steps, a test field and the keyboard settings. |
-| `UITests/` | End-to-end typing through the real extension. |
+[AGENTS.md](AGENTS.md) explains the design and the scripts; [PROGRESS.md](PROGRESS.md) is the build log, with every measurement.
 
 ## License
 

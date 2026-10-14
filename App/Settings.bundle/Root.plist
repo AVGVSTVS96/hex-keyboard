@@ -8,7 +8,7 @@
 	<array>
 		<dict>
 			<key>FooterText</key>
-			<string>Holding 123 opens a menu above it. Let go right away to pick what Hold 123 says, or slide to the others.</string>
+			<string>Hold 123 for emoji, voice and the one-handed keyboard. Letting go right away opens the one you pick here.</string>
 			<key>Type</key>
 			<string>PSGroupSpecifier</string>
 		</dict>
@@ -168,7 +168,7 @@
 		</dict>
 		<dict>
 			<key>FooterText</key>
-			<string>After you dictate, the mic stays on this long, and the mic beside the suggestions starts and stops dictating without opening Hex. Nothing is heard until you tap it. Hold it to turn the mic off.</string>
+			<string>After you dictate, Hex keeps the mic on this long. While it’s on, a mic sits beside the suggestions: tap it to start or stop dictating without leaving your app, or hold it to turn the mic off. Nothing is recorded until you tap it.</string>
 			<key>Title</key>
 			<string>Voice</string>
 			<key>Type</key>
