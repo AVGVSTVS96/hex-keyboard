@@ -1,10 +1,12 @@
 import UIKit
 import KeyboardCore
 
-/// Apple's three suggestions, and while the app keeps the microphone on, a mic at the right end that starts and stops
-/// dictation in place. The suggestions narrow to make room for it.
+/// Apple's three suggestions, the last one giving way to emoji when the word has some, and while the app keeps the
+/// microphone on, a mic at the right end that starts and stops dictation in place. The suggestions narrow to make room
+/// for it.
 final class SuggestionBar: UIView {
     var onSelect: (Suggestion) -> Void = { _ in }
+    var onEmoji: (String) -> Void = { _ in }
     var onMic: () -> Void = {}
     var onMicHold: () -> Void = {}
     var maximumSlotWidth = CGFloat.infinity { didSet { setNeedsLayout() } }
@@ -13,6 +15,7 @@ final class SuggestionBar: UIView {
 
     private let slots = (0..<3).map { SuggestionSlot(index: $0) }
     private let dividers = (0..<3).map { _ in UIView() }
+    private var emoji: [EmojiPick] = []
     private let mic = MicButton()
     private let notice = UILabel()
     private var enabled = true
@@ -45,11 +48,23 @@ final class SuggestionBar: UIView {
 
     required init?(coder: NSCoder) { fatalError() }
 
-    func update(_ suggestions: [Suggestion], enabled: Bool, theme: KeyboardTheme) {
+    func update(_ suggestions: [Suggestion], emoji: [String], enabled: Bool, theme: KeyboardTheme) {
         self.enabled = enabled
         for (index, slot) in slots.enumerated() {
             slot.configure(suggestions.indices.contains(index) ? suggestions[index] : nil, theme: theme)
         }
+        if emoji != self.emoji.map(\.emoji) {
+            self.emoji.forEach { $0.removeFromSuperview() }
+            self.emoji = emoji.enumerated().map { index, emoji in
+                let pick = EmojiPick(emoji: emoji, index: index)
+                pick.addAction(UIAction { [unowned self] _ in onEmoji(emoji) }, for: .touchUpInside)
+                pick.onHighlight = { [unowned self] in refreshDividers() }
+                addSubview(pick)
+                return pick
+            }
+            setNeedsLayout()
+        }
+        self.emoji.forEach { $0.theme = theme }
         dividers.forEach { $0.backgroundColor = theme.candidateDivider.ui }
         refresh()
     }
@@ -72,13 +87,20 @@ final class SuggestionBar: UIView {
     private func refresh() {
         notice.isHidden = !noticed
         slots.forEach { $0.isHidden = !enabled || noticed }
+        emoji.forEach { $0.isHidden = !enabled || noticed }
+        if !emoji.isEmpty { slots[slots.count - 1].isHidden = true }
         refreshDividers()
     }
 
+    /// A divider shows only between two things shown without a pill.
     private func refreshDividers() {
+        func hidesDivider(_ index: Int, leading: Bool) -> Bool {
+            if index == slots.count { return mic.isHidden || mic.showsPill }
+            if index == slots.count - 1, let pick = leading ? emoji.first : emoji.last { return pick.isHidden || pick.isHighlighted }
+            return slots[index].isHidden || slots[index].showsPill
+        }
         for (index, divider) in dividers.enumerated() {
-            let right = index + 1 < slots.count ? (slots[index + 1].isHidden, slots[index + 1].showsPill) : (mic.isHidden, mic.showsPill)
-            divider.isHidden = slots[index].isHidden || right.0 || right.1 || slots[index].showsPill
+            divider.isHidden = hidesDivider(index, leading: false) || hidesDivider(index + 1, leading: true)
         }
     }
 
@@ -95,6 +117,17 @@ final class SuggestionBar: UIView {
             slot.frame = CGRect(x: minX, y: 0, width: maxX - minX, height: bounds.height)
         }
         self.mic.frame = mic
+        let last = slots[slots.count - 1].frame
+        let pitch = min(last.width / CGFloat(max(emoji.count, 1)), EmojiPick.pitch)
+        let first = last.midX - pitch * CGFloat(emoji.count) / 2
+        for (index, pick) in emoji.enumerated() {
+            let left = (first + CGFloat(index) * pitch).rounded(scale: scale)
+            let glyph = CGRect(x: left, y: 0, width: (first + CGFloat(index + 1) * pitch).rounded(scale: scale) - left, height: bounds.height)
+            let minX = index == 0 ? last.minX : glyph.minX
+            let maxX = index == emoji.count - 1 ? last.maxX : glyph.maxX
+            pick.frame = CGRect(x: minX, y: 0, width: maxX - minX, height: bounds.height)
+            pick.glyph = glyph.offsetBy(dx: -pick.frame.minX, dy: 0)
+        }
         for (index, divider) in dividers.enumerated() {
             divider.frame = CGRect(x: slots[index].frame.maxX - 1, y: bounds.midY - 12, width: 1, height: 24)
         }
@@ -206,6 +239,51 @@ final class MicButton: UIControl {
             bar.frame = CGRect(x: x, y: ((pill.bounds.height - height) / 2).rounded(scale: scale), width: width, height: height)
             bar.layer.cornerRadius = width / 2
         }
+    }
+}
+
+/// One emoji in the bar's last slot: a tap types it in place of the word. The outer ones also take the slot's
+/// margins, so the whole slot answers a tap.
+private final class EmojiPick: UIControl {
+    static let pitch: CGFloat = 44
+    let emoji: String
+    var glyph = CGRect.zero { didSet { setNeedsLayout() } }
+    var onHighlight: () -> Void = {}
+    var theme = KeyboardTheme.lightCurrent { didSet { pill.backgroundColor = theme.candidatePill.ui } }
+    private let label = UILabel()
+    private let pill = UIView()
+
+    init(emoji: String, index: Int) {
+        self.emoji = emoji
+        super.init(frame: .zero)
+        accessibilityIdentifier = "hex.suggestion.emoji.\(index)"
+        accessibilityLabel = emoji
+        isAccessibilityElement = true
+        accessibilityTraits = .keyboardKey
+        pill.isUserInteractionEnabled = false
+        pill.isHidden = true
+        label.text = emoji
+        label.font = .systemFont(ofSize: 24)
+        label.textAlignment = .center
+        addSubview(pill)
+        addSubview(label)
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    override var isHighlighted: Bool {
+        didSet {
+            guard isHighlighted != oldValue else { return }
+            pill.isHidden = !isHighlighted
+            onHighlight()
+        }
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        pill.frame = glyph.insetBy(dx: MicButton.pillInset, dy: 0)
+        pill.layer.cornerRadius = min(pill.bounds.width, pill.bounds.height) / 2
+        label.frame = glyph
     }
 }
 

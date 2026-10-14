@@ -1,6 +1,7 @@
 import XCTest
 
-/// Screenshots of the emoji keyboard, Apple's or Hex's, for `scripts/mac 'scripts/emojishots …'`.
+/// Screenshots of the emoji keyboard, Apple's or Hex's, for `scripts/mac 'scripts/emojishots …'`: opened, scrolled, on
+/// Food & Drink, and searching for "heart".
 final class EmojiShots: XCTestCase {
     func testOpenScrollAndShoot() throws {
         guard let prefix = ProcessInfo.processInfo.environment["HEX_SHOTS"] else { throw XCTSkip("Run through scripts/emojishots") }
@@ -29,7 +30,8 @@ final class EmojiShots: XCTestCase {
             food.tap()
             try shoot("food")
         }
-        let search = app.searchFields.firstMatch.exists ? app.searchFields.firstMatch : app.textFields.matching(NSPredicate(format: "placeholderValue CONTAINS[c] 'Search' OR label CONTAINS[c] 'Search'")).firstMatch
+        let hex = app.descendants(matching: .any).matching(identifier: "hex.emoji.search").firstMatch
+        let search = hex.exists ? hex : app.searchFields.firstMatch.exists ? app.searchFields.firstMatch : app.textFields.matching(NSPredicate(format: "placeholderValue CONTAINS[c] 'Search' OR label CONTAINS[c] 'Search'")).firstMatch
         if search.exists {
             search.tap()
             try shoot("search")
@@ -39,6 +41,5 @@ final class EmojiShots: XCTestCase {
             }
             try shoot("search-heart")
         }
-        print(app.debugDescription)
     }
 }

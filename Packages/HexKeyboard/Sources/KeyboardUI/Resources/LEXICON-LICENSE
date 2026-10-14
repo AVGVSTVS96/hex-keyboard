@@ -25,9 +25,11 @@ https://storage.googleapis.com/books/ngrams/books/datasetsv3.html
   https://creativecommons.org/licenses/by/3.0/
   en.lexicon contains counts derived from it (summed per word, rounded to tenths of a nat of log-probability).
 
-emoji.txt is built by scripts/emoji.py from Unicode's emoji-test.txt, Emoji 16.0, https://unicode.org/Public/emoji/16.0/
-(Unicode License v3, https://www.unicode.org/license.txt, Copyright © 1991-2024 Unicode, Inc.): the fully-qualified
-emoji in CLDR order, regrouped into Apple's categories, with their skin tones.
+emoji.txt is built by scripts/emoji.py from Unicode's emoji-test.txt, Emoji 16.0, https://unicode.org/Public/emoji/16.0/,
+CLDR 46's English annotations, https://github.com/unicode-org/cldr/blob/release-46/common/annotations/en.xml, and
+Unicode's emoji frequency, https://home.unicode.org/emoji/emoji-frequency/ (all under the Unicode License v3,
+https://www.unicode.org/license.txt, Copyright © 1991-2024 Unicode, Inc.): the fully-qualified emoji in CLDR order,
+regrouped into Apple's categories, with their skin tones, each one's rank by use, and its name and keywords.
 
 en.phrases is built by scripts/phrases from the same Google Books Ngram English Fiction release (2-grams and 3-grams,
 books from 1980 on, CC BY 3.0 as above): for each word and pair of words, the words that most often follow them, with

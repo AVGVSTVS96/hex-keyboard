@@ -57,7 +57,18 @@ open class HexKeyboardViewController: UIInputViewController {
             engine.accept($0, in: document)
             render()
         }
+        suggestionBar.onEmoji = { [unowned self] in
+            feedback(.input)
+            engine.accept(emoji: $0, in: document)
+            render()
+        }
         engine.corrector = Corrector(source: Lexicon.english, phrases: .english)
+        Task { [weak self] in
+            let catalog = await Task.detached(priority: .userInitiated) { EmojiCatalog.english }.value
+            self?.engine.emojiCatalog = catalog
+            self?.engine.suggestionsChanged()
+            self?.render()
+        }
         keyboardView.resolve = { [unowned self] grid, point in engine.key(atX: point.x, y: point.y, in: grid) }
         keyboardView.onGrid = { [unowned self] in engine.use($0) }
         keyboardView.globeTarget = { [unowned self] control in
@@ -144,12 +155,15 @@ open class HexKeyboardViewController: UIInputViewController {
         return shortSide >= 1000 ? .largePad : shortSide < 800 ? .compactPad : .pad
     }
 
-    private var barHeight: CGFloat {
-        switch (device, engine.showsSuggestions || mic != nil || dictation.failure != nil) {
+    /// The bar's height, or above the emoji keyboard's keys, the search field and what it finds.
+    private func barHeight(_ metrics: KeyboardMetrics) -> CGFloat {
+        let bar: CGFloat = switch (device, engine.showsSuggestions || mic != nil || dictation.failure != nil) {
         case (.phone, _): 38
         case (_, true): 36
         case (_, false): 0
         }
+        guard engine.showsEmoji else { return bar }
+        return engine.emojiQuery == nil ? bar + EmojiKeyboardView.fieldSpan : EmojiKeyboardView.searchHeight(metrics)
     }
 
     /// The bar's mic shows while the app keeps the microphone on or listens.
@@ -172,14 +186,17 @@ open class HexKeyboardViewController: UIInputViewController {
         suggestionBar.keyInset = metrics.sideInset
         suggestionBar.update(mic: mic, notice: dictation.failure, theme: theme)
         renderSuggestions()
-        if engine.showsEmoji { emojiView.update(history: engine.emojiHistory, opening: emojiView.isHidden, theme: theme, metrics: metrics) }
+        if engine.showsEmoji {
+            emojiView.update(history: engine.emojiHistory, opening: emojiView.isHidden, query: engine.emojiQuery, theme: theme, metrics: metrics)
+        }
         emojiView.isHidden = !engine.showsEmoji
-        keyboardView.isHidden = !emojiView.isHidden
-        suggestionBar.isHidden = keyboardView.isHidden
+        keyboardView.isHidden = engine.showsEmoji && engine.emojiQuery == nil
+        suggestionBar.isHidden = engine.showsEmoji
 
         let height = metrics.height(rows: layout.rows.count, hasNumberRow: layout.hasNumberRow)
         if keyboardHeightConstraint.constant != height { keyboardHeightConstraint.constant = height }
-        if barHeightConstraint.constant != barHeight { barHeightConstraint.constant = barHeight }
+        let bar = barHeight(metrics)
+        if barHeightConstraint.constant != bar { barHeightConstraint.constant = bar }
     }
 
     private var theme: KeyboardTheme {
@@ -190,7 +207,7 @@ open class HexKeyboardViewController: UIInputViewController {
 
     private func renderSuggestions() {
         guard engine.suggestionsAreStale else {
-            return suggestionBar.update(engine.suggestions, enabled: engine.showsSuggestions, theme: theme)
+            return suggestionBar.update(engine.suggestions, emoji: engine.emojiSuggestions, enabled: engine.showsSuggestions, theme: theme)
         }
         guard !ranking, let job = engine.suggestionJob() else { return }
         ranking = true

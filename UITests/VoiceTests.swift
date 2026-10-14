@@ -13,12 +13,15 @@ final class VoiceTests: XCTestCase {
         app.launchArguments = ["-HexFocus", "YES", "-HexOrientation", "portrait"]
         app.launch()
         XCTAssertTrue(key("space", in: app).waitForExistence(timeout: 10), "Hex keyboard is not the active keyboard")
-        for letter in "hel" { key(String(letter), in: app).tap() }
+        for letter in "pizza" { key(String(letter), in: app).tap() }
 
         let mic = app.buttons["hex.mic"]
         if !mic.waitForExistence(timeout: 5) { try shot("\(shots)-no-mic") }
         XCTAssertTrue(mic.exists, "the mic shows while the app keeps the microphone on")
         XCTAssertEqual(mic.label, "Dictate")
+        let emoji = app.keys.matching(identifier: "hex.suggestion.emoji.0").firstMatch
+        XCTAssertTrue(emoji.waitForExistence(timeout: 3), "the word's emoji sit beside the mic")
+        XCTAssertLessThan(emoji.frame.maxX, mic.frame.minX + 1)
         try shot("\(shots)-on")
 
         mic.tap()

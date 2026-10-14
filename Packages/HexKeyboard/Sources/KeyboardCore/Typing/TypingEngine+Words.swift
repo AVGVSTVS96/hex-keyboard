@@ -82,10 +82,14 @@ extension TypingEngine {
     }
 
     public func layout(on device: DeviceClass, showsGlobe: Bool = false, isLandscape: Bool = false) -> LayoutContext {
-        LayoutContext(device: device, layer: layer, kind: traits.kind, showsGlobe: showsGlobe, isLandscape: isLandscape, oneHanded: settings.oneHanded, menuPick: settings.menuPick)
+        LayoutContext(device: device, layer: layer, kind: emojiQuery == nil ? traits.kind : .text, showsGlobe: showsGlobe, isLandscape: isLandscape, oneHanded: settings.oneHanded, menuPick: settings.menuPick)
     }
 
+    /// While the emoji search is open, the keys are a plain text keyboard whose return (a checkmark) closes it.
     public func faces(on device: DeviceClass) -> KeyFaceContext {
+        if emojiQuery != nil {
+            return KeyFaceContext(device: device, layer: layer, kind: .text, shift: shift, returnKind: .done, returnEnabled: true)
+        }
         let returnEnabled = !traits.returnRequiresText || !text.before.isEmpty || !(text.after ?? "").isEmpty
         return KeyFaceContext(device: device, layer: layer, kind: traits.kind, shift: shift, returnKind: traits.returnKind, returnEnabled: returnEnabled)
     }
@@ -123,6 +127,20 @@ extension TypingEngine {
         suggestionsChanged()
     }
 
+    /// An emoji from the suggestion bar: it takes the place of the word being typed, or follows the word just typed.
+    public mutating func accept(emoji: String, in document: some TextDocument) {
+        attach(document)
+        let word = Words.current(in: text.before)
+        guard text.before[..<word.startIndex] == suggestionsBefore else { return }
+        emojiHistory.use(emoji)
+        learnPending()
+        revert = nil
+        typing = WordTaps()
+        write(emoji + " ", replacing: word.count, in: document)
+        refreshShift()
+        suggestionsChanged()
+    }
+
     /// Marks the suggestions out of date: ranks them now, or leaves them for a `SuggestionJob`.
     public mutating func suggestionsChanged() {
         revision += 1
@@ -142,6 +160,7 @@ extension TypingEngine {
     public mutating func finish(_ job: SuggestionJob) {
         guard job.engine.revision == revision, let snapshot = job.engine.corrector else { return }
         suggestions = job.engine.suggestions
+        emojiSuggestions = job.engine.emojiSuggestions
         suggestionsBefore = job.engine.suggestionsBefore
         keyMap = job.engine.keyMap
         suggestionsAreStale = false
@@ -267,12 +286,20 @@ extension TypingEngine {
 
     mutating func refreshSuggestions() {
         suggestionsAreStale = false
+        emojiSuggestions = []
+        if let emojiQuery {
+            keyMap = corrector?.keyMap(revision: revision, after: layer == .letters ? String(Words.current(in: emojiQuery)) : nil)
+            return suggestions = []
+        }
         let text = self.text.before
         let word = Words.current(in: text)
         let inWords = layer == .letters && correcting && (word.isEmpty || Words.isCorrectable(word, in: text))
         keyMap = corrector?.keyMap(revision: revision, after: inWords ? String(word) : nil)
-        guard let corrector, showsSuggestions else { return suggestions = [] }
+        guard showsSuggestions else { return suggestions = [] }
         suggestionsBefore = String(text[..<word.startIndex])
+        let named = word.isEmpty && text.hasSuffix(" ") ? Words.current(in: String(text.dropLast())) : word
+        emojiSuggestions = emojiCatalog?.suggestions(for: String(named), history: emojiHistory) ?? []
+        guard let corrector else { return suggestions = [] }
         let typed = TypedWord(String(word), taps: typing.letters, previous: Words.previous(before: word, in: text))
         if let revert, revert.isOffered(before: text) {
             let completions = corrector.suggestions(for: typed, correcting: false, guessing: false).dropFirst()

@@ -12,6 +12,8 @@ public enum KeyboardEvent: Hashable, Sendable {
     case emoji(String, base: String?)
     /// The emoji keyboard's ABC key.
     case closeEmoji
+    /// Starts or clears the emoji search with "", or ends it with nil. While it's open, the keys type into it.
+    case emojiSearch(String?)
     /// Text that dictation heard.
     case dictated(String)
 }
