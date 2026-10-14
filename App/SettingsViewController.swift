@@ -8,6 +8,8 @@ final class SettingsViewController: UITableViewController {
         case oneHanded
         case menuPick
         case keepMicOn
+        case source(Source)
+        case addSource
         case reset
     }
 
@@ -17,8 +19,8 @@ final class SettingsViewController: UITableViewController {
         var rows: [Row]
     }
 
-    private let sections = [
-        Section(footer: SettingsViewController.menuPickFooter, rows: [.oneHanded, .menuPick]),
+    private var sections: [Section] { [
+        Section(footer: Self.menuPickFooter, rows: [.oneHanded, .menuPick]),
         Section(footer: "Haptic Feedback needs Allow Full Access in Settings › General › Keyboard › Keyboards › Hex.", rows: [
             .toggle("Character Preview", \.characterPreview),
             .toggle("Haptic Feedback", \.haptics),
@@ -34,15 +36,19 @@ final class SettingsViewController: UITableViewController {
         Section(title: "English", footer: "Hex expands your Text Replacements from Settings › General › Keyboard › Text Replacement.", rows: [
             .toggle("Predictive Text", \.predictiveText),
         ]),
-        Section(title: "Voice", footer: SettingsViewController.keepMicOnFooter, rows: [.keepMicOn]),
+        Section(title: "Voice", footer: Self.keepMicOnFooter, rows: [.keepMicOn]),
+        Section(title: "Sources", footer: Self.sourcesFooter, rows: sources.map(Row.source) + [.addSource]),
         Section(footer: "Removes the words and typing habits Hex has learned from you.", rows: [.reset]),
-    ]
+    ] }
 
     private static let keepMicOnFooter = "After you dictate, Hex keeps the mic on this long. While it’s on, a mic sits beside the suggestions: tap it to start or stop dictating without leaving your app, or hold it to turn the mic off. Nothing is recorded until you tap it."
+
+    private static let sourcesFooter = "With Allow Full Access on, Hex sends each source the text of the field you’re typing in, except passwords and codes, and shows the hints it answers with above the keys. Tap a hint to hide it."
 
     private static let menuPickFooter = "Hold 123 for emoji, voice and the one-handed keyboard. Letting go right away opens the one you pick here."
 
     private var settings = SettingsStore.load()
+    private var sources = SourceStore.load()
 
     init() {
         super.init(style: .insetGrouped)
@@ -67,11 +73,25 @@ final class SettingsViewController: UITableViewController {
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         settings = SettingsStore.load()
+        sources = SourceStore.load()
         tableView.reloadData()
     }
 
     override func tableView(_ tableView: UITableView, shouldHighlightRowAt indexPath: IndexPath) -> Bool {
-        if case .toggle = row(at: indexPath) { false } else { true }
+        switch row(at: indexPath) {
+        case .toggle, .source: false
+        default: true
+        }
+    }
+
+    override func tableView(_ tableView: UITableView, trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
+        guard case .source(let source) = row(at: indexPath) else { return nil }
+        return UISwipeActionsConfiguration(actions: [UIContextualAction(style: .destructive, title: "Delete") { [unowned self] _, _, done in
+            sources.removeAll { $0 == source }
+            SourceStore.save(sources)
+            tableView.deleteRows(at: [indexPath], with: .automatic)
+            done(true)
+        }])
     }
 
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
@@ -92,6 +112,9 @@ final class SettingsViewController: UITableViewController {
                 SettingsStore.keepMicOn = $0
                 Listener.shared.keepMicOn()
             }, sender: self)
+        case .addSource:
+            tableView.deselectRow(at: indexPath, animated: true)
+            return addSource()
         default:
             break
         }
@@ -133,6 +156,16 @@ final class SettingsViewController: UITableViewController {
             content.secondaryText = Dictation.title(keepingMicOn: SettingsStore.keepMicOn)
             cell.accessoryView = nil
             cell.accessoryType = .disclosureIndicator
+        case .source(let source):
+            content = .subtitleCell()
+            content.text = source.name
+            content.secondaryText = source.url.absoluteString
+            content.secondaryTextProperties.color = .secondaryLabel
+            cell.accessoryView = nil
+        case .addSource:
+            content.text = "Add Source…"
+            content.textProperties.color = .tintColor
+            cell.accessoryView = nil
         case .reset:
             content.text = "Reset Keyboard Dictionary"
             content.textProperties.color = .tintColor
@@ -140,6 +173,29 @@ final class SettingsViewController: UITableViewController {
         }
         cell.contentConfiguration = content
         return cell
+    }
+
+    private func addSource() {
+        let alert = UIAlertController(title: "Add Source", message: "A source is a service Hex tells what you type. It can answer with a hint above the keys.", preferredStyle: .alert)
+        alert.addTextField { $0.placeholder = "Name" }
+        alert.addTextField {
+            $0.placeholder = "https://"
+            $0.keyboardType = .URL
+            $0.autocapitalizationType = .none
+        }
+        alert.addTextField {
+            $0.placeholder = "Token (optional)"
+            $0.autocapitalizationType = .none
+        }
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        alert.addAction(UIAlertAction(title: "Add", style: .default) { [unowned self, unowned alert] _ in
+            let fields = alert.textFields?.map { $0.text?.trimmingCharacters(in: .whitespaces) ?? "" } ?? []
+            guard let url = URL(string: fields[1]), Source.allows(url), !fields[0].isEmpty else { return }
+            SourceStore.add(Source(name: fields[0], url: url, token: fields[2].isEmpty ? nil : fields[2]))
+            sources = SourceStore.load()
+            tableView.reloadData()
+        })
+        present(alert, animated: true)
     }
 
     private static func title(of hand: OneHanded) -> String {

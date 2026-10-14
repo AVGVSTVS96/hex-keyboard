@@ -9,6 +9,7 @@ final class SuggestionBar: UIView {
     var onEmoji: (String) -> Void = { _ in }
     var onMic: () -> Void = {}
     var onMicHold: () -> Void = {}
+    var onNotice: () -> Void = {}
     var maximumSlotWidth = CGFloat.infinity { didSet { setNeedsLayout() } }
     /// Where the keys end, so the mic's pill lines up with the last key.
     var keyInset: CGFloat = 0 { didSet { if keyInset != oldValue { setNeedsLayout() } } }
@@ -43,6 +44,8 @@ final class SuggestionBar: UIView {
         notice.minimumScaleFactor = 0.7
         notice.lineBreakMode = .byTruncatingTail
         notice.accessibilityIdentifier = "hex.notice"
+        notice.isUserInteractionEnabled = true
+        notice.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(tapNotice)))
         addSubview(notice)
     }
 
@@ -69,7 +72,7 @@ final class SuggestionBar: UIView {
         refresh()
     }
 
-    /// `notice` (why voice couldn't start) stands in for the suggestions until the next key.
+    /// `notice` (why voice couldn't start, or a source's hint) stands in for the suggestions. Tapping it dismisses it.
     func update(mic: MicButton.Phase?, notice: String?, theme: KeyboardTheme) {
         if self.mic.isHidden != (mic == nil) { setNeedsLayout() }
         self.mic.isHidden = mic == nil
@@ -82,6 +85,10 @@ final class SuggestionBar: UIView {
 
     func hear(_ level: Float) {
         mic.hear(level)
+    }
+
+    @objc private func tapNotice() {
+        onNotice()
     }
 
     private func refresh() {

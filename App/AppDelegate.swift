@@ -37,6 +37,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
 
     private func open(_ contexts: Set<UIOpenURLContext>) {
+        if let source = contexts.lazy.compactMap({ Source(link: $0.url) }).first { return offer(source) }
         guard contexts.contains(where: { $0.url == Dictation.url }), let root = window?.rootViewController else { return }
         Task { await Listener.shared.start() }
         guard !(root.presentedViewController is DictationViewController) else { return }
@@ -44,5 +45,17 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         let dictation = DictationViewController()
         dictation.modalPresentationStyle = .fullScreen
         root.present(dictation, animated: false)
+    }
+
+    /// A source's link asks before Hex starts telling it what you type.
+    private func offer(_ source: Source) {
+        let alert = UIAlertController(
+            title: "Add “\(source.name)”?",
+            message: "With Allow Full Access on, Hex will send \(source.url.host() ?? "it") the text of the field you’re typing in, except passwords and codes, and show the hints it answers with above the keys.",
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        alert.addAction(UIAlertAction(title: "Add", style: .default) { _ in SourceStore.add(source) })
+        window?.rootViewController?.present(alert, animated: true)
     }
 }

@@ -16,6 +16,7 @@ open class HexKeyboardViewController: UIInputViewController {
     private lazy var keyboardHeightConstraint = keyboardView.heightAnchor.constraint(equalToConstant: 0)
     private var deleteRepeat: DeleteRepeat?
     private let haptics = KeyHaptics()
+    private let sources = Sources()
 
     override open func loadView() {
         inputView = KeyboardInputView(frame: .zero, inputViewStyle: .default)
@@ -46,6 +47,12 @@ open class HexKeyboardViewController: UIInputViewController {
         emojiView.isHidden = true
         emojiView.onEvent = { [unowned self] in handle($0) }
         suggestionBar.onMic = { [unowned self] in toggleVoice() }
+        suggestionBar.onNotice = { [unowned self] in
+            if dictation.failure != nil { return clearFailure() }
+            sources.dismissHint()
+            render()
+        }
+        sources.onHint = { [unowned self] in render() }
         suggestionBar.onMicHold = { [unowned self] in
             feedback(.other)
             Dictation.send(.stop)
@@ -75,6 +82,7 @@ open class HexKeyboardViewController: UIInputViewController {
             control.addTarget(self, action: #selector(handleInputModeList(from:with:)), for: .allTouchEvents)
         }
         registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (self: Self, _) in self.render() }
+        if hasFullAccess { sources.reload() }
         syncWithDocument()
     }
 
@@ -102,6 +110,7 @@ open class HexKeyboardViewController: UIInputViewController {
         }
         engine.suggestionsChanged()
         keyboardView.characterPreview = engine.settings.characterPreview
+        if hasFullAccess { sources.reload() }
         syncWithDocument()
     }
 
@@ -141,6 +150,7 @@ open class HexKeyboardViewController: UIInputViewController {
         engine.update(InputTraits(textDocumentProxy))
         let known = engine.text.before.count
         let report = engine.documentChanged(document)
+        if report == .changed { tellSources(.app) }
         TouchTrace.shared.record(report, host: textDocumentProxy.documentContextBeforeInput?.count ?? 0, known: known)
         render()
     }
@@ -157,7 +167,7 @@ open class HexKeyboardViewController: UIInputViewController {
 
     /// The bar's height, or above the emoji keyboard's keys, the search field and what it finds.
     private func barHeight(_ metrics: KeyboardMetrics) -> CGFloat {
-        let bar: CGFloat = switch (device, engine.showsSuggestions || mic != nil || dictation.failure != nil) {
+        let bar: CGFloat = switch (device, engine.showsSuggestions || mic != nil || dictation.failure != nil || hint != nil) {
         case (.phone, _): 38
         case (_, true): 36
         case (_, false): 0
@@ -175,7 +185,22 @@ open class HexKeyboardViewController: UIInputViewController {
         }
     }
 
+    /// What a source sees: the field's text as the keyboard knows it, with Full Access, outside password and code fields.
+    private func tellSources(_ author: FieldUpdate.Author) {
+        guard hasFullAccess, !textDocumentProxy.isPrivate, let field = textDocumentProxy.field else { return }
+        sources.observe(FieldUpdate(
+            field: field, before: engine.text.before, after: engine.text.after ?? "",
+            by: author, traits: engine.traits
+        ))
+    }
+
+    private var hint: String? {
+        guard hasFullAccess, let field = textDocumentProxy.field else { return nil }
+        return sources.hint(for: field)
+    }
+
     private func render() {
+        tellSources(.keyboard)
         let device = device
         let context = engine.layout(on: device, showsGlobe: needsInputModeSwitchKey, isLandscape: screenSize.width > screenSize.height)
         let layout = Layouts.layout(for: context)
@@ -184,7 +209,7 @@ open class HexKeyboardViewController: UIInputViewController {
         keyboardView.update(layout: layout, signature: context.signature, metrics: metrics, faces: engine.faces(on: device), theme: theme)
         suggestionBar.maximumSlotWidth = device == .phone ? .infinity : 154.5
         suggestionBar.keyInset = metrics.sideInset
-        suggestionBar.update(mic: mic, notice: dictation.failure, theme: theme)
+        suggestionBar.update(mic: mic, notice: dictation.failure ?? hint, theme: theme)
         renderSuggestions()
         if engine.showsEmoji {
             emojiView.update(history: engine.emojiHistory, opening: emojiView.isHidden, query: engine.emojiQuery, theme: theme, metrics: metrics)

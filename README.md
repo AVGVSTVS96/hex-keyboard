@@ -49,12 +49,16 @@ Hold 123 and let go for Apple's emoji keyboard, with search. Type a word like "p
   <img alt="Searching emoji for heart" src="docs/emoji-light.png" width="400">
 </picture>
 
+## Sources
+
+A source is a web service you plug into the keyboard. Hex tells it the text of the field you're typing in, in any app, and it can answer with a hint that shows above the keys: a tone check before you send a text, a reminder, anything it can work out from what you're writing. You add one in the Hex app, or by tapping the link it gives you. The API is one JSON request and answer, in [docs/sources.md](docs/sources.md).
+
 ## Also
 
 - One-handed keyboard: hold 123 and slide left or right.
 - Hold the space bar and slide to move the cursor, hold delete to erase whole words, flick down on iPad keys for their second character.
 - Return, email, URL and search fields get the keys Apple gives them.
-- Hex never goes online, so nothing you type or say leaves your iPhone.
+- Hex only goes online to reach the sources you add. Without one, nothing you type or say leaves your iPhone.
 
 Not built yet: swipe typing, and languages other than English.
 
@@ -71,7 +75,7 @@ open HexKeyboard.xcodeproj
 
 Put your team in `Config/Team.xcconfig` (`DEVELOPMENT_TEAM = <your team ID>`) and run the `Hex` scheme. On Linux, `scripts/phone` builds and installs it with [xtool](https://github.com/xtool-org/xtool); [AGENTS.md](AGENTS.md) has the details. The app and App Group IDs are Hex's own (`com.shahidy.hexkeyboard`), so a different team may need to swap in its own.
 
-Then on the phone: Settings › General › Keyboard › Keyboards › Add New Keyboard… › Hex, and turn on Allow Full Access. Hex needs it for haptics, voice and Your Taps.
+Then on the phone: Settings › General › Keyboard › Keyboards › Add New Keyboard… › Hex, and turn on Allow Full Access. Hex needs it for haptics, voice, Your Taps and sources.
 
 ## How it's built
 
