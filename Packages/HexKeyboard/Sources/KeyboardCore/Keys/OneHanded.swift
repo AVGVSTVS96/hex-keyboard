@@ -7,10 +7,3 @@ extension OneHanded {
     /// Left to right, as the hands sit in the layer menu.
     public static let menuOrder: [OneHanded] = [.left, .off, .right]
 }
-
-/// An item in the menu that holding the layer key opens.
-public enum MenuItem: Hashable, Sendable {
-    case emoji
-    case voice
-    case hand(OneHanded)
-}

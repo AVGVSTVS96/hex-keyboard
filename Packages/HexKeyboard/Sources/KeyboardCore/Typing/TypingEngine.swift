@@ -1,12 +1,8 @@
 public struct TypingEngine {
     public private(set) var layer: KeyboardLayer = .letters
     public private(set) var shift: ShiftState = .off
-    /// The emoji keyboard stands in for the keys until its ABC key.
-    public private(set) var showsEmoji = false
     public var emojiHistory = EmojiHistory()
-    /// What the emoji search holds while it's open.
-    public private(set) var emojiQuery: String?
-    /// Finds emoji for the emoji search and for the word in the suggestion bar.
+    /// Finds emoji for the word in the suggestion bar.
     public var emojiCatalog: EmojiCatalog?
     public private(set) var traits: InputTraits
     public internal(set) var suggestions: [Suggestion] = []
@@ -67,7 +63,6 @@ public struct TypingEngine {
         case .character, .space, .return, .tab, .delete:
             break
         }
-        if emojiQuery != nil { return search(action) }
 
         let wasSpace = spaceJustTyped
         let revert = self.revert
@@ -159,24 +154,9 @@ public struct TypingEngine {
             moveCursor(by: offset, in: document)
         case .oneHanded(let hand):
             settings.oneHanded = hand
-        case .pick(let item):
-            switch item {
-            case .hand(let hand): settings.oneHanded = hand
-            case .emoji: showsEmoji = true
-            case .voice: break
-            }
+        case .pick(let hand):
+            settings.oneHanded = hand
             perform(.layer(.letters), in: document)
-        case .emoji(let emoji, let base):
-            emojiHistory.use(emoji, base: base)
-            insertWhole(emoji, in: document)
-        case .closeEmoji:
-            showsEmoji = false
-            emojiQuery = nil
-        case .emojiSearch(let query):
-            emojiQuery = query
-            if query != nil { layer = .letters }
-            refreshShift()
-            suggestionsChanged()
         case .dictated(let heard):
             let joins = text.before.last.map { !$0.isWhitespace && !Words.openers.contains($0) } ?? false
             insertWhole((joins ? " " : "") + heard, in: document)
@@ -185,10 +165,6 @@ public struct TypingEngine {
     }
 
     public mutating func deleteWord(in document: some TextDocument) {
-        if let emojiQuery {
-            self.emojiQuery = String(emojiQuery.dropLast(TypingEngine.wordLength(before: emojiQuery)))
-            return suggestionsChanged()
-        }
         attach(document)
         spaceJustTyped = false
         revert = nil
@@ -199,7 +175,7 @@ public struct TypingEngine {
         suggestionsChanged()
     }
 
-    /// Text that arrives whole, an emoji or what dictation heard: it ends the word in progress, then goes in as it is.
+    /// Text that arrives whole, what dictation heard: it ends the word in progress, then goes in as it is.
     mutating func insertWhole(_ string: String, in document: some TextDocument) {
         attach(document)
         spaceJustTyped = false
@@ -212,7 +188,6 @@ public struct TypingEngine {
 
     /// Moves the caret, as the space bar trackpad does.
     mutating func moveCursor(by offset: Int, in document: some TextDocument) {
-        guard emojiQuery == nil else { return }
         attach(document)
         document.moveCursor(by: offset)
         text.moveCursor(by: offset)
@@ -234,31 +209,6 @@ public struct TypingEngine {
         refreshShift()
     }
 
-    /// The keys while the emoji search is open: they edit its query, and return closes it.
-    private mutating func search(_ action: KeyAction) {
-        guard var query = emojiQuery else { return }
-        switch action {
-        case .character(let key):
-            query += shift.isUppercase && layer == .letters ? key.uppercased() : key
-            if Self.returnsToLetters.contains(key) { layer = .letters }
-        case .space:
-            query += " "
-            layer = .letters
-        case .delete:
-            query = String(query.dropLast())
-        case .return:
-            emojiQuery = nil
-            refreshShift()
-            return suggestionsChanged()
-        default:
-            return
-        }
-        emojiQuery = query
-        if shiftHold != nil { shiftHold = .typedWhileHeld }
-        refreshShift()
-        suggestionsChanged()
-    }
-
     /// The host's `textDidChange` or `selectionDidChange`. A report showing the keyboard's own edits, even late, changes
     /// nothing; anything else replaces what the engine knows and forgets the word in progress.
     @discardableResult
@@ -274,7 +224,6 @@ public struct TypingEngine {
 
     mutating func refreshShift() {
         guard shift != .locked, shiftHold == nil else { return }
-        guard emojiQuery == nil else { return shift = .off }
         let mode = settings.autoCapitalization ? traits.autocapitalization : .none
         let capitalize = layer == .letters && Self.shouldCapitalize(text.before, mode: mode)
         shift = capitalize ? .on : .off

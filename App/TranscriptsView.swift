@@ -55,7 +55,7 @@ struct TranscriptsView: View {
                     ContentUnavailableView {
                         Label("No Transcripts", systemImage: "waveform")
                     } description: {
-                        Text("Hold 123 on the keyboard and pick the mic. Everything you dictate is saved here, on this iPhone.")
+                        Text("Tap the mic beside the keyboard's suggestions. Everything you dictate is saved here, on this iPhone.")
                     }
                 } else if shown.isEmpty {
                     ContentUnavailableView.search(text: query)

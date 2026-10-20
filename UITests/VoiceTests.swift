@@ -16,32 +16,31 @@ final class VoiceTests: XCTestCase {
         for letter in "pizza" { key(String(letter), in: app).tap() }
 
         let mic = app.buttons["hex.mic"]
-        if !mic.waitForExistence(timeout: 5) { try shot("\(shots)-no-mic") }
-        XCTAssertTrue(mic.exists, "the mic shows while the app keeps the microphone on")
-        XCTAssertEqual(mic.label, "Dictate")
+        XCTAssertTrue(mic.waitForExistence(timeout: 5), "the mic is always beside the suggestions")
+        XCTAssertTrue(wait(for: mic, label: "Dictate", value: "Mic On"), "it says when the app keeps the microphone on")
         let emoji = app.keys.matching(identifier: "hex.suggestion.emoji.0").firstMatch
         XCTAssertTrue(emoji.waitForExistence(timeout: 3), "the word's emoji sit beside the mic")
         XCTAssertLessThan(emoji.frame.maxX, mic.frame.minX + 1)
         try shot("\(shots)-on")
 
         mic.tap()
-        XCTAssertTrue(wait(for: mic, label: "Stop Dictating"), "tapping the mic starts listening without opening the app")
+        XCTAssertTrue(wait(for: mic, label: "Stop Dictating", value: nil), "tapping the mic starts listening without opening the app")
         Thread.sleep(forTimeInterval: 3)
         try shot("\(shots)-listening")
 
         mic.tap()
         let field = app.textViews.firstMatch
         XCTAssertTrue(wait { (field.value as? String ?? "").hasSuffix("hello from the mic") }, "tapping it again types what was heard")
-        XCTAssertTrue(wait(for: mic, label: "Dictate"))
+        XCTAssertTrue(wait(for: mic, label: "Dictate", value: "Mic On"))
         try shot("\(shots)-typed")
 
         mic.press(forDuration: 0.8)
-        XCTAssertTrue(wait { !mic.exists }, "holding the mic turns the microphone off")
+        XCTAssertTrue(wait(for: mic, label: "Dictate", value: nil), "holding the mic turns the microphone off and leaves the mic in place")
         try shot("\(shots)-off")
     }
 
-    private func wait(for element: XCUIElement, label: String) -> Bool {
-        wait { element.exists && element.label == label }
+    private func wait(for element: XCUIElement, label: String, value: String?) -> Bool {
+        wait { element.exists && element.label == label && (element.value as? String).flatMap { $0.isEmpty ? nil : $0 } == value }
     }
 
     private func wait(_ condition: @escaping () -> Bool) -> Bool {

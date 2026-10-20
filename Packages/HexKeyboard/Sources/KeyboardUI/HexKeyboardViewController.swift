@@ -5,7 +5,6 @@ open class HexKeyboardViewController: UIInputViewController {
     open var hapticsEnabled: Bool { hasFullAccess && engine.settings.haptics }
 
     private let keyboardView = KeyboardView()
-    private let emojiView = EmojiKeyboardView()
     private var dictation = Dictation.Status()
     private var micIsOn = false
     private var dictationTokens: [Int32] = []
@@ -24,7 +23,7 @@ open class HexKeyboardViewController: UIInputViewController {
 
     override open func viewDidLoad() {
         super.viewDidLoad()
-        [suggestionBar, keyboardView, emojiView].forEach {
+        [suggestionBar, keyboardView].forEach {
             $0.translatesAutoresizingMaskIntoConstraints = false
             view.addSubview($0)
         }
@@ -39,13 +38,7 @@ open class HexKeyboardViewController: UIInputViewController {
             keyboardView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             keyboardView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             keyboardHeightConstraint,
-            emojiView.topAnchor.constraint(equalTo: view.topAnchor),
-            emojiView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            emojiView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            emojiView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
-        emojiView.isHidden = true
-        emojiView.onEvent = { [unowned self] in handle($0) }
         suggestionBar.onMic = { [unowned self] in toggleVoice() }
         suggestionBar.onNotice = { [unowned self] in
             if dictation.failure != nil { return clearFailure() }
@@ -165,23 +158,11 @@ open class HexKeyboardViewController: UIInputViewController {
         return shortSide >= 1000 ? .largePad : shortSide < 800 ? .compactPad : .pad
     }
 
-    /// The bar's height, or above the emoji keyboard's keys, the search field and what it finds.
-    private func barHeight(_ metrics: KeyboardMetrics) -> CGFloat {
-        let bar: CGFloat = switch (device, engine.showsSuggestions || mic != nil || dictation.failure != nil || hint != nil) {
-        case (.phone, _): 38
-        case (_, true): 36
-        case (_, false): 0
-        }
-        guard engine.showsEmoji else { return bar }
-        return engine.emojiQuery == nil ? bar + EmojiKeyboardView.fieldSpan : EmojiKeyboardView.searchHeight(metrics)
-    }
-
-    /// The bar's mic shows while the app keeps the microphone on or listens.
-    private var mic: MicButton.Phase? {
+    private var mic: MicButton.Phase {
         switch dictation.state {
         case .listening: .listening
         case .transcribing: .transcribing
-        case .idle: micIsOn ? .on : nil
+        case .idle: micIsOn ? .on : .off
         }
     }
 
@@ -205,22 +186,17 @@ open class HexKeyboardViewController: UIInputViewController {
         let context = engine.layout(on: device, showsGlobe: needsInputModeSwitchKey, isLandscape: screenSize.width > screenSize.height)
         let layout = Layouts.layout(for: context)
         let metrics = KeyboardMetrics.for(device, width: screenSize.width, height: screenSize.height, style: .current, oneHanded: context.oneHanded)
-        keyboardView.menu = (context.menuKey(in: layout), context.menu)
+        keyboardView.menu = (context.menuKey(in: layout), context.menu, context.oneHanded)
         keyboardView.update(layout: layout, signature: context.signature, metrics: metrics, faces: engine.faces(on: device), theme: theme)
         suggestionBar.maximumSlotWidth = device == .phone ? .infinity : 154.5
         suggestionBar.keyInset = metrics.sideInset
+        suggestionBar.topPadding = device == .phone ? 10 : 0
         suggestionBar.update(mic: mic, notice: dictation.failure ?? hint, theme: theme)
         renderSuggestions()
-        if engine.showsEmoji {
-            emojiView.update(history: engine.emojiHistory, opening: emojiView.isHidden, query: engine.emojiQuery, theme: theme, metrics: metrics)
-        }
-        emojiView.isHidden = !engine.showsEmoji
-        keyboardView.isHidden = engine.showsEmoji && engine.emojiQuery == nil
-        suggestionBar.isHidden = engine.showsEmoji
 
         let height = metrics.height(rows: layout.rows.count, hasNumberRow: layout.hasNumberRow)
         if keyboardHeightConstraint.constant != height { keyboardHeightConstraint.constant = height }
-        let bar = barHeight(metrics)
+        let bar = (device == .phone ? 38 : 36) + suggestionBar.topPadding
         if barHeightConstraint.constant != bar { barHeightConstraint.constant = bar }
     }
 
@@ -263,10 +239,8 @@ open class HexKeyboardViewController: UIInputViewController {
             return advanceToNextInputMode()
         case .type:
             TouchTrace.shared.mark("typed")
-        case .oneHanded(let hand), .pick(.hand(let hand)):
+        case .oneHanded(let hand), .pick(let hand):
             SettingsStore.set(hand, sharing: hasFullAccess)
-        case .pick(.voice):
-            toggleVoice()
         default:
             break
         }

@@ -33,7 +33,7 @@ extension KeyboardView {
             guard let view = keyView(at: point) else { continue }
             let tracked = TrackedTouch(keyView: view, start: point)
             self.tracked[ObjectIdentifier(touch)] = tracked
-            if view.key == menu.key { tracked.menuFrame = view.frame }
+            if view.key == menu.key, !menu.hands.isEmpty { tracked.menuFrame = view.frame }
             press(view, tracked: tracked)
             onEvent(.down(view.key, tapCount: touch.tapCount))
             if case .layer = view.key.action { tracked.mode = .slide }
@@ -118,11 +118,12 @@ extension KeyboardView {
 
         switch tracked.mode {
         case .alternates:
-            if commit, let text = alternates.selected { onEvent(.type(key, tap(tracked, text))) }
+            if commit, key.alternates.indices.contains(alternates.selection) {
+                onEvent(.type(key, tap(tracked, displayed(key.alternates[alternates.selection]))))
+            }
             alternates.hide()
         case .menu:
-            let (row, column) = alternates.selection
-            if commit, menu.items.indices.contains(row) { onEvent(.pick(menu.items[row][column])) }
+            if commit, menu.hands.indices.contains(alternates.selection) { onEvent(.pick(menu.hands[alternates.selection])) }
             alternates.hide()
         case .trackpad:
             setLabelsVisible(true)
@@ -191,7 +192,7 @@ extension KeyboardView {
                     self.callout.hide()
                     let shown = view.key.alternates.map(self.displayed)
                     let base = self.displayed(self.text(for: view.key, flicked: false) ?? "")
-                    self.alternates.show(shown, base: base, over: view.frame, in: self.drawableBounds, metrics: self.metrics, theme: self.theme)
+                    self.alternates.show(shown, selected: shown.firstIndex(of: base) ?? 0, over: view.frame, in: self.drawableBounds, metrics: self.metrics, theme: self.theme)
                 }
             }
         }
@@ -203,7 +204,8 @@ extension KeyboardView {
                 guard let self, let tracked, tracked.mode == .slide, let frame = tracked.menuFrame else { return }
                 tracked.mode = .menu
                 self.callout.hide()
-                self.alternates.show(menu: self.menu.items.map { $0.map(\.symbol) }, over: frame, in: self.drawableBounds, metrics: self.metrics, theme: self.theme)
+                let hands = self.menu.hands
+                self.alternates.show(symbols: hands.map(\.symbol), selected: hands.firstIndex(of: self.menu.current) ?? 0, over: frame, in: self.drawableBounds, metrics: self.metrics, theme: self.theme)
             }
         }
     }
@@ -215,14 +217,12 @@ extension KeyboardView {
     }
 }
 
-private extension MenuItem {
+private extension OneHanded {
     var symbol: String {
         switch self {
-        case .emoji: "face.smiling"
-        case .voice: "mic"
-        case .hand(.left): "keyboard.onehanded.left"
-        case .hand(.off): "keyboard"
-        case .hand(.right): "keyboard.onehanded.right"
+        case .left: "keyboard.onehanded.left"
+        case .off: "keyboard"
+        case .right: "keyboard.onehanded.right"
         }
     }
 }

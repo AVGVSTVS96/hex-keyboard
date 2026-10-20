@@ -82,14 +82,10 @@ extension TypingEngine {
     }
 
     public func layout(on device: DeviceClass, showsGlobe: Bool = false, isLandscape: Bool = false) -> LayoutContext {
-        LayoutContext(device: device, layer: layer, kind: emojiQuery == nil ? traits.kind : .text, showsGlobe: showsGlobe, isLandscape: isLandscape, oneHanded: settings.oneHanded, menuPick: settings.menuPick)
+        LayoutContext(device: device, layer: layer, kind: traits.kind, showsGlobe: showsGlobe, isLandscape: isLandscape, oneHanded: settings.oneHanded)
     }
 
-    /// While the emoji search is open, the keys are a plain text keyboard whose return (a checkmark) closes it.
     public func faces(on device: DeviceClass) -> KeyFaceContext {
-        if emojiQuery != nil {
-            return KeyFaceContext(device: device, layer: layer, kind: .text, shift: shift, returnKind: .done, returnEnabled: true)
-        }
         let returnEnabled = !traits.returnRequiresText || !text.before.isEmpty || !(text.after ?? "").isEmpty
         return KeyFaceContext(device: device, layer: layer, kind: traits.kind, shift: shift, returnKind: traits.returnKind, returnEnabled: returnEnabled)
     }
@@ -287,10 +283,6 @@ extension TypingEngine {
     mutating func refreshSuggestions() {
         suggestionsAreStale = false
         emojiSuggestions = []
-        if let emojiQuery {
-            keyMap = corrector?.keyMap(revision: revision, after: layer == .letters ? String(Words.current(in: emojiQuery)) : nil)
-            return suggestions = []
-        }
         let text = self.text.before
         let word = Words.current(in: text)
         let inWords = layer == .letters && correcting && (word.isEmpty || Words.isCorrectable(word, in: text))

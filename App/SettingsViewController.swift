@@ -6,7 +6,6 @@ final class SettingsViewController: UITableViewController {
     private enum Row {
         case toggle(String, WritableKeyPath<KeyboardSettings, Bool>)
         case oneHanded
-        case menuPick
         case keepMicOn
         case source(Source)
         case addSource
@@ -20,7 +19,7 @@ final class SettingsViewController: UITableViewController {
     }
 
     private var sections: [Section] { [
-        Section(footer: Self.menuPickFooter, rows: [.oneHanded, .menuPick]),
+        Section(footer: Self.oneHandedFooter, rows: [.oneHanded]),
         Section(footer: "Haptic Feedback needs Allow Full Access in Settings › General › Keyboard › Keyboards › Hex.", rows: [
             .toggle("Character Preview", \.characterPreview),
             .toggle("Haptic Feedback", \.haptics),
@@ -41,11 +40,11 @@ final class SettingsViewController: UITableViewController {
         Section(footer: "Removes the words and typing habits Hex has learned from you.", rows: [.reset]),
     ] }
 
-    private static let keepMicOnFooter = "After you dictate, Hex keeps the mic on this long. While it’s on, a mic sits beside the suggestions: tap it to start or stop dictating without leaving your app, or hold it to turn the mic off. Nothing is recorded until you tap it."
+    private static let keepMicOnFooter = "After you dictate, Hex keeps the mic on this long. While it’s on, the mic beside the suggestions starts and stops dictating without leaving your app; hold it to turn the mic off. Nothing is recorded until you tap it."
 
     private static let sourcesFooter = "With Allow Full Access on, Hex sends each source the text of the field you’re typing in, except passwords and codes, and shows the hints it answers with above the keys. Tap a hint to hide it."
 
-    private static let menuPickFooter = "Hold 123 for emoji, voice and the one-handed keyboard. Letting go right away opens the one you pick here."
+    private static let oneHandedFooter = "Hold 123 and slide to move the keys toward one thumb."
 
     private var settings = SettingsStore.load()
     private var sources = SourceStore.load()
@@ -101,11 +100,6 @@ final class SettingsViewController: UITableViewController {
             return show(ChoiceViewController(title: "One-Handed Keyboard", footer: "The keys move toward your thumb on an upright iPhone. Tap the arrow beside them to bring back the full keyboard.", choices: choices, choice: settings.oneHanded) {
                 SettingsStore.set($0)
             }, sender: self)
-        case .menuPick:
-            let choices = [MenuItem.emoji, .voice].map { (value: $0, title: Self.title(of: $0)) }
-            return show(ChoiceViewController(title: "Hold 123", footer: Self.menuPickFooter, choices: choices, choice: settings.menuPick) {
-                SettingsStore.set(menuPick: $0)
-            }, sender: self)
         case .keepMicOn:
             let choices = Dictation.micChoices.map { (value: $0, title: Dictation.title(keepingMicOn: $0)) }
             return show(ChoiceViewController(title: "Keep Mic On", footer: Self.keepMicOnFooter, choices: choices, choice: SettingsStore.keepMicOn) {
@@ -144,11 +138,6 @@ final class SettingsViewController: UITableViewController {
         case .oneHanded:
             content.text = "One-Handed Keyboard"
             content.secondaryText = Self.title(of: settings.oneHanded)
-            cell.accessoryView = nil
-            cell.accessoryType = .disclosureIndicator
-        case .menuPick:
-            content.text = "Hold 123"
-            content.secondaryText = Self.title(of: settings.menuPick)
             cell.accessoryView = nil
             cell.accessoryType = .disclosureIndicator
         case .keepMicOn:
@@ -204,10 +193,6 @@ final class SettingsViewController: UITableViewController {
         case .left: "Left"
         case .right: "Right"
         }
-    }
-
-    private static func title(of pick: MenuItem) -> String {
-        pick == .voice ? "Voice" : "Emoji"
     }
 
     private func row(at indexPath: IndexPath) -> Row {

@@ -19,10 +19,9 @@ final class OneHandedTests: XCTestCase {
 
     private var expander: XCUIElement { app.buttons.matching(identifier: "hex.expand").firstMatch }
 
-    /// The hands are the menu's top row, above emoji and voice.
     private func holdNumbersAndPick(atX x: CGFloat) {
         let numbers = key("numbers")
-        let pick = numbers.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: x - numbers.frame.minX, dy: -85))
+        let pick = numbers.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: x - numbers.frame.minX, dy: -35))
         numbers.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).press(forDuration: 1, thenDragTo: pick)
     }
 
@@ -43,24 +42,5 @@ final class OneHandedTests: XCTestCase {
         expander.tap()
         XCTAssertFalse(expander.waitForExistence(timeout: 1))
         XCTAssertEqual(key("q").frame.width, fullWidth, accuracy: 0.5)
-    }
-
-    func testHoldingNumbersAndLettingGoOpensEmojiAndABCComesBack() {
-        key("numbers").press(forDuration: 0.8)
-        let grid = app.collectionViews.matching(identifier: "hex.emoji").firstMatch
-        XCTAssertTrue(grid.waitForExistence(timeout: 2))
-        grid.cells.matching(NSPredicate(format: "label == '😂'")).firstMatch.tap()
-        XCTAssertEqual(field.value as? String, "😂")
-
-        app.buttons.matching(identifier: "hex.emoji.delete").firstMatch.tap()
-        XCTAssertEqual(field.value as? String ?? "", "")
-
-        app.buttons.matching(NSPredicate(format: "label == 'Flags'")).firstMatch.tap()
-        XCTAssertTrue(grid.cells.matching(NSPredicate(format: "label == '🏁'")).firstMatch.waitForExistence(timeout: 2))
-
-        app.buttons.matching(identifier: "hex.abc").firstMatch.tap()
-        XCTAssertTrue(key("q").waitForExistence(timeout: 2))
-        key("h").tap()
-        XCTAssertEqual(field.value as? String, "H")
     }
 }

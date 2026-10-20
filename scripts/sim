@@ -3,7 +3,10 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-RUNTIME=${RUNTIME:-com.apple.CoreSimulator.SimRuntime.iOS-26-3}
+RUNTIME=${RUNTIME:-$(xcrun simctl list runtimes -j | /usr/bin/python3 -c "
+import json, sys
+print([r['identifier'] for r in json.load(sys.stdin)['runtimes'] if r['platform'] == 'iOS' and r['isAvailable']
+       and any(d['name'] == 'iPhone 17' for d in r['supportedDeviceTypes'])][-1])")}
 APP=build/Build/Products/Debug-iphonesimulator/Hex.app
 BUNDLE=com.shahidy.hexkeyboard
 
@@ -33,7 +36,6 @@ use() {
   case $2 in
     hex) keyboards=("com.shahidy.hexkeyboard.keyboard" "en_US@sw=QWERTY;hw=Automatic") ;;
     system) keyboards=("en_US@sw=QWERTY;hw=Automatic") ;;
-    emoji) keyboards=("en_US@sw=QWERTY;hw=Automatic" "emoji@sw=Emoji") ;;
   esac
   local current expanded
   current=$(xcrun simctl spawn "$id" defaults read .GlobalPreferences AppleKeyboards 2>/dev/null | sed '1d;$d' | tr -d ' ",\n' || true)

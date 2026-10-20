@@ -41,9 +41,6 @@ public struct KeyboardTheme: Hashable, Sendable {
     public let candidatePill: RGBA
     public let candidateDivider: RGBA
     public let expander: RGBA
-    /// The emoji search field, and its placeholder and glyphs (measured on iOS 27).
-    public let searchField: RGBA
-    public let searchPlaceholder: RGBA
 
     public static func light(_ style: KeyboardStyle) -> KeyboardTheme {
         let ios27 = style == .ios27
@@ -61,9 +58,7 @@ public struct KeyboardTheme: Hashable, Sendable {
             candidateHighlighted: .rgb(44, 46, 49),
             candidatePill: .rgb(235, 237, 240),
             candidateDivider: .rgb(211, 212, 217),
-            expander: .white,
-            searchField: RGBA(white: 1, alpha: 0.43),
-            searchPlaceholder: RGBA(red: 60 / 255, green: 60 / 255, blue: 67 / 255, alpha: 0.6)
+            expander: .white
         )
     }
 
@@ -83,9 +78,7 @@ public struct KeyboardTheme: Hashable, Sendable {
             candidateHighlighted: .white,
             candidatePill: .rgb(115, 115, 115),
             candidateDivider: ios27 ? .rgb(49, 49, 51) : .rgb(50, 50, 52),
-            expander: RGBA(white: 90 / 255),
-            searchField: RGBA(white: 1, alpha: 0.105),
-            searchPlaceholder: RGBA(red: 235 / 255, green: 235 / 255, blue: 245 / 255, alpha: 0.6)
+            expander: RGBA(white: 90 / 255)
         )
     }
 }

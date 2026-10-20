@@ -8,7 +8,7 @@
 	<array>
 		<dict>
 			<key>FooterText</key>
-			<string>Hold 123 for emoji, voice and the one-handed keyboard. Letting go right away opens the one you pick here.</string>
+			<string>Hold 123 and slide to move the keys toward one thumb.</string>
 			<key>Type</key>
 			<string>PSGroupSpecifier</string>
 		</dict>
@@ -32,26 +32,6 @@
 				<string>off</string>
 				<string>left</string>
 				<string>right</string>
-			</array>
-		</dict>
-		<dict>
-			<key>DefaultValue</key>
-			<string>emoji</string>
-			<key>Key</key>
-			<string>menuPick</string>
-			<key>Title</key>
-			<string>Hold 123</string>
-			<key>Titles</key>
-			<array>
-				<string>Emoji</string>
-				<string>Voice</string>
-			</array>
-			<key>Type</key>
-			<string>PSMultiValueSpecifier</string>
-			<key>Values</key>
-			<array>
-				<string>emoji</string>
-				<string>voice</string>
 			</array>
 		</dict>
 		<dict>
@@ -168,7 +148,7 @@
 		</dict>
 		<dict>
 			<key>FooterText</key>
-			<string>After you dictate, Hex keeps the mic on this long. While it’s on, a mic sits beside the suggestions: tap it to start or stop dictating without leaving your app, or hold it to turn the mic off. Nothing is recorded until you tap it.</string>
+			<string>After you dictate, Hex keeps the mic on this long. While it’s on, the mic beside the suggestions starts and stops dictating without leaving your app; hold it to turn the mic off. Nothing is recorded until you tap it.</string>
 			<key>Title</key>
 			<string>Voice</string>
 			<key>Type</key>
