@@ -90,17 +90,19 @@ public final class Corrector {
         return Words.matchCase(guess, to: text)
     }
 
-    func suggestions(for word: TypedWord, correcting: Bool, guessing: Bool) -> [Suggestion] {
+    func suggestions(for word: TypedWord, correcting: Bool, applying: Bool = true, guessing: Bool) -> [Suggestion] {
         let typed = Substring(word.text)
         var seen: Set<String> = [word.text.lowercased()]
         var alternatives: [Suggestion] = []
+        if correcting, let correction = correction(for: word, guessing: guessing), seen.insert(correction.lowercased()).inserted {
+            alternatives.append(Suggestion(correction, applying ? .correction : .candidate))
+        }
         func add(_ candidates: some Sequence<String>, as kind: Suggestion.Kind) {
             for candidate in candidates where alternatives.count < 2 {
-                let text = kind == .correction ? candidate : Words.matchCase(candidate, to: typed)
+                let text = Words.matchCase(candidate, to: typed)
                 if seen.insert(text.lowercased()).inserted { alternatives.append(Suggestion(text, kind)) }
             }
         }
-        if correcting, let correction = correction(for: word, guessing: guessing) { add([correction], as: .correction) }
         let lower = word.text.lowercased()
         add(names.filter { $0.key.count > lower.count && $0.key.hasPrefix(lower) }.values.sorted(), as: .candidate)
         if lexicon != nil {

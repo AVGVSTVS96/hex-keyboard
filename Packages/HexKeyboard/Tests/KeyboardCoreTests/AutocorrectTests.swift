@@ -34,6 +34,18 @@ struct AutocorrectTests {
         #expect(engine.suggestions.map(\.kind) == [.literal, .correction, .candidate])
     }
 
+    @Test func offersTheCorrectionWithAutoCorrectionOff() {
+        var engine = TypingEngine.correcting()
+        engine.settings.autoCorrection = false
+        let document = TestDocument("so ")
+        engine.documentChanged(document)
+        engine.type("helo", in: document)
+        #expect(engine.suggestions.map(\.text) == ["helo", "hello", "help"])
+        #expect(engine.suggestions.map(\.kind) == [.literal, .candidate, .candidate])
+        engine.type(" ", in: document)
+        #expect(document.text == "so helo ")
+    }
+
     @Test func suggestionJobMatchesRankingInline() {
         var inline = TypingEngine()
         inline.corrector = Corrector(source: testLexicon)

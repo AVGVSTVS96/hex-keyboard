@@ -308,8 +308,8 @@ extension TypingEngine {
                 return prediction
             }
         } else {
-            let correcting = correcting && Words.isCorrectable(word, in: text)
-            suggestions = corrector.suggestions(for: typed, correcting: correcting, guessing: traits.spellChecking)
+            let correcting = traits.allowsCorrection && Words.isCorrectable(word, in: text)
+            suggestions = corrector.suggestions(for: typed, correcting: correcting, applying: settings.autoCorrection, guessing: traits.spellChecking)
         }
     }
 }
