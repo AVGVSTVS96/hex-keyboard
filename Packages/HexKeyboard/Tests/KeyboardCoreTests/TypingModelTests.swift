@@ -180,6 +180,21 @@ struct TouchModelTests {
         #expect(label(engine) == "o")
     }
 
+    /// Auto-Correction off stops words being replaced, not keys being read from the word so far; a field that asks for
+    /// no correction gets the key under the finger.
+    @Test func keysFollowTheWordWithAutoCorrectionOffButNotInFieldsThatRefuseCorrection() {
+        let o = grid.frame(of: "o")!
+        let label = { (traits: InputTraits, autoCorrection: Bool) in
+            var engine = TypingEngine(traits: traits)
+            engine.corrector = Corrector(source: testLexicon)
+            engine.settings.autoCorrection = autoCorrection
+            engine.type("hell", in: TestDocument())
+            return engine.key(atX: o.midX - 0.55, y: o.midY, in: grid).map { grid.rows[$0.row][$0.key].key.label }
+        }
+        #expect(label(InputTraits(), false) == "o")
+        #expect(label(InputTraits(autocorrection: false), true) == "i")
+    }
+
     @Test func controlKeysKeepTheirTaps() {
         let corrector = Corrector(source: testLexicon)
         let delete = grid.rows[2].last!.frame

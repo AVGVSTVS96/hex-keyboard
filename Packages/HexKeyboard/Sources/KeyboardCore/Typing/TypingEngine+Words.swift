@@ -285,7 +285,7 @@ extension TypingEngine {
         emojiSuggestions = []
         let text = self.text.before
         let word = Words.current(in: text)
-        let inWords = layer == .letters && correcting && (word.isEmpty || Words.isCorrectable(word, in: text))
+        let inWords = layer == .letters && traits.allowsCorrection && (word.isEmpty || Words.isCorrectable(word, in: text))
         keyMap = corrector?.keyMap(revision: revision, after: inWords ? String(word) : nil)
         guard showsSuggestions else { return suggestions = [] }
         suggestionsBefore = String(text[..<word.startIndex])
