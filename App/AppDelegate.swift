@@ -9,7 +9,6 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options: UIScene.ConnectionOptions) {
         guard let scene = scene as? UIWindowScene else { return }
-        HostApp.shared.watch()
         let window = UIWindow(windowScene: scene)
         LaunchOptions.resetSettingsIfAsked()
         LaunchOptions.applyOneHanded()
@@ -39,9 +38,8 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     private func open(_ contexts: Set<UIOpenURLContext>) {
         if let source = contexts.lazy.compactMap({ Source(link: $0.url) }).first { return offer(source) }
-        guard contexts.contains(where: { $0.url == Dictation.url }), let root = window?.rootViewController else { return }
-        let asked = Date.now
-        Task { await listenAndGoBack(since: asked) }
+        guard let request = contexts.lazy.compactMap({ Dictation.Request($0.url) }).first, let root = window?.rootViewController else { return }
+        Task { await listen(thenOpen: request.host) }
         guard !(root.presentedViewController is DictationViewController) else { return }
         root.dismiss(animated: false)
         let dictation = DictationViewController()
@@ -50,13 +48,13 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
 
     /// Starts listening while Hex is in front, the only place iOS lets a recording begin, then reopens the app you were typing in.
-    private func listenAndGoBack(since asked: Date) async {
+    private func listen(thenOpen host: String?) async {
+        let asked = Date.now
         await Listener.shared.start()
         guard Listener.shared.state == .listening else {
             return HostApp.log.notice("not listening after \(Date.now.timeIntervalSince(asked), format: .fixed(precision: 2))s")
         }
-        let host = await HostApp.shared.host(since: asked.addingTimeInterval(-5))
-        let opened = if let host { await HostApp.shared.open(host) } else { false }
+        let opened = if let host { await HostApp.open(host) } else { false }
         HostApp.log.notice("back to \(host ?? "none", privacy: .public) \(opened ? "opened" : "failed", privacy: .public) after \(Date.now.timeIntervalSince(asked), format: .fixed(precision: 2))s")
     }
 

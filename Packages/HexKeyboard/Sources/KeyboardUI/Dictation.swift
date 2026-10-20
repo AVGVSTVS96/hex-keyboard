@@ -1,9 +1,9 @@
 import Foundation
 import notify
 
-/// Voice typing runs in the app, because a keyboard can't use the microphone: the keyboard opens the app with `url`,
-/// the app listens until the keyboard (or the app) says it's done, and leaves what it heard in the App Group for the
-/// keyboard to type. Each side tells the other through a Darwin notification and reads the shared status on it.
+/// Voice typing runs in the app, because a keyboard can't use the microphone: the keyboard opens the app with a
+/// `Request`, the app listens until the keyboard (or the app) says it's done, and leaves what it heard in the App Group
+/// for the keyboard to type. Each side tells the other through a Darwin notification and reads the shared status on it.
 public enum Dictation {
     public enum State: String, Codable, Sendable {
         case idle, listening, transcribing
@@ -53,7 +53,24 @@ public enum Dictation {
         }
     }
 
-    public static let url = URL(string: "hexkeyboard://dictate")!
+    /// The link the keyboard opens the app with: dictate, then go back to `host`, the app you were typing in.
+    public struct Request: Equatable, Sendable {
+        public var host: String?
+
+        public init(host: String?) {
+            self.host = host
+        }
+
+        public init?(_ link: URL) {
+            guard link.scheme == "hexkeyboard", link.host() == "dictate" else { return nil }
+            host = URLComponents(url: link, resolvingAgainstBaseURL: false)?.queryItems?.first { $0.name == "host" }?.value
+        }
+
+        public var url: URL {
+            let link = URL(string: "hexkeyboard://dictate")!
+            return host.map { link.appending(queryItems: [URLQueryItem(name: "host", value: $0)]) } ?? link
+        }
+    }
 
     private static var statusURL: URL? {
         FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: SettingsStore.appGroup)?.appending(path: "Library/dictation.json")

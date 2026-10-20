@@ -60,7 +60,7 @@ A `2xx` with JSON:
 iOS doesn't tell a keyboard which app it's in, which conversation a field belongs to, or anything on the screen beyond the field's text and its keyboard settings. As of iOS 27:
 
 - Apps can describe a conversation to the keyboard (`UIConversationContext`, iOS 18.4), but iOS keeps it for its own keyboard: a third-party keyboard reads `nil` and is never told it changed, even in an app that sets it.
-- The private ways keyboards used to find their host app stopped working in iOS 26.4.
+- A keyboard's own ways to learn its host app stopped working in iOS 26.4. Hex still finds the app through a private UIKit path to send you back after voice typing (`KeyboardHost`), but doesn't send it to sources.
 
 So a source learns who a message was for after it's sent (an `app` update that empties the field right after the text you sent), or from outside the keyboard.
 

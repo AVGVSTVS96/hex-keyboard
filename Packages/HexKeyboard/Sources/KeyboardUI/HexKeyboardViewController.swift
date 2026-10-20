@@ -91,6 +91,7 @@ open class HexKeyboardViewController: UIInputViewController {
 
     override open func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        KeyboardHost.appeared()
         engine.settings = SettingsStore.load(sharing: hasFullAccess)
         engine.corrector?.memory = MemoryStore.load()
         engine.emojiHistory = MemoryStore.loadEmoji()
@@ -132,10 +133,12 @@ open class HexKeyboardViewController: UIInputViewController {
     }
 
     override open func selectionDidChange(_ textInput: UITextInput?) {
+        KeyboardHost.harvest()
         syncWithDocument()
     }
 
     override open func textDidChange(_ textInput: UITextInput?) {
+        KeyboardHost.harvest()
         syncWithDocument()
     }
 
@@ -267,12 +270,13 @@ open class HexKeyboardViewController: UIInputViewController {
         render()
         var responder: UIResponder? = self
         while let next = responder {
-            if let application = next as? UIApplication { return application.open(Dictation.url) }
+            if let application = next as? UIApplication { return application.open(Dictation.Request(host: KeyboardHost.app(of: self)).url) }
             responder = next.next
         }
     }
 
-    /// The app listened, or stopped: type what it heard, once.
+    /// The app listened, or stopped: type what it heard, once. Listening without the app's microphone lock was left by
+    /// an app that ended mid-dictation.
     private func dictationChanged() {
         var status = Dictation.status
         if let heard = status.heard {
@@ -280,8 +284,9 @@ open class HexKeyboardViewController: UIInputViewController {
             Dictation.publish(status)
             engine.handle(.dictated(heard), in: document)
         }
-        dictation = status
         micIsOn = Dictation.micIsOn
+        if status.state == .listening, !micIsOn { status.state = .idle }
+        dictation = status
         render()
     }
 
