@@ -51,7 +51,7 @@ Hold 123 and let go for Apple's emoji keyboard, with search. Type a word like "p
 
 ## Sources
 
-A source is a web service you plug into the keyboard. Hex tells it the text of the field you're typing in, in any app, and it can answer with a hint that shows above the keys: a tone check before you send a text, a reminder, anything it can work out from what you're writing. You add one in the Hex app, or by tapping the link it gives you. The API is one JSON request and answer, in [docs/sources.md](docs/sources.md).
+A source is a web service you plug into the keyboard. Hex tells it the text of the field you're typing in, in any app, and it can answer with a hint that shows above the keys: a tone check before you send a text, a reminder, anything it can work out from what you're writing. You add one in the Hex app, or by tapping the link it gives you. The API is one JSON request and answer, in [docs/sources.md](docs/sources.md). [`sources/record.ts`](sources/record.ts) is one you can run yourself: it keeps a log of every message you send.
 
 ## Also
 
