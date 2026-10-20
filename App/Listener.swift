@@ -46,6 +46,8 @@ import UIKit
         }
     }
 
+    /// Returns once the microphone is recording, the one step iOS allows only in the foreground; the transcriber
+    /// gets ready in the background and catches up on what was said meanwhile.
     func start() async {
         guard state == .idle else { return }
         micOff?.cancel()
@@ -63,6 +65,14 @@ import UIKit
             } else {
                 input.finish()
             }
+            Task { await analyze(stream, with: module) }
+        } catch {
+            await fail(error)
+        }
+    }
+
+    private func analyze(_ stream: AsyncStream<AnalyzerInput>, with module: any SpeechModule) async {
+        do {
             if let request = try await AssetInventory.assetInstallationRequest(supporting: [module]) { try await request.downloadAndInstall() }
             let analyzer = SpeechAnalyzer(modules: [module])
             self.analyzer = analyzer
@@ -76,12 +86,16 @@ import UIKit
             }
             keepMicOn()
         } catch {
-            feed.stop()
-            closeMic()
-            await analyzer?.cancelAndFinishNow()
-            reset()
-            set(.idle, failure: (error as? Failure)?.description ?? error.localizedDescription)
+            await fail(error)
         }
+    }
+
+    private func fail(_ error: any Error) async {
+        feed.stop()
+        closeMic()
+        await analyzer?.cancelAndFinishNow()
+        reset()
+        set(.idle, failure: (error as? Failure)?.description ?? error.localizedDescription)
     }
 
     /// Stops listening and hands the keyboard everything heard, once the transcriber is up if it isn't yet.

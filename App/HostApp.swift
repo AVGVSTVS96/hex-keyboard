@@ -39,7 +39,15 @@ import UIKit
         }
     }
 
-    func open(_ bundle: String) -> Bool {
+    /// Opens the app by its bundle ID, or where iOS won't, by its own link.
+    func open(_ bundle: String) async -> Bool {
+        if openByID(bundle) { return true }
+        guard let link = Self.links[bundle].flatMap(URL.init(string:)) else { return false }
+        Self.log.notice("opening \(bundle, privacy: .public) by link")
+        return await UIApplication.shared.open(link)
+    }
+
+    private func openByID(_ bundle: String) -> Bool {
         let selector = NSSelectorFromString("openApplicationWithBundleID:")
         guard let type = NSClassFromString("LSApplicationWorkspace") as? NSObject.Type,
               let workspace = type.perform(NSSelectorFromString("defaultWorkspace"))?.takeUnretainedValue() as? NSObject,
@@ -48,6 +56,26 @@ import UIKit
         typealias Open = @convention(c) (NSObject, Selector, NSString) -> Bool
         return unsafeBitCast(workspace.method(for: selector), to: Open.self)(workspace, selector, bundle as NSString)
     }
+
+    /// From OpenWhispr's `HostAppCatalog` (MIT), which returns to these apps this way on iOS 26.
+    private static let links = [
+        "ph.telegra.Telegraph": "tg://",
+        "net.whatsapp.WhatsApp": "whatsapp://send",
+        "com.apple.MobileSMS": "sms://",
+        "com.apple.mobilemail": "message://",
+        "com.apple.mobilenotes": "mobilenotes://",
+        "com.apple.mobilesafari": "x-web-search://",
+        "com.atebits.Tweetie2": "twitter://",
+        "com.hammerandchisel.discord": "discord://",
+        "com.tinyspeck.chatlyio": "slack://",
+        "com.google.Gmail": "googlegmail://",
+        "com.google.chrome.ios": "googlechrome://",
+        "com.burbn.instagram": "instagram://",
+        "com.facebook.Messenger": "fb-messenger://",
+        "org.whispersystems.signal": "sgnl://",
+        "com.openai.chat": "chatgpt://",
+        "notion.id": "notion://",
+    ]
 
     nonisolated override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey: Any]?, context: UnsafeMutableRawPointer?) {
         let selector = NSSelectorFromString("sourceBundleIdentifier")
@@ -60,6 +88,7 @@ import UIKit
     private func record(_ bundle: String?, at: Date) {
         guard let bundle, !bundle.isEmpty, bundle != Bundle.main.bundleIdentifier else { return }
         latest = (bundle, at)
+        Self.log.notice("keyboard host \(bundle, privacy: .public)")
         for continuation in waiters.values { continuation.resume(returning: bundle) }
         waiters = [:]
     }

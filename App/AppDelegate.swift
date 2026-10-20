@@ -52,10 +52,12 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     /// Starts listening while Hex is in front, the only place iOS lets a recording begin, then reopens the app you were typing in.
     private func listenAndGoBack(since asked: Date) async {
         await Listener.shared.start()
-        guard Listener.shared.state == .listening else { return }
-        let host = await HostApp.shared.host(since: asked)
-        let opened = host.map(HostApp.shared.open) ?? false
-        HostApp.log.info("back to \(host ?? "none", privacy: .public) \(opened ? "opened" : "failed", privacy: .public) after \(Date.now.timeIntervalSince(asked), format: .fixed(precision: 2))s")
+        guard Listener.shared.state == .listening else {
+            return HostApp.log.notice("not listening after \(Date.now.timeIntervalSince(asked), format: .fixed(precision: 2))s")
+        }
+        let host = await HostApp.shared.host(since: asked.addingTimeInterval(-5))
+        let opened = if let host { await HostApp.shared.open(host) } else { false }
+        HostApp.log.notice("back to \(host ?? "none", privacy: .public) \(opened ? "opened" : "failed", privacy: .public) after \(Date.now.timeIntervalSince(asked), format: .fixed(precision: 2))s")
     }
 
     /// A source's link asks before Hex starts telling it what you type.
