@@ -89,7 +89,7 @@ final class Sources {
 
     private func receive(_ answer: Answer?, for update: FieldUpdate, from source: Source, at index: Int) {
         guard sources.indices.contains(index), sources[index] == source else { return }
-        if let answer { feeds[index].answered(update, hint: answer.hint) } else { feeds[index].failed() }
+        if let answer { feeds[index].answered(update, hint: answer.hint) } else { feeds[index].failed(update) }
         onHint()
         send(index)
     }
@@ -101,6 +101,17 @@ final class Sources {
         let by: String
         let kind: String
         let returnKey: String
+        let at: String
+
+        init(_ update: FieldUpdate) {
+            field = update.field
+            before = update.before
+            after = update.after
+            by = update.by.rawValue
+            kind = "\(update.traits.kind)"
+            returnKey = "\(update.traits.returnKind)"
+            at = Date.ISO8601FormatStyle(includingFractionalSeconds: true).format(Date(timeIntervalSince1970: update.at))
+        }
     }
 
     nonisolated private struct Answer: Decodable {
@@ -114,10 +125,7 @@ final class Sources {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         if let token = source.token { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
-        request.httpBody = try? JSONEncoder().encode(Request(
-            field: update.field, before: update.before, after: update.after, by: update.by.rawValue,
-            kind: "\(update.traits.kind)", returnKey: "\(update.traits.returnKind)"
-        ))
+        request.httpBody = try? JSONEncoder().encode(Request(update))
         guard let (data, response) = try? await session.data(for: request),
               let status = (response as? HTTPURLResponse)?.statusCode, (200..<300).contains(status)
         else { return nil }

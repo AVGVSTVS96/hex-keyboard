@@ -29,7 +29,8 @@ hexkeyboard://source?name=Example&url=https%3A%2F%2Fexample.com%2Fhex&token=secr
   "after": "",
   "by": "keyboard",
   "kind": "text",
-  "returnKey": "default"
+  "returnKey": "default",
+  "at": "2026-10-20T07:13:02.120Z"
 }
 ```
 
@@ -38,10 +39,11 @@ hexkeyboard://source?name=Example&url=https%3A%2F%2Fexample.com%2Fhex&token=secr
 - `by`: who changed the text last. `keyboard` is you typing. `app` is the app: the keyboard opening in a new field (always the field's first update), a sent message clearing it, a paste, the caret moving.
 - `kind`: `text`, `email`, `url`, `number`, `decimal`, `twitter` or `webSearch`.
 - `returnKey`: what the return key says, like `default`, `send`, `search`, `go` or `done`.
+- `at`: when the field was this way.
 
 Hex sends one update at a time to each source and waits for the answer before the next. If you type while one is on its way, only the newest text follows it, but every change the app makes is sent, so the text as it was right before an app change (a message being sent) always arrives first.
 
-An update that gets no answer in 10 seconds, or an error, counts as unreachable: the hint goes, and only the newest text is sent next.
+An update that gets no answer in 10 seconds, or an error, counts as unreachable: the hint goes, and Hex tries again at your next change, starting with what it couldn't send. While the keyboard stays open it keeps every change the app made and the newest text you typed, so a source that was down still learns, in order and with their `at`, what you sent.
 
 ## What a source answers
 
@@ -55,4 +57,27 @@ A `2xx` with JSON:
 
 ## What a source can't see
 
-iOS doesn't tell a keyboard which app it's in, or anything about the screen beyond the field's text and its keyboard settings. A source that needs to know more, like who a message is for, has to learn it elsewhere: a sent message, for example, shows up as an `app` update that empties the field right after the text you sent.
+iOS doesn't tell a keyboard which app it's in, which conversation a field belongs to, or anything on the screen beyond the field's text and its keyboard settings. As of iOS 27:
+
+- Apps can describe a conversation to the keyboard (`UIConversationContext`, iOS 18.4), but iOS keeps it for its own keyboard: a third-party keyboard reads `nil` and is never told it changed, even in an app that sets it.
+- The private ways keyboards used to find their host app stopped working in iOS 26.4.
+
+So a source learns who a message was for after it's sent (an `app` update that empties the field right after the text you sent), or from outside the keyboard.
+
+### Which app you're in, before you type
+
+Shortcuts can tell a source when you open an app, before the keyboard comes up. In Shortcuts › Automation, make one automation per app: **App**, pick the app, **Is Opened**, **Run Immediately**, with one action, **Get Contents of URL** to your source, method `POST`, JSON body `app` = the app's name (and your token as an `Authorization` header). Add one more for all of them, **Is Closed**, that posts `app` as an empty text. The source then knows the app until you leave it. `sources/record.ts` understands these posts; a source of your own decides what to do with them.
+
+## A record of what you type
+
+`sources/record.ts` is a source that keeps a log: one JSON line for each message you send, and for each field you leave with text you typed, with when it was, the kind of field, and the app when Shortcuts told it.
+
+```sh
+RECORD_TOKEN=secret bun sources/record.ts --port 2590 --out ~/record.jsonl
+```
+
+```json
+{"at":"2026-10-20T07:13:02.120Z","event":"sent","text":"On my way","app":"Messages","kind":"text","returnKey":"default"}
+```
+
+It listens on `127.0.0.1`; put it behind `https` on your own devices, for example with `tailscale serve --bg --set-path /record 2590`, and add it with the token.

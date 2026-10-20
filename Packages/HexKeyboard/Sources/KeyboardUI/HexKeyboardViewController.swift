@@ -189,8 +189,8 @@ open class HexKeyboardViewController: UIInputViewController {
     private func tellSources(_ author: FieldUpdate.Author) {
         guard hasFullAccess, !textDocumentProxy.isPrivate, let field = textDocumentProxy.field else { return }
         sources.observe(FieldUpdate(
-            field: field, before: engine.text.before, after: engine.text.after ?? "",
-            by: author, traits: engine.traits
+            field: field, before: engine.text.before, after: engine.text.after ?? "", by: author, traits: engine.traits,
+            at: Date().timeIntervalSince1970
         ))
     }
 

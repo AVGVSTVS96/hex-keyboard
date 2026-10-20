@@ -86,14 +86,39 @@ struct SourceFeedTests {
         #expect(feed.hint(for: "a") == "Really careful")
     }
 
-    @Test func anUnreachableSourceIsToldOnlyTheNewestText() {
+    @Test func anUnreachableSourceGetsWhatItMissedAtTheNextChange() {
         var feed = SourceFeed()
         feed.observe(update("a", by: .app))
-        _ = feed.next()
+        let opened = feed.next()!
         feed.observe(update("ab"))
+        feed.observe(update("abc"))
         feed.observe(update("", by: .app))
-        feed.observe(update("c"))
-        feed.failed()
-        #expect(feed.next() == update("c"))
+        feed.observe(update("d"))
+        feed.failed(opened)
+        #expect(feed.next() == nil)
+        feed.observe(update("de"))
+        var sent: [FieldUpdate] = []
+        while let next = feed.next() {
+            if next == update("abc") { feed.failed(next) } else { feed.answered(next, hint: nil) }
+            sent.append(next)
+        }
+        feed.observe(update("def"))
+        while let next = feed.next() {
+            sent.append(next)
+            feed.answered(next, hint: nil)
+        }
+        #expect(sent == [update("a", by: .app), update("abc"), update("abc"), update("", by: .app), update("def")])
+    }
+
+    @Test func newerTypingStandsInForTypingThatFailed() {
+        var feed = SourceFeed()
+        feed.observe(update("h", by: .app))
+        feed.answered(feed.next()!, hint: nil)
+        feed.observe(update("he"))
+        let typed = feed.next()!
+        feed.observe(update("hey"))
+        feed.failed(typed)
+        feed.observe(update("hey!"))
+        #expect(feed.next() == update("hey!"))
     }
 }
