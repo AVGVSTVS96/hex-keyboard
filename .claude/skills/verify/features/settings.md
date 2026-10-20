@@ -2,7 +2,7 @@
 
 ## Sub-features
 
-The app's settings screen (styled like Settings › General › Keyboard), the same switches in Settings › Apps › Hex, One-Handed Keyboard (Off/Left/Right), Hold 123 (what letting go of a held 123 picks: Emoji or Voice, which then sits right above the key), Keep Mic On (voice typing, Off to 1 Hour), and Reset Keyboard Dictionary.
+The app's settings screen (styled like Settings › General › Keyboard), the same switches in Settings › Apps › Hex, One-Handed Keyboard (Off/Left/Right), Keep Mic On (voice typing, Off to Until Turned Off), and Reset Keyboard Dictionary.
 
 ## How to get to it (user POV)
 

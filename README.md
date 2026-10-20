@@ -33,7 +33,7 @@ The Hex app shows what it learned: a heat map of where your thumbs press, where 
 
 ## Talk instead of typing
 
-Hold 123 and pick the mic. iOS doesn't let keyboards use the microphone, so Hex opens its app to start listening, and you swipe back and keep talking. The app can then keep the mic on for as long as you pick, and while it's on, a mic button sits beside the suggestions: tap it to start and stop dictating, in any app. What you say is turned into text on the iPhone with Apple's speech model, and every transcript is saved in the Hex app.
+Tap the mic beside the suggestions. iOS doesn't let keyboards use the microphone, so the first time Hex opens its app to start listening, then goes back to your app while you keep talking. The app can then keep the mic on for as long as you pick, and while it's on, the mic starts and stops dictating right there, in any app; hold it to turn the mic off. What you say is turned into text on the iPhone with Apple's speech model, and every transcript is saved in the Hex app.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/voice-dark.png">
@@ -42,12 +42,7 @@ Hold 123 and pick the mic. iOS doesn't let keyboards use the microphone, so Hex 
 
 ## Emoji
 
-Hold 123 and let go for Apple's emoji keyboard, with search. Type a word like "pizza" and its emoji shows up in the suggestion bar.
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/emoji-dark.png">
-  <img alt="Searching emoji for heart" src="docs/emoji-light.png" width="400">
-</picture>
+Type a word like "pizza" and its emoji shows up in the suggestion bar; tap it to swap the word for it. For every emoji, the globe takes you to Apple's emoji keyboard, straight there when Hex and Emoji are your only keyboards.
 
 ## Sources
 

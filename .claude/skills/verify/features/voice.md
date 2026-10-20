@@ -2,18 +2,18 @@
 
 ## Sub-features
 
-The 123 menu's mic: the keyboard opens the Hex app (`hexkeyboard://dictate`), the app listens and transcribes on the iPhone (SpeechTranscriber, or DictationTranscriber with punctuation where the iPhone lacks it), you go back to your app, the keyboard shows Listening with Done and ✕ in place of the keys, and Done types what was heard, joined to the text before it with a space. Without Full Access the keyboard says so instead.
+The mic at the bar's right end, always there. With the app's microphone off, a tap opens the Hex app (`hexkeyboard://dictate`), which starts listening (SpeechTranscriber, or DictationTranscriber with punctuation where the iPhone lacks it) and then reopens the app you were typing in (`HostApp`: the host from `_UIRemoteKeyboards`, opened with `LSApplicationWorkspace`; if either fails, its screen asks you to swipe back). While listening the mic is a red pill whose bars follow your voice; a tap types what was heard, joined to the text before it with a space. Without Full Access the bar says so instead.
 
-Keep Mic On (Settings: Off, 30 Seconds, 1 Minute, 5 Minutes (default), 15 Minutes, 1 Hour): after a dictation the app keeps the microphone running in the background for that long, dropping its audio, and holds `Library/mic.lock` in the App Group. While the lock is held the keyboard's mic sends `Dictation.Signal.start` and the app starts listening in place, so the app doesn't open. The countdown restarts after each dictation; another app taking the microphone (a call) or the engine stopping on a route change turns it off at once.
+Keep Mic On (Settings: Off, 30 Seconds, 1 Minute, 5 Minutes (default), 15 Minutes, 1 Hour, Until Turned Off): after a dictation the app keeps the microphone running in the background for that long, dropping its audio, and holds `Library/mic.lock` in the App Group. While the lock is held the mic's glyph is filled and a tap sends `Dictation.Signal.start`, so the app doesn't open; holding the mic turns the microphone off. Another app taking the microphone (a call) or the engine stopping on a route change turns it off at once.
 
 ## How to get to it (user POV)
 
-Hold 123, slide to the mic, let go. Talk, swipe back to your app, tap Done.
+Tap the mic beside the suggestions, talk, tap it again.
 
 ## Driving it with XCUITest
 
-Not driven yet: the simulator records from the Mac's microphone. `EmojiTests.dictationJoinsWhatsThereWithASpace` pins what the engine types. On a phone: watch `Dictation`'s status with `xcrun devicectl device copy from --domain-type appGroupDataContainer --domain-identifier group.com.shahidy.hexkeyboard --source Library/dictation.json` (it lives under Library because devicectl reads only Library, Documents and tmp).
+`scripts/voicetest` runs `VoiceTests` with `scripts/voiceapp.py` standing in for the app (a simulator can't record): the mic shows Mic On, a tap starts listening, a tap types "hello from the mic", a hold turns the microphone off and leaves the mic. On a phone: watch `Dictation`'s status with `xcrun devicectl device copy from --domain-type appGroupDataContainer --domain-identifier group.com.shahidy.hexkeyboard --source Library/dictation.json` (it lives under Library because devicectl reads only Library, Documents and tmp), and the app's return with `log stream --predicate 'subsystem == "com.shahidy.hexkeyboard"'`.
 
 ## Gotchas
 
-Only one app can record at a time: picking voice during a hex voice call interrupts the call's microphone, and a call that takes the microphone ends Keep Mic On. While the microphone stays on with AirPods connected, they stay in their call mode (Bluetooth HFP), so music through them sounds like a phone call until it turns off. Opening the app from the keyboard isn't public API (App Review 4.4.1); it works through the responder chain.
+Only one app can record at a time: a call that takes the microphone ends Keep Mic On. While the microphone stays on with AirPods connected, they stay in their call mode (Bluetooth HFP), so music through them sounds like a phone call until it turns off. Opening the app from the keyboard isn't public API (App Review 4.4.1); it works through the responder chain.

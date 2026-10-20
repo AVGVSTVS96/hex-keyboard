@@ -9,6 +9,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options: UIScene.ConnectionOptions) {
         guard let scene = scene as? UIWindowScene else { return }
+        HostApp.shared.watch()
         let window = UIWindow(windowScene: scene)
         LaunchOptions.resetSettingsIfAsked()
         LaunchOptions.applyOneHanded()
@@ -39,12 +40,22 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     private func open(_ contexts: Set<UIOpenURLContext>) {
         if let source = contexts.lazy.compactMap({ Source(link: $0.url) }).first { return offer(source) }
         guard contexts.contains(where: { $0.url == Dictation.url }), let root = window?.rootViewController else { return }
-        Task { await Listener.shared.start() }
+        let asked = Date.now
+        Task { await listenAndGoBack(since: asked) }
         guard !(root.presentedViewController is DictationViewController) else { return }
         root.dismiss(animated: false)
         let dictation = DictationViewController()
         dictation.modalPresentationStyle = .fullScreen
         root.present(dictation, animated: false)
+    }
+
+    /// Starts listening while Hex is in front, the only place iOS lets a recording begin, then reopens the app you were typing in.
+    private func listenAndGoBack(since asked: Date) async {
+        await Listener.shared.start()
+        guard Listener.shared.state == .listening else { return }
+        let host = await HostApp.shared.host(since: asked)
+        let opened = host.map(HostApp.shared.open) ?? false
+        HostApp.log.info("back to \(host ?? "none", privacy: .public) \(opened ? "opened" : "failed", privacy: .public) after \(Date.now.timeIntervalSince(asked), format: .fixed(precision: 2))s")
     }
 
     /// A source's link asks before Hex starts telling it what you type.
