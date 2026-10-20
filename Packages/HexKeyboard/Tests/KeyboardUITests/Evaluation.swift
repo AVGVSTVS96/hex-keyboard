@@ -85,6 +85,18 @@ struct Evaluation {
         }
     }
 
+    /// The bar's emoji: the share of each corpus's words that find any once typed. Which emoji they find is checked
+    /// in `EnglishEmojiTests`.
+    @Test func emoji() throws {
+        for corpus in ["phrases", "chat"] {
+            let url = try #require(Bundle.module.url(forResource: corpus, withExtension: "txt"))
+            let words = try String(contentsOf: url, encoding: .utf8).split(whereSeparator: \.isWhitespace)
+                .map { String($0.filter { $0.isLetter || $0.isNumber || $0 == "'" }) }.filter { !$0.isEmpty }
+            let found = words.filter { !EmojiCatalog.english.suggestions(for: $0, history: EmojiHistory()).isEmpty }
+            print("EVAL emoji corpus=\(corpus) words=\(words.count) withEmoji=\(String(format: "%.1f", 100.0 * Double(found.count) / Double(words.count)))%")
+        }
+    }
+
     @Test func biasedThumbs() throws {
         let phrases = try Self.phrases()
         let block = 500

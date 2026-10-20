@@ -2,7 +2,7 @@
 
 ## Sub-features
 
-The word being typed, or the one just typed, offers its emoji in the bar's last slot, left of the mic: matched on each emoji's CLDR name and keywords and their plurals, ranked by what you picked from the bar before, then by Unicode's emoji frequency. A tap replaces the word, or after a space follows it. Hex has no emoji keyboard: the globe reaches Apple's, straight away when Hex and Emoji are the only keyboards.
+The word being typed, or the one just typed, offers its emoji in the bar's last slot, left of the mic: the emoji picked by hand for that word in `emoji.txt`, or for its singular, where a word can list none; what you picked from the bar before comes first. A tap replaces the word, or after a space follows it. Hex has no emoji keyboard: the globe reaches Apple's, straight away when Hex and Emoji are the only keyboards.
 
 ## How to get to it (user POV)
 

@@ -3,26 +3,22 @@ import Testing
 
 struct EmojiTests {
     let catalog = EmojiCatalog(text: """
-    # Smileys & People
-    😂\t0\tface with tears of joy|funny|laugh|lol
-    😍\t2\tsmiling face with heart-eyes|love|smile
-    👍 👍🏻 👍🏼 👍🏽 👍🏾 👍🏿\t5\tthumbs up|+1|good|like|yes
-    # Animals & Nature
-    🐶\t40\tdog face|dog|pet|puppy
-    🐕\t90\tdog|pet
-    # Food & Drink
-    🍕\t30\tpizza|cheese|food|slice
-    🌭\t80\thot dog|frankfurter|sausage
-    # Symbols
-    ❤️\t1\tred heart|heart|love
-    💕\t9\ttwo hearts|love
+    dog\t🐶 🐕 🌭
+    doe\t🦌
+    does\t
+    love\t❤️ 😍 💕
+    pizza\t🍕
+    box\t📦
+    with\t
     """)
 
-    @Test func theBarFindsEmojiForContentWordsAndTheirPlurals() {
+    @Test func theBarFindsAWordsEmojiOrItsSingulars() {
         #expect(catalog.suggestions(for: "Pizza", history: EmojiHistory()) == ["🍕"])
-        #expect(catalog.suggestions(for: "dogs", history: EmojiHistory()) == ["🐶", "🌭", "🐕"])
-        #expect(catalog.suggestions(for: "love", history: EmojiHistory()) == ["❤️", "😍", "💕"])
-        #expect(catalog.suggestions(for: "with", history: EmojiHistory()).isEmpty, "words that hold a sentence together find none")
+        #expect(catalog.suggestions(for: "dogs", history: EmojiHistory()) == ["🐶", "🐕", "🌭"])
+        #expect(catalog.suggestions(for: "boxes", history: EmojiHistory()) == ["📦"])
+        #expect(catalog.suggestions(for: "love", history: EmojiHistory(), limit: 2) == ["❤️", "😍"])
+        #expect(catalog.suggestions(for: "with", history: EmojiHistory()).isEmpty)
+        #expect(catalog.suggestions(for: "does", history: EmojiHistory()).isEmpty, "a word that finds none doesn't fall back to its singular")
         #expect(catalog.suggestions(for: "piz", history: EmojiHistory()).isEmpty, "the bar wants the whole word")
     }
 
