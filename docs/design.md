@@ -119,3 +119,71 @@ Where height is short (any landscape, and iPad), there's no pill row: the three 
 - The 2×2 grid button at the bar's left (Raycast's commands): Hex has no commands, so the suggestions get its width.
 - Quick Fix, Ask AI and AI commands.
 - The emoji key in the bottom row (moved to the pill row).
+
+### States
+
+- Pressed key: the pressed fill, plus today's callout above letter keys. Function keys and pills show only the pressed fill.
+- Shift: `shift` off, `shift.fill` on, `capslock.fill` locked. Letters show uppercase while shift is on.
+- The number and symbol layers keep today's keys (`PhoneLayouts`) in this look; `123` reads `ABC` there.
+- Holding `123` still offers the one-handed layouts, as today.
+
+## Panels
+
+Emoji, GIF and Clipboard open from their pills (or, in the compact layout, the bar's icons). A panel replaces the bar and the pill row with a results area and a search field; the keys stay where they are and type into the field, not into the app.
+
+```
+┌──────────────────────────────────────────┐
+│ ☕ 😂 ❤️ 👍 🙏 🔥 😭 🥺 ✨ 🎉           │  results, 136
+│ 😀 😃 😄 😁 😆 😅 🤣 😊 😇 🙂           │
+│ 🙃 😉 😌 😍 🥰 😘 😗 😙 😚 😋           │
+│                                          │  6
+│ ‹  ( 🔍 Search emoji                  )  │  search row, 40
+│                                          │  11
+│ q  w  e  r  t  y  u  i  o  p             │  the same keys
+```
+
+### Shared
+
+- Top to bottom: 8, results 136, 6, the search row 40, 11, the keys, the bottom inset. On the Duo cover the keyboard grows from 359 to 453 while a panel is open (Raycast's grows about as much).
+- Search row: a 36-wide back button (`chevron.left` 22, label color), 4, then the field: fully rounded (radius 20), search-field fill (light mode adds the keys' shadow), 14 in on the left and 12 on the right, a leading glyph (secondary, 17–20), text SF Pro 17 (placeholder in secondary), the accent cursor, and trailing buttons.
+- With text in the field, a clear button sits at its right end: a 20 secondary circle with a field-colored `xmark` 11. It empties the field.
+- What the keys do in a panel: letters, numbers, space and shift type into the field. Delete deletes in the field; with the field empty, it deletes before the app's cursor, so a wrong insert can be fixed without leaving the panel. Return and the back button close the panel. The globe works as everywhere.
+- Every keystroke searches at once: the newest query cancels any search still running, and results only ever show for the text in the field. No debounce timer (AGENTS.md: no timers).
+- A panel stays open after you insert something, so you can add several. It closes with back, return, or when the keyboard goes away; the keyboard always comes back on the main layout.
+- The bar's suggestions and the mic hide while a panel is open.
+- Compact layout: results 46 tall (one row), the search row 34, the gaps as in the main compact layout.
+
+### Emoji
+
+- Works without Full Access.
+- Results: 10 columns across the keys block (45.3 each on the Duo cover), rows 45.3 tall (three show), emoji 30 (26 in compact). Rows fill left to right; the results scroll up and down.
+- Empty field: your recent emoji first (the ones you picked here and from the bar, as `EmojiHistory` weighs them, up to 30), then every emoji in Apple's order. No category tabs: search is faster than tabs.
+- Typing: matches by CLDR name and keywords, best first, ranked by what you use and then by Unicode's emoji frequency. This search existed (commit 416f351, removed in 00edb44 with `EmojiKeyboardView`): bring it back from history rather than rewrite it. Placeholder: "Search emoji".
+- Tap: inserts the emoji at the app's cursor and counts it as used. Hold an emoji with skin tones: a callout of the tones above it, like a key's accents; the pick is remembered for that emoji.
+- No results: the results area says "No emoji for "query"" in secondary 15, centered.
+
+### GIF
+
+- Needs Full Access (it goes online). Without it, the results area says "GIF search needs Full Access." in secondary 15 with a "Turn On" button (accent text) that opens Hex's app where it explains how.
+- Source: GIPHY's API (what Raycast uses), its key in a build setting kept out of git like `Config/Team.xcconfig`. GIPHY asks for attribution, so the placeholder reads "Search GIPHY". With no key built in, the GIF pill doesn't show.
+- Field: leading GIF glyph (20, secondary), trailing `clock` (20, secondary) that switches the results to your recent GIFs; it turns accent while on. Raycast's GIF token chip is cut: the panel only searches GIFs.
+- Results: two rows 65 tall, 6 apart, scrolling sideways. Each GIF keeps its own aspect ratio at that height (no letterboxing, unlike Raycast), radius 8, the key fill while it loads.
+- Empty field: GIPHY's trending GIFs.
+- Memory: a keyboard has a small memory limit. Load GIPHY's small renditions (`fixed_height_small`), animate only the tiles on screen, and drop the rest.
+- Tap: a keyboard can't put an image into the app's field, so Hex copies the GIF to the clipboard and the search row shows "Copied. Paste it in your message." in its place until your next touch. The GIF goes into recents (last 50, kept in the keyboard's own container). Hold: a menu with Copy GIF and Insert Link (types the GIF's GIPHY link at the cursor).
+
+### Clipboard
+
+- Needs Full Access (a keyboard can't read the clipboard without it). Without it the panel says so, as GIF does.
+- Hex keeps what you copy when it sees it: each time the keyboard appears and each time this panel opens, it checks the clipboard's `changeCount` and keeps a new item. Nothing runs in the background. If reading the clipboard makes iOS ask for paste permission, read it only when the panel opens.
+- Never kept: items marked concealed (`org.nspasteboard.ConcealedType`, which password managers set) and anything copied while a secure field was active.
+- History: the last 50 items, newest first, an identical item moves to the top instead of repeating; pinned items stay above them and never age out. Kept in the keyboard's own container, never online.
+- Results: rows 44 tall, 2 apart, three in view, scrolling up and down. Each row: a 16-wide slot with `pin.fill` (13, secondary) for pinned items, the text on one line in SF Pro 16 (images show a 32 thumbnail, radius 6), and at the right where it came from and how long ago in secondary 13 (the app when iOS names it, else just the time).
+- Field: leading clipboard glyph, placeholder "Search clipboard"; typing filters by substring.
+- Tap: inserts the text at the cursor (an image is copied back to the clipboard, as GIFs are). Hold: Pin or Unpin, Delete.
+- Compact: one row of up to three cards, the key fill, radius 10, the text in 14 over its source in 11.
+- Empty: "Things you copy show up here." in secondary 15.
+
+## Out of this design
+
+Swipe typing, themes, snippets and quicklinks are later phases. Nothing here uses AI.
