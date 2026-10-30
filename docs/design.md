@@ -112,7 +112,7 @@ The key, pressed and label colors are today's iOS 27 theme (`KeyboardTheme`); pi
 
 ### The compact layout
 
-Where height is short (any landscape, and iPad), there's no pill row: the three tools sit in the bar's left end as 36 × 36 (34 on the folded landscape) icon buttons, 2 apart, before the suggestions. Same icons, same panels. The keys block is at most 560 wide and centered; the bar spans the same block.
+Where height is short (any landscape, and iPad), there's no pill row: the three tools sit in the bar's left end as 36 × 36 (34 on the folded landscape) icon buttons, 2 apart, before the suggestions. Same icons, same panels. The keys block is at most 560 wide and centered; the bar spans the same block. The mic is 34 (32 on the folded landscape). With no pill row, the bar's bottom 6 goes nowhere, as today.
 
 ### Cut from Raycast
 
