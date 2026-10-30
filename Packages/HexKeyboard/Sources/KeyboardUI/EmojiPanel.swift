@@ -1,7 +1,7 @@
 import UIKit
 import KeyboardCore
 
-/// The emoji panel's results: ten columns of emoji scrolling up and down, what you pick most first, then every emoji in
+/// The emoji panel's results: ten columns of emoji (more on a wide iPad) scrolling up and down, what you pick most first, then every emoji in
 /// Apple's order, or what the search finds.
 final class EmojiPanel: UIView, PanelContent, UICollectionViewDataSource, UICollectionViewDelegate {
     /// An emoji tapped, or picked among its skin tones with its untoned version.
@@ -71,7 +71,7 @@ final class EmojiPanel: UIView, PanelContent, UICollectionViewDataSource, UIColl
         super.layoutSubviews()
         grid.frame = bounds
         empty.frame = bounds
-        let side = bounds.width / 10
+        let side = bounds.width / max(10, (bounds.width / 44).rounded(.down))
         let cell = CGSize(width: side, height: min(side, bounds.height))
         if layout.itemSize != cell {
             layout.itemSize = cell
