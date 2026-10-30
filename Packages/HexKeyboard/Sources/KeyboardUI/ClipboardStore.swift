@@ -7,7 +7,7 @@ import UniformTypeIdentifiers
 
 /// Keeps what you copy (docs/design.md, "Clipboard"), in the keyboard's own container, never online. Nothing runs in
 /// the background: the keyboard looks at the clipboard when it appears and when the clipboard panel opens, and keeps
-/// whatever changed since it last looked. Reading the clipboard needs Full Access.
+/// whatever changed since it last looked. Reading the clipboard needs Full Access, and Paste from Other Apps (`refused`).
 final class ClipboardStore {
     private struct Saved: Codable {
         var history = ClipboardHistory()
@@ -27,20 +27,28 @@ final class ClipboardStore {
 
     var history: ClipboardHistory { saved.history }
 
+    /// Whether iOS refused the keyboard's last look at the clipboard. iOS counts a keyboard's reads as its app's, even
+    /// inside another app, and without asking refuses them unless Settings › Apps › Hex › Paste from Other Apps is Allow.
+    private(set) var refused = false
+
     /// Keeps what's on the clipboard if it changed since the keyboard last looked.
     func catchUp(_ pasteboard: UIPasteboard = .general, now: Date = .now) {
         guard pasteboard.changeCount != saved.seen else { return }
-        saved.seen = pasteboard.changeCount
         defer { save() }
-        guard !pasteboard.types.contains(where: Self.concealed.contains) else { return }
-        if pasteboard.hasStrings, let text = pasteboard.string, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            keep(.text(text), now: now)
-        } else if pasteboard.hasImages, let (data, type) = Self.imageData(pasteboard) {
-            let name = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined() + "." + (type.preferredFilenameExtension ?? "img")
-            try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-            try? data.write(to: folder.appending(path: name), options: .atomic)
-            keep(.image(name), now: now)
+        guard !pasteboard.types.contains(where: Self.concealed.contains) else { return saved.seen = pasteboard.changeCount }
+        let content: ClipboardHistory.Item.Content?
+        if pasteboard.hasStrings {
+            content = pasteboard.string.map(ClipboardHistory.Item.Content.text)
+        } else if pasteboard.hasImages {
+            content = Self.imageData(pasteboard).map(saveImage)
+        } else {
+            return saved.seen = pasteboard.changeCount
         }
+        refused = content == nil
+        guard let content else { return }
+        saved.seen = pasteboard.changeCount
+        if case .text(let text) = content, text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return }
+        deleteFiles(saved.history.keep(content, at: now.timeIntervalSince1970))
     }
 
     /// Something the keyboard put on the clipboard itself, which it doesn't keep.
@@ -76,8 +84,11 @@ final class ClipboardStore {
         return UIImage(cgImage: image)
     }
 
-    private func keep(_ content: ClipboardHistory.Item.Content, now: Date) {
-        deleteFiles(saved.history.keep(content, at: now.timeIntervalSince1970))
+    private func saveImage(_ image: (data: Data, type: UTType)) -> ClipboardHistory.Item.Content {
+        let name = SHA256.hash(data: image.data).map { String(format: "%02x", $0) }.joined() + "." + (image.type.preferredFilenameExtension ?? "img")
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try? image.data.write(to: folder.appending(path: name), options: .atomic)
+        return .image(name)
     }
 
     private func deleteFiles(_ contents: [ClipboardHistory.Item.Content]) {
@@ -90,7 +101,7 @@ final class ClipboardStore {
     }
 
     /// The image as the app copied it, without decoding it.
-    private static func imageData(_ pasteboard: UIPasteboard) -> (Data, UTType)? {
+    private static func imageData(_ pasteboard: UIPasteboard) -> (data: Data, type: UTType)? {
         for type in [UTType.png, .jpeg, .heic, .gif, .webP] {
             if let data = pasteboard.data(forPasteboardType: type.identifier) { return (data, type) }
         }
