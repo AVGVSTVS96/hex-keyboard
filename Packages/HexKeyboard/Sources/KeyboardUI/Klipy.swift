@@ -99,12 +99,17 @@ nonisolated public struct Klipy: Sendable {
 /// an image), so a GIF goes on the clipboard for you to paste, as GIPHY's and Raycast's keyboards do. Writing the
 /// clipboard needs Full Access.
 enum GifClipboard {
-    /// Downloads the GIF and puts it on the clipboard. Returns the clipboard's change count after the write, so the
-    /// clipboard history can skip it (KLIPY doesn't allow keeping copies of its GIFs), or nil when the download failed.
-    static func copy(_ gif: Gif) async -> Int? {
+    /// The GIF's file, or nil when the download failed.
+    static func download(_ gif: Gif) async -> Data? {
         guard let url = URL(string: gif.full.url), let (data, response) = try? await URLSession.shared.data(from: url),
               (response as? HTTPURLResponse)?.statusCode == 200
         else { return nil }
+        return data
+    }
+
+    /// Puts a GIF on the clipboard. Returns the clipboard's change count after the write, so the clipboard history can
+    /// skip it (KLIPY doesn't allow keeping copies of its GIFs).
+    static func put(_ data: Data) -> Int {
         UIPasteboard.general.setData(data, forPasteboardType: UTType.gif.identifier)
         return UIPasteboard.general.changeCount
     }

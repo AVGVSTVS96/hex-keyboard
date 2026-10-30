@@ -24,6 +24,8 @@ final class GifPanel: UIView, PanelContent, UIScrollViewDelegate {
     private var showsRecents = false
     private var query: String?
     private var shown: GifSearch.Results?
+    /// The GIF last tapped, whose download is the one that reaches the clipboard.
+    private var copying: Gif?
     private var theme = KeyboardTheme.lightCurrent
     private var rows = 2
     private let scroll = UIScrollView()
@@ -63,7 +65,6 @@ final class GifPanel: UIView, PanelContent, UIScrollViewDelegate {
     required init?(coder: NSCoder) { fatalError() }
 
     func reset() {
-        search = GifSearch()
         recents = Self.loadRecents()
         showsRecents = false
         query = nil
@@ -126,17 +127,21 @@ final class GifPanel: UIView, PanelContent, UIScrollViewDelegate {
     }
 
     private func copy(_ tile: GifTile) {
+        let gif = tile.gif
+        copying = gif
         tile.alpha = 0.5
-        Task {
-            let copied = await GifClipboard.copy(tile.gif)
+        Task { [weak self] in
+            let data = await GifClipboard.download(gif)
             tile.alpha = 1
-            if let copied {
-                onCopied(copied)
-                recents.use(Klipy.base(tile.gif.id))
+            guard let self, copying == gif else { return }
+            copying = nil
+            if let data {
+                onCopied(GifClipboard.put(data))
+                recents.use(Klipy.base(gif.id))
                 Self.save(recents)
-                klipy.shared(tile.gif, search: query ?? "")
+                klipy.shared(gif, search: query ?? "")
             }
-            notice = copied == nil ? "Couldn't copy that GIF." : "Copied. Paste it in your message."
+            notice = data == nil ? "Couldn't copy that GIF." : "Copied. Paste it in your message."
             changed()
         }
     }
@@ -259,7 +264,10 @@ private final class GifTile: UIControl {
     private func load() {
         guard download == nil, let url = URL(string: gif.preview.url) else { return }
         download = Task { [weak self] in
-            guard let (data, response) = try? await URLSession.shared.data(from: url), (response as? HTTPURLResponse)?.statusCode == 200, let self else { return }
+            let loaded = try? await URLSession.shared.data(from: url)
+            guard let self else { return }
+            download = nil
+            guard let (data, response) = loaded, (response as? HTTPURLResponse)?.statusCode == 200 else { return }
             self.data = data
             if isOnScreen { play() }
         }
