@@ -35,7 +35,7 @@ extension XCTestCase {
     func allowPasteFromOtherApps() throws {
         let settings = XCUIApplication(bundleIdentifier: "com.apple.Preferences")
         XCTAssertTrue(settings.wait(for: .runningForeground, timeout: 10), "Turn On opens Settings")
-        let paste = settings.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Paste from Other Apps'")).firstMatch
+        let paste = settings.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH 'Paste from Other Apps'")).firstMatch
         var path = ["Paste from Other Apps"]
         if !paste.waitForExistence(timeout: 20) {
             settings.terminate()
@@ -43,7 +43,7 @@ extension XCTestCase {
             path = ["Apps", "Hex"] + path
         }
         for label in path {
-            let row = settings.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", label)).firstMatch
+            let row = settings.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH %@", label)).firstMatch
             _ = row.waitForExistence(timeout: 20)
             var swipes = 0
             while !(row.exists && row.isHittable) && swipes < 10 {

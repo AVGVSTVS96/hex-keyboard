@@ -1,14 +1,14 @@
 import UniformTypeIdentifiers
 import XCTest
 
-/// The GIF and clipboard panels through the real keyboard. With HEX_SHOTS set, screenshots each step.
+/// The GIF and clipboard panels through the real keyboard, with Full Access on (scripts/paneltest turns it on). With
+/// HEX_SHOTS set, screenshots each step.
 final class ToolPanelTests: XCTestCase {
     private var shots: String?
 
     override func setUpWithError() throws {
         shots = ProcessInfo.processInfo.environment["HEX_SHOTS"]
         continueAfterFailure = false
-        try allowFullAccess()
     }
 
     func testTheGifPanelSearchesKlipyAndCopiesWhatYouTap() throws {
@@ -71,8 +71,14 @@ final class ToolPanelTests: XCTestCase {
         let pin = app.buttons["hex.clipboard.pin"]
         XCTAssertTrue(pin.waitForExistence(timeout: 3), "holding a row offers Pin and Delete")
         try shot("clipboard-hold")
+        let before = pin.label
         pin.tap()
         XCTAssertTrue(wait { !pin.exists }, "Pin closes the actions")
+        row.press(forDuration: 0.8)
+        XCTAssertTrue(pin.waitForExistence(timeout: 3))
+        XCTAssertEqual(pin.label, before == "Pin" ? "Unpin" : "Pin", "Pin and Unpin take turns")
+        pin.label == "Pin" ? pin.tap() : row.tap()
+        XCTAssertTrue(wait { !pin.exists })
         try shot("clipboard-pinned")
     }
 
