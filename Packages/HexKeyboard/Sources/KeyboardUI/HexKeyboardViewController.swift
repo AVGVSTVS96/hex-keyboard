@@ -222,6 +222,7 @@ open class HexKeyboardViewController: UIInputViewController {
         let layout = Layouts.layout(for: context)
         var metrics = KeyboardMetrics.for(device, width: screenSize.width, height: screenSize.height, style: .current, oneHanded: context.oneHanded)
         if device == .phone, !context.isLandscape { metrics = metrics.fitted(screen: screenSize.width, window: view.bounds.width) }
+        if metrics.margin.leading > 0, metrics.margin.trailing > 0 { metrics = metrics.centered(in: view.bounds.width) }
         keyboardView.menu = (context.menuKey(in: layout), context.menu, context.oneHanded)
         keyboardView.update(layout: layout, signature: context.signature, metrics: metrics, faces: engine.faces(on: device), theme: theme)
         renderToolbar(metrics, device: device)

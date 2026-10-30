@@ -55,8 +55,9 @@ extension KeyboardMetrics {
         }
     }
 
-    /// Keys at most `block` wide, centered, as the iPhone Duo's open screen draws the folded keys (docs/design.md).
-    func centered(in width: Double) -> KeyboardMetrics {
+    /// Keys at most 466pt wide (560pt where there's no pill row), centered, as the iPhone Duo's open screen draws the
+    /// folded keys (docs/design.md). `width` is the keyboard's own: iOS can give it less than the screen.
+    public func centered(in width: Double) -> KeyboardMetrics {
         var metrics = self
         let side = (width - Self.blockWidth(of: self, in: width)) / 2
         metrics.margin = Margin(leading: side, trailing: side)

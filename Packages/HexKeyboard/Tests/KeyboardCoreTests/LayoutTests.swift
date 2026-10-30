@@ -121,4 +121,13 @@ struct LayoutTests {
         let metrics = KeyboardMetrics.for(.phone, width: 669, height: 951)
         #expect(KeyGrid(Layouts.layout(for: context), width: 669, metrics: metrics.grid).expander == nil)
     }
+
+    /// On its side the Duo's cover gives a third-party keyboard a window narrower than the screen; the keys fill it,
+    /// centered, rather than taking the screen's margins inside it.
+    @Test func centeredKeysCenterInTheKeyboardsOwnWidth() {
+        let metrics = KeyboardMetrics.for(.phone, width: 678, height: 466).centered(in: 514)
+        #expect(metrics.margin == .none)
+        let open = KeyboardMetrics.for(.phone, width: 951, height: 669).centered(in: 900)
+        #expect(open.margin.leading == 170 && open.margin.trailing == 170)
+    }
 }
