@@ -21,6 +21,9 @@ settings:
 packages:
   HexKeyboard:
     path: Packages/HexKeyboard
+  FluidAudio:
+    url: https://github.com/FluidInference/FluidAudio.git
+    exactVersion: 0.18.0
 targets:
   Hex:
     type: application
@@ -30,6 +33,7 @@ targets:
       - target: Keyboard
       - package: HexKeyboard
         product: KeyboardUI
+      - package: FluidAudio
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.shahidy.hexkeyboard

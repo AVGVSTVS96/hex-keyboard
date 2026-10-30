@@ -13,7 +13,7 @@ struct Transcript: Codable, Identifiable, Hashable {
 }
 
 /// Every dictation the app transcribed, newest first, in one JSON line each in the app's own container. Nothing leaves
-/// the iPhone: the keyboard never reads it and the app has no network code.
+/// the iPhone: the keyboard never reads it, and the app's only download is the voice model.
 @Observable final class Transcripts {
     static let shared = Transcripts()
 

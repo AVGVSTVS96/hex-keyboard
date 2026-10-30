@@ -32,6 +32,10 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         return navigation
     }
 
+    func sceneDidBecomeActive(_ scene: UIScene) {
+        VoiceModel.shared.prepare()
+    }
+
     func scene(_ scene: UIScene, openURLContexts contexts: Set<UIOpenURLContext>) {
         open(contexts)
     }

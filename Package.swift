@@ -14,11 +14,17 @@ let package = Package(
         .library(name: "Hex", targets: ["Hex"]),
         .library(name: "Keyboard", targets: ["Keyboard"]),
     ],
-    dependencies: [.package(path: "Packages/HexKeyboard")],
+    dependencies: [
+        .package(path: "Packages/HexKeyboard"),
+        .package(url: "https://github.com/FluidInference/FluidAudio.git", exact: "0.18.0", traits: []),
+    ],
     targets: [
         .target(
             name: "Hex",
-            dependencies: [.product(name: "KeyboardUI", package: "HexKeyboard")],
+            dependencies: [
+                .product(name: "KeyboardUI", package: "HexKeyboard"),
+                .product(name: "FluidAudio", package: "FluidAudio"),
+            ],
             path: "App",
             exclude: ["Assets.xcassets", "Settings.bundle", "Hex.entitlements", "PrivacyInfo.xcprivacy"],
             swiftSettings: settings

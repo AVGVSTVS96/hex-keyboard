@@ -1,13 +1,10 @@
 import AVFoundation
 import KeyboardUI
-import Speech
 import UIKit
 
-/// The microphone and the transcriber behind the keyboard's voice typing. It transcribes on the iPhone as you speak
-/// (Apple's SpeechTranscriber, the iOS 26 model, not the older one behind the system's dictation key), so when you're
-/// done only the last words are left to finish. After you dictate it keeps the microphone on for as long as Keep Mic On
-/// says, so the keyboard can start the next dictation (`start`) without opening the app, which is the only place iOS
-/// lets a recording begin.
+/// The microphone behind the keyboard's voice typing, handing what it hears to the `VoiceModel`'s transcription, all on
+/// the iPhone. After you dictate it keeps the microphone on for as long as Keep Mic On says, so the keyboard can start
+/// the next dictation (`start`) without opening the app, which is the only place iOS lets a recording begin.
 @MainActor final class Listener {
     static let shared = Listener()
 
@@ -15,8 +12,7 @@ import UIKit
     private let feed = Feed()
     private var micLock: Int32?
     private var micOff: Task<Void, Never>?
-    private var analyzer: SpeechAnalyzer?
-    private var heard: Task<String, any Error>?
+    private var transcription: (any Transcription)?
     private var tokens: [Int32] = []
     private var started = Date.now
     private var listened: Double = 0
@@ -46,8 +42,7 @@ import UIKit
         }
     }
 
-    /// Returns once the microphone is recording, the one step iOS allows only in the foreground; the transcriber
-    /// gets ready in the background and catches up on what was said meanwhile.
+    /// Returns once the microphone is recording, the one step iOS allows only in the foreground.
     func start() async {
         guard state == .idle else { return }
         micOff?.cancel()
@@ -55,36 +50,19 @@ import UIKit
         started = .now
         do {
             guard await AVAudioApplication.requestRecordPermission() else { throw Failure.microphone }
-            let (module, heard) = try await Self.transcriber()
-            guard let format = await SpeechAnalyzer.bestAvailableAudioFormat(compatibleWith: [module]) else { throw Failure.language }
-            let (stream, input) = AsyncStream<AnalyzerInput>.makeStream()
-            self.heard = heard
+            let transcription = try await VoiceModel.shared.transcription()
+            self.transcription = transcription
             try openMic()
-            if state == .listening {
-                guard feed.start(from: engine.inputNode.outputFormat(forBus: 0), to: format, into: input) else { throw Failure.language }
-            } else {
-                input.finish()
-            }
-            Task { await analyze(stream, with: module) }
-        } catch {
-            await fail(error)
-        }
-    }
-
-    private func analyze(_ stream: AsyncStream<AnalyzerInput>, with module: any SpeechModule) async {
-        do {
-            if let request = try await AssetInventory.assetInstallationRequest(supporting: [module]) { try await request.downloadAndInstall() }
-            let analyzer = SpeechAnalyzer(modules: [module])
-            self.analyzer = analyzer
-            try await analyzer.start(inputSequence: stream)
             switch state {
-            case .transcribing: await deliver(analyzer)
-            case .idle:
-                await analyzer.cancelAndFinishNow()
-                reset()
-            case .listening: break
+            case .listening:
+                let natural = engine.inputNode.outputFormat(forBus: 0)
+                guard feed.start(from: natural, into: transcription) else {
+                    HostApp.log.error("no converter from the mic's \(natural, privacy: .public) to \(transcription.format, privacy: .public)")
+                    throw Failure.language
+                }
+            case .transcribing: await deliver(transcription)
+            case .idle: await cancel(transcription)
             }
-            keepMicOn()
         } catch {
             await fail(error)
         }
@@ -93,53 +71,58 @@ import UIKit
     private func fail(_ error: any Error) async {
         feed.stop()
         closeMic()
-        await analyzer?.cancelAndFinishNow()
-        reset()
+        if let transcription { await cancel(transcription) }
         set(.idle, failure: (error as? Failure)?.description ?? error.localizedDescription)
     }
 
-    /// Stops listening and hands the keyboard everything heard, once the transcriber is up if it isn't yet.
+    /// Stops listening and hands the keyboard everything heard, once the transcription is ready if it isn't yet.
     func finish() async {
         guard state == .listening else { return }
         feed.stop()
         listened = Date.now.timeIntervalSince(started)
         set(.transcribing)
         keepMicOn()
-        if let analyzer { await deliver(analyzer) }
+        if let transcription { await deliver(transcription) }
     }
 
-    private func deliver(_ analyzer: SpeechAnalyzer) async {
+    /// Types what was heard, unless you cancelled or started another dictation meanwhile.
+    private func deliver(_ transcription: any Transcription) async {
         let background = UIApplication.shared.beginBackgroundTask()
         defer { UIApplication.shared.endBackgroundTask(background) }
+        let text: String
         do {
-            try await analyzer.finalizeAndFinishThroughEndOfInput()
-            let text = (try await heard?.value ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-            set(.idle, heard: text)
-            Transcripts.shared.add(text, at: started, seconds: listened, typed: true)
+            text = try await transcription.text()
         } catch {
-            set(.idle, failure: error.localizedDescription)
+            guard transcription === self.transcription else { return }
+            self.transcription = nil
+            return set(.idle, failure: error.localizedDescription)
         }
-        reset()
+        guard transcription === self.transcription else { return }
+        self.transcription = nil
+        set(.idle, heard: text)
+        Transcripts.shared.add(text, at: started, seconds: listened, typed: true)
+        HostApp.log.notice("\(transcription.model, privacy: .public) wrote \(self.listened, format: .fixed(precision: 1))s down in \(Date.now.timeIntervalSince(self.started) - self.listened, format: .fixed(precision: 2))s")
     }
 
     /// Types nothing. What was said while listening is still written down, for Transcripts.
     func cancel() async {
         guard state != .idle else { return }
         feed.stop()
-        let (analyzer, heard, started, wasListening) = (analyzer, heard, started, state == .listening)
-        reset()
+        let (transcription, started, wasListening) = (transcription, started, state == .listening)
+        self.transcription = nil
         set(.idle)
         keepMicOn()
-        guard wasListening, let analyzer, let heard else {
-            await analyzer?.cancelAndFinishNow()
-            heard?.cancel()
-            return
-        }
+        guard let transcription else { return }
+        guard wasListening else { return await transcription.cancel() }
         let background = UIApplication.shared.beginBackgroundTask()
         defer { UIApplication.shared.endBackgroundTask(background) }
-        try? await analyzer.finalizeAndFinishThroughEndOfInput()
-        guard let text = try? await heard.value.trimmingCharacters(in: .whitespacesAndNewlines) else { return }
+        guard let text = try? await transcription.text() else { return }
         Transcripts.shared.add(text, at: started, seconds: Date.now.timeIntervalSince(started), typed: false)
+    }
+
+    private func cancel(_ transcription: any Transcription) async {
+        if transcription === self.transcription { self.transcription = nil }
+        await transcription.cancel()
     }
 
     /// Starts Keep Mic On's countdown over, or turns the microphone off now when it's Off.
@@ -162,11 +145,6 @@ import UIKit
         guard micLock != nil else { return }
         await finish()
         closeMic()
-    }
-
-    private func reset() {
-        analyzer = nil
-        heard = nil
     }
 
     private func set(_ state: Dictation.State, heard: String? = nil, failure: String? = nil) {
@@ -222,25 +200,6 @@ import UIKit
         }
     }
 
-    /// The newer SpeechTranscriber where the iPhone has it, else the dictation model with punctuation.
-    private static func transcriber() async throws -> (any SpeechModule, Task<String, any Error>) {
-        if SpeechTranscriber.isAvailable, let locale = await SpeechTranscriber.supportedLocale(equivalentTo: .current) {
-            let module = SpeechTranscriber(locale: locale, preset: .transcription)
-            return (module, Task {
-                var text = ""
-                for try await result in module.results where result.isFinal { text += String(result.text.characters) }
-                return text
-            })
-        }
-        guard let locale = await DictationTranscriber.supportedLocale(equivalentTo: .current) else { throw Failure.language }
-        let module = DictationTranscriber(locale: locale, contentHints: [], transcriptionOptions: [.punctuation], reportingOptions: [], attributeOptions: [])
-        return (module, Task {
-            var text = ""
-            for try await result in module.results where result.isFinal { text += String(result.text.characters) }
-            return text
-        })
-    }
-
     private enum Failure: Error, CustomStringConvertible {
         case microphone, language
 
@@ -253,39 +212,34 @@ import UIKit
     }
 }
 
-/// Where the microphone's buffers go: to the dictation in progress, converted to the transcriber's format, or nowhere
-/// while the microphone is only being kept on. The audio thread reads it and the main thread swaps it, under a lock.
+/// Where the microphone's buffers go: to the dictation in progress, converted to its model's format, or nowhere while
+/// the microphone is only being kept on. The audio thread reads it and the main thread swaps it, under a lock.
 nonisolated private final class Feed: @unchecked Sendable {
     private let lock = NSLock()
     private var converter: AVAudioConverter?
-    private var format: AVAudioFormat?
-    private var input: AsyncStream<AnalyzerInput>.Continuation?
+    private var transcription: (any Transcription)?
 
-    func start(from natural: AVAudioFormat, to format: AVAudioFormat, into input: AsyncStream<AnalyzerInput>.Continuation) -> Bool {
-        guard let converter = AVAudioConverter(from: natural, to: format) else { return false }
+    func start(from natural: AVAudioFormat, into transcription: any Transcription) -> Bool {
+        guard let converter = AVAudioConverter(from: natural, to: transcription.format) else { return false }
         lock.withLock {
             self.converter = converter
-            self.format = format
-            self.input = input
+            self.transcription = transcription
         }
         return true
     }
 
     func stop() {
-        let input = lock.withLock {
-            let input = self.input
+        lock.withLock {
             converter = nil
-            format = nil
-            self.input = nil
-            return input
+            transcription = nil
         }
-        input?.finish()
     }
 
     /// Whether a dictation took the buffer.
     func yield(_ buffer: AVAudioPCMBuffer) -> Bool {
         lock.withLock {
-            guard let converter, let format, let input else { return false }
+            guard let converter, let transcription else { return false }
+            let format = transcription.format
             let capacity = AVAudioFrameCount(Double(buffer.frameLength) * format.sampleRate / buffer.format.sampleRate) + 1
             guard let converted = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: capacity) else { return false }
             nonisolated(unsafe) var fed = false
@@ -294,7 +248,7 @@ nonisolated private final class Feed: @unchecked Sendable {
                 defer { fed = true }
                 return fed ? nil : buffer
             }
-            input.yield(AnalyzerInput(buffer: converted))
+            transcription.hear(converted)
             return true
         }
     }

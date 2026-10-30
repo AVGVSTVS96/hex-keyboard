@@ -33,7 +33,7 @@ The Hex app shows what it learned: a heat map of where your thumbs press, where 
 
 ## Talk instead of typing
 
-Tap the mic beside the suggestions. iOS doesn't let keyboards use the microphone, so the first time Hex opens its app to start listening, then goes back to your app while you keep talking. The app can then keep the mic on for as long as you pick, and while it's on, the mic starts and stops dictating right there, in any app; hold it to turn the mic off. What you say is turned into text on the iPhone with Apple's speech model, and every transcript is saved in the Hex app.
+Tap the mic beside the suggestions. iOS doesn't let keyboards use the microphone, so the first time Hex opens its app to start listening, then goes back to your app while you keep talking. The app can then keep the mic on for as long as you pick, and while it's on, the mic starts and stops dictating right there, in any app; hold it to turn the mic off. What you say is turned into text on the iPhone with [Parakeet Ultra](https://huggingface.co/moondream/parakeet-ultra), an open speech model built on NVIDIA's Parakeet, run on the Neural Engine by [FluidAudio](https://github.com/FluidInference/FluidAudio); the app downloads it once (about 600 MB) and uses Apple's speech model until it has. Every transcript is saved in the Hex app.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/voice-dark.png">
@@ -53,7 +53,7 @@ A source is a web service you plug into the keyboard. Hex tells it the text of t
 - One-handed keyboard: hold 123 and slide left or right.
 - Hold the space bar and slide to move the cursor, hold delete to erase whole words, flick down on iPad keys for their second character.
 - Return, email, URL and search fields get the keys Apple gives them.
-- Hex only goes online to reach the sources you add. Without one, nothing you type or say leaves your iPhone.
+- Hex only goes online to download its voice model once, search GIFs and reach the sources you add. Without a source, nothing you type or say leaves your iPhone.
 
 Not built yet: swipe typing, and languages other than English.
 

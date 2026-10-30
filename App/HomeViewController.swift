@@ -12,7 +12,7 @@ final class HomeViewController: UITableViewController {
     }
 
     private let sections = [
-        Section(footer: "Hex only goes online to search GIFs and to reach the sources you add in Keyboard Settings. What you type, say and copy stays on this iPhone.", rows: [.status]),
+        Section(footer: "Hex only goes online to download its voice model once, search GIFs and reach the sources you add in Keyboard Settings. What you type, say and copy stays on this iPhone.", rows: [.status]),
         Section(title: "Try It", rows: [.field]),
         Section(footer: "Full Access lets Hex play haptics, type what you say, search GIFs, and show you where your taps land. Paste from Other Apps set to Allow lets the keyboard keep what you copy, for its clipboard.", rows: [.settings, .fullAccess, .paste]),
     ]

@@ -7,6 +7,7 @@ final class SettingsViewController: UITableViewController {
         case toggle(String, WritableKeyPath<KeyboardSettings, Bool>)
         case oneHanded
         case keepMicOn
+        case voiceModel
         case source(Source)
         case addSource
         case reset
@@ -35,12 +36,14 @@ final class SettingsViewController: UITableViewController {
         Section(title: "English", footer: "Hex expands your Text Replacements from Settings › General › Keyboard › Text Replacement.", rows: [
             .toggle("Predictive Text", \.predictiveText),
         ]),
-        Section(title: "Voice", footer: Self.keepMicOnFooter, rows: [.keepMicOn]),
+        Section(title: "Voice", footer: Self.voiceFooter, rows: [.keepMicOn, .voiceModel]),
         Section(title: "Sources", footer: Self.sourcesFooter, rows: sources.map(Row.source) + [.addSource]),
         Section(footer: "Removes the words and typing habits Hex has learned from you.", rows: [.reset]),
     ] }
 
     private static let keepMicOnFooter = "After you dictate, Hex keeps the mic on this long. While it’s on, the mic beside the suggestions starts and stops dictating without leaving your app; hold it to turn the mic off. Nothing is recorded until you tap it."
+
+    private static let voiceFooter = keepMicOnFooter + "\n\nHex writes down what you say with Parakeet, on your iPhone. Until it’s downloaded (about 600 MB, once), Apple’s speech model writes instead."
 
     private static let sourcesFooter = "With Allow Full Access on, Hex sends each source the text of the field you’re typing in, except passwords and codes, and shows the hints it answers with above the keys. Tap a hint to hide it."
 
@@ -74,11 +77,22 @@ final class SettingsViewController: UITableViewController {
         settings = SettingsStore.load()
         sources = SourceStore.load()
         tableView.reloadData()
+        observeVoiceModel()
+    }
+
+    private func observeVoiceModel() {
+        withObservationTracking { _ = VoiceModel.shared.state } onChange: { [weak self] in
+            Task { @MainActor [weak self] in
+                guard let self, view.window != nil else { return }
+                tableView.reloadData()
+                observeVoiceModel()
+            }
+        }
     }
 
     override func tableView(_ tableView: UITableView, shouldHighlightRowAt indexPath: IndexPath) -> Bool {
         switch row(at: indexPath) {
-        case .toggle, .source: false
+        case .toggle, .source, .voiceModel: false
         default: true
         }
     }
@@ -145,6 +159,15 @@ final class SettingsViewController: UITableViewController {
             content.secondaryText = Dictation.title(keepingMicOn: SettingsStore.keepMicOn)
             cell.accessoryView = nil
             cell.accessoryType = .disclosureIndicator
+        case .voiceModel:
+            content.text = "Voice Model"
+            content.secondaryText = switch VoiceModel.shared.state {
+            case .downloading(let done): "Downloading \(done.formatted(.percent.precision(.fractionLength(0))))"
+            case .loading: "Getting Ready"
+            case .ready: "Parakeet"
+            case .failed: "Apple"
+            }
+            cell.accessoryView = nil
         case .source(let source):
             content = .subtitleCell()
             content.text = source.name
