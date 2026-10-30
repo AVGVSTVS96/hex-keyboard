@@ -171,7 +171,9 @@ Emoji, GIF and Clipboard open from their pills (or, in the compact layout, the b
 - Empty field: KLIPY's trending GIFs.
 - Searching: one request is out at a time. Keys typed while it's out don't each send one; when it returns, one search goes out for what the field holds then (`GifSearch`). That keeps a new key's 100 requests an hour from running out in a few searches, with no timer.
 - Memory: a keyboard has a small memory limit. Load KLIPY's small WebP (`sm`), animate only the tiles on screen, and drop the rest.
-- Tap: a keyboard can't put an image into the app's field (`UITextDocumentProxy` only types text), so Hex copies the GIF (KLIPY's `md` GIF, the format every app pastes) to the clipboard, as GIPHY's and Raycast's keyboards do, and the search row shows "Copied. Paste it in your message." in its place until your next touch. The GIF's slug goes into recents (last 50, kept in the keyboard's own container), and KLIPY is told it was shared. Hold: a menu with Copy GIF and Insert Link (types the GIF's link at the cursor).
+- Tap: a keyboard can't put an image into the app's field (`UITextDocumentProxy` only types text; the image inserts UIKit has, `RTITextOperations`' and the sticker path, serve Apple's own keyboard), so Hex copies the GIF (KLIPY's `md` GIF, the format every app pastes) to the clipboard, as GIPHY's and Raycast's keyboards do (Raycast's manual: "tap a GIF to copy it and paste it into your message"), and the search row shows "Copied. Paste it, or hold a GIF to drag it in." in its place until your next touch.
+- Hold: the GIF lifts out of the keyboard and drops into the app's field as the GIF itself, no paste (a system drag, which a keyboard may start; the app decides whether it takes images, as Messages does).
+- A GIF tapped or dropped goes into recents by its slug (last 50, kept in the keyboard's own container), and KLIPY is told it was shared.
 
 ### Clipboard
 

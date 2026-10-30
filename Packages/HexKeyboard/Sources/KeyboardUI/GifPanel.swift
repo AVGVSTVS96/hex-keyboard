@@ -1,9 +1,11 @@
 import ImageIO
 import KeyboardCore
 import UIKit
+import UniformTypeIdentifiers
 
 /// The GIF panel's results (docs/design.md, "GIF"): KLIPY's GIFs in two rows that scroll sideways (one in the compact
-/// layout), each at its own aspect ratio. A tap puts the GIF on the clipboard to paste; the clock shows the ones you sent.
+/// layout), each at its own aspect ratio. A tap puts the GIF on the clipboard to paste, a hold lifts it to drag into the
+/// app's field; the clock shows the ones you sent.
 final class GifPanel: UIView, PanelContent, UIScrollViewDelegate {
     var fullAccess: () -> Bool = { false }
     /// A GIF went on the clipboard, at this change count.
@@ -118,6 +120,7 @@ final class GifPanel: UIView, PanelContent, UIScrollViewDelegate {
             tiles = gifs.map { gif in
                 let tile = GifTile(gif: gif, fill: theme.key.ui)
                 tile.addAction(UIAction { [unowned self, unowned tile] _ in copy(tile) }, for: .touchUpInside)
+                tile.dropped = { [weak self] in self?.sent(gif) }
                 scroll.addSubview(tile)
                 return tile
             }
@@ -137,13 +140,17 @@ final class GifPanel: UIView, PanelContent, UIScrollViewDelegate {
             copying = nil
             if let data {
                 onCopied(GifClipboard.put(data))
-                recents.use(Klipy.base(gif.id))
-                Self.save(recents)
-                klipy.shared(gif, search: query ?? "")
+                sent(gif)
             }
-            notice = data == nil ? "Couldn't copy that GIF." : "Copied. Paste it in your message."
+            notice = data == nil ? "Couldn't copy that GIF." : "Copied. Paste it, or hold a GIF to drag it in."
             changed()
         }
+    }
+
+    private func sent(_ gif: Gif) {
+        recents.use(Klipy.base(gif.id))
+        Self.save(recents)
+        klipy.shared(gif, search: query ?? "")
     }
 
     override func layoutSubviews() {
@@ -199,9 +206,11 @@ private extension GifSearch.Feed {
     }
 }
 
-/// One GIF: the key fill while it loads, then its frames, played by ImageIO one at a time while it's on screen.
-private final class GifTile: UIControl {
+/// One GIF: the key fill while it loads, then its frames, played by ImageIO one at a time while it's on screen. Held, it
+/// lifts out of the keyboard as the GIF's file, which the app takes in where it's dropped.
+private final class GifTile: UIControl, UIDragInteractionDelegate {
     let gif: Gif
+    var dropped: () -> Void = {}
     var isOnScreen = false { didSet { if isOnScreen != oldValue { isOnScreen ? play() : stop() } } }
     private let image = UIImageView()
     private var data: Data?
@@ -222,6 +231,22 @@ private final class GifTile: UIControl {
         accessibilityTraits = .button
         accessibilityLabel = gif.title.isEmpty ? "GIF" : gif.title
         accessibilityIdentifier = "hex.gif.\(gif.id)"
+        let drag = UIDragInteraction(delegate: self)
+        drag.isEnabled = true
+        addInteraction(drag)
+    }
+
+    func dragInteraction(_ interaction: UIDragInteraction, itemsForBeginning session: UIDragSession) -> [UIDragItem] {
+        let provider = NSItemProvider()
+        provider.registerDataRepresentation(forTypeIdentifier: UTType.gif.identifier, visibility: .all) { [gif] done in
+            Task { done(await GifClipboard.download(gif), nil) }
+            return nil
+        }
+        return [UIDragItem(itemProvider: provider)]
+    }
+
+    func dragInteraction(_ interaction: UIDragInteraction, session: UIDragSession, didEndWith operation: UIDropOperation) {
+        if operation == .copy { dropped() }
     }
 
     required init?(coder: NSCoder) { fatalError() }
