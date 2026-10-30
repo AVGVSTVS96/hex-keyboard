@@ -36,8 +36,35 @@ final class ToolPanelTests: XCTestCase {
         try shot("gif-copied")
 
         app.buttons["hex.gifs.recents"].tap()
-        XCTAssertTrue(wait(15) { tile.count == 1 && tile.firstMatch.identifier == id }, "the clock shows the GIF you sent")
+        XCTAssertTrue(wait(15) { tile.firstMatch.identifier == id }, "the clock shows the GIF you sent first")
         try shot("gif-recents")
+    }
+
+    func testAHeldGifDragsIntoTheMessage() throws {
+        let messages = XCUIApplication(bundleIdentifier: "com.apple.MobileSMS")
+        messages.launch()
+        let thread = messages.cells.firstMatch
+        XCTAssertTrue(thread.waitForExistence(timeout: 10), "Messages shows a conversation")
+        thread.tap()
+        let field = messages.textFields["messageBodyField"]
+        XCTAssertTrue(field.waitForExistence(timeout: 10), "the conversation has a message field")
+        field.tap()
+        XCTAssertTrue(key("space", in: messages).waitForExistence(timeout: 20), "Hex keyboard is not the active keyboard")
+        messages.buttons["hex.tool.gif"].tap()
+        let tile = messages.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH 'hex.gif.'"))
+        XCTAssertTrue(tile.firstMatch.waitForExistence(timeout: 15), "an empty search shows KLIPY's trending GIFs")
+        try shot("gif-drag")
+
+        let picked = tile.firstMatch
+        let id = picked.identifier.components(separatedBy: "--")[0]
+        picked.press(forDuration: 1, thenDragTo: field, withVelocity: .slow, thenHoldForDuration: 1)
+        XCTAssertTrue(wait(15) { (field.value as? String)?.contains("\u{FFFC}") == true }, "the GIF is in the message")
+        let search = messages.descendants(matching: .any).matching(identifier: "hex.panel.search").firstMatch
+        XCTAssertFalse((search.value as? String)?.hasPrefix("Copied") == true, "a drag doesn't also copy")
+        try shot("gif-dropped")
+        messages.buttons["hex.gifs.recents"].tap()
+        XCTAssertTrue(wait(15) { tile.firstMatch.identifier == id }, "the clock shows the GIF you dropped first")
+        messages.terminate()
     }
 
     func testTheClipboardPanelKeepsWhatYouCopyAndTypesWhatYouPick() throws {
