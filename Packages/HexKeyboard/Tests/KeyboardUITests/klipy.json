@@ -1,0 +1,161 @@
+{
+ "result": true,
+ "data": {
+  "data": [
+   {
+    "id": 2484942301552561,
+    "slug": "goatplaybanjo-chat-4--kw0djle1v",
+    "title": "Goatplaybanjo's Chatty Cat",
+    "file": {
+     "hd": {
+      "gif": {
+       "url": "https://static.klipy.com/ii/f87f46a2c5aeaeed4c68910815f73eaf/84/09/VBhPiYbU.gif",
+       "width": 220,
+       "height": 229,
+       "size": 273268
+      },
+      "webp": {
+       "url": "https://static.klipy.com/ii/f87f46a2c5aeaeed4c68910815f73eaf/84/09/8l3Tirpu.webp",
+       "width": 220,
+       "height": 230,
+       "size": 71688
+      }
+     },
+     "md": {
+      "gif": {
+       "url": "https://static.klipy.com/ii/f87f46a2c5aeaeed4c68910815f73eaf/84/09/8yAiAlD0.gif",
+       "width": 220,
+       "height": 229,
+       "size": 271080
+      },
+      "webp": {
+       "url": "https://static.klipy.com/ii/f87f46a2c5aeaeed4c68910815f73eaf/84/09/44ftKeij.webp",
+       "width": 220,
+       "height": 229,
+       "size": 137582
+      }
+     },
+     "sm": {
+      "gif": {
+       "url": "https://static.klipy.com/ii/f87f46a2c5aeaeed4c68910815f73eaf/84/09/M7ThMWi7.gif",
+       "width": 220,
+       "height": 229,
+       "size": 271080
+      },
+      "webp": {
+       "url": "https://static.klipy.com/ii/f87f46a2c5aeaeed4c68910815f73eaf/84/09/XSLEN7Sb.webp",
+       "width": 220,
+       "height": 229,
+       "size": 137582
+      }
+     },
+     "xs": {
+      "gif": {
+       "url": "https://static.klipy.com/ii/f87f46a2c5aeaeed4c68910815f73eaf/84/09/O98iNntY.gif",
+       "width": 87,
+       "height": 90,
+       "size": 99848
+      },
+      "webp": {
+       "url": "https://static.klipy.com/ii/f87f46a2c5aeaeed4c68910815f73eaf/84/09/QNjFG4Ws.webp",
+       "width": 87,
+       "height": 90,
+       "size": 29218
+      }
+     }
+    },
+    "tags": [],
+    "type": "gif",
+    "blur_preview": "data:image/jpeg;base64,AAAA"
+   },
+   {
+    "type": "ad",
+    "width": 300,
+    "height": 250,
+    "content": "<div></div>"
+   },
+   {
+    "id": 1,
+    "slug": "no-files",
+    "title": "x",
+    "type": "gif",
+    "file": {
+     "hd": {}
+    }
+   },
+   {
+    "id": 2484942301552561,
+    "slug": "second-gif",
+    "title": "Second",
+    "file": {
+     "hd": {
+      "gif": {
+       "url": "https://static.klipy.com/ii/f87f46a2c5aeaeed4c68910815f73eaf/84/09/VBhPiYbU.gif",
+       "width": 220,
+       "height": 229,
+       "size": 273268
+      },
+      "webp": {
+       "url": "https://static.klipy.com/ii/f87f46a2c5aeaeed4c68910815f73eaf/84/09/8l3Tirpu.webp",
+       "width": 220,
+       "height": 230,
+       "size": 71688
+      }
+     },
+     "md": {
+      "gif": {
+       "url": "https://static.klipy.com/ii/f87f46a2c5aeaeed4c68910815f73eaf/84/09/8yAiAlD0.gif",
+       "width": 220,
+       "height": 229,
+       "size": 271080
+      },
+      "webp": {
+       "url": "https://static.klipy.com/ii/f87f46a2c5aeaeed4c68910815f73eaf/84/09/44ftKeij.webp",
+       "width": 220,
+       "height": 229,
+       "size": 137582
+      }
+     },
+     "sm": {
+      "gif": {
+       "url": "https://static.klipy.com/ii/f87f46a2c5aeaeed4c68910815f73eaf/84/09/M7ThMWi7.gif",
+       "width": 220,
+       "height": 229,
+       "size": 271080
+      },
+      "webp": {
+       "url": "https://static.klipy.com/ii/f87f46a2c5aeaeed4c68910815f73eaf/84/09/XSLEN7Sb.webp",
+       "width": 220,
+       "height": 229,
+       "size": 137582
+      }
+     },
+     "xs": {
+      "gif": {
+       "url": "https://static.klipy.com/ii/f87f46a2c5aeaeed4c68910815f73eaf/84/09/O98iNntY.gif",
+       "width": 87,
+       "height": 90,
+       "size": 99848
+      },
+      "webp": {
+       "url": "https://static.klipy.com/ii/f87f46a2c5aeaeed4c68910815f73eaf/84/09/QNjFG4Ws.webp",
+       "width": 87,
+       "height": 90,
+       "size": 29218
+      }
+     }
+    },
+    "tags": [],
+    "type": "gif",
+    "blur_preview": "data:image/jpeg;base64,AAAA"
+   }
+  ],
+  "current_page": 1,
+  "per_page": 8,
+  "has_next": true,
+  "meta": {
+   "item_min_width": 80,
+   "ad_max_resize_percent": 10
+  }
+ }
+}
