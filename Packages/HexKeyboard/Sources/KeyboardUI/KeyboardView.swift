@@ -123,8 +123,11 @@ final class KeyboardView: UIView {
         resolve(grid, point).map { rowKeys[$0.row][$0.key] }
     }
 
+    /// How much of the gap above the keys goes nowhere, so a reach for the top row never lands on a pill or a panel.
+    var deadTop: CGFloat = 0
+
     override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
-        bounds.contains(point)
+        bounds.contains(point) && point.y >= deadTop
     }
 }
 

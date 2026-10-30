@@ -101,7 +101,7 @@ public struct KeyGrid: Sendable {
     /// The chevron a one-handed keyboard draws in its margin to bring both hands back, as Apple places it: 40pt in from
     /// the screen's edge (27.67pt toward the right hand) and 13/3pt below the middle of the keys.
     public var expander: (frame: Rect, pointsRight: Bool)? {
-        guard metrics.margin != .none, let top = rows.first?.first?.frame.y, let bottom = rows.last?.first?.frame else { return nil }
+        guard metrics.margin != .none, metrics.margin.leading == 0 || metrics.margin.trailing == 0, let top = rows.first?.first?.frame.y, let bottom = rows.last?.first?.frame else { return nil }
         let size = Size(width: 34.0 / 3, height: 107.0 / 3)
         let pointsRight = metrics.margin.trailing > 0
         let midY = (top + bottom.y + bottom.height) / 2 + 13.0 / 3

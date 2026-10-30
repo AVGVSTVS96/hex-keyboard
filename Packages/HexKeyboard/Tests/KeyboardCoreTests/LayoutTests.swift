@@ -97,4 +97,28 @@ struct LayoutTests {
         #expect(rowsAboveBottom(width: 420, style: .ios27) - rowsAboveBottom(width: 420, style: .ios26) == 2)
         #expect(rowsAboveBottom(width: 440, style: .ios27) - rowsAboveBottom(width: 440, style: .ios26) == 2)
     }
+
+    /// docs/design.md, "Per device": the bar and pill row over the keys, or a panel in their place.
+    @Test func theToolbarFollowsTheDesignOnEachScreen() {
+        let cover = KeyboardMetrics.for(.phone, width: 466, height: 678)
+        #expect(cover.toolbar.height + cover.topInset == 8 + 40 + 8 + 40 + 11)
+        #expect(cover.toolbar.panelHeight - cover.toolbar.height == 94, "a panel grows the Duo's keyboard from 359 to 453")
+        #expect(cover.cornerRadius == 9 && cover.margin == .none)
+        let open = KeyboardMetrics.for(.phone, width: 669, height: 951)
+        #expect(open.margin.leading == (669 - 466) / 2 && open.margin.trailing == open.margin.leading, "the open Duo draws the folded keys, centered")
+        #expect(open.keyHeight == cover.keyHeight && open.toolbar == cover.toolbar)
+        let side = KeyboardMetrics.for(.phone, width: 951, height: 669)
+        #expect(side.toolbar.pills == nil && side.keyHeight == 36 && side.margin.leading == (951 - 560) / 2)
+        let folded = KeyboardMetrics.for(.phone, width: 678, height: 466)
+        #expect(folded.keyHeight == 30 && folded.toolbar.bar == 34 && folded.toolbar.mic == 32)
+        let landscape = KeyboardMetrics.for(.phone, width: 874, height: 402)
+        #expect(landscape.toolbar.pills == nil && landscape.margin == .none && landscape.topInset == 8)
+        #expect(KeyboardMetrics.for(.pad, width: 834, height: 1194).toolbar.pills == nil)
+    }
+
+    @Test func centeredKeysDrawNoOneHandedChevron() {
+        let context = LayoutContext(device: .phone, layer: .letters)
+        let metrics = KeyboardMetrics.for(.phone, width: 669, height: 951)
+        #expect(KeyGrid(Layouts.layout(for: context), width: 669, metrics: metrics.grid).expander == nil)
+    }
 }

@@ -9,9 +9,25 @@ open class HexKeyboardViewController: UIInputViewController {
     private var micIsOn = false
     private var dictationTokens: [Int32] = []
     private let suggestionBar = SuggestionBar()
+    private let pillRow = PillRow()
+    private let panelView = PanelView()
+    private let toolbarView = UIView()
+    private var toolbar = KeyboardMetrics.phone(width: 390).toolbar
+    private var listeningSince: Date?
+    private lazy var emojiPanel: EmojiPanel = {
+        let panel = EmojiPanel()
+        panel.onPick = { [unowned self] emoji, base in
+            feedback(.input)
+            handle(.emoji(emoji, base: base))
+        }
+        panel.history = { [unowned self] in engine.emojiHistory }
+        return panel
+    }()
+    /// The panels this keyboard has, in the pills' order.
+    private lazy var panels: [Panel: PanelContent] = [.emoji: emojiPanel]
     private lazy var document = ProxyDocument { [unowned self] in textDocumentProxy }
     private var engine = TypingEngine()
-    private lazy var barHeightConstraint = suggestionBar.heightAnchor.constraint(equalToConstant: 0)
+    private lazy var toolbarHeightConstraint = toolbarView.heightAnchor.constraint(equalToConstant: 0)
     private lazy var keyboardHeightConstraint = keyboardView.heightAnchor.constraint(equalToConstant: 0)
     private var deleteRepeat: DeleteRepeat?
     private let haptics = KeyHaptics()
@@ -23,23 +39,28 @@ open class HexKeyboardViewController: UIInputViewController {
 
     override open func viewDidLoad() {
         super.viewDidLoad()
-        [suggestionBar, keyboardView].forEach {
+        [toolbarView, keyboardView].forEach {
             $0.translatesAutoresizingMaskIntoConstraints = false
             view.addSubview($0)
         }
+        [suggestionBar, pillRow, panelView].forEach(toolbarView.addSubview)
         keyboardHeightConstraint.priority = .required - 1
         NSLayoutConstraint.activate([
-            suggestionBar.topAnchor.constraint(equalTo: view.topAnchor),
-            suggestionBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            suggestionBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            barHeightConstraint,
-            keyboardView.topAnchor.constraint(equalTo: suggestionBar.bottomAnchor),
+            toolbarView.topAnchor.constraint(equalTo: view.topAnchor),
+            toolbarView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            toolbarView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            toolbarHeightConstraint,
+            keyboardView.topAnchor.constraint(equalTo: toolbarView.bottomAnchor),
             keyboardView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             keyboardView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             keyboardView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             keyboardHeightConstraint,
         ])
         suggestionBar.onMic = { [unowned self] in toggleVoice() }
+        suggestionBar.onTool = { [unowned self] in open($0) }
+        pillRow.onTool = { [unowned self] in open($0) }
+        panelView.onClose = { [unowned self] in handle(.panel(nil)) }
+        panelView.onClear = { [unowned self] in handle(.panel(engine.panel)) }
         suggestionBar.onNotice = { [unowned self] in
             if dictation.failure != nil { return clearFailure() }
             sources.dismissHint()
@@ -86,6 +107,10 @@ open class HexKeyboardViewController: UIInputViewController {
 
     override open func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
+        let width = view.bounds.width
+        suggestionBar.frame = CGRect(x: 0, y: 0, width: width, height: toolbar.top + toolbar.bar)
+        pillRow.frame = CGRect(x: 0, y: suggestionBar.frame.maxY + Toolbar.pillGap, width: width, height: toolbar.pills ?? 0)
+        panelView.frame = CGRect(x: 0, y: 0, width: width, height: toolbar.panelHeight)
         TouchTrace.shared.layout(view)
     }
 
@@ -124,6 +149,7 @@ open class HexKeyboardViewController: UIInputViewController {
     override open func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         engine.endSession()
+        engine.handle(.panel(nil), in: document)
         haptics.stop()
         TouchTrace.shared.flush()
         if let memory = engine.corrector?.memory { MemoryStore.save(memory, sharing: hasFullAccess) }
@@ -157,7 +183,7 @@ open class HexKeyboardViewController: UIInputViewController {
 
     private var device: DeviceClass {
         let shortSide = min(screenSize.width, screenSize.height)
-        guard traitCollection.userInterfaceIdiom == .pad else { return shortSide >= 600 ? .compactPad : .phone }
+        guard traitCollection.userInterfaceIdiom == .pad else { return .phone }
         return shortSide >= 1000 ? .largePad : shortSide < 800 ? .compactPad : .pad
     }
 
@@ -192,16 +218,44 @@ open class HexKeyboardViewController: UIInputViewController {
         if device == .phone, !context.isLandscape { metrics = metrics.fitted(screen: screenSize.width, window: view.bounds.width) }
         keyboardView.menu = (context.menuKey(in: layout), context.menu, context.oneHanded)
         keyboardView.update(layout: layout, signature: context.signature, metrics: metrics, faces: engine.faces(on: device), theme: theme)
-        suggestionBar.maximumSlotWidth = device == .phone ? .infinity : 154.5
-        suggestionBar.keyInset = metrics.sideInset
-        suggestionBar.topPadding = device == .phone ? 10 : 0
-        suggestionBar.update(mic: mic, notice: dictation.failure ?? hint, theme: theme)
+        renderToolbar(metrics, device: device)
         renderSuggestions()
 
         let height = metrics.height(rows: layout.rows.count, hasNumberRow: layout.hasNumberRow)
         if keyboardHeightConstraint.constant != height { keyboardHeightConstraint.constant = height }
-        let bar = (device == .phone ? 38 : 36) + suggestionBar.topPadding
-        if barHeightConstraint.constant != bar { barHeightConstraint.constant = bar }
+    }
+
+    /// The bar and the pill row, or the open panel in their place, across the keys block.
+    private func renderToolbar(_ metrics: KeyboardMetrics, device: DeviceClass) {
+        let width = view.bounds.width
+        let block = (minX: CGFloat(metrics.margin.leading + metrics.sideInset), maxX: width - CGFloat(metrics.margin.trailing + metrics.sideInset))
+        if metrics.toolbar != toolbar {
+            toolbar = metrics.toolbar
+            view.setNeedsLayout()
+        }
+        let tools = Panel.allCases.filter { panels[$0] != nil }
+        let panel = engine.panel.flatMap { panels[$0] }
+        panelView.open(panel)
+        panelView.isHidden = panel == nil
+        suggestionBar.isHidden = panel != nil
+        pillRow.isHidden = panel != nil || toolbar.pills == nil
+        panelView.block = block
+        pillRow.block = block
+        suggestionBar.block = block
+        suggestionBar.toolbar = toolbar
+        suggestionBar.maximumSlotWidth = device == .phone ? .infinity : 154.5
+        suggestionBar.update(tools: toolbar.pills == nil ? tools : [], theme: theme)
+        suggestionBar.update(mic: mic, listeningSince: listeningSince, notice: dictation.failure ?? hint, theme: theme)
+        pillRow.update(tools, theme: theme)
+        if panel != nil { panelView.show(query: engine.query, theme: theme, metrics: metrics) }
+        keyboardView.deadTop = toolbar.pills != nil || panel != nil ? max(metrics.topInset - Toolbar.keysReach, 0) : 0
+        let height = panel == nil ? toolbar.height : toolbar.panelHeight
+        if toolbarHeightConstraint.constant != height { toolbarHeightConstraint.constant = height }
+    }
+
+    private func open(_ panel: Panel) {
+        feedback(.other)
+        handle(.panel(panel))
     }
 
     private var theme: KeyboardTheme {
@@ -287,6 +341,8 @@ open class HexKeyboardViewController: UIInputViewController {
         }
         micIsOn = Dictation.micIsOn
         if status.state == .listening, !micIsOn { status.state = .idle }
+        if status.state == .listening, dictation.state != .listening { listeningSince = Date() }
+        if status.state == .idle { listeningSince = nil }
         dictation = status
         render()
     }

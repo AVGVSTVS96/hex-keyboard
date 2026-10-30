@@ -41,6 +41,11 @@ public struct KeyboardTheme: Hashable, Sendable {
     public let candidatePill: RGBA
     public let candidateDivider: RGBA
     public let expander: RGBA
+    /// The mic's circle and its glyph, the record red, and a panel's search field (docs/design.md, Colors).
+    public let mic: RGBA
+    public let micGlyph: RGBA
+    public let record: RGBA
+    public let searchField: RGBA
 
     public static func light(_ style: KeyboardStyle) -> KeyboardTheme {
         let ios27 = style == .ios27
@@ -57,8 +62,12 @@ public struct KeyboardTheme: Hashable, Sendable {
             candidate: ios27 ? .rgb(74, 74, 76) : .rgb(54, 56, 60),
             candidateHighlighted: .rgb(44, 46, 49),
             candidatePill: .rgb(235, 237, 240),
-            candidateDivider: .rgb(211, 212, 217),
-            expander: .white
+            candidateDivider: .rgb(200, 201, 206),
+            expander: .white,
+            mic: .black,
+            micGlyph: .white,
+            record: .rgb(255, 59, 48),
+            searchField: .white
         )
     }
 
@@ -77,8 +86,12 @@ public struct KeyboardTheme: Hashable, Sendable {
             candidate: ios27 ? .rgb(162, 162, 162) : .rgb(172, 172, 172),
             candidateHighlighted: .white,
             candidatePill: .rgb(115, 115, 115),
-            candidateDivider: ios27 ? .rgb(49, 49, 51) : .rgb(50, 50, 52),
-            expander: RGBA(white: 90 / 255)
+            candidateDivider: .rgb(58, 58, 60),
+            expander: RGBA(white: 90 / 255),
+            mic: .white,
+            micGlyph: .black,
+            record: .rgb(255, 69, 58),
+            searchField: .rgb(51, 51, 53)
         )
     }
 }

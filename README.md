@@ -42,7 +42,7 @@ Tap the mic beside the suggestions. iOS doesn't let keyboards use the microphone
 
 ## Emoji
 
-Type a word like "pizza" and its emoji shows up in the suggestion bar; tap it to swap the word for it. For every emoji, the globe takes you to Apple's emoji keyboard, straight there when Hex and Emoji are your only keyboards.
+Type a word like "pizza" and its emoji shows up in the suggestion bar; tap it to swap the word for it. For every other emoji, the emoji pill under the bar opens a grid of them, the ones you pick first; the keys type into its search, which finds emoji by name and keyword. Hold one for its skin tones.
 
 ## Sources
 

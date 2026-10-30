@@ -25,7 +25,7 @@ struct OneHandedTests {
     @Test func chevronSitsWhereApplesDoes() {
         let left = grid(.left, width: 402).expander
         #expect(left?.pointsRight == true)
-        #expect(near(left!.frame.x, 362) && near(left!.frame.y - 8, 687 - 598))
+        #expect(near(left!.frame.x, 362) && near(left!.frame.y - KeyboardMetrics.phone(width: 402).topInset, 687 - 598))
         let right = grid(.right, width: 440).expander
         #expect(right?.pointsRight == false && near(right!.frame.x, 27.67))
         #expect(grid(.off, width: 402).expander == nil)

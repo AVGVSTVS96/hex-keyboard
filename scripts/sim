@@ -7,7 +7,7 @@ RUNTIME=${RUNTIME:-$(xcrun simctl list runtimes -j | /usr/bin/python3 -c "
 import json, sys
 print([r['identifier'] for r in json.load(sys.stdin)['runtimes'] if r['platform'] == 'iOS' and r['isAvailable']
        and any(d['name'] == 'iPhone 17' for d in r['supportedDeviceTypes'])][-1])")}
-APP=build/Build/Products/Debug-iphonesimulator/Hex.app
+APP=${APP:-build/Build/Products/Debug-iphonesimulator/Hex.app}
 BUNDLE=com.shahidy.hexkeyboard
 
 udid() {
