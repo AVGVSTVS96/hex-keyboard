@@ -61,7 +61,7 @@ shoot() {
   done
   sleep "${SETTLE:-3}"
   mkdir -p "$(dirname "$out")"
-  xcrun simctl io "$id" screenshot "$out" >/dev/null 2>&1
+  xcrun simctl io "$id" screenshot ${DISPLAY_ID:+--display="$DISPLAY_ID"} "$out" >/dev/null 2>&1
 }
 
 all() {

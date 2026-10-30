@@ -66,6 +66,18 @@ extension KeyboardMetrics {
         )
     }
 
+    /// iOS can give a third-party keyboard a window narrower than the screen and centered on it (452pt of the iPhone
+    /// Duo's 466pt), while its own keys still sit where they would across the whole screen: the keys move out by the
+    /// difference, up to the window's edges.
+    public func fitted(screen: Double, window: Double) -> KeyboardMetrics {
+        let inset = (screen - window) / 2
+        guard inset > 0, window > 0 else { return self }
+        var metrics = self
+        metrics.sideInset = max(0, sideInset - inset)
+        metrics.margin = Margin(leading: max(0, margin.leading - inset), trailing: max(0, margin.trailing - inset))
+        return metrics
+    }
+
     /// Measured on iOS 27: one-handed keys span 320pt on every iPhone (322pt toward the right hand), 4pt in from their edges.
     func oneHanded(_ hand: OneHanded, width: Double) -> KeyboardMetrics {
         var metrics = self

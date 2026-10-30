@@ -17,6 +17,17 @@ struct LayoutTests {
         #expect(!layout.keys.contains { $0.action == .nextKeyboard })
     }
 
+    /// On iPhone Duo iOS gives a third-party keyboard 452pt of the 466pt screen, 7pt in from each side; Apple's keys,
+    /// measured in the iOS 27.1 simulator, sit 46pt apart with q centered 26.5pt and p 439.7pt from the screen's edge.
+    @Test func keysSitWhereApplesDoOnIPhoneDuo() {
+        let context = LayoutContext(device: .phone, layer: .letters)
+        let metrics = KeyboardMetrics.for(.phone, width: 466, height: 678).fitted(screen: 466, window: 452)
+        let grid = KeyGrid(Layouts.layout(for: context), width: 452, metrics: metrics.grid, signature: context.signature)
+        let center = { (label: String) in 7 + grid.frame(of: label)!.x + grid.frame(of: label)!.width / 2 }
+        #expect(abs(center("q") - 26.5) <= 1 && abs(center("p") - 439.7) <= 1)
+        #expect(KeyboardMetrics.for(.phone, width: 402, height: 874).fitted(screen: 402, window: 402) == KeyboardMetrics.for(.phone, width: 402, height: 874))
+    }
+
     @Test func globeAppearsOnlyWhenNeeded() {
         let layout = Layouts.layout(for: LayoutContext(device: .phone, layer: .letters, showsGlobe: true))
         #expect(layout.keys.contains { $0.action == .nextKeyboard })
