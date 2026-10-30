@@ -165,23 +165,24 @@ Emoji, GIF and Clipboard open from their pills (or, in the compact layout, the b
 ### GIF
 
 - Needs Full Access (it goes online). Without it, the results area says "GIF search needs Full Access." in secondary 15 with a "Turn On" button (accent text) that opens Hex's app where it explains how.
-- Source: GIPHY's API (what Raycast uses), its key in a build setting kept out of git like `Config/Team.xcconfig`. GIPHY asks for attribution, so the placeholder reads "Search GIPHY". With no key built in, the GIF pill doesn't show.
-- Field: leading GIF glyph (20, secondary), trailing `clock` (20, secondary) that switches the results to your recent GIFs; it turns accent while on. Raycast's GIF token chip is cut: the panel only searches GIFs.
+- Source: KLIPY's API, its key in `Packages/HexKeyboard/Sources/KeyboardUI/Resources/Keys/klipy.key`, kept out of git like `Config/Team.xcconfig`. With no key built in, the GIF pill doesn't show. KLIPY over GIPHY (what Raycast uses): both give a new key 100 requests an hour, but KLIPY's production keys are free and unlimited, where GIPHY reviews each app and discusses pricing; GIPHY forbids keeping anything it sends, even a GIF's URL, where KLIPY lets an app keep slugs and fetch them again (`gifs/items`), which recents need. KLIPY requires the placeholder "Search KLIPY", loading its media straight from its URLs, and showing its results in its order.
+- Field: leading GIF glyph (20, secondary), placeholder "Search KLIPY", trailing `clock` (20, secondary) that switches the results to your recent GIFs; it turns accent while on. Raycast's GIF token chip is cut: the panel only searches GIFs.
 - Results: two rows 65 tall, 6 apart, scrolling sideways. Each GIF keeps its own aspect ratio at that height (no letterboxing, unlike Raycast), radius 8, the key fill while it loads.
-- Empty field: GIPHY's trending GIFs.
-- Memory: a keyboard has a small memory limit. Load GIPHY's small renditions (`fixed_height_small`), animate only the tiles on screen, and drop the rest.
-- Tap: a keyboard can't put an image into the app's field, so Hex copies the GIF to the clipboard and the search row shows "Copied. Paste it in your message." in its place until your next touch. The GIF goes into recents (last 50, kept in the keyboard's own container). Hold: a menu with Copy GIF and Insert Link (types the GIF's GIPHY link at the cursor).
+- Empty field: KLIPY's trending GIFs.
+- Searching: one request is out at a time. Keys typed while it's out don't each send one; when it returns, one search goes out for what the field holds then (`GifSearch`). That keeps a new key's 100 requests an hour from running out in a few searches, with no timer.
+- Memory: a keyboard has a small memory limit. Load KLIPY's small WebP (`sm`), animate only the tiles on screen, and drop the rest.
+- Tap: a keyboard can't put an image into the app's field (`UITextDocumentProxy` only types text), so Hex copies the GIF (KLIPY's `md` GIF, the format every app pastes) to the clipboard, as GIPHY's and Raycast's keyboards do, and the search row shows "Copied. Paste it in your message." in its place until your next touch. The GIF's slug goes into recents (last 50, kept in the keyboard's own container), and KLIPY is told it was shared. Hold: a menu with Copy GIF and Insert Link (types the GIF's link at the cursor).
 
 ### Clipboard
 
-- Needs Full Access (a keyboard can't read the clipboard without it). Without it the panel says so, as GIF does.
-- Hex keeps what you copy when it sees it: each time the keyboard appears and each time this panel opens, it checks the clipboard's `changeCount` and keeps a new item. Nothing runs in the background. If reading the clipboard makes iOS ask for paste permission, read it only when the panel opens.
+- Needs Full Access (a keyboard can't read the clipboard without it) and Settings › Apps › Hex › Paste from Other Apps set to Allow. iOS counts a keyboard's reads as its app's, even inside another app; at Ask (the default) it refuses them silently, since the prompt it means to show never appears over a keyboard, and at Allow it lets them through without asking (iOS 27 simulator, from `pasted`'s log). The panel says which is missing, with a "Turn On" button that opens Hex's app.
+- Hex keeps what you copy when it sees it: each time the keyboard appears and each time this panel opens, it checks the clipboard's `changeCount` and keeps a new item. Nothing runs in the background. A refused read isn't counted as seen, so turning Allow on catches up.
 - Never kept: items marked concealed (`org.nspasteboard.ConcealedType`, which password managers set) and anything copied while a secure field was active.
 - History: the last 50 items, newest first, an identical item moves to the top instead of repeating; pinned items stay above them and never age out. Kept in the keyboard's own container, never online.
-- Results: rows 44 tall, 2 apart, three in view, scrolling up and down. Each row: a 16-wide slot with `pin.fill` (13, secondary) for pinned items, the text on one line in SF Pro 16 (images show a 32 thumbnail, radius 6), and at the right where it came from and how long ago in secondary 13 (the app when iOS names it, else just the time).
+- Results: rows 44 tall, 2 apart, three in view, scrolling up and down. Each row: a 16-wide slot with `pin.fill` (13, secondary) for pinned items, the text on one line in SF Pro 16 (images show a 32 thumbnail, radius 6), and at the right how long ago in secondary 13 (`now`, `5m`, `3h`, `2d`). iOS never tells a keyboard which app copied something (`UIPasteboard` has no such property), so a row can't say where it came from.
 - Field: leading clipboard glyph, placeholder "Search clipboard"; typing filters by substring.
 - Tap: inserts the text at the cursor (an image is copied back to the clipboard, as GIFs are). Hold: Pin or Unpin, Delete.
-- Compact: one row of up to three cards, the key fill, radius 10, the text in 14 over its source in 11.
+- Compact: one row of up to three cards, the key fill, radius 10, the text in 14 over its age in 11.
 - Empty: "Things you copy show up here." in secondary 15.
 
 ## Out of this design
