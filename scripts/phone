@@ -1,6 +1,14 @@
 #!/bin/sh
-# Builds Hex on this Linux box with xtool and installs it on the iPhone over Wi-Fi through netmuxd.
+# Builds Hex on this Linux box with xtool and signs it for the free team's devices (its one development certificate
+# lives with xtool here), then installs it through the Mac on the iPhone the Mac reaches, by cable or Wi-Fi.
 set -e
 cd "$(dirname "$0")/.."
-export USBMUXD_SOCKET_ADDRESS="UNIX:${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/netmuxd.sock"
-exec xtool dev run -c release --network "$@"
+xtool dev build -c release --sign
+phone=$(ssh mac 'xcrun devicectl list devices --json-output /tmp/hex-phone.json >/dev/null && /usr/bin/python3 -c "
+import json
+for d in json.load(open(\"/tmp/hex-phone.json\"))[\"result\"][\"devices\"]:
+    h, c = d[\"hardwareProperties\"], d[\"connectionProperties\"]
+    if h.get(\"deviceType\") == \"iPhone\" and h.get(\"reality\") == \"physical\" and c.get(\"transportType\"): print(h[\"udid\"]); break"')
+[ -n "$phone" ] || { echo "the Mac doesn't reach an iPhone" >&2; exit 1; }
+rsync -a --delete xtool/Hex.app/ mac:Developer/hex-keyboard-phone/Hex.app/
+ssh mac xcrun devicectl device install app --device "$phone" Developer/hex-keyboard-phone/Hex.app
