@@ -2,7 +2,7 @@ import UIKit
 
 final class HomeViewController: UITableViewController {
     private enum Row {
-        case status, field, settings, fullAccess
+        case status, field, settings, fullAccess, paste
     }
 
     private struct Section {
@@ -12,9 +12,9 @@ final class HomeViewController: UITableViewController {
     }
 
     private let sections = [
-        Section(footer: "Hex only goes online to reach the sources you add in Keyboard Settings. Without one, what you type and say stays on this iPhone.", rows: [.status]),
+        Section(footer: "Hex only goes online to search GIFs and to reach the sources you add in Keyboard Settings. What you type, say and copy stays on this iPhone.", rows: [.status]),
         Section(title: "Try It", rows: [.field]),
-        Section(footer: "Full Access lets Hex play haptics, type what you say, and show you where your taps land.", rows: [.settings, .fullAccess]),
+        Section(footer: "Full Access lets Hex play haptics, type what you say, search GIFs, and show you where your taps land. Paste from Other Apps set to Allow lets the keyboard keep what you copy, for its clipboard.", rows: [.settings, .fullAccess, .paste]),
     ]
 
     private let field = UITextView()
@@ -95,7 +95,7 @@ final class HomeViewController: UITableViewController {
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
         switch row(at: indexPath) {
-        case .status, .fullAccess: UIApplication.shared.open(URL(string: UIApplication.openSettingsURLString)!)
+        case .status, .fullAccess, .paste: UIApplication.shared.open(URL(string: UIApplication.openSettingsURLString)!)
         case .settings: navigationController?.pushViewController(SettingsViewController(), animated: true)
         case .field: break
         }
@@ -109,7 +109,7 @@ final class HomeViewController: UITableViewController {
             let cell = tableView.dequeueReusableCell(withIdentifier: "status", for: indexPath) as! StatusCell
             cell.show(isAdded: isAdded)
             return cell
-        case .settings, .fullAccess:
+        case .settings, .fullAccess, .paste:
             break
         }
         let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
@@ -118,9 +118,12 @@ final class HomeViewController: UITableViewController {
         if row(at: indexPath) == .settings {
             content.image = UIImage(systemName: "gearshape")
             content.text = "Keyboard Settings"
-        } else {
+        } else if row(at: indexPath) == .fullAccess {
             content.image = UIImage(systemName: "lock.open")
             content.text = "Allow Full Access"
+        } else {
+            content.image = UIImage(systemName: "list.clipboard")
+            content.text = "Allow Paste from Other Apps"
         }
         cell.contentConfiguration = content
         return cell

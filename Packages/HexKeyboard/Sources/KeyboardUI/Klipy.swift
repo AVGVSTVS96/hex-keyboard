@@ -39,7 +39,13 @@ nonisolated public struct Klipy: Sendable {
         else { return nil }
         let gifs = page.data.data.compactMap(\.gif)
         guard case .recents(let slugs) = feed else { return gifs }
-        return slugs.compactMap { slug in gifs.first { $0.id == slug } }
+        return slugs.compactMap { slug in gifs.first { Self.base($0.id) == slug } }
+    }
+
+    /// A slug without the suffix a search adds to it (`cat-dance--k55hIoaZo`), as `gifs/items` answers with it, so the
+    /// same GIF found by two searches is one recent.
+    static func base(_ slug: String) -> String {
+        slug.range(of: "--").map { String(slug[..<$0.lowerBound]) } ?? slug
     }
 
     /// Tells KLIPY a GIF was sent, with the search that found it.

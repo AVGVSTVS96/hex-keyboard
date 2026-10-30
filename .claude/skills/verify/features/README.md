@@ -9,6 +9,7 @@ One file per feature a user meets, each with how to reach it and the test that p
 | Autocorrect and the suggestion bar | [autocorrect.md](autocorrect.md) |
 | Settings shared between the app, Settings and the keyboard | [settings.md](settings.md) |
 | Emoji in the suggestion bar | [emoji.md](emoji.md) |
+| GIF search and the clipboard panels | [panels.md](panels.md) |
 | Voice typing through the app | [voice.md](voice.md) |
 | Transcripts: every dictation, kept in the app | [transcripts.md](transcripts.md) |
 | Your Taps: the app's map of where your taps land | [your-taps.md](your-taps.md) |

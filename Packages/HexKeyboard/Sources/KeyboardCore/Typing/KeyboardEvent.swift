@@ -12,6 +12,8 @@ public enum KeyboardEvent: Hashable, Sendable {
     case panel(Panel?)
     /// An emoji picked in the emoji panel, with its untoned version when it was picked among skin tones.
     case emoji(String, base: String?)
+    /// Text from the clipboard panel, typed as it is.
+    case paste(String)
     /// Text that dictation heard.
     case dictated(String)
 }

@@ -23,14 +23,35 @@ open class HexKeyboardViewController: UIInputViewController {
         panel.history = { [unowned self] in engine.emojiHistory }
         return panel
     }()
-    /// The panels this keyboard has, in the pills' order.
-    private lazy var panels: [Panel: PanelContent] = [.emoji: emojiPanel]
+    private lazy var gifPanel: GifPanel? = Klipy.shared.map { klipy in
+        let panel = GifPanel(klipy: klipy)
+        panel.fullAccess = { [unowned self] in hasFullAccess }
+        panel.onCopied = { [unowned self] in clipboard.skip(changeCount: $0) }
+        panel.onTurnOn = { [unowned self] in open(HexLink.settings) }
+        panel.changed = { [unowned self] in render() }
+        panel.clearSearch = { [unowned self] in handle(.panel(.gif)) }
+        return panel
+    }
+    private lazy var clipboardPanel: ClipboardPanel = {
+        let panel = ClipboardPanel(store: clipboard)
+        panel.fullAccess = { [unowned self] in hasFullAccess }
+        panel.onPaste = { [unowned self] in
+            feedback(.input)
+            handle(.paste($0))
+        }
+        panel.onTurnOn = { [unowned self] in open(HexLink.settings) }
+        panel.changed = { [unowned self] in render() }
+        return panel
+    }()
+    /// The panels this keyboard has, in the pills' order. GIFs need a KLIPY key built in.
+    private lazy var panels: [Panel: PanelContent] = [.emoji: emojiPanel, .gif: gifPanel, .clipboard: clipboardPanel].compactMapValues { $0 }
     private lazy var document = ProxyDocument { [unowned self] in textDocumentProxy }
     private var engine = TypingEngine()
     private lazy var toolbarHeightConstraint = toolbarView.heightAnchor.constraint(equalToConstant: 0)
     private lazy var keyboardHeightConstraint = keyboardView.heightAnchor.constraint(equalToConstant: 0)
     private var deleteRepeat: DeleteRepeat?
     private let haptics = KeyHaptics()
+    private let clipboard = ClipboardStore()
     private let sources = Sources()
 
     override open func loadView() {
@@ -120,6 +141,7 @@ open class HexKeyboardViewController: UIInputViewController {
         engine.settings = SettingsStore.load(sharing: hasFullAccess)
         engine.corrector?.memory = MemoryStore.load()
         engine.emojiHistory = MemoryStore.loadEmoji()
+        if hasFullAccess { clipboard.catchUp() }
         if hasFullAccess, dictationTokens.isEmpty {
             dictationTokens = [
                 Dictation.observe(.changed) { [weak self] in self?.dictationChanged() },
@@ -314,8 +336,7 @@ open class HexKeyboardViewController: UIInputViewController {
 
     /// Stops a dictation in progress, so what was heard is typed. Otherwise starts one: in place while the app keeps the
     /// microphone on, or by opening the app, since a keyboard can't use the microphone and iOS starts a recording only
-    /// in an app in front. Apps can't be opened from a keyboard through public API, so this goes through the responder
-    /// chain to the host's UIApplication, as voice keyboards do.
+    /// in an app in front.
     private func toggleVoice() {
         guard hasFullAccess else {
             dictation = Dictation.Status(failure: "Voice needs Allow Full Access in Settings › Apps › Hex › Keyboards")
@@ -330,9 +351,15 @@ open class HexKeyboardViewController: UIInputViewController {
         micIsOn = Dictation.micIsOn
         if micIsOn { return Dictation.send(.start) }
         render()
+        open(Dictation.Request(host: KeyboardHost.app(of: self)).url)
+    }
+
+    /// Opens a link from the keyboard. Apps can't be opened from a keyboard through public API, so this goes through
+    /// the responder chain to the host's UIApplication, as voice keyboards do.
+    private func open(_ url: URL) {
         var responder: UIResponder? = self
         while let next = responder {
-            if let application = next as? UIApplication { return application.open(Dictation.Request(host: KeyboardHost.app(of: self)).url) }
+            if let application = next as? UIApplication { return application.open(url) }
             responder = next.next
         }
     }
@@ -396,4 +423,10 @@ private extension Corrector {
         setReplacements(entries.filter { $0.userInput != $0.documentText }.map { ($0.userInput, $0.documentText) })
         setNames(entries.filter { $0.userInput == $0.documentText }.map(\.documentText))
     }
+}
+
+/// Links into Hex's app.
+public enum HexLink {
+    /// Opens Settings › Apps › Hex, where Full Access (under Keyboards) and Paste from Other Apps are.
+    public static let settings = URL(string: "hexkeyboard://settings")!
 }

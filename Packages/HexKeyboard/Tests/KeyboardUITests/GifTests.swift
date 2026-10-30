@@ -16,3 +16,10 @@ struct GifTests {
         #expect(gif.preview.height > 0 && gif.preview.width > 0)
     }
 }
+
+struct KlipySlugTests {
+    @Test func recentsKeepTheSlugWithoutTheSuffixASearchAdds() {
+        #expect(Klipy.base("goatplaybanjo-chat-4--k55hIoaZo") == "goatplaybanjo-chat-4")
+        #expect(Klipy.base("goatplaybanjo-chat-4") == "goatplaybanjo-chat-4")
+    }
+}

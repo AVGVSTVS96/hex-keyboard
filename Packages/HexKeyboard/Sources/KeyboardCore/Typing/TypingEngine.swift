@@ -170,6 +170,8 @@ public struct TypingEngine {
         case .emoji(let emoji, let base):
             emojiHistory.use(emoji, base: base)
             insertWhole(emoji, in: document)
+        case .paste(let text):
+            insertWhole(text, in: document)
         case .dictated(let heard):
             let joins = text.before.last.map { !$0.isWhitespace && !Words.openers.contains($0) } ?? false
             insertWhole((joins ? " " : "") + heard, in: document)

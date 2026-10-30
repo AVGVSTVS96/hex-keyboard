@@ -9,6 +9,8 @@ protocol PanelContent: UIView {
     var glyph: UIImage? { get }
     /// Buttons at the field's right end, before its clear button.
     var accessories: [UIView] { get }
+    /// What the search row says in place of the search, like "Copied", until the panel takes it back.
+    var notice: String? { get }
     /// The results for `query`. Called on every render; redraw only when something changed, so results never move
     /// under a finger.
     func show(query: String, theme: KeyboardTheme, metrics: KeyboardMetrics)
@@ -19,6 +21,7 @@ protocol PanelContent: UIView {
 extension PanelContent {
     var glyph: UIImage? { UIImage(systemName: "magnifyingglass") }
     var accessories: [UIView] { [] }
+    var notice: String? { nil }
     func reset() {}
 }
 
@@ -62,8 +65,8 @@ final class PanelView: UIView {
             setNeedsLayout()
         }
         back.tintColor = theme.label.ui
-        field.show(query, placeholder: content?.placeholder ?? "", glyph: content?.glyph, theme: theme)
         content?.show(query: query, theme: theme, metrics: metrics)
+        field.show(query, placeholder: content?.placeholder ?? "", glyph: content?.glyph, notice: content?.notice, theme: theme)
     }
 
     override func layoutSubviews() {
@@ -92,6 +95,7 @@ private final class SearchField: UIView {
     private let caret = UIView()
     private let clear = UIButton(type: .custom)
     private var query = ""
+    private var notice: String?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -116,18 +120,20 @@ private final class SearchField: UIView {
 
     required init?(coder: NSCoder) { fatalError() }
 
-    func show(_ query: String, placeholder: String, glyph image: UIImage?, theme: KeyboardTheme) {
-        if query != self.query { setNeedsLayout() }
+    func show(_ query: String, placeholder: String, glyph image: UIImage?, notice: String?, theme: KeyboardTheme) {
+        if query != self.query || notice != self.notice { setNeedsLayout() }
         self.query = query
+        self.notice = notice
         accessibilityLabel = placeholder
-        accessibilityValue = query
-        label.text = query.isEmpty ? placeholder : query
-        label.textColor = query.isEmpty ? theme.candidate.ui : theme.label.ui
-        glyph.image = image
+        accessibilityValue = notice ?? query
+        label.text = notice ?? (query.isEmpty ? placeholder : query)
+        label.textColor = query.isEmpty && notice == nil ? theme.candidate.ui : theme.label.ui
+        caret.isHidden = notice != nil
+        glyph.image = notice == nil ? image : UIImage(systemName: "checkmark.circle.fill")
         glyph.tintColor = theme.candidate.ui
         caret.backgroundColor = theme.prominent.ui
         backgroundColor = theme.searchField.ui
-        clear.isHidden = query.isEmpty
+        clear.isHidden = query.isEmpty || notice != nil
         let mark = UIImage(systemName: "xmark", withConfiguration: UIImage.SymbolConfiguration(pointSize: 11, weight: .bold))
         clear.setImage(Self.clearImage(mark: mark, circle: theme.candidate.ui, field: theme.searchField.ui), for: .normal)
     }
@@ -172,7 +178,7 @@ private final class SearchField: UIView {
             right = accessory.frame.minX
         }
         let text = glyph.frame.maxX + 6
-        let start = query.isEmpty ? text + 4 : text
+        let start = query.isEmpty && notice == nil ? text + 4 : text
         let width = min(label.intrinsicContentSize.width, right - start - 4)
         label.frame = CGRect(x: start, y: 0, width: max(width, 0), height: bounds.height)
         let typed = query.isEmpty ? 0 : label.frame.width

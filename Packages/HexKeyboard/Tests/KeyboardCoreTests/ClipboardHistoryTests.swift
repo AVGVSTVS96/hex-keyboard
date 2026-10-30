@@ -53,3 +53,16 @@ struct ClipboardHistoryTests {
         #expect(ClipboardHistory.age(of: now + 30, now: now) == "now", "a clock set back shows now")
     }
 }
+
+struct ClipboardPasteTests {
+    @Test func aPickFromTheClipboardPanelGoesIntoTheAppWholeWhileTheSearchKeepsTheKeys() {
+        var engine = TypingEngine()
+        let document = TestDocument("see you at ")
+        engine.handle(.panel(.clipboard), in: document)
+        engine.type("ferry", in: document)
+        engine.handle(.paste("1 Ferry Building, San Francisco"), in: document)
+        #expect(document.text == "see you at 1 Ferry Building, San Francisco")
+        #expect(engine.panel == .clipboard, "the panel stays open, so you can add more")
+        #expect(engine.query == "ferry")
+    }
+}
