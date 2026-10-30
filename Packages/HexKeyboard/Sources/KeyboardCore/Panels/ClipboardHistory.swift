@@ -22,6 +22,9 @@ public struct ClipboardHistory: Codable, Hashable, Sendable {
     private var saved: [Item] = []
 
     static let capacity = 50
+    /// The longest text kept, in UTF-8 bytes. The history lives in the keyboard's small memory and is read whenever it
+    /// opens, so a copied log or document isn't kept at all rather than kept cut short.
+    static let longest = 100_000
 
     public init() {}
 
@@ -29,6 +32,7 @@ public struct ClipboardHistory: Codable, Hashable, Sendable {
     /// the store can delete its files.
     @discardableResult
     public mutating func keep(_ content: Item.Content, at time: Double) -> [Item.Content] {
+        if case .text(let text) = content, text.utf8.count > Self.longest { return [] }
         let pinned = saved.first { $0.content == content }?.pinned ?? false
         saved.removeAll { $0.content == content }
         saved.append(Item(content: content, found: time, pinned: pinned))
