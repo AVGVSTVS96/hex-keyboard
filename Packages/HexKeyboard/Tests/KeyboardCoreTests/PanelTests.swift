@@ -32,6 +32,33 @@ struct PanelTests {
         #expect(document.text == "hiyo")
     }
 
+    @Test func holdingDeleteToClearTheSearchStopsBeforeTheApp() {
+        var engine = TypingEngine()
+        let document = TestDocument("hi there")
+        engine.handle(.panel(.emoji), in: document)
+        engine.type("ab", in: document)
+        engine.handle(.down(Key(.delete), tapCount: 1), in: document)
+        for _ in 0..<5 { engine.perform(.delete, in: document) }
+        engine.deleteWord(in: document)
+        engine.handle(.up(Key(.delete)), in: document)
+        #expect(engine.query == "")
+        #expect(document.text == "hi there", "the repeat that emptied the search leaves the app alone")
+        engine.handle(.down(Key(.delete), tapCount: 1), in: document)
+        #expect(document.text == "hi ther", "a new press with the search empty deletes in the app")
+    }
+
+    @Test func closingAPanelBringsBackTheFieldsKeys() {
+        var engine = TypingEngine(traits: InputTraits(kind: .number))
+        let document = TestDocument()
+        engine.handle(.panel(.emoji), in: document)
+        #expect(engine.layer == .letters)
+        engine.handle(.panel(nil), in: document)
+        #expect(engine.layer == .numbers, "closed with the back button")
+        engine.handle(.panel(.clipboard), in: document)
+        engine.perform(.return, in: document)
+        #expect(engine.layer == .numbers, "closed with return")
+    }
+
     @Test func theSearchTypesLowercaseAndOnPlainTextKeys() {
         var engine = TypingEngine(traits: InputTraits(kind: .url, returnKind: .go))
         let document = TestDocument()
