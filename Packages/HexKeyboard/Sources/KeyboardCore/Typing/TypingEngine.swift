@@ -29,6 +29,8 @@ public struct TypingEngine {
 
     private var spaceJustTyped = false
     private var shiftHold: ShiftHold?
+    /// Delete went down with text in the panel's search, so holding it empties the search and stops there.
+    private var deleteHeldInSearch = false
     var typing = WordTaps()
     var pending: PendingWord?
     var stray: StraySpace?
@@ -67,6 +69,7 @@ public struct TypingEngine {
             break
         }
         if panel != nil, action != .delete || !query.isEmpty { return search(action) }
+        if panel != nil, deleteHeldInSearch { return }
 
         let wasSpace = spaceJustTyped
         let revert = self.revert
@@ -139,10 +142,14 @@ public struct TypingEngine {
         case .down(let key, let tapCount):
             switch key.action {
             case .shift: pressShift(doubleTap: tapCount == 2)
-            case .capsLock, .delete, .layer: perform(key.action, in: document)
+            case .delete:
+                deleteHeldInSearch = panel != nil && !query.isEmpty
+                perform(key.action, in: document)
+            case .capsLock, .layer: perform(key.action, in: document)
             default: return false
             }
         case .up(let key):
+            if key.action == .delete { deleteHeldInSearch = false }
             guard key.action == .shift else { return false }
             releaseShift(in: document)
         case .type(let key, let tap):
@@ -162,11 +169,7 @@ public struct TypingEngine {
             settings.oneHanded = hand
             perform(.layer(.letters), in: document)
         case .panel(let panel):
-            self.panel = panel
-            query = ""
-            if panel != nil { layer = .letters }
-            refreshShift()
-            suggestionsChanged()
+            show(panel)
         case .emoji(let emoji, let base):
             emojiHistory.use(emoji, base: base)
             insertWhole(emoji, in: document)
@@ -184,6 +187,7 @@ public struct TypingEngine {
             query = String(query.dropLast(Self.wordLength(before: query)))
             return suggestionsChanged()
         }
+        if panel != nil, deleteHeldInSearch { return }
         attach(document)
         spaceJustTyped = false
         revert = nil
@@ -242,12 +246,24 @@ public struct TypingEngine {
         case .delete:
             query = String(query.dropLast())
         case .return:
-            panel = nil
-            query = ""
+            return show(nil)
         default:
             return
         }
         if shiftHold != nil { shiftHold = .typedWhileHeld }
+        refreshShift()
+        suggestionsChanged()
+    }
+
+    /// Opens a panel, or closes it with nil, which brings back the keys the field opens with.
+    private mutating func show(_ panel: Panel?) {
+        if panel != nil {
+            layer = .letters
+        } else if self.panel != nil {
+            layer = Self.initialLayer(for: traits.kind)
+        }
+        self.panel = panel
+        query = ""
         refreshShift()
         suggestionsChanged()
     }
