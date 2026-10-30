@@ -67,6 +67,9 @@ final class AlternatesView: UIView {
         select(selected)
     }
 
+    /// Where the selected option's middle is, in the superview's coordinates.
+    var selectedMidX: CGFloat { frame.minX + (labels.indices.contains(selection) ? labels[selection].frame.midX : 0) }
+
     func track(_ point: CGPoint) {
         guard !labels.isEmpty else { return }
         let width = (bounds.width - padding * 2) / CGFloat(labels.count)

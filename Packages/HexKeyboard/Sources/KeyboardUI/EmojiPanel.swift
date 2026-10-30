@@ -20,6 +20,8 @@ final class EmojiPanel: UIView, PanelContent, UICollectionViewDataSource, UIColl
     private var metrics = KeyboardMetrics.phone(width: 390)
     private let tones = AlternatesView()
     private var held: [String] = []
+    /// How far the finger sat from the tone it started on, so letting go without sliding picks that tone.
+    private var slide: CGFloat = 0
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -103,9 +105,9 @@ final class EmojiPanel: UIView, PanelContent, UICollectionViewDataSource, UIColl
             held = [base] + toned
             let key = cell.convert(cell.bounds, to: self)
             tones.show(held, selected: held.firstIndex(of: shown[indexPath.item]) ?? 0, over: key, in: bounds.insetBy(dx: 0, dy: -8), metrics: metrics, theme: theme)
-            tones.track(point)
+            slide = tones.selectedMidX - point.x
         case .changed:
-            tones.track(point)
+            tones.track(CGPoint(x: point.x + slide, y: point.y))
         case .ended:
             if held.indices.contains(tones.selection) { onPick(held[tones.selection], held[0]) }
             fallthrough
