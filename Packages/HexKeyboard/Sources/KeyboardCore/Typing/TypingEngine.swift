@@ -4,6 +4,9 @@ public struct TypingEngine {
     public var emojiHistory = EmojiHistory()
     /// Finds emoji for the word in the suggestion bar.
     public var emojiCatalog: EmojiCatalog?
+    /// The panel open over the bar, and what its search holds.
+    public private(set) var panel: Panel?
+    public private(set) var query = ""
     public private(set) var traits: InputTraits
     public internal(set) var suggestions: [Suggestion] = []
     /// Emoji for the word being typed, or the one just typed, which take the bar's last slot.
@@ -63,6 +66,7 @@ public struct TypingEngine {
         case .character, .space, .return, .tab, .delete:
             break
         }
+        if panel != nil, action != .delete || !query.isEmpty { return search(action) }
 
         let wasSpace = spaceJustTyped
         let revert = self.revert
@@ -157,6 +161,15 @@ public struct TypingEngine {
         case .pick(let hand):
             settings.oneHanded = hand
             perform(.layer(.letters), in: document)
+        case .panel(let panel):
+            self.panel = panel
+            query = ""
+            if panel != nil { layer = .letters }
+            refreshShift()
+            suggestionsChanged()
+        case .emoji(let emoji, let base):
+            emojiHistory.use(emoji, base: base)
+            insertWhole(emoji, in: document)
         case .dictated(let heard):
             let joins = text.before.last.map { !$0.isWhitespace && !Words.openers.contains($0) } ?? false
             insertWhole((joins ? " " : "") + heard, in: document)
@@ -165,6 +178,10 @@ public struct TypingEngine {
     }
 
     public mutating func deleteWord(in document: some TextDocument) {
+        if panel != nil, !query.isEmpty {
+            query = String(query.dropLast(Self.wordLength(before: query)))
+            return suggestionsChanged()
+        }
         attach(document)
         spaceJustTyped = false
         revert = nil
@@ -175,7 +192,7 @@ public struct TypingEngine {
         suggestionsChanged()
     }
 
-    /// Text that arrives whole, what dictation heard: it ends the word in progress, then goes in as it is.
+    /// Text that arrives whole, an emoji or what dictation heard: it ends the word in progress, then goes in as it is.
     mutating func insertWhole(_ string: String, in document: some TextDocument) {
         attach(document)
         spaceJustTyped = false
@@ -188,6 +205,7 @@ public struct TypingEngine {
 
     /// Moves the caret, as the space bar trackpad does.
     mutating func moveCursor(by offset: Int, in document: some TextDocument) {
+        guard panel == nil else { return }
         attach(document)
         document.moveCursor(by: offset)
         text.moveCursor(by: offset)
@@ -209,6 +227,29 @@ public struct TypingEngine {
         refreshShift()
     }
 
+    /// The keys while a panel is open: they edit its search, and return closes it. Delete with the search empty deletes
+    /// in the app, so a wrong pick can be undone without leaving the panel.
+    private mutating func search(_ action: KeyAction) {
+        switch action {
+        case .character(let key):
+            query += shift.isUppercase && layer == .letters ? key.uppercased() : key
+            if Self.returnsToLetters.contains(key) { layer = .letters }
+        case .space:
+            query += " "
+            layer = .letters
+        case .delete:
+            query = String(query.dropLast())
+        case .return:
+            panel = nil
+            query = ""
+        default:
+            return
+        }
+        if shiftHold != nil { shiftHold = .typedWhileHeld }
+        refreshShift()
+        suggestionsChanged()
+    }
+
     /// The host's `textDidChange` or `selectionDidChange`. A report showing the keyboard's own edits, even late, changes
     /// nothing; anything else replaces what the engine knows and forgets the word in progress.
     @discardableResult
@@ -224,6 +265,7 @@ public struct TypingEngine {
 
     mutating func refreshShift() {
         guard shift != .locked, shiftHold == nil else { return }
+        guard panel == nil else { return shift = .off }
         let mode = settings.autoCapitalization ? traits.autocapitalization : .none
         let capitalize = layer == .letters && Self.shouldCapitalize(text.before, mode: mode)
         shift = capitalize ? .on : .off

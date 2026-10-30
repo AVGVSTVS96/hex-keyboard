@@ -33,4 +33,14 @@ struct MemoryCodingTests {
         let loadedCenter = loaded.touches.center(of: "m", on: .standard)
         #expect(abs(loadedCenter.x - center.x) < 0.01 && abs(loadedCenter.y - center.y) < 0.01)
     }
+
+    @Test func emojiPicksSavedBeforeSkinTonesStillLoad() throws {
+        var history = EmojiHistory()
+        history.use("🍕")
+        var json = try #require(try JSONSerialization.jsonObject(with: JSONEncoder().encode(history)) as? [String: Any])
+        json["tones"] = nil
+        let loaded = try JSONDecoder().decode(EmojiHistory.self, from: JSONSerialization.data(withJSONObject: json))
+        #expect(loaded.scores == history.scores)
+        #expect(loaded.tones.isEmpty)
+    }
 }

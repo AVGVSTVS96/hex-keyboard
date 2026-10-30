@@ -82,10 +82,14 @@ extension TypingEngine {
     }
 
     public func layout(on device: DeviceClass, showsGlobe: Bool = false, isLandscape: Bool = false) -> LayoutContext {
-        LayoutContext(device: device, layer: layer, kind: traits.kind, showsGlobe: showsGlobe, isLandscape: isLandscape, oneHanded: settings.oneHanded)
+        LayoutContext(device: device, layer: layer, kind: panel == nil ? traits.kind : .text, showsGlobe: showsGlobe, isLandscape: isLandscape, oneHanded: settings.oneHanded)
     }
 
+    /// While a panel is open, the keys are a plain text keyboard whose return closes it.
     public func faces(on device: DeviceClass) -> KeyFaceContext {
+        if panel != nil {
+            return KeyFaceContext(device: device, layer: layer, kind: .text, shift: shift, returnKind: .default, returnEnabled: true)
+        }
         let returnEnabled = !traits.returnRequiresText || !text.before.isEmpty || !(text.after ?? "").isEmpty
         return KeyFaceContext(device: device, layer: layer, kind: traits.kind, shift: shift, returnKind: traits.returnKind, returnEnabled: returnEnabled)
     }
@@ -283,6 +287,10 @@ extension TypingEngine {
     mutating func refreshSuggestions() {
         suggestionsAreStale = false
         emojiSuggestions = []
+        if panel != nil {
+            keyMap = corrector?.keyMap(revision: revision, after: layer == .letters ? String(Words.current(in: query)) : nil)
+            return suggestions = []
+        }
         let text = self.text.before
         let word = Words.current(in: text)
         let inWords = layer == .letters && traits.allowsCorrection && (word.isEmpty || Words.isCorrectable(word, in: text))

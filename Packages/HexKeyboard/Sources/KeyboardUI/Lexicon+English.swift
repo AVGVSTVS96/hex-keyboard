@@ -21,3 +21,10 @@ extension EmojiCatalog {
         return EmojiCatalog(text: try! String(contentsOf: url, encoding: .utf8))
     }()
 }
+
+extension EmojiSearch {
+    nonisolated static let english: EmojiSearch = {
+        let url = Bundle.module.url(forResource: "emoji-search", withExtension: "txt")!
+        return EmojiSearch(text: try! String(contentsOf: url, encoding: .utf8))
+    }()
+}
