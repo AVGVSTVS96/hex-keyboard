@@ -105,10 +105,10 @@ struct LayoutTests {
         #expect(cover.toolbar.panelHeight - cover.toolbar.height == 94, "a panel grows the Duo's keyboard from 359 to 453")
         #expect(cover.cornerRadius == 9 && cover.margin == .none)
         let open = KeyboardMetrics.for(.phone, width: 669, height: 951)
-        #expect(open.margin.leading == (669 - 466) / 2 && open.margin.trailing == open.margin.leading, "the open Duo draws the folded keys, centered")
+        #expect(open.margin == .none, "the open Duo's keys span its whole width")
         #expect(open.keyHeight == cover.keyHeight && open.toolbar == cover.toolbar)
         let side = KeyboardMetrics.for(.phone, width: 951, height: 669)
-        #expect(side.toolbar.pills == nil && side.keyHeight == 36 && side.margin.leading == (951 - 560) / 2)
+        #expect(side.toolbar.pills == nil && side.keyHeight == 36 && side.margin == .none)
         let folded = KeyboardMetrics.for(.phone, width: 678, height: 466)
         #expect(folded.keyHeight == 30 && folded.toolbar.bar == 34 && folded.toolbar.mic == 32)
         let landscape = KeyboardMetrics.for(.phone, width: 874, height: 402)
@@ -116,18 +116,14 @@ struct LayoutTests {
         #expect(KeyboardMetrics.for(.pad, width: 834, height: 1194).toolbar.pills == nil)
     }
 
-    @Test func centeredKeysDrawNoOneHandedChevron() {
-        let context = LayoutContext(device: .phone, layer: .letters)
-        let metrics = KeyboardMetrics.for(.phone, width: 669, height: 951)
-        #expect(KeyGrid(Layouts.layout(for: context), width: 669, metrics: metrics.grid).expander == nil)
-    }
-
-    /// On its side the Duo's cover gives a third-party keyboard a window narrower than the screen; the keys fill it,
-    /// centered, rather than taking the screen's margins inside it.
-    @Test func centeredKeysCenterInTheKeyboardsOwnWidth() {
-        let metrics = KeyboardMetrics.for(.phone, width: 678, height: 466).centered(in: 514)
-        #expect(metrics.margin == .none)
-        let open = KeyboardMetrics.for(.phone, width: 951, height: 669).centered(in: 900)
-        #expect(open.margin.leading == 170 && open.margin.trailing == 170)
+    /// The Duo's keys span the keyboard's whole width, folded and open, upright and on its side.
+    @Test func theDuosKeysSpanTheWholeWidth() {
+        for (width, height) in [(466.0, 678.0), (669, 951), (678, 466), (951, 669)] {
+            let context = LayoutContext(device: .phone, layer: .letters, showsGlobe: true, isLandscape: width > height)
+            let grid = KeyGrid(Layouts.layout(for: context), width: width, metrics: KeyboardMetrics.for(.phone, width: width, height: height).grid)
+            let frames = grid.rows.flatMap { $0.map(\.frame) }
+            #expect(frames.map(\.x).min()! < 8 && frames.map { $0.x + $0.width }.max()! > width - 8, "\(width) × \(height)")
+            #expect(grid.expander == nil)
+        }
     }
 }

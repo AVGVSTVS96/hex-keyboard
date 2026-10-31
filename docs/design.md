@@ -98,21 +98,20 @@ The key, pressed and label colors are today's iOS 27 theme (`KeyboardTheme`); pi
 | | Keys block | Key h | Row gap | Top | Bar | Pills | Pills → keys | Bottom | Total |
 |---|---|---|---|---|---|---|---|---|---|
 | Duo folded (cover), portrait, 466 × 678 | full width | 45 | 11 | 8 | 40 | 8 + 40 | 11 | 39 | 359 |
-| Duo open, portrait, 669 × 951 | 466, centered | 45 | 11 | 8 | 40 | 8 + 40 | 11 | 20 | 340 |
-| Duo open, landscape, 951 × 669 (compact) | 560, centered | 36 | 9 | 6 | 36 | none | 10 | 16 | 239 |
-| Duo folded, landscape, 678 × 466 (compact) | 560, centered | 30 | 7 | 4 | 34 | none | 8 | 6 | 193 |
+| Duo open, portrait, 669 × 951 | full width | 45 | 11 | 8 | 40 | 8 + 40 | 11 | 20 | 340 |
+| Duo open, landscape, 951 × 669 (compact) | full width | 36 | 9 | 6 | 36 | none | 10 | 16 | 239 |
+| Duo folded, landscape, 678 × 466 (compact) | full width | 30 | 7 | 4 | 34 | none | 8 | 6 | 193 |
 | iPhone portrait (Face ID), 375–440 wide | full width | 43, or 45 from 415 wide | 11 | 8 | 40 | 8 + 40 | 11 | today's `bottomInset` | today's + 51 |
 | iPhone landscape (compact) | today's | today's 27.33 | today's 8 | 4 | 34 | none | 8 | today's | |
 | iPad (all) | today's | today's | today's | today's | today's 36pt row, compact bar | none | today's | today's | today's |
 
-- The open Duo in portrait uses exactly the folded keys, centered, so typing feels the same folded and open.
+- The Duo's keys span the whole width on every screen, folded and open, upright and on its side.
 - The bottom insets on the Duo are measured on the cover screen in the iOS 27.1 simulator (Apple's last row ends 39 above the screen's bottom). The open screen's are a first guess: the simulator can only unfold through Xcode's DeviceHub window, so they get checked against Apple's keyboard once someone can unfold it.
 - Regular iPhones and iPads keep today's key geometry, which is measured against Apple's. Only the bar, the pill row and the colors above change, so nothing that types today moves.
-- On the Duo cover in the 27.1 simulator, today's Hex draws its letter keys 38.5 wide with 13.7 side margins (Apple: 40 and 6.5), as if laid out for a 440 screen. The spec above is Apple's geometry; the build has to find where the extra margin comes from.
 
 ### The compact layout
 
-Where height is short (any landscape, and iPad), there's no pill row: the three tools sit in the bar's left end as 36 × 36 (34 on the folded landscape) icon buttons, 2 apart, before the suggestions. Same icons, same panels. The keys block is at most 560 wide and centered; the bar spans the same block. The mic is 34 (32 on the folded landscape). With no pill row, the bar's bottom 6 goes nowhere, as today.
+Where height is short (any landscape, and iPad), there's no pill row: the three tools sit in the bar's left end as 36 × 36 (34 on the folded landscape) icon buttons, 2 apart, before the suggestions. Same icons, same panels. The bar spans the keys block. The mic is 34 (32 on the folded landscape). With no pill row, the bar's bottom 6 goes nowhere, as today.
 
 ### Cut from Raycast
 

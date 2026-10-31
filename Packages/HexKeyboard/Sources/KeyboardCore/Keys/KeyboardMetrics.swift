@@ -47,25 +47,11 @@ extension KeyboardMetrics {
         let landscape = width > height
         switch device {
         case .phone where landscape: return min(width, height) > 440 ? foldedOutLandscape(width: width, open: min(width, height) >= 600) : phoneLandscape(width: width)
-        case .phone where width > 466: return phone(width: 466, style: style).centered(in: width)
         case .phone: return phone(width: width, style: style).oneHanded(oneHanded, width: width)
         case .compactPad: return compactPad
         case .pad: return pad(shortSide: min(width, height))
         case .largePad: return largePad
         }
-    }
-
-    /// Keys at most 466pt wide (560pt where there's no pill row), centered, as the iPhone Duo's open screen draws the
-    /// folded keys (docs/design.md). `width` is the keyboard's own: iOS can give it less than the screen.
-    public func centered(in width: Double) -> KeyboardMetrics {
-        var metrics = self
-        let side = (width - Self.blockWidth(of: self, in: width)) / 2
-        metrics.margin = Margin(leading: side, trailing: side)
-        return metrics
-    }
-
-    private static func blockWidth(of metrics: KeyboardMetrics, in width: Double) -> Double {
-        metrics.toolbar.pills == nil ? min(width, 560) : min(width, 466)
     }
 
     public static func phone(width: Double, style: KeyboardStyle = .ios26) -> KeyboardMetrics {
@@ -116,7 +102,7 @@ extension KeyboardMetrics {
         )
     }
 
-    /// The iPhone Duo on its side, folded or open: shorter keys, at most 560pt of them, centered.
+    /// The iPhone Duo on its side, folded or open: shorter keys, across the whole width.
     static func foldedOutLandscape(width: Double, open: Bool) -> KeyboardMetrics {
         var metrics = phoneLandscape(width: width)
         metrics.sideInset = 6.5
@@ -125,7 +111,7 @@ extension KeyboardMetrics {
         metrics.topInset = open ? 10 : 8
         metrics.bottomInset = open ? 16 : 6
         metrics.toolbar = open ? .compact(top: 6, bar: 36, mic: 34) : .compact(top: 4, bar: 34, mic: 32)
-        return metrics.centered(in: width)
+        return metrics
     }
 
     static let compactPad = KeyboardMetrics(
