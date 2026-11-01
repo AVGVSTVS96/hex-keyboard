@@ -363,8 +363,8 @@ open class HexKeyboardViewController: UIInputViewController {
         }
     }
 
-    /// The app listened, or stopped: type what it heard, once. Listening without the app's microphone lock was left by
-    /// an app that ended mid-dictation.
+    /// The app listened, or stopped: type what it heard, once. A dictation without the app's microphone lock was left by
+    /// an app that ended mid-dictation, so the mic starts a new one.
     private func dictationChanged() {
         var status = Dictation.status
         if let heard = status.heard {
@@ -373,7 +373,7 @@ open class HexKeyboardViewController: UIInputViewController {
             engine.handle(.dictated(heard), in: document)
         }
         micIsOn = Dictation.micIsOn
-        if status.state == .listening, !micIsOn { status.state = .idle }
+        if status.state != .idle, !micIsOn { status.state = .idle }
         if status.state == .listening, dictation.state != .listening { listeningSince = Date() }
         if status.state == .idle { listeningSince = nil }
         dictation = status

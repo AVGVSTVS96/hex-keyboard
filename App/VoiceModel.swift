@@ -72,11 +72,11 @@ import Speech
         HostApp.log.error("Parakeet failed: \(error.localizedDescription, privacy: .public)")
     }
 
-    /// A new dictation's transcription: Parakeet's once it's on the iPhone, even while it loads, since it only writes
-    /// once you stop talking.
+    /// A new dictation's transcription: Parakeet's once it's loaded, else Apple's. On an iPhone Duo a dictation waited
+    /// 55 seconds on Parakeet's load without it finishing.
     func transcription() async throws -> any Transcription {
         prepare()
-        if let parakeet { return ParakeetTranscription(parakeet) }
+        if state == .ready, let parakeet { return ParakeetTranscription(parakeet) }
         return try await SpeechTranscription.make()
     }
 }

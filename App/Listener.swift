@@ -81,14 +81,17 @@ import UIKit
         feed.stop()
         listened = Date.now.timeIntervalSince(started)
         set(.transcribing)
-        keepMicOn()
-        if let transcription { await deliver(transcription) }
+        if let transcription { await deliver(transcription) } else { keepMicOn() }
     }
 
-    /// Types what was heard, unless you cancelled or started another dictation meanwhile.
+    /// Types what was heard, unless you cancelled or started another dictation meanwhile. The microphone stays on until
+    /// then, since its lock is how the keyboard knows the app is still writing.
     private func deliver(_ transcription: any Transcription) async {
         let background = UIApplication.shared.beginBackgroundTask()
-        defer { UIApplication.shared.endBackgroundTask(background) }
+        defer {
+            keepMicOn()
+            UIApplication.shared.endBackgroundTask(background)
+        }
         let text: String
         do {
             text = try await transcription.text()

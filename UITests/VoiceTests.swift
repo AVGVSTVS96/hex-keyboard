@@ -35,7 +35,7 @@ final class VoiceTests: XCTestCase {
         try shot("\(shots)-typed")
 
         mic.press(forDuration: 0.8)
-        XCTAssertTrue(wait(for: mic, label: "Dictate", value: nil), "holding the mic turns the microphone off and leaves the mic in place")
+        XCTAssertTrue(wait(for: mic, label: "Dictate", value: nil), "holding the mic turns the microphone off, and a dictation the app left unfinished when it ended doesn't hold the mic")
         try shot("\(shots)-off")
     }
 
