@@ -22,6 +22,7 @@ final class ChoiceViewController<Value: Equatable>: UITableViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: "choice")
+        HexStyle.dress(tableView)
     }
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int { choices.count }
@@ -34,6 +35,7 @@ final class ChoiceViewController<Value: Equatable>: UITableViewController {
         content.text = choices[indexPath.row].title
         cell.contentConfiguration = content
         cell.accessoryType = choices[indexPath.row].value == choice ? .checkmark : .none
+        HexStyle.dress(cell)
         return cell
     }
 

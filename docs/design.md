@@ -188,6 +188,14 @@ Emoji, GIF and Clipboard open from their pills (or, in the compact layout, the b
 - Compact: one row of up to three cards, the key fill, radius 10, the text in 14 over its age in 11.
 - Empty: "Things you copy show up here." in secondary 15.
 
+## The app
+
+The app wears the keyboard's colors, so it looks like the keys it sets up: the backdrop iOS draws behind the keyboard (`#222223` dark, `#E2E3E8` light) behind every screen, and the key fill (`#444444`, white with the keys' 1pt shadow) on every card and list row. Rows carry Settings' colored glyphs (a white SF Symbol on a 30pt rounded square).
+
+- **Hex** (home): the app's mark, "Hex" and whether the keyboard is on (green dot, "On, with Full Access"; orange with a Turn On button until it's added). Then "Try It", a field in a card; two tiles, what you dictated today with the voice model's state (opens Transcripts) and how many taps Hex learned your aim from (opens Your Taps); "Set Up", the three switches iOS keeps (Add Hex, Allow Full Access, Paste from Other Apps), each checked when Hex can tell, opening Settings; and Keyboard Settings. At most 680 wide, centered, so the open Duo reads like the cover.
+- **Keyboard Settings**, **Transcripts** and **Your Taps** keep their content in the same colors.
+- Full Access is known on once the keyboard has opened with it (`SettingsStore.fullAccessSeen`); a keyboard can't write to the App Group without it, so turning it off later goes unseen.
+
 ## Out of this design
 
 Swipe typing, themes, snippets and quicklinks are later phases. Nothing here uses AI.

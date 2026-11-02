@@ -33,6 +33,7 @@ struct TranscriptsView: View {
                     Section {
                         Summary(transcripts: store.all)
                     }
+                    .listRowBackground(Color.hexCard)
                 }
                 ForEach(days, id: \.day) { day in
                     Section(Self.title(of: day.day)) {
@@ -48,8 +49,11 @@ struct TranscriptsView: View {
                                 }
                         }
                     }
+                    .listRowBackground(Color.hexCard)
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(Color.hexBackdrop)
             .overlay {
                 if store.all.isEmpty {
                     ContentUnavailableView {
@@ -211,6 +215,7 @@ private struct TranscriptDetail: View {
                     .textSelection(.enabled)
                     .padding(.vertical, 6)
             }
+            .listRowBackground(Color.hexCard)
             Section {
                 LabeledContent("Said", value: transcript.date.formatted(date: .abbreviated, time: .shortened))
                 LabeledContent("Length", value: Duration.seconds(transcript.seconds).formatted(.time(pattern: .minuteSecond)))
@@ -221,10 +226,14 @@ private struct TranscriptDetail: View {
                 LabeledContent("Typed", value: transcript.typed ? "Yes" : "No, you tapped ✕")
                 if let model = transcript.model { LabeledContent("Written by", value: model) }
             }
+            .listRowBackground(Color.hexCard)
             Section {
                 Button("Delete Transcript", role: .destructive) { confirmsDelete = true }
             }
+            .listRowBackground(Color.hexCard)
         }
+        .scrollContentBackground(.hidden)
+        .background(Color.hexBackdrop)
         .navigationTitle(transcript.date.formatted(.dateTime.hour().minute()))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

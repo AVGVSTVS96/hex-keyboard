@@ -13,7 +13,7 @@ final class DictationViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .systemBackground
+        view.backgroundColor = HexStyle.backdrop
         orb.backgroundColor = .tintColor
         orb.layer.cornerRadius = 48
         status.font = .preferredFont(forTextStyle: .largeTitle).bold

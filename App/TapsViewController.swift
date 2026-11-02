@@ -16,7 +16,6 @@ final class TapsViewController: UIViewController {
     private let pullCaption = UILabel()
     private let missedHeader = UILabel()
     private let missed = UIStackView()
-    private let empty = UILabel()
     private var touches = TouchModel()
     private var signature: String?
     private var observer: Int32 = 0
@@ -26,7 +25,7 @@ final class TapsViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         title = "Your Taps"
-        view.backgroundColor = .systemBackground
+        view.backgroundColor = HexStyle.backdrop
 
         stats.axis = .vertical
         stats.spacing = 16
@@ -57,14 +56,9 @@ final class TapsViewController: UIViewController {
         missed.axis = .vertical
         missed.spacing = 10
 
-        empty.numberOfLines = 0
-        empty.textAlignment = .center
-        empty.font = .preferredFont(forTextStyle: .body)
-        empty.textColor = .secondaryLabel
-        empty.text = "Type with Hex anywhere, and your taps show up here each time the keyboard closes.\n\nHex needs Allow Full Access to share them with this app."
 
         let top = Self.column([stats, modes], spacing: 20)
-        let bottom = Self.column([scale, legend, detail, pullHeader, pull, pullCaption, missedHeader, missed, empty], spacing: 12)
+        let bottom = Self.column([scale, legend, detail, pullHeader, pull, pullCaption, missedHeader, missed], spacing: 12)
         bottom.setCustomSpacing(8, after: scale)
         bottom.setCustomSpacing(20, after: legend)
         bottom.setCustomSpacing(32, after: detail)
@@ -107,6 +101,14 @@ final class TapsViewController: UIViewController {
         notify_cancel(observer)
     }
 
+    private static let empty = {
+        var empty = UIContentUnavailableConfiguration.empty()
+        empty.image = UIImage(systemName: "hand.tap")
+        empty.text = "No Taps Yet"
+        empty.secondaryText = "Type with Hex anywhere, and your taps show up here each time the keyboard closes. Hex needs Allow Full Access to share them with this app."
+        return empty
+    }()
+
     private static func column(_ views: [UIView], spacing: CGFloat) -> UIStackView {
         let column = UIStackView(arrangedSubviews: views)
         column.axis = .vertical
@@ -128,7 +130,7 @@ final class TapsViewController: UIViewController {
         })) : nil
         let hasTaps = signature != nil
         [stats, modes, map, legend, pullHeader, pull, pullCaption, missedHeader, missed].forEach { $0.isHidden = !hasTaps }
-        empty.isHidden = hasTaps
+        contentUnavailableConfiguration = hasTaps ? nil : Self.empty
         detail.isHidden = true
         guard let signature, let context = LayoutContext(signature: signature) else { return updateLegend() }
         map.show(touches, on: context, screen: view.window?.windowScene?.screen.bounds.size ?? view.bounds.size)

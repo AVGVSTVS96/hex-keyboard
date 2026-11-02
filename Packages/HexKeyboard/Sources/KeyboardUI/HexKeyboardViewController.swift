@@ -141,7 +141,10 @@ open class HexKeyboardViewController: UIInputViewController {
         engine.settings = SettingsStore.load(sharing: hasFullAccess)
         engine.corrector?.memory = MemoryStore.load()
         engine.emojiHistory = MemoryStore.loadEmoji()
-        if hasFullAccess { clipboard.catchUp() }
+        if hasFullAccess {
+            clipboard.catchUp()
+            if !SettingsStore.fullAccessSeen { SettingsStore.fullAccessSeen = true }
+        }
         if hasFullAccess, dictationTokens.isEmpty {
             dictationTokens = [
                 Dictation.observe(.changed) { [weak self] in self?.dictationChanged() },

@@ -64,6 +64,7 @@ final class SettingsViewController: UITableViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: "cell")
+        HexStyle.dress(tableView)
     }
 
     override func numberOfSections(in tableView: UITableView) -> Int { sections.count }
@@ -192,8 +193,32 @@ final class SettingsViewController: UITableViewController {
             content.textProperties.color = .tintColor
             cell.accessoryView = nil
         }
+        if let (symbol, color) = Self.glyph(of: row(at: indexPath)) {
+            content.image = HexStyle.glyph(symbol, color)
+            content.imageProperties.reservedLayoutSize = CGSize(width: 30, height: 30)
+        }
         cell.contentConfiguration = content
+        HexStyle.dress(cell)
         return cell
+    }
+
+    private static func glyph(of row: Row) -> (String, UIColor)? {
+        switch row {
+        case .oneHanded: ("hand.raised.fill", .systemOrange)
+        case .toggle(_, \KeyboardSettings.characterPreview): ("character.magnify", .systemBlue)
+        case .toggle(_, \KeyboardSettings.haptics): ("iphone.radiowaves.left.and.right", .systemPink)
+        case .toggle(_, \KeyboardSettings.sound): ("speaker.wave.2.fill", .systemRed)
+        case .toggle(_, \KeyboardSettings.autoCapitalization): ("textformat", .systemBlue)
+        case .toggle(_, \KeyboardSettings.autoCorrection): ("text.badge.checkmark", .systemGreen)
+        case .toggle(_, \KeyboardSettings.capsLock): ("capslock.fill", .systemGray)
+        case .toggle(_, \KeyboardSettings.smartPunctuation): ("quote.opening", .systemPurple)
+        case .toggle(_, \KeyboardSettings.periodShortcut): ("character.cursor.ibeam", .systemTeal)
+        case .toggle(_, \KeyboardSettings.predictiveText): ("text.insert", .systemIndigo)
+        case .keepMicOn: ("mic.fill", .systemOrange)
+        case .voiceModel: ("waveform", .systemRed)
+        case .source: ("antenna.radiowaves.left.and.right", .systemTeal)
+        default: nil
+        }
     }
 
     private func addSource() {
