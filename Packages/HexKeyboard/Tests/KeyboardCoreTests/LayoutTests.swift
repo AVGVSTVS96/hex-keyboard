@@ -105,24 +105,41 @@ struct LayoutTests {
         #expect(cover.toolbar.panelHeight - cover.toolbar.height == 94, "a panel grows the Duo's keyboard from 359 to 453")
         #expect(cover.cornerRadius == 9 && cover.margin == .none)
         let open = KeyboardMetrics.for(.phone, width: 669, height: 951)
-        #expect(open.margin == .none, "the open Duo's keys span its whole width")
-        #expect(open.keyHeight == cover.keyHeight && open.toolbar == cover.toolbar)
+        #expect(open.margin == .none && open.toolbar == cover.toolbar)
         let side = KeyboardMetrics.for(.phone, width: 951, height: 669)
-        #expect(side.toolbar.pills == nil && side.keyHeight == 36 && side.margin == .none)
+        #expect(side.toolbar.pills == nil && side.margin == .none && side.toolbar.bar == cover.toolbar.bar)
         let folded = KeyboardMetrics.for(.phone, width: 678, height: 466)
-        #expect(folded.keyHeight == 30 && folded.toolbar.bar == 34 && folded.toolbar.mic == 32)
+        #expect(folded.toolbar.pills == nil && folded.toolbar.bar == 34 && folded.toolbar.mic == 32)
         let landscape = KeyboardMetrics.for(.phone, width: 874, height: 402)
         #expect(landscape.toolbar.pills == nil && landscape.margin == .none && landscape.topInset == 8)
         #expect(KeyboardMetrics.for(.pad, width: 834, height: 1194).toolbar.pills == nil)
+    }
+
+    /// docs/design.md, "Per device": Apple's keys and letters on each of the Duo's screens, measured in the iOS 27.1
+    /// simulator: (key height, row gap, key gap, side inset, letter size).
+    @Test func theDuoMatchesApplesKeysOnEachScreen() {
+        let screens: [(width: Double, height: Double, keys: [Double])] = [
+            (466, 678, [45, 11, 6, 6.5, 25.5]),
+            (669, 951, [45.67, 14, 9, 18, 28]),
+            (678, 466, [33.33, 9, 7, 4.5, 23.5]),
+            (951, 669, [38.67, 13, 10, 9, 28.5]),
+        ]
+        for screen in screens {
+            let metrics = KeyboardMetrics.for(.phone, width: screen.width, height: screen.height)
+            #expect([metrics.keyHeight, metrics.rowGap, metrics.keyGap, metrics.sideInset, metrics.letterSize] == screen.keys, "\(screen.width) × \(screen.height)")
+        }
+        #expect(KeyboardMetrics.for(.phone, width: 440, height: 956).letterSize == 23, "regular iPhones keep their letters")
     }
 
     /// The Duo's keys span the keyboard's whole width, folded and open, upright and on its side.
     @Test func theDuosKeysSpanTheWholeWidth() {
         for (width, height) in [(466.0, 678.0), (669, 951), (678, 466), (951, 669)] {
             let context = LayoutContext(device: .phone, layer: .letters, showsGlobe: true, isLandscape: width > height)
-            let grid = KeyGrid(Layouts.layout(for: context), width: width, metrics: KeyboardMetrics.for(.phone, width: width, height: height).grid)
+            let metrics = KeyboardMetrics.for(.phone, width: width, height: height)
+            let grid = KeyGrid(Layouts.layout(for: context), width: width, metrics: metrics.grid)
             let frames = grid.rows.flatMap { $0.map(\.frame) }
-            #expect(frames.map(\.x).min()! < 8 && frames.map { $0.x + $0.width }.max()! > width - 8, "\(width) × \(height)")
+            let inset = metrics.sideInset + 0.01
+            #expect(frames.map(\.x).min()! <= inset && frames.map { $0.x + $0.width }.max()! >= width - inset, "\(width) × \(height)")
             #expect(grid.expander == nil)
         }
     }

@@ -34,6 +34,7 @@ scripts/mac scripts/test                        # KeyboardCore unit tests on an 
 scripts/mac scripts/uitest                      # type through the real extension (iPhone 17 by default)
 scripts/mac 'scripts/sim all v7'                # screenshots: system vs Hex, light and dark, 8 devices
 scripts/mac 'scripts/sim variants "iPhone 17" v7'  # return key types, keyboard types, landscape
+scripts/mac 'scripts/sim duo v8'                # Apple's keyboard and Hex on the iPhone Duo's four screens, folded and open (unfolded with Device Hub's hinge event, scripts/devicehub.c)
 scripts/mac 'scripts/capture "iPhone 17" iPhone-17 hex'  # frames of held keys: pop-ups, accent panel (CAPTURE=menu: the 123 menu)
 scripts/mac 'scripts/shots "iPhone 17" iPhone-17 system light "hel:hel|helo:o"'  # type through a keyboard, screenshot each step
 scripts/mac 'scripts/sim taps "iPhone 17 Pro Max" iPhone-17-Pro-Max touches.json t1'  # the app's Your Taps screen with a touch model

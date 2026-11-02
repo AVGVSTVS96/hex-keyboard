@@ -97,16 +97,18 @@ The key, pressed and label colors are today's iOS 27 theme (`KeyboardTheme`); pi
 
 | | Keys block | Key h | Row gap | Top | Bar | Pills | Pills → keys | Bottom | Total |
 |---|---|---|---|---|---|---|---|---|---|
-| Duo folded (cover), portrait, 466 × 678 | full width | 45 | 11 | 8 | 40 | 8 + 40 | 11 | 39 | 359 |
-| Duo open, portrait, 669 × 951 | full width | 45 | 11 | 8 | 40 | 8 + 40 | 11 | 20 | 340 |
-| Duo open, landscape, 951 × 669 (compact) | full width | 36 | 9 | 6 | 36 | none | 10 | 16 | 239 |
-| Duo folded, landscape, 678 × 466 (compact) | full width | 30 | 7 | 4 | 34 | none | 8 | 6 | 193 |
+| Duo folded (cover), upright, 466 × 678 | 6.5 in, keys 6 apart | 45 | 11 | 8 | 40 | 8 + 40 | 11 | 39 | |
+| Duo open, upright, 951 × 669 (compact) | 9 in, keys 10 apart | 38.67 | 13 | 8 | 40 | none | 11 | 20 | |
+| Duo open, on its side, 669 × 951 | 18 in, keys 9 apart | 45.67 | 14 | 8 | 40 | 8 + 40 | 11 | 73 | |
+| Duo folded, on its side, 678 × 466 (compact) | 4.5 in, keys 7 apart | 33.33 | 9 | 4 | 34 | none | 8 | 20 | |
 | iPhone portrait (Face ID), 375–440 wide | full width | 43, or 45 from 415 wide | 11 | 8 | 40 | 8 + 40 | 11 | today's `bottomInset` | today's + 51 |
 | iPhone landscape (compact) | today's | today's 27.33 | today's 8 | 4 | 34 | none | 8 | today's | |
 | iPad (all) | today's | today's | today's | today's | today's 36pt row, compact bar | none | today's | today's | today's |
 
-- The Duo's keys span the whole width on every screen, folded and open, upright and on its side.
-- The bottom insets on the Duo are measured on the cover screen in the iOS 27.1 simulator (Apple's last row ends 39 above the screen's bottom). The open screen's are a first guess: the simulator can only unfold through Xcode's DeviceHub window, so they get checked against Apple's keyboard once someone can unfold it.
+- Every Duo row is Apple's keyboard measured in the iOS 27.1 simulator (`scripts/sim duo`, which unfolds it with Device Hub's hinge event). "Keys block" is the side inset inside the keyboard's own width, which iOS narrows on the side layouts; "Bottom" is how far above the screen's bottom Apple's last row ends.
+- The open Duo is wide when you hold it upright (951 × 669) and tall on its side (669 × 951).
+- Apple's letters on the Duo are bigger than on other iPhones: 25.5 on the cover, 23.5 folded on its side, 28.5 open and upright, 28 open on its side. Hex's `123`, return and symbols grow by the same share; Apple's own `123` is bigger still, but its key is three times as wide, since its row has no globe.
+- The Duo's keys span the keyboard's whole width on every screen, at Apple's insets.
 - Regular iPhones and iPads keep today's key geometry, which is measured against Apple's. Only the bar, the pill row and the colors above change, so nothing that types today moves.
 
 ### The compact layout

@@ -46,7 +46,8 @@ extension KeyboardMetrics {
     public static func `for`(_ device: DeviceClass, width: Double, height: Double, style: KeyboardStyle = .ios26, oneHanded: OneHanded = .off) -> KeyboardMetrics {
         let landscape = width > height
         switch device {
-        case .phone where landscape: return min(width, height) > 440 ? foldedOutLandscape(width: width, open: min(width, height) >= 600) : phoneLandscape(width: width)
+        case .phone where min(width, height) > 440: return duo(width: width, height: height, style: style, oneHanded: oneHanded)
+        case .phone where landscape: return phoneLandscape(width: width)
         case .phone: return phone(width: width, style: style).oneHanded(oneHanded, width: width)
         case .compactPad: return compactPad
         case .pad: return pad(shortSide: min(width, height))
@@ -102,15 +103,49 @@ extension KeyboardMetrics {
         )
     }
 
-    /// The iPhone Duo on its side, folded or open: shorter keys, across the whole width.
-    static func foldedOutLandscape(width: Double, open: Bool) -> KeyboardMetrics {
-        var metrics = phoneLandscape(width: width)
-        metrics.sideInset = 6.5
-        metrics.keyHeight = open ? 36 : 30
-        metrics.rowGap = open ? 9 : 7
-        metrics.topInset = open ? 10 : 8
-        metrics.bottomInset = open ? 16 : 6
-        metrics.toolbar = open ? .compact(top: 6, bar: 36, mic: 34) : .compact(top: 4, bar: 34, mic: 32)
+    /// The iPhone Duo, folded and open, upright and on its side: Apple's keys and letters measured on each screen in the
+    /// iOS 27.1 simulator (docs/design.md), across the keyboard's whole width.
+    static func duo(width: Double, height: Double, style: KeyboardStyle, oneHanded: OneHanded) -> KeyboardMetrics {
+        var metrics = phone(width: width, style: style)
+        let open = min(width, height) >= 600
+        switch (open, width > height) {
+        case (false, false):
+            metrics.letterSize = 25.5
+            metrics.labelSize = 20
+            metrics.symbolSize = 21
+            return metrics.oneHanded(oneHanded, width: width)
+        case (true, false):
+            metrics.sideInset = 18
+            metrics.keyGap = 9
+            metrics.keyHeight = 45.67
+            metrics.rowGap = 14
+            metrics.bottomInset = 3
+            metrics.letterSize = 28
+            metrics.labelSize = 22
+            metrics.symbolSize = 23
+            return metrics.oneHanded(oneHanded, width: width)
+        case (false, true):
+            metrics.sideInset = 4.5
+            metrics.keyGap = 7
+            metrics.keyHeight = 33.33
+            metrics.rowGap = 9
+            metrics.topInset = 8
+            metrics.bottomInset = 4
+            metrics.letterSize = 23.5
+            metrics.labelSize = 18.5
+            metrics.symbolSize = 19.5
+            metrics.toolbar = .compact(top: 4, bar: 34, mic: 32)
+        case (true, true):
+            metrics.sideInset = 9
+            metrics.keyGap = 10
+            metrics.keyHeight = 38.67
+            metrics.rowGap = 13
+            metrics.bottomInset = 4
+            metrics.letterSize = 28.5
+            metrics.labelSize = 22
+            metrics.symbolSize = 23
+            metrics.toolbar = .compact(top: 8, bar: 40, mic: 38)
+        }
         return metrics
     }
 
