@@ -43,7 +43,9 @@ final class SettingsViewController: UITableViewController {
 
     private static let keepMicOnFooter = "After you dictate, Hex keeps the mic on this long. While it’s on, the mic beside the suggestions starts and stops dictating without leaving your app; hold it to turn the mic off. Nothing is recorded until you tap it."
 
-    private static let voiceFooter = keepMicOnFooter + "\n\nHex writes down what you say with Parakeet, on your iPhone. Until it’s downloaded (about 600 MB, once), Apple’s speech model writes instead."
+    private static let voiceFooter = keepMicOnFooter + "\n\nHex writes down what you say on your iPhone, with the voice model you pick."
+
+    private static let voiceModelFooter = "Parakeet v3 downloads once (about 500 MB), gets ready in under a minute after Hex is installed or updated, and at once every time after. Parakeet Ultra is a little more accurate, but on the newest iPhones it takes minutes to get ready, and heats the iPhone, every time Hex opens. Until the model you pick is ready, Apple’s writes, and Transcripts shows which model wrote each dictation."
 
     private static let sourcesFooter = "With Allow Full Access on, Hex sends each source the text of the field you’re typing in, except passwords and codes, and shows the hints it answers with above the keys. Tap a hint to hide it."
 
@@ -92,7 +94,7 @@ final class SettingsViewController: UITableViewController {
 
     override func tableView(_ tableView: UITableView, shouldHighlightRowAt indexPath: IndexPath) -> Bool {
         switch row(at: indexPath) {
-        case .toggle, .source, .voiceModel: false
+        case .toggle, .source: false
         default: true
         }
     }
@@ -119,6 +121,11 @@ final class SettingsViewController: UITableViewController {
             return show(ChoiceViewController(title: "Keep Mic On", footer: Self.keepMicOnFooter, choices: choices, choice: SettingsStore.keepMicOn) {
                 SettingsStore.keepMicOn = $0
                 Listener.shared.keepMicOn()
+            }, sender: self)
+        case .voiceModel:
+            let choices = VoiceModel.Model.allCases.map { (value: $0, title: $0.title) }
+            return show(ChoiceViewController(title: "Voice Model", footer: Self.voiceModelFooter, choices: choices, choice: VoiceModel.shared.model) {
+                VoiceModel.shared.pick($0)
             }, sender: self)
         case .addSource:
             tableView.deselectRow(at: indexPath, animated: true)
@@ -161,13 +168,15 @@ final class SettingsViewController: UITableViewController {
             cell.accessoryType = .disclosureIndicator
         case .voiceModel:
             content.text = "Voice Model"
+            let model = VoiceModel.shared.model
             content.secondaryText = switch VoiceModel.shared.state {
-            case .downloading(let done): "Downloading \(done.formatted(.percent.precision(.fractionLength(0))))"
-            case .loading: "Getting Ready"
-            case .ready: "Parakeet"
-            case .failed: "Apple"
+            case .downloading(let done): "\(model.title), downloading \(done.formatted(.percent.precision(.fractionLength(0))))"
+            case .loading: "\(model.title), getting ready"
+            case .ready: model.title
+            case .failed: "\(model.title) failed"
             }
             cell.accessoryView = nil
+            cell.accessoryType = .disclosureIndicator
         case .source(let source):
             content = .subtitleCell()
             content.text = source.name

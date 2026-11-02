@@ -8,6 +8,8 @@ struct Transcript: Codable, Identifiable, Hashable {
     var seconds: Double
     /// False when you tapped ✕: kept here, never typed.
     var typed: Bool
+    /// The speech model that wrote it; nil before Hex kept it.
+    var model: String?
 
     var words: Int { text.split(whereSeparator: \.isWhitespace).count }
 }
@@ -26,9 +28,9 @@ struct Transcript: Codable, Identifiable, Hashable {
         all = data.split(separator: UInt8(ascii: "\n")).compactMap { try? decoder.decode(Transcript.self, from: $0) }.reversed()
     }
 
-    func add(_ text: String, at date: Date, seconds: Double, typed: Bool) {
+    func add(_ text: String, at date: Date, seconds: Double, typed: Bool, model: String) {
         guard !text.isEmpty else { return }
-        let transcript = Transcript(date: date, text: text, seconds: seconds, typed: typed)
+        let transcript = Transcript(date: date, text: text, seconds: seconds, typed: typed, model: model)
         all.insert(transcript, at: 0)
         guard let line = try? JSONEncoder().encode(transcript) else { return }
         do {

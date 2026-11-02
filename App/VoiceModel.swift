@@ -3,12 +3,31 @@ import FluidAudio
 import Observation
 import Speech
 
-/// The speech model voice typing writes with: NVIDIA's Parakeet (moondream's post-training of v3, run on the Neural
-/// Engine by FluidAudio), downloaded from Hugging Face the first time Hex opens and kept in the app's container. Until
-/// it's on the iPhone, or if it can't be, Apple's SpeechTranscriber writes instead. Either way the sound never leaves
-/// the iPhone.
+/// The speech model voice typing writes with, picked in Settings: one of NVIDIA's Parakeets, run on the Neural Engine by
+/// FluidAudio and downloaded from Hugging Face once, or Apple's SpeechTranscriber. Until the Parakeet you picked is
+/// loaded, Apple's writes, and the transcript says so. Either way the sound never leaves the iPhone.
 @Observable final class VoiceModel {
     static let shared = VoiceModel()
+
+    nonisolated enum Model: String, CaseIterable {
+        case ultra, v3, apple
+
+        var title: String {
+            switch self {
+            case .ultra: "Parakeet Ultra"
+            case .v3: "Parakeet v3"
+            case .apple: "Apple"
+            }
+        }
+
+        var version: AsrModelVersion? {
+            switch self {
+            case .ultra: .ultra
+            case .v3: .v3
+            case .apple: nil
+            }
+        }
+    }
 
     enum State: Equatable {
         case downloading(Double)
@@ -17,73 +36,80 @@ import Speech
         case failed(String)
     }
 
+    private static let modelKey = "voiceModel"
+
+    private(set) var model = UserDefaults.standard.string(forKey: modelKey).flatMap(Model.init) ?? .v3
     private(set) var state = State.loading
     @ObservationIgnored private var parakeet: Task<AsrManager, any Error>?
-    @ObservationIgnored private var downloading = false
-
-    private static let version = AsrModelVersion.ultra
+    @ObservationIgnored private var preparing: Task<Void, Never>?
 
     private init() {}
 
-    /// Downloads Parakeet if it isn't on the iPhone yet, then loads it, unless it's loaded, on its way, or failed since
-    /// Hex launched. The first load compiles it for the Neural Engine.
-    func prepare() {
-        if case .failed = state { return }
-        guard parakeet == nil, !downloading else { return }
-        let folder = AsrModels.defaultCacheDirectory(for: Self.version)
-        if AsrModels.modelsExist(at: folder, version: Self.version) { return load(folder) }
-        downloading = true
-        Task {
-            defer { downloading = false }
-            do {
-                load(try await AsrModels.download(version: Self.version) { progress in
-                    guard case .downloading = progress.phase else { return }
-                    Task { @MainActor in VoiceModel.shared.state = .downloading(progress.fractionCompleted) }
-                })
-            } catch {
-                failed(error)
-            }
-        }
-    }
-
-    private func load(_ folder: URL) {
+    /// Lets go of the model in use, so only one is ever in memory, and gets the new one ready.
+    func pick(_ model: Model) {
+        guard model != self.model else { return }
+        UserDefaults.standard.set(model.rawValue, forKey: Self.modelKey)
+        self.model = model
+        preparing?.cancel()
+        preparing = nil
+        parakeet = nil
         state = .loading
-        let began = Date.now
-        let parakeet = Task {
-            let manager = AsrManager(config: .default)
-            try await manager.loadModels(try await AsrModels.load(from: folder, version: Self.version))
-            return manager
-        }
-        self.parakeet = parakeet
-        Task {
+        prepare()
+    }
+
+    /// Downloads the picked Parakeet if it isn't on the iPhone yet, then loads it, unless it's loaded, on its way, or
+    /// failed since it was picked. The first load compiles it for the Neural Engine; later ones read that from a cache.
+    func prepare() {
+        guard let version = model.version else { return state = .ready }
+        if case .failed = state { return }
+        guard parakeet == nil, preparing == nil else { return }
+        let model = model
+        preparing = Task {
+            let began = Date.now
             do {
+                let folder = try await AsrModels.download(version: version) { progress in
+                    guard case .downloading = progress.phase else { return }
+                    Task { @MainActor in
+                        guard VoiceModel.shared.model == model else { return }
+                        VoiceModel.shared.state = .downloading(progress.fractionCompleted)
+                    }
+                }
+                guard self.model == model else { return }
+                state = .loading
+                let parakeet = Task.detached {
+                    let manager = AsrManager(config: .default)
+                    try await manager.loadModels(try await AsrModels.load(from: folder, version: version))
+                    return manager
+                }
+                self.parakeet = parakeet
                 _ = try await parakeet.value
+                guard self.model == model else { return }
                 state = .ready
-                HostApp.log.notice("Parakeet ready after \(Date.now.timeIntervalSince(began), format: .fixed(precision: 1))s")
+                HostApp.log.notice("\(model.title, privacy: .public) ready after \(Date.now.timeIntervalSince(began), format: .fixed(precision: 1))s")
             } catch {
-                self.parakeet = nil
-                failed(error)
+                guard self.model == model else { return }
+                parakeet = nil
+                state = .failed(error.localizedDescription)
+                HostApp.log.error("\(model.title, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
             }
+            preparing = nil
         }
     }
 
-    private func failed(_ error: any Error) {
-        state = .failed(error.localizedDescription)
-        HostApp.log.error("Parakeet failed: \(error.localizedDescription, privacy: .public)")
-    }
-
-    /// A new dictation's transcription: Parakeet's once it's loaded, else Apple's. On an iPhone Duo a dictation waited
-    /// 55 seconds on Parakeet's load without it finishing.
+    /// A new dictation's transcription: the picked model's once it's loaded, else Apple's, named for the transcript as
+    /// standing in.
     func transcription() async throws -> any Transcription {
         prepare()
-        if state == .ready, let parakeet { return ParakeetTranscription(parakeet) }
-        return try await SpeechTranscription.make()
+        if state == .ready, let parakeet { return ParakeetTranscription(parakeet, model: model.title) }
+        let apple = try await SpeechTranscription.make()
+        if model != .apple { apple.model = "Apple, while \(model.title) loaded" }
+        return apple
     }
 }
 
 /// One dictation, from the microphone's sound to text.
 nonisolated protocol Transcription: AnyObject, Sendable {
-    /// For the log.
+    /// For the log and the transcript.
     var model: String { get }
     /// The sound it takes, which the microphone's is converted to.
     var format: AVAudioFormat { get }
@@ -97,14 +123,15 @@ nonisolated protocol Transcription: AnyObject, Sendable {
 /// Keeps the sound while you talk and writes it all down when you're done: Parakeet takes a whole recording at once,
 /// fast enough on the Neural Engine that a minute of talking is written in well under a second.
 nonisolated final class ParakeetTranscription: Transcription, @unchecked Sendable {
-    let model = "Parakeet"
+    let model: String
     let format = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 16_000, channels: 1, interleaved: false)!
     private let parakeet: Task<AsrManager, any Error>
     private let lock = NSLock()
     private var samples: [Float] = []
 
-    init(_ parakeet: Task<AsrManager, any Error>) {
+    init(_ parakeet: Task<AsrManager, any Error>, model: String) {
         self.parakeet = parakeet
+        self.model = model
     }
 
     func hear(_ buffer: AVAudioPCMBuffer) {
@@ -127,8 +154,8 @@ nonisolated final class ParakeetTranscription: Transcription, @unchecked Sendabl
 
 /// Apple's SpeechTranscriber (the iOS 26 model, not the older one behind the system's dictation key), else the dictation
 /// model with punctuation. It writes as you speak, so when you're done only the last words are left to finish.
-nonisolated final class SpeechTranscription: Transcription {
-    let model = "SpeechTranscriber"
+nonisolated final class SpeechTranscription: Transcription, @unchecked Sendable {
+    var model = "Apple"
     let format: AVAudioFormat
     private let input: AsyncStream<AnalyzerInput>.Continuation
     private let analyzer: Task<SpeechAnalyzer, any Error>

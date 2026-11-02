@@ -219,6 +219,7 @@ private struct TranscriptDetail: View {
                     LabeledContent("Pace", value: "\(Int((Double(transcript.words) / transcript.seconds * 60).rounded())) wpm")
                 }
                 LabeledContent("Typed", value: transcript.typed ? "Yes" : "No, you tapped ✕")
+                if let model = transcript.model { LabeledContent("Written by", value: model) }
             }
             Section {
                 Button("Delete Transcript", role: .destructive) { confirmsDelete = true }

@@ -12,6 +12,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         let window = UIWindow(windowScene: scene)
         LaunchOptions.resetSettingsIfAsked()
         LaunchOptions.applyOneHanded()
+        VoiceProbe.runIfAsked()
         let home = HomeViewController()
         let tabs = UITabBarController(tabs: [
             UITab(title: "Hex", image: UIImage(systemName: "keyboard"), identifier: "home") { _ in Self.navigation(home) },
@@ -33,6 +34,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
 
     func sceneDidBecomeActive(_ scene: UIScene) {
+        guard !VoiceProbe.asked else { return }
         VoiceModel.shared.prepare()
     }
 

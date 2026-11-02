@@ -103,7 +103,7 @@ import UIKit
         guard transcription === self.transcription else { return }
         self.transcription = nil
         set(.idle, heard: text)
-        Transcripts.shared.add(text, at: started, seconds: listened, typed: true)
+        Transcripts.shared.add(text, at: started, seconds: listened, typed: true, model: transcription.model)
         HostApp.log.notice("\(transcription.model, privacy: .public) wrote \(self.listened, format: .fixed(precision: 1))s down in \(Date.now.timeIntervalSince(self.started) - self.listened, format: .fixed(precision: 2))s")
     }
 
@@ -120,7 +120,7 @@ import UIKit
         let background = UIApplication.shared.beginBackgroundTask()
         defer { UIApplication.shared.endBackgroundTask(background) }
         guard let text = try? await transcription.text() else { return }
-        Transcripts.shared.add(text, at: started, seconds: Date.now.timeIntervalSince(started), typed: false)
+        Transcripts.shared.add(text, at: started, seconds: Date.now.timeIntervalSince(started), typed: false, model: transcription.model)
     }
 
     private func cancel(_ transcription: any Transcription) async {
