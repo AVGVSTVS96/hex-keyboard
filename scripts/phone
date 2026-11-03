@@ -3,8 +3,15 @@
 # lives with xtool here), then installs it through the Mac on the iPhone the Mac reaches, by cable or Wi-Fi, once no
 # dictation is going on there: Hex writes a dictation's recording as it's heard, so one written in the last 10 seconds
 # is still going. Then it starts Hex in the background, so Parakeet compiles for the new install right away.
+# It builds the last commit in its own worktree, so agents' uncommitted edits in this checkout never reach the phone.
 set -e
 cd "$(dirname "$0")/.."
+build=../hex-keyboard-build
+[ -d "$build" ] || git worktree add -q --detach "$build"
+git -C "$build" checkout -q --detach "$(git rev-parse HEAD)"
+key=Packages/HexKeyboard/Sources/KeyboardUI/Resources/Keys/klipy.key
+[ ! -f "$key" ] || cp "$key" "$build/$key"
+cd "$build"
 xtool dev build -c release --sign
 for binary in xtool/Hex.app/Hex xtool/Hex.app/PlugIns/Keyboard.appex/Keyboard; do
   sdk=$(llvm-otool -l "$binary" | awk '/LC_BUILD_VERSION/ {b=1} b && $1 == "sdk" {print $2; exit}')
