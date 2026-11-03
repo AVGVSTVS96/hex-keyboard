@@ -138,7 +138,7 @@ final class SuggestionBar: UIView {
         onNotice()
     }
 
-    private var recording: Bool { mic.phase == .listening || mic.phase == .transcribing }
+    private var recording: Bool { mic.phase == .listening || mic.phase == .writing }
 
     private func refresh() {
         let quiet = !enabled || noticed || recording
@@ -212,9 +212,10 @@ final class SuggestionBar: UIView {
 }
 
 /// The bar's mic: a round button, white on dark and black on light, with a green dot while the app keeps the
-/// microphone on, and a red stop button while it listens. Tap to start or stop, hold to turn the microphone off.
+/// microphone on, a red stop button while it listens, and a spinner for its glyph while the app writes a dictation
+/// down, when a tap still starts the next one. Tap to start or stop, hold to turn the microphone off.
 final class MicButton: UIControl {
-    enum Phase { case off, on, listening, transcribing }
+    enum Phase { case off, on, listening, writing }
 
     var onHold: () -> Void = {}
     private(set) var phase = Phase.off
@@ -235,7 +236,6 @@ final class MicButton: UIControl {
         }
         glyph.contentMode = .center
         dot.backgroundColor = UIColor(red: 0x30 / 255, green: 0xD1 / 255, blue: 0x58 / 255, alpha: 1)
-        spinner.color = .white
         let hold = UILongPressGestureRecognizer(target: self, action: #selector(held))
         hold.minimumPressDuration = 0.5
         addGestureRecognizer(hold)
@@ -250,21 +250,26 @@ final class MicButton: UIControl {
     func show(_ phase: Phase, theme: KeyboardTheme) {
         self.phase = phase
         self.theme = theme
-        accessibilityLabel = phase == .on || phase == .off ? "Dictate" : "Stop Dictating"
-        accessibilityValue = phase == .on ? "Mic On" : nil
+        accessibilityLabel = phase == .listening ? "Stop Dictating" : "Dictate"
+        accessibilityValue = switch phase {
+        case .on: "Mic On"
+        case .writing: "Writing"
+        case .off, .listening: nil
+        }
         refresh()
     }
 
     private func refresh() {
-        let recording = phase == .listening || phase == .transcribing
+        let recording = phase == .listening
         let name = recording ? "stop.fill" : "waveform"
         glyph.image = UIImage(systemName: name, withConfiguration: UIImage.SymbolConfiguration(pointSize: recording ? 14 : 20, weight: .semibold))
         glyph.tintColor = recording ? .white : theme.micGlyph.ui
-        glyph.isHidden = phase == .transcribing
+        glyph.isHidden = phase == .writing
         circle.backgroundColor = recording ? theme.record.ui : theme.mic.ui
         circle.alpha = isHighlighted ? 0.7 : 1
         dot.isHidden = phase != .on
-        if phase == .transcribing { spinner.startAnimating() } else { spinner.stopAnimating() }
+        spinner.color = theme.micGlyph.ui
+        if phase == .writing { spinner.startAnimating() } else { spinner.stopAnimating() }
     }
 
     @objc private func held(_ gesture: UILongPressGestureRecognizer) {
@@ -312,12 +317,12 @@ private final class Waveform: UIView {
     required init?(coder: NSCoder) { fatalError() }
 
     func show(_ phase: MicButton.Phase, since: Date?, theme: KeyboardTheme) {
-        if phase != .listening, phase != .transcribing { levels = levels.map { _ in 0 } }
+        if phase != .listening, phase != .writing { levels = levels.map { _ in 0 } }
         self.phase = phase
         self.since = since
         self.theme = theme
         time.textColor = theme.candidate.ui
-        alpha = phase == .transcribing ? 0.4 : 1
+        alpha = phase == .writing ? 0.4 : 1
         bars.forEach { $0.backgroundColor = theme.label.ui }
         tick()
     }

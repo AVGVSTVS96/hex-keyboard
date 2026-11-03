@@ -91,7 +91,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     private func listen(thenOpen host: String?) async {
         let asked = Date.now
         await Listener.shared.start()
-        guard Listener.shared.state == .listening else {
+        guard Listener.shared.isListening else {
             return HostApp.log.notice("not listening after \(Date.now.timeIntervalSince(asked), format: .fixed(precision: 2))s")
         }
         let opened = if let host { await HostApp.open(host) } else { false }

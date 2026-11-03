@@ -28,8 +28,8 @@ final class DictationViewController: UIViewController {
         done.addAction(UIAction { _ in Task { await Listener.shared.finish() } }, for: .touchUpInside)
         cancel.configuration?.title = "Cancel"
         cancel.addAction(UIAction { [unowned self] _ in
-            if Listener.shared.state == .idle { return dismiss(animated: true) }
-            Task { await Listener.shared.cancel() }
+            guard Listener.shared.isListening || Listener.shared.isWriting else { return dismiss(animated: true) }
+            Listener.shared.cancel()
         }, for: .touchUpInside)
 
         let buttons = UIStackView(arrangedSubviews: [cancel, done])
@@ -65,25 +65,23 @@ final class DictationViewController: UIViewController {
     }
 
     private func refresh() {
-        let current = Dictation.status
-        if Listener.shared.state != .idle { hasListened = true }
-        switch Listener.shared.state {
-        case .listening:
+        let listener = Listener.shared
+        let busy = listener.isListening || listener.isWriting
+        if busy { hasListened = true }
+        if listener.isListening {
             status.text = "Listening"
             hint.text = "Go back to your app and keep talking: swipe right along the bottom edge, or tap the app’s name in the top corner. When you’re finished, tap the red stop button at the right end of the suggestions."
-        case .transcribing:
+        } else if listener.isWriting {
             status.text = "Writing it down"
             hint.text = "It'll be typed where you were."
-        case .idle:
-            if let failure = current.failure {
-                status.text = "Couldn’t listen"
-                hint.text = failure
-            } else if hasListened {
-                return dismiss(animated: false)
-            }
+        } else if let failure = Dictation.status.failure {
+            status.text = "Couldn’t listen"
+            hint.text = failure
+        } else if hasListened {
+            return dismiss(animated: false)
         }
-        done.isHidden = Listener.shared.state != .listening
-        cancel.configuration?.title = Listener.shared.state == .idle ? "Close" : "Cancel"
+        done.isHidden = !listener.isListening
+        cancel.configuration?.title = busy ? "Cancel" : "Close"
     }
 }
 

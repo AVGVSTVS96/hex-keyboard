@@ -29,8 +29,16 @@ final class VoiceTests: XCTestCase {
         try shot("\(shots)-listening")
 
         mic.tap()
+        XCTAssertTrue(wait(for: mic, label: "Dictate", value: "Writing"), "tapping it again stops, and while that's written down the mic can dictate again")
+        try shot("\(shots)-writing")
+
+        mic.tap()
+        XCTAssertTrue(wait(for: mic, label: "Stop Dictating", value: nil), "a tap while the last is written down starts the next dictation")
         let field = app.textViews.firstMatch
-        XCTAssertTrue(wait { (field.value as? String ?? "").hasSuffix("hello from the mic") }, "tapping it again types what was heard")
+        XCTAssertTrue(wait { (field.value as? String ?? "").hasSuffix("hello from the mic") }, "the first is typed once it's written, while the next records")
+
+        mic.tap()
+        XCTAssertTrue(wait { (field.value as? String ?? "").hasSuffix("hello from the mic and again") }, "the next is typed after it")
         XCTAssertTrue(wait(for: mic, label: "Dictate", value: "Mic On"))
         try shot("\(shots)-typed")
 

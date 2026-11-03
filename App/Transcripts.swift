@@ -53,9 +53,9 @@ struct Transcript: Codable, Identifiable, Hashable {
             }
             let date = (try? file.resourceValues(forKeys: [.creationDateKey]).creationDate) ?? .now
             do {
-                let again = try await VoiceModel.shared.again(samples)
+                let written = try await VoiceModel.shared.write(samples)
                 try? Recording.write(samples, to: file)
-                add(again.text, heard: again.heard, id: id, at: date, seconds: Double(samples.count) / 16_000, typed: false, model: again.model, mic: nil)
+                add(written.text, heard: written.heard, id: id, at: date, seconds: Double(samples.count) / 16_000, typed: false, model: written.model, mic: nil)
             } catch {
                 HostApp.log.error("couldn't write down \(file.lastPathComponent, privacy: .public): \(error.localizedDescription, privacy: .public)")
             }

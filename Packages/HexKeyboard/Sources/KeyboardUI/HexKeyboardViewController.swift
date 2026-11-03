@@ -221,11 +221,9 @@ open class HexKeyboardViewController: UIInputViewController {
     }
 
     private var mic: MicButton.Phase {
-        switch dictation.state {
-        case .listening: .listening
-        case .transcribing: .transcribing
-        case .idle: micIsOn ? .on : .off
-        }
+        if dictation.listening { return .listening }
+        if dictation.writing > 0 { return .writing }
+        return micIsOn ? .on : .off
     }
 
     /// What a source sees: the field's text as the keyboard knows it, with Full Access, outside password and code fields.
@@ -372,19 +370,15 @@ open class HexKeyboardViewController: UIInputViewController {
         if engine.handle(event, in: document) { render() }
     }
 
-    /// Stops a dictation in progress, so what was heard is typed. Otherwise starts one: in place while the app keeps the
-    /// microphone on, or by opening the app, since a keyboard can't use the microphone and iOS starts a recording only
-    /// in an app in front.
+    /// Stops a dictation in progress, so what was heard is typed. Otherwise starts one, even while the last is still
+    /// being written: in place while the app keeps the microphone on, or by opening the app, since a keyboard can't use
+    /// the microphone and iOS starts a recording only in an app in front.
     private func toggleVoice() {
         guard hasFullAccess else {
             dictation = Dictation.Status(failure: "Voice needs Allow Full Access in Settings › Apps › Hex › Keyboards")
             return render()
         }
-        switch dictation.state {
-        case .listening: return Dictation.send(.finish)
-        case .transcribing: return
-        case .idle: break
-        }
+        if dictation.listening { return Dictation.send(.finish) }
         if dictation.failure != nil { clearFailure() }
         micIsOn = Dictation.micIsOn
         if micIsOn { return Dictation.send(.start) }
@@ -402,17 +396,18 @@ open class HexKeyboardViewController: UIInputViewController {
         }
     }
 
-    /// The app listened, or stopped: type what it heard, once. A dictation without the app's microphone lock was left by
-    /// an app that ended mid-dictation, so the mic starts a new one.
+    /// The app listened, or wrote something down: type what it wrote, once each. A status without the app's microphone
+    /// lock was left by an app that ended mid-dictation, so the mic starts a new one.
     private func dictationChanged() {
         var status = Dictation.status
-        if let heard = status.heard {
-            status.heard = nil
+        if !status.heard.isEmpty {
+            let heard = status.heard
+            status.heard = []
             Dictation.publish(status)
-            engine.handle(.dictated(heard), in: document)
+            for text in heard { engine.handle(.dictated(text), in: document) }
         }
         micIsOn = Dictation.micIsOn
-        if status.state != .idle, !micIsOn { status.state = .idle }
+        if !micIsOn { (status.listening, status.writing) = (false, 0) }
         dictation = status
         render()
     }

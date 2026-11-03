@@ -14,4 +14,4 @@ Not driven yet: dictation needs a real microphone. Screenshots: copy a `transcri
 
 ## Gotchas
 
-A ✕ during the first second or so, before the transcriber is up, keeps nothing.
+A ✕ keeps whatever was recorded, written down but not typed; one with nothing said keeps nothing.

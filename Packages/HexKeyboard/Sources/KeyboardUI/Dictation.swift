@@ -2,24 +2,25 @@ import Foundation
 import notify
 
 /// Voice typing runs in the app, because a keyboard can't use the microphone: the keyboard opens the app with a
-/// `Request`, the app listens until the keyboard (or the app) says it's done, and leaves what it heard in the App Group
-/// for the keyboard to type. Each side tells the other through a Darwin notification and reads the shared status on it.
+/// `Request`, the app listens until the keyboard (or the app) says it's done, and leaves what it wrote down in the App
+/// Group for the keyboard to type. Each side tells the other through a Darwin notification and reads the shared status on it.
 public enum Dictation {
-    public enum State: String, Codable, Sendable {
-        case idle, listening, transcribing
-    }
-
+    /// Recording and writing are separate: the app records a new dictation while the ones before are still being
+    /// written down, and types them in the order you said them.
     public struct Status: Codable, Equatable, Sendable {
-        public var state = State.idle
-        /// When the dictation in progress started, by the app recording it, so every keyboard that opens shows the same time.
+        public var listening = false
+        /// When the newest dictation started, by the app recording it, so every keyboard that opens shows the same time.
         public var since: Date?
-        /// What the app heard, until the keyboard types it.
-        public var heard: String?
+        /// How many dictations the app has recorded and is still writing down.
+        public var writing = 0
+        /// What the app wrote down, oldest first, until the keyboard types it.
+        public var heard: [String] = []
         public var failure: String?
 
-        public init(state: State = .idle, since: Date? = nil, heard: String? = nil, failure: String? = nil) {
-            self.state = state
+        public init(listening: Bool = false, since: Date? = nil, writing: Int = 0, heard: [String] = [], failure: String? = nil) {
+            self.listening = listening
             self.since = since
+            self.writing = writing
             self.heard = heard
             self.failure = failure
         }

@@ -1,12 +1,14 @@
 import AVFoundation
 import FluidAudio
+import KeyboardCore
 import Observation
 import Speech
 import UIKit
 
 /// The speech model voice typing writes with, picked in Settings: one of NVIDIA's Parakeets, run on the Neural Engine by
-/// FluidAudio and downloaded from Hugging Face once, or Apple's SpeechTranscriber. A dictation made while the picked
-/// Parakeet gets ready is written by it once it's ready. Either way the sound never leaves the iPhone.
+/// FluidAudio and downloaded from Hugging Face once, or Apple's SpeechTranscriber. It only ever writes finished
+/// recordings (`write`), so it never stands between you and the microphone: a dictation made while the picked Parakeet
+/// gets ready is recorded as any other and written once it's ready. Either way the sound never leaves the iPhone.
 @Observable final class VoiceModel {
     static let shared = VoiceModel()
 
@@ -25,7 +27,7 @@ import UIKit
             switch self {
             case .v3: "Fast and accurate. Downloads once, about 500 MB."
             case .ultra: "A little more accurate. Takes minutes to get ready, and warms the iPhone, each time Hex opens."
-            case .apple: "Built into iOS. Writes as you speak."
+            case .apple: "Built into iOS."
             }
         }
 
@@ -79,14 +81,6 @@ import UIKit
         self.model = model
         parakeet?.cancel()
         parakeet = nil
-        state = .loading
-        prepare()
-    }
-
-    /// Tries the picked model again after it failed to download or load.
-    func retry() {
-        guard case .failed = state else { return }
-        state = .loading
         prepare()
     }
 
@@ -100,14 +94,14 @@ import UIKit
         }
     }
 
-    /// Downloads the picked Parakeet if it isn't on the iPhone yet, then loads it, unless it's loaded, on its way, or
-    /// failed since it was picked. The first load after an install compiles it for the Neural Engine; later ones read
+    /// Downloads the picked Parakeet if it isn't on the iPhone yet, then loads it, unless it's loaded or on its way; one
+    /// that failed is tried again. The first load after an install compiles it for the Neural Engine; later ones read
     /// that from a cache. It asks iOS for time in the background to finish, since iOS suspends Hex there within seconds
     /// (after `scripts/phone` starts it, or once you're back in your app with the microphone off) and the compile with it.
     func prepare() {
         guard let load = model.loader else { return state = .ready }
-        if case .failed = state { return }
         guard parakeet == nil else { return }
+        state = .loading
         let model = model
         let began = Date.now
         let parakeet = Task.detached {
@@ -141,27 +135,29 @@ import UIKit
         }
     }
 
-    /// A new dictation's transcription, by the picked model. A Parakeet still getting ready writes the recording once
-    /// it's ready; one that failed to load is tried again.
-    func transcription() async throws -> any Transcription {
-        retry()
-        prepare()
-        guard let parakeet else { return try await SpeechTranscription.make() }
-        return ParakeetTranscription(parakeet, model: model.title)
+    struct Written {
+        /// As your style and vocabulary have it (`DictationWriting`).
+        var text: String
+        /// As the model wrote it.
+        var heard: String
+        var model: String
     }
-}
 
-/// One dictation, from the microphone's sound to text.
-nonisolated protocol Transcription: AnyObject, Sendable {
-    /// For the log and the transcript.
-    var model: String { get }
-    /// The sound it hears while you talk, which the microphone's is converted to; nil when it only reads the recording.
-    var format: AVAudioFormat? { get }
-    /// Runs on the audio thread.
-    func hear(_ buffer: AVAudioPCMBuffer)
-    /// Everything said, once no more sound is coming, given all of it as a `Recording`.
-    func text(of recording: [Float]) async throws -> String
-    func cancel() async
+    /// A finished recording written down by the picked model, once it's ready: a dictation, Transcribe Again, and a
+    /// recording an ended app left all go through here. Picking another model while it waits has that one write it.
+    func write(_ recording: [Float]) async throws -> Written {
+        while true {
+            prepare()
+            let model = model
+            do {
+                let heard: String
+                if let parakeet { heard = try await parakeet.value.dictate(recording) } else { heard = try await AppleSpeech.write(recording) }
+                return Written(text: DictationWriting.typed(heard), heard: heard, model: model.title)
+            } catch {
+                guard self.model != model else { throw error }
+            }
+        }
+    }
 }
 
 /// A loaded Parakeet, writing 16 kHz sound down in English.
@@ -185,73 +181,33 @@ extension AsrManager: Parakeet {
     }
 }
 
-/// Writes the whole recording down when you're done: Parakeet takes it at once, fast enough on the Neural Engine that a
-/// minute of talking is written in well under a second.
-nonisolated final class ParakeetTranscription: Transcription, @unchecked Sendable {
-    let model: String
-    let format: AVAudioFormat? = nil
-    private let parakeet: Task<any Parakeet, any Error>
-
-    init(_ parakeet: Task<any Parakeet, any Error>, model: String) {
-        self.parakeet = parakeet
-        self.model = model
-    }
-
-    func hear(_ buffer: AVAudioPCMBuffer) {}
-
-    /// Pads a tap with next to nothing said up to the shortest sound Parakeet takes.
-    func text(of recording: [Float]) async throws -> String {
+nonisolated extension Parakeet {
+    /// The recording leveled (`Recording.leveled`), and a tap with next to nothing said padded up to the shortest sound
+    /// Parakeet takes. On the Neural Engine a minute of talking is written in well under a second.
+    func dictate(_ recording: [Float]) async throws -> String {
         var samples = Recording.leveled(recording)
         let shortest = ASRConstants.minimumRequiredSamples(forSampleRate: 16_000)
         if samples.count < shortest { samples += repeatElement(0, count: shortest - samples.count) }
-        return try await parakeet.value.write(samples).trimmingCharacters(in: .whitespacesAndNewlines)
+        return try await write(samples).trimmingCharacters(in: .whitespacesAndNewlines)
     }
-
-    func cancel() async {}
 }
 
 /// Apple's SpeechTranscriber (the iOS 26 model, not the older one behind the system's dictation key), else the dictation
-/// model with punctuation. It writes as you speak, so when you're done only the last words are left to finish.
-nonisolated final class SpeechTranscription: Transcription, @unchecked Sendable {
-    var model = "Apple"
-    let format: AVAudioFormat?
-    private let input: AsyncStream<AnalyzerInput>.Continuation
-    private let analyzer: Task<SpeechAnalyzer, any Error>
-    private let heard: Task<String, any Error>
-
-    static func make() async throws -> SpeechTranscription {
+/// model with punctuation.
+nonisolated enum AppleSpeech {
+    static func write(_ recording: [Float]) async throws -> String {
         let (module, heard) = try await transcriber()
+        defer { heard.cancel() }
         guard let format = await SpeechAnalyzer.bestAvailableAudioFormat(compatibleWith: [module]) else { throw Unsupported() }
-        return SpeechTranscription(module, format: format, heard: heard)
-    }
-
-    private init(_ module: any SpeechModule, format: AVAudioFormat, heard: Task<String, any Error>) {
-        self.format = format
-        self.heard = heard
+        guard let sound = converted(recording, to: format) else { throw Unconvertible() }
+        if let request = try await AssetInventory.assetInstallationRequest(supporting: [module]) { try await request.downloadAndInstall() }
         let (stream, input) = AsyncStream<AnalyzerInput>.makeStream()
-        self.input = input
-        analyzer = Task {
-            if let request = try await AssetInventory.assetInstallationRequest(supporting: [module]) { try await request.downloadAndInstall() }
-            let analyzer = SpeechAnalyzer(modules: [module])
-            try await analyzer.start(inputSequence: stream)
-            return analyzer
-        }
-    }
-
-    func hear(_ buffer: AVAudioPCMBuffer) {
-        input.yield(AnalyzerInput(buffer: buffer))
-    }
-
-    func text(of _: [Float]) async throws -> String {
+        let analyzer = SpeechAnalyzer(modules: [module])
+        try await analyzer.start(inputSequence: stream)
+        input.yield(AnalyzerInput(buffer: sound))
         input.finish()
-        try await analyzer.value.finalizeAndFinishThroughEndOfInput()
+        try await analyzer.finalizeAndFinishThroughEndOfInput()
         return try await heard.value.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    func cancel() async {
-        input.finish()
-        heard.cancel()
-        await (try? analyzer.value)?.cancelAndFinishNow()
     }
 
     private static func transcriber() async throws -> (any SpeechModule, Task<String, any Error>) {
@@ -272,7 +228,27 @@ nonisolated final class SpeechTranscription: Transcription, @unchecked Sendable 
         })
     }
 
+    private static func converted(_ recording: [Float], to format: AVAudioFormat) -> AVAudioPCMBuffer? {
+        guard let buffer = AVAudioPCMBuffer(pcmFormat: Recording.format, frameCapacity: AVAudioFrameCount(recording.count)),
+              let converter = AVAudioConverter(from: Recording.format, to: format),
+              let converted = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(Double(recording.count) * format.sampleRate / 16_000) + 1)
+        else { return nil }
+        buffer.frameLength = buffer.frameCapacity
+        recording.withUnsafeBufferPointer { buffer.floatChannelData?[0].update(from: $0.baseAddress!, count: recording.count) }
+        nonisolated(unsafe) var fed = false
+        converter.convert(to: converted, error: nil) { _, status in
+            status.pointee = fed ? .endOfStream : .haveData
+            defer { fed = true }
+            return fed ? nil : buffer
+        }
+        return converted
+    }
+
     private struct Unsupported: LocalizedError {
         var errorDescription: String? { "Voice typing doesn't support this iPhone's language yet." }
+    }
+
+    private struct Unconvertible: LocalizedError {
+        var errorDescription: String? { "This recording can't be read by Apple's model." }
     }
 }

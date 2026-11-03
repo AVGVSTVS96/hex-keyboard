@@ -70,7 +70,7 @@ Behavior is what `MicButton` does today; only its look changes.
 | Microphone off (the app isn't holding it) | Circle with the `waveform` glyph. Tap opens the app to dictate. |
 | Microphone kept on (Keep Mic On) | Same circle, plus a 6pt green (`#30D158`) dot at its top right. Tap starts dictating in place. |
 | Recording | The three suggestion slots become one live waveform in the label color (bars 3 wide, 3 apart, heights from the published level) with the elapsed time `0:07` at its left in secondary 15, tabular figures. The mic becomes a stop button: record-red circle, white `stop.fill` 14. Tap stops and inserts. Hold turns the microphone off, as today. |
-| Transcribing (after stop, until the text lands) | Waveform freezes at 40% opacity; the stop button shows a 16pt spinner in white. |
+| Writing (after stop, until the text lands) | Waveform freezes at 40% opacity; the mic's circle shows a 16pt spinner in its glyph's color in place of the glyph. A tap starts the next dictation. |
 
 ### Colors
 

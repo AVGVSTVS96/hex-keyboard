@@ -7,7 +7,7 @@ struct ModelSettings: View {
     private let voice = VoiceModel.shared
 
     var body: some View {
-        Box(footer: "What you say is written on this iPhone and never leaves it. A dictation made while a Parakeet gets ready waits for it.") {
+        Box(footer: "What you say is written on this iPhone and never leaves it. A dictation made while a Parakeet gets ready is written once it’s ready.") {
             ForEach(VoiceModel.Model.allCases, id: \.self) { choice in
                 ChoiceRow(title: choice.title, detail: choice.detail, picked: choice == voice.model) {
                     voice.pick(choice)
@@ -40,7 +40,7 @@ struct ModelSettings: View {
                 Text("Couldn’t get it ready: \(reason)")
                     .font(.footnote)
                     .foregroundStyle(.red)
-                Button("Try Again") { voice.retry() }
+                Button("Try Again") { voice.prepare() }
                     .font(.footnote.weight(.semibold))
                     .buttonStyle(.borderless)
             }

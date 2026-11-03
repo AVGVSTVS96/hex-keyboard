@@ -2,7 +2,7 @@
 
 ## Sub-features
 
-The mic at the bar's right end, always there. With the app's microphone off, a tap opens the Hex app (`hexkeyboard://dictate`), which starts listening (SpeechTranscriber, or DictationTranscriber with punctuation where the iPhone lacks it) and then reopens the app you were typing in (`HostApp`: the host from `_UIRemoteKeyboards`, opened with `LSApplicationWorkspace`; if either fails, its screen asks you to swipe back). While listening the mic is a red pill whose bars follow your voice; a tap types what was heard, joined to the text before it with a space. Without Full Access the bar says so instead.
+The mic at the bar's right end, always there. With the app's microphone off, a tap opens the Hex app (`hexkeyboard://dictate`), which starts recording and then reopens the app you were typing in (`HostApp`: the host from `_UIRemoteKeyboards`, opened with `LSApplicationWorkspace`; if either fails, its screen asks you to swipe back). While listening the mic is a red pill whose bars follow your voice; a tap stops, and once the voice model has written it down it's typed, joined to the text before it with a space. While it's being written the mic shows a spinner and a tap starts the next dictation; they're typed in the order said. Without Full Access the bar says so instead.
 
 Keep Mic On (Settings: Off, 30 Seconds, 1 Minute, 5 Minutes (default), 15 Minutes, 1 Hour, Until Turned Off): after a dictation the app keeps the microphone running in the background for that long, dropping its audio, and holds `Library/mic.lock` in the App Group. While the lock is held the mic's glyph is filled and a tap sends `Dictation.Signal.start`, so the app doesn't open; holding the mic turns the microphone off. Another app taking the microphone (a call) or the engine stopping on a route change turns it off at once.
 
@@ -12,7 +12,7 @@ Tap the mic beside the suggestions, talk, tap it again.
 
 ## Driving it with XCUITest
 
-`scripts/voicetest` runs `VoiceTests` with `scripts/voiceapp.py` standing in for the app (a simulator can't record): the mic shows Mic On, a tap starts listening, a tap types "hello from the mic", a hold turns the microphone off and leaves the mic. On a phone: watch `Dictation`'s status with `xcrun devicectl device copy from --domain-type appGroupDataContainer --domain-identifier group.com.shahidy.hexkeyboard --source Library/dictation.json` (it lives under Library because devicectl reads only Library, Documents and tmp), and the app's return with `log stream --predicate 'subsystem == "com.shahidy.hexkeyboard"'`.
+`scripts/voicetest` runs `VoiceTests` with `scripts/voiceapp.py` standing in for the app (a simulator can't record): the mic shows Mic On, a tap starts listening, a tap stops it and the mic shows Writing, a tap then starts a second dictation while "hello from the mic" is typed, a tap types "and again" after it, a hold turns the microphone off and leaves the mic. On a phone: watch `Dictation`'s status with `xcrun devicectl device copy from --domain-type appGroupDataContainer --domain-identifier group.com.shahidy.hexkeyboard --source Library/dictation.json` (it lives under Library because devicectl reads only Library, Documents and tmp), and the app's return with `log stream --predicate 'subsystem == "com.shahidy.hexkeyboard"'`.
 
 ## Gotchas
 
