@@ -8,8 +8,8 @@ Where this file and a Paper frame disagree, this file wins.
 
 ```
 ┌──────────────────────────────────────────┐  ← system card (iOS draws it)
-│ GIF  📋 │ the │ noon │ ☕ 🍵 →     (mic)  │  bar, 40
-│                                          │  11, the dead gap
+│ GIF  📋 │ the │ noon │ ☕ 🍵 →     (mic)  │  bar, 38: the mic's height
+│                                          │  7, the dead gap
 │ q  w  e  r  t  y  u  i  o  p             │
 │  a  s  d  f  g  h  j  k  l               │  keys: 4 rows
 │ ⇧   z  x  c  v  b  n  m   ⌫              │
@@ -17,7 +17,7 @@ Where this file and a Paper frame disagree, this file wins.
 └──────────────────────────────────────────┘
 ```
 
-From top to bottom: 8 of padding, the bar (40), 11, four rows of keys, the bottom inset. The tools take no row of their own: Bassim would rather the space go to nothing than to a row of buttons, so on every screen they sit at the bar's left, as they did only where height was short.
+From top to bottom: 3 of padding (iOS draws its backdrop 4 above the keyboard, so 7 show), the bar (38), 7, four rows of keys, the bottom inset. The mic has the same 7 above it, below it and beside it, and the keyboard is as tall as Apple's with its suggestions (Apple's is 49 to 53 above the keys on the Duo's four screens; Hex was 52 to 66). The tools take no row of their own: Bassim would rather the space go to nothing than to a row of buttons, so on every screen they sit at the bar's left, as they did only where height was short.
 
 ### Keys
 
@@ -40,23 +40,24 @@ From top to bottom: 8 of padding, the bar (40), 11, four rows of keys, the botto
 
 ### The bar
 
-- 40 tall. Three suggestion slots of equal width share what the mic leaves, divided by 1pt lines 28 tall.
-- The mic is a 38 circle at the bar's right end, in line with the keys' right edge. Dark: white circle, black glyph. Light: black circle, white glyph. It is always there.
-- The last slot gives way to the word's emoji when it has some (`EmojiCatalog`; none beats a wrong one): the ones picked for the word, then every emoji whose name or keywords hold the word, up to 30, 36 apart. As many as fit show, centered when they all do; the rest are a swipe left away.
+- The mic's height: 38, or 32 to 34 where height is short. Three suggestion slots of equal width share what the tools and the mic leave, 4 from each, divided by 1pt lines 28 tall.
+- Where everything goes comes from one rule (`BarLayout`): the mic sits 7 from the top of the backdrop, 7 from the keys and 7 from the keyboard's side, or in line with the keys' right edge where they sit further in (landscape, the open Duo, one-handed). The tools mirror it at the left. So no screen can crowd the mic into the keyboard's corner, and `BarLayoutTests` checks it on every screen.
+- The mic is a circle at the bar's right end. Dark: white circle, black glyph. Light: black circle, white glyph. It is always there.
+- Where the bar has room for three suggestions of 130 and two emoji more (the Duo open, and on its side), the word's emoji sit beside the three suggestions, as many as fit. Elsewhere the last slot gives way to the word's emoji when it has some (`EmojiCatalog`; none beats a wrong one): the ones picked for the word, then every emoji whose name or keywords hold the word, up to 30, 36 apart. As many as fit show, centered when they all do; the rest are a swipe left away.
 - What the slots hold and what a tap does doesn't change (`SuggestionBar`, Apple's three suggestions, a quoted middle when it will autocorrect).
 
 ### The tools
 
-- GIF and Clipboard (and, on iPad with the emoji key on, Emoji) are 36 × 36 icon buttons (34 on the folded landscape) at the bar's left end, 2 apart, in the label color, before the suggestions. Each opens its panel (section "Panels").
+- GIF and Clipboard (and, on iPad with the emoji key on, Emoji) are round cells the mic's size at the bar's left end, 4 apart, in the label color, before the suggestions. Each opens its panel (section "Panels").
 - Nothing AI goes here.
 
 ### Where taps land
 
 Bassim reaches for the top row fast, so a reach must never pick a suggestion or open a panel.
 
-- The bar takes taps in its full 40.
-- The bar's bottom 6 goes nowhere.
-- The 11 between the bar and the keys belongs to the top key row (as `KeyGrid` gives the top row the space above it).
+- The bar takes taps from its top.
+- The bar's bottom 10 goes nowhere, so with the 7 under it a reach of 17 above the top row (as before) never picks a suggestion.
+- The 7 between the bar and the keys belongs to the top key row (as `KeyGrid` gives the top row the space above it).
 - Gaps between keys still take taps (`KeyboardInputView`'s invisible fill).
 - Callouts of top-row keys draw over the bar.
 
@@ -116,12 +117,12 @@ Physical and Mechanical come Automatic (following the app), Dark or Light. iOS 5
 
 | | Keys block | Key h | Row gap | Top | Bar | Bar → keys | Bottom | Total |
 |---|---|---|---|---|---|---|---|---|---|
-| Duo folded (cover), upright, 466 × 678 | 6.5 in, keys 6 apart | 45 | 11 | 8 | 40 | 11 | 39 | |
-| Duo open, upright, 951 × 669 (compact) | 9 in, keys 10 apart | 38.67 | 13 | 8 | 40 | 11 | 20 | |
-| Duo open, on its side, 669 × 951 | 18 in, keys 9 apart | 45.67 | 14 | 8 | 40 | 11 | 73 | |
-| Duo folded, on its side, 678 × 466 (compact) | 4.5 in, keys 7 apart | 33.33 | 9 | 4 | 34 | 8 | 20 | |
-| iPhone portrait (Face ID), 375–440 wide | full width | 43, or 45 from 415 wide | 11 | 8 | 40 | 11 | today's `bottomInset` | |
-| iPhone landscape (compact) | today's | today's 27.33 | today's 8 | 4 | 34 | 8 | today's | |
+| Duo folded (cover), upright, 466 × 678 | 6.5 in, keys 6 apart | 45 | 11 | 3 | 38 | 7 | 39 | |
+| Duo open, upright, 951 × 669 (compact) | 9 in, keys 10 apart | 38.67 | 13 | 3 | 38 | 7 | 20 | |
+| Duo open, on its side, 669 × 951 | 18 in, keys 9 apart | 45.67 | 14 | 3 | 38 | 7 | 73 | |
+| Duo folded, on its side, 678 × 466 (compact) | 4.5 in, keys 7 apart | 33.33 | 9 | 3 | 32 | 7 | 20 | |
+| iPhone portrait (Face ID), 375–440 wide | full width | 43, or 45 from 415 wide | 11 | 3 | 38 | 7 | today's `bottomInset` | |
+| iPhone landscape (compact) | today's | today's 27.33 | today's 8 | 3 | 34 | 7 | today's | |
 | iPad (all) | today's | today's | today's | today's | today's 36pt row, compact bar | today's | today's | today's |
 
 - Every Duo row is Apple's keyboard measured in the iOS 27.1 simulator (`scripts/sim duo`, which unfolds it with Device Hub's hinge event). "Keys block" is the side inset inside the keyboard's own width, which iOS narrows on the side layouts; "Bottom" is how far above the screen's bottom Apple's last row ends.
@@ -132,7 +133,7 @@ Physical and Mechanical come Automatic (following the app), Dark or Light. iOS 5
 
 ### The compact layout
 
-Where height is short (any landscape, and iPad), the bar is 34 (iPad 36) and the mic 34 (32 on the folded landscape), and a panel's results are one row (`Toolbar.isCompact`).
+Where height is short (any landscape, and iPad), the bar and the mic are 34 (32 on the folded landscape, 38 on the open Duo on its side; iPad: a 36 bar and a 34 mic), and a panel's results are one row (`Toolbar.isCompact`).
 
 ### Cut from Raycast
 

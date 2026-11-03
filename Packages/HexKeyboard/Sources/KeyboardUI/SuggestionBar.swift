@@ -1,9 +1,9 @@
 import UIKit
 import KeyboardCore
 
-/// Apple's three suggestions, the last one giving way to the word's emoji when it has some (as many as fit, and the rest
-/// a swipe left away), and a round mic at the right end that starts and stops dictation. The tools sit at its left end. While the app listens,
-/// the suggestions give way to a waveform of your voice and the time so far.
+/// Apple's three suggestions with the word's emoji (as many as fit, and the rest a swipe left away), a round mic at the
+/// right end that starts and stops dictation, and the tools at the left end, all placed by `BarLayout`. While the app
+/// listens, the suggestions give way to a waveform of your voice and the time so far.
 final class SuggestionBar: UIView {
     var onSelect: (Suggestion) -> Void = { _ in }
     var onEmoji: (String) -> Void = { _ in }
@@ -12,8 +12,11 @@ final class SuggestionBar: UIView {
     var onNotice: () -> Void = {}
     var onTool: (Panel) -> Void = { _ in }
     var maximumSlotWidth = CGFloat.infinity { didSet { setNeedsLayout() } }
-    /// The keys block's edges, which the bar spans: the mic's right edge lines up with the last key's.
+    /// The keys block's edges.
     var block = (minX: CGFloat(0), maxX: CGFloat(0)) { didSet { if block != oldValue { setNeedsLayout() } } }
+    /// How far the screen reaches past each side of the keyboard's window, and the gap from the bar to the keys.
+    var screenInset = CGFloat(0) { didSet { if screenInset != oldValue { setNeedsLayout() } } }
+    var topInset = CGFloat(0) { didSet { if topInset != oldValue { setNeedsLayout() } } }
     var toolbar = KeyboardMetrics.phone(width: 390).toolbar { didSet { if toolbar != oldValue { setNeedsLayout() } } }
 
     private let slots = (0..<3).map { SuggestionSlot(index: $0) }
@@ -24,6 +27,7 @@ final class SuggestionBar: UIView {
     private let mic = MicButton()
     private let waveform = Waveform()
     private let notice = UILabel()
+    private var emojiBeside = false
     private var enabled = true
     private var noticed = false
     private var theme = KeyboardTheme.lightCurrent
@@ -125,14 +129,14 @@ final class SuggestionBar: UIView {
         slots.forEach { $0.isHidden = quiet }
         strip.isHidden = quiet || emoji.isEmpty
         emoji.forEach { $0.isHidden = quiet }
-        if !emoji.isEmpty { slots[slots.count - 1].isHidden = true }
+        if !emoji.isEmpty, !emojiBeside { slots[slots.count - 1].isHidden = true }
         refreshDividers()
     }
 
     /// A divider shows only between two things shown without a pill.
     private func refreshDividers() {
         func hidesDivider(_ index: Int, leading: Bool) -> Bool {
-            if index == slots.count - 1, let pick = leading ? emoji.first : emoji.last { return pick.isHidden || pick.isHighlighted }
+            if index == slots.count - 1, !emojiBeside, let pick = leading ? emoji.first : emoji.last { return pick.isHidden || pick.isHighlighted }
             return slots[index].isHidden || slots[index].showsPill
         }
         for (index, divider) in dividers.enumerated() {
@@ -148,41 +152,40 @@ final class SuggestionBar: UIView {
     override func layoutSubviews() {
         super.layoutSubviews()
         let scale = traitCollection.displayScale
-        let content = CGRect(x: 0, y: toolbar.top, width: bounds.width, height: toolbar.bar)
-        let side = toolbar.mic
-        self.mic.frame = CGRect(x: block.maxX - side, y: content.midY - side / 2, width: side, height: side)
-        var start = block.minX
-        for tool in tools {
-            tool.frame = CGRect(x: start, y: content.minY, width: content.height, height: content.height)
-            start = tool.frame.maxX + 2
+        let layout = BarLayout(
+            toolbar, width: bounds.width, screenInset: screenInset, block: (block.minX, block.maxX), topInset: topInset,
+            tools: tools.count, emoji: emoji.count, maximumSlot: maximumSlotWidth
+        )
+        mic.frame = CGRect(layout.mic)
+        for (tool, frame) in zip(tools, layout.tools) { tool.frame = CGRect(frame) }
+        for (slot, frame) in zip(slots, layout.slots) {
+            let minX = CGFloat(frame.x).rounded(scale: scale), maxX = CGFloat(frame.x + frame.width).rounded(scale: scale)
+            slot.frame = CGRect(x: minX, y: frame.y, width: maxX - minX, height: frame.height)
         }
-        let end = self.mic.frame.minX - 4
-        let width = min((end - start) / CGFloat(slots.count), maximumSlotWidth)
-        let first = max(start, min(bounds.midX - width * CGFloat(slots.count) / 2, end - width * CGFloat(slots.count)))
-        for (index, slot) in slots.enumerated() {
-            let minX = (first + CGFloat(index) * width).rounded(scale: scale)
-            let maxX = (first + CGFloat(index + 1) * width).rounded(scale: scale)
-            slot.frame = CGRect(x: minX, y: content.minY, width: maxX - minX, height: content.height)
+        if layout.emojiBeside != emojiBeside {
+            emojiBeside = layout.emojiBeside
+            refresh()
         }
-        let last = slots[slots.count - 1].frame
-        strip.frame = last
-        let pitch = EmojiPick.pitch
+        let place = CGRect(layout.emoji)
+        strip.frame = place
+        let pitch = BarLayout.emojiPitch
         let total = pitch * CGFloat(emoji.count)
-        let left = max((last.width - total) / 2, 0)
+        let left = max((place.width - total) / 2, 0)
         for (index, pick) in emoji.enumerated() {
             let minX = (left + CGFloat(index) * pitch).rounded(scale: scale)
-            let glyph = CGRect(x: minX, y: 0, width: (left + CGFloat(index + 1) * pitch).rounded(scale: scale) - minX, height: content.height)
+            let glyph = CGRect(x: minX, y: 0, width: (left + CGFloat(index + 1) * pitch).rounded(scale: scale) - minX, height: place.height)
             let frameMinX = index == 0 ? 0 : glyph.minX
-            let frameMaxX = index == emoji.count - 1 ? max(last.width, glyph.maxX) : glyph.maxX
-            pick.frame = CGRect(x: frameMinX, y: 0, width: frameMaxX - frameMinX, height: content.height)
+            let frameMaxX = index == emoji.count - 1 ? max(place.width, glyph.maxX) : glyph.maxX
+            pick.frame = CGRect(x: frameMinX, y: 0, width: frameMaxX - frameMinX, height: place.height)
             pick.glyph = glyph.offsetBy(dx: -pick.frame.minX, dy: 0)
         }
-        strip.contentSize = CGSize(width: max(total, last.width), height: content.height)
+        strip.contentSize = CGSize(width: max(total, place.width), height: place.height)
+        let row = CGRect(x: layout.minX, y: toolbar.top, width: layout.maxX - layout.minX, height: toolbar.bar)
         for (index, divider) in dividers.enumerated() {
-            divider.frame = CGRect(x: slots[index].frame.maxX - 0.5, y: content.midY - 14, width: 1, height: 28)
+            divider.frame = CGRect(x: slots[index].frame.maxX - 0.5, y: row.midY - 14, width: 1, height: 28)
         }
-        waveform.frame = CGRect(x: start + 8, y: content.minY, width: end - start - 8, height: content.height)
-        notice.frame = CGRect(x: start + 8, y: content.minY, width: end - start - 12, height: content.height)
+        waveform.frame = row.insetBy(dx: 4, dy: 0)
+        notice.frame = row.insetBy(dx: 4, dy: 0)
     }
 }
 
@@ -342,7 +345,6 @@ private final class Waveform: UIView {
 /// One emoji in the bar's last slot: a tap types it in place of the word. The outer ones also take the slot's
 /// margins, so the whole slot answers a tap.
 private final class EmojiPick: UIControl {
-    static let pitch: CGFloat = 36
     let emoji: String
     var glyph = CGRect.zero { didSet { setNeedsLayout() } }
     var onHighlight: () -> Void = {}

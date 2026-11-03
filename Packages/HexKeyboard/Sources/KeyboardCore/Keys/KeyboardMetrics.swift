@@ -65,7 +65,7 @@ extension KeyboardMetrics {
         return KeyboardMetrics(
             columns: 10, sideInset: 6.5, keyGap: 6, rowGap: 11,
             keyHeight: large ? 45 : 43, numberRowHeight: 0,
-            topInset: 11, bottomInset: (large ? 5 : 3) - lowered, cornerRadius: 9,
+            topInset: Toolbar.gap, bottomInset: (large ? 5 : 3) - lowered, cornerRadius: 9,
             letterSize: 23, labelSize: 18, secondarySize: 12, symbolSize: 19,
             letterOffset: -1.67
         )
@@ -99,9 +99,9 @@ extension KeyboardMetrics {
         KeyboardMetrics(
             columns: 10, sideInset: 3.75, keyGap: 6, rowGap: 8,
             keyHeight: 27.33, numberRowHeight: 0,
-            topInset: 8, bottomInset: 4, cornerRadius: 9,
+            topInset: Toolbar.gap, bottomInset: 4, cornerRadius: 9,
             letterSize: 20, labelSize: 15.5, secondarySize: 11, symbolSize: 19,
-            letterOffset: -1, toolbar: .compact(top: 4, bar: 34, mic: 34)
+            letterOffset: -1, toolbar: .compact(mic: 34)
         )
     }
 
@@ -131,12 +131,11 @@ extension KeyboardMetrics {
             metrics.keyGap = 7
             metrics.keyHeight = 33.33
             metrics.rowGap = 9
-            metrics.topInset = 8
             metrics.bottomInset = 4
             metrics.letterSize = 23.5
             metrics.labelSize = 18.5
             metrics.symbolSize = 19.5
-            metrics.toolbar = .compact(top: 4, bar: 34, mic: 32)
+            metrics.toolbar = .compact(mic: 32)
         case (true, true):
             metrics.sideInset = 9
             metrics.keyGap = 10
@@ -146,7 +145,7 @@ extension KeyboardMetrics {
             metrics.letterSize = 28.5
             metrics.labelSize = 22
             metrics.symbolSize = 23
-            metrics.toolbar = .compact(top: 8, bar: 40, mic: 38)
+            metrics.toolbar = .compact(mic: 38)
         }
         return metrics
     }
@@ -156,7 +155,7 @@ extension KeyboardMetrics {
         keyHeight: 55.5, numberRowHeight: 0,
         topInset: 8, bottomInset: 8, cornerRadius: 9.5,
         letterSize: 22, labelSize: 15, secondarySize: 12.5, symbolSize: 23,
-        toolbar: .compact(top: 0, bar: 36, mic: 34)
+        toolbar: .pad
     )
 
     static func pad(shortSide: Double) -> KeyboardMetrics {
@@ -166,7 +165,7 @@ extension KeyboardMetrics {
             keyHeight: large ? 55.5 : 55, numberRowHeight: 0,
             topInset: 8, bottomInset: 8, cornerRadius: 9.5,
             letterSize: 22, labelSize: 15, secondarySize: 12.5, symbolSize: 23,
-            toolbar: .compact(top: 0, bar: 36, mic: 34)
+            toolbar: .pad
         )
     }
 
@@ -177,6 +176,6 @@ extension KeyboardMetrics {
         letterSize: 22, labelSize: 17, secondarySize: 16, symbolSize: 21,
         edgeInset: Size(width: 11.5, height: 8), textBaselineInset: 13.5,
         pairSize: 16, pairCapTop: 10, pairBaselineRatio: 0.175,
-        toolbar: .compact(top: 0, bar: 36, mic: 34)
+        toolbar: .pad
     )
 }

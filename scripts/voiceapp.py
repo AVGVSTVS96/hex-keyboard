@@ -1,6 +1,7 @@
 """Stands in for the Hex app's Listener in the simulator, which can't record: holds the microphone lock, answers the
 keyboard's start with listening and a voice's worth of levels, finish with what was "heard", and stop by ending the way
-a quit app does, mid-transcription: the status stays, the lock goes. scripts/voiceapp.py <simulator id> <App Group container>"""
+a quit app does, mid-transcription: the status stays, the lock goes. scripts/voiceapp.py <simulator id> <App Group container>
+[listening], which only listens, until it's killed, for screenshots of the bar while you talk."""
 import fcntl, json, math, os, struct, subprocess, sys, threading, time
 
 simulator, group = sys.argv[1:3]
@@ -37,6 +38,9 @@ def speak(stop):
 
 lock = open(f"{group}/Library/mic.lock", "w")
 fcntl.flock(lock, fcntl.LOCK_EX)
+if sys.argv[3:] == ["listening"]:
+    publish("listening")
+    speak(threading.Event())
 started = notify("-1", f"{prefix}.start")
 publish("idle")
 started.wait()

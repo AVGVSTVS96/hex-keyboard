@@ -123,17 +123,31 @@ unfold() {
   sleep 3
 }
 
+# Allow Full Access for Hex on a shut-down simulator, written where Settings writes it.
+fullaccess() {
+  local client
+  for client in $BUNDLE $BUNDLE.keyboard; do
+    sqlite3 ~/Library/Developer/CoreSimulator/Devices/"$1"/data/Library/TCC/TCC.db "insert or replace into access
+      (service, client, client_type, auth_value, auth_reason, auth_version, flags) values ('kTCCServiceKeyboardNetwork', '$client', 0, 2, 4, 1, 0)"
+  done
+}
+
 # Screenshots each keyboard on the iPhone Duo's four screens (cover and open, upright and on its side) in the iOS 27.1
 # simulator, the only one with the Duo: shots/raw/duo/<tag>-<screen>-<keyboard>-<appearance>.png. The open screen
 # comes from unfolding the simulator (scripts/devicehub.c); a reboot folds it again. Open and upright, the screen is
-# 951 wide; on its side, 669.
+# 951 wide; on its side, 669. LISTENING=1 shows the bar while you talk (scripts/voiceapp.py); DUO names the simulator.
 duo() {
-  local tag=$1 id; shift
+  local tag=$1 id app=; shift
   RUNTIME=com.apple.CoreSimulator.SimRuntime.iOS-27-1
-  id=$(ensure "iPhone Duo" iPhone-Duo)
+  id=$(ensure "${DUO:-iPhone Duo}" iPhone-Duo)
   for keyboard in ${KEYBOARDS:-system hex}; do
     xcrun simctl shutdown "$id" 2>/dev/null || true
+    [ -n "${LISTENING:-}" ] && fullaccess "$id"
     boot "$id"
+    if [ -n "${LISTENING:-}" ] && [ "$keyboard" = hex ]; then
+      /usr/bin/python3 scripts/voiceapp.py "$id" "$(xcrun simctl get_app_container "$id" "$BUNDLE" group.com.shahidy.hexkeyboard)" listening &
+      app=$!
+    fi
     while read -r screen hinge orientation display; do
       [ "$screen" = open-upright ] && unfold "$id" "$hinge"
       hub "$id" orientation "$orientation"
@@ -147,6 +161,7 @@ cover-side 0 landscape-right 1
 open-upright 180 portrait 3
 open-side 180 landscape-right 3
 SCREENS
+    [ -z "$app" ] || { kill "$app"; wait "$app" 2>/dev/null || true; app=; }
   done
   [ -n "${KEEP:-}" ] || xcrun simctl shutdown "$id"
 }

@@ -32,6 +32,11 @@ final class ToolButton: UIControl {
         backgroundColor = isHighlighted ? theme.candidatePill.ui : .clear
     }
 
+    /// The cell is the mic's size; taps in the gaps around it still reach it.
+    override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
+        bounds.insetBy(dx: -BarLayout.gap / 2, dy: -4).contains(point)
+    }
+
     override func layoutSubviews() {
         super.layoutSubviews()
         icon.frame = bounds

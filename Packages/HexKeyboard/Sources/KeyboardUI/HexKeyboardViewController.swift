@@ -272,6 +272,8 @@ open class HexKeyboardViewController: UIInputViewController {
         suggestionBar.isHidden = panel != nil
         panelView.block = block
         suggestionBar.block = block
+        suggestionBar.screenInset = max((screenSize.width - width) / 2, 0)
+        suggestionBar.topInset = metrics.topInset
         suggestionBar.toolbar = toolbar
         suggestionBar.maximumSlotWidth = device == .phone ? .infinity : 154.5
         suggestionBar.update(tools: tools, theme: theme)
