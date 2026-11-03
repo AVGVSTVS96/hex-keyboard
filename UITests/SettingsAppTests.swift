@@ -38,10 +38,10 @@ final class SettingsAppTests: XCTestCase {
 
     func testKeepMicOnIsPickedInHexAndShownInSettings() throws {
         let hex = XCUIApplication()
-        hex.launchArguments = ["-HexResetSettings", "YES", "-HexSettings", "voice"]
+        hex.launchArguments = ["-HexResetSettings", "YES", "-HexSettings", "mic"]
         hex.launch()
         let picked = hex.buttons["5 Minutes"]
-        XCTAssertTrue(hex.buttons["Voice"].waitForExistence(timeout: 5))
+        XCTAssertTrue(picked.waitForExistence(timeout: 5))
         for _ in 0 ..< 6 where !picked.isHittable { hex.swipeUp() }
         XCTAssertTrue(picked.isSelected)
         try shot(hex, "keep-mic-on-choices")

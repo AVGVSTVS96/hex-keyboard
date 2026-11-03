@@ -14,24 +14,18 @@ enum LaunchOptions {
     /// `-HexScrollToEnd YES` opens every page scrolled to its end, for screenshots of what sits above the tab bar.
     static var scrollsToEnd: Bool { defaults.bool(forKey: "HexScrollToEnd") }
     static var scrollAnchor: UnitPoint { scrollsToEnd ? .bottom : .top }
-    /// The tab and page the app opens on: `-HexTab keyboard`, `-HexTaps YES` for Your Taps, `-HexSettings typing` for a
-    /// Keyboard page (`YES` for its first), `-HexSettings voice` for Voice's settings, or `-HexSettings sources` for a
-    /// page under More.
+    /// The tab and page the app opens on: `-HexTab transcripts`, `-HexTaps YES` for Your Taps, `-HexSettings typing`
+    /// for a settings page (`YES` for the list), as `SettingsPage.Page` names them.
     static func route() {
         let router = Router.shared
         if defaults.bool(forKey: "HexTaps") { return router.show(.taps) }
         if let page = defaults.string(forKey: "HexSettings") {
-            let aliases = ["keys": "layout", "sound": "feedback"]
-            if let keyboard = KeyboardPage.Tab(rawValue: aliases[page] ?? page) { return router.show(.keyboard, page: keyboard) }
-            if page == "voice" { return router.show(.voice, voice: .settings) }
-            if let more = MorePage.Page(rawValue: page) {
-                router.morePath = [more]
-                return router.show(.more)
-            }
-            return router.show(.keyboard)
+            let aliases = ["keys": "layout", "sound": "feedback", "voice": "model", "setup": "access"]
+            return router.show(.settings, settings: SettingsPage.Page(rawValue: aliases[page] ?? page))
         }
-        let tab = defaults.string(forKey: "HexTab")
-        router.show(tab == "transcripts" ? .voice : tab.flatMap(Router.Destination.init) ?? .home)
+        let aliases = ["voice": "transcripts", "keyboard": "settings", "more": "settings"]
+        let tab = defaults.string(forKey: "HexTab").map { aliases[$0] ?? $0 }
+        router.show(tab.flatMap(Router.Destination.init) ?? .home)
     }
 
     static var tapsMode: TapMapView.Mode? {

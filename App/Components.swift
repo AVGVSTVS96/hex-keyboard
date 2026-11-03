@@ -165,7 +165,8 @@ struct Box<Content: View>: View {
                     }
                 }
             }
-            .background(Color.hexCard, in: .rect(cornerRadius: HexStyle.cardRadius, style: .continuous))
+            .background(Color.hexCard)
+            .clipShape(.rect(cornerRadius: HexStyle.cardRadius, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: HexStyle.cardRadius, style: .continuous).strokeBorder(Color.hexEdge))
             if let footer {
                 Text(footer)

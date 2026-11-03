@@ -4,7 +4,7 @@ import SwiftUI
 import UIKit
 
 /// Hex's home (docs/design.md, "The app"): whether the keyboard is on and what's left to set up, a field to try it, and
-/// tiles for what voice and your taps have gathered and how the keyboard looks.
+/// tiles for what Hex has gathered: today's dictation, your taps and Your Words.
 final class HomeViewController: UIHostingController<AnyView> {
     private let field: UITextView
     private let state: HomeState
@@ -136,8 +136,8 @@ struct HomeView: View {
 
     private var tiles: some View {
         VStack(alignment: .leading, spacing: 8) {
-            LazyVGrid(columns: [GridItem(.flexible(), spacing: 14), GridItem(.flexible(), spacing: 14)], spacing: 14) {
-                Button { Router.shared.show(.voice, voice: .transcripts) } label: { VoiceTile() }
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 3), spacing: 12) {
+                Button { Router.shared.show(.transcripts) } label: { VoiceTile() }
                     .buttonStyle(CardPress())
                 Button { Router.shared.show(.taps) } label: {
                     Tile(
@@ -147,15 +147,7 @@ struct HomeView: View {
                     )
                 }
                 .buttonStyle(CardPress())
-                Button { Router.shared.show(.keyboard, page: .theme) } label: {
-                    Tile(symbol: "paintpalette.fill", color: .purple, title: "Theme", detail: SettingsModel.shared.settings.theme.title)
-                }
-                .buttonStyle(CardPress())
-                Button { Router.shared.show(.voice, voice: .settings) } label: {
-                    Tile(symbol: "waveform", color: .red, title: "Voice Model", detail: VoiceModel.shared.status)
-                }
-                .buttonStyle(CardPress())
-                NavigationLink { VocabularyView() } label: { VocabularyTile() }
+                Button { Router.shared.show(.settings, settings: .words) } label: { VocabularyTile() }
                     .buttonStyle(CardPress())
             }
         }
@@ -166,7 +158,7 @@ struct HomeView: View {
 private struct VoiceTile: View {
     var body: some View {
         let today = Transcripts.shared.all.prefix { Calendar.current.isDateInToday($0.date) }.reduce(0) { $0 + $1.words }
-        Tile(symbol: "text.bubble.fill", color: .pink, title: today == 1 ? "word dictated today" : "words dictated today", value: today.formatted())
+        Tile(symbol: "text.bubble.fill", color: .pink, title: today == 1 ? "word said today" : "words said today", value: today.formatted())
     }
 }
 
@@ -174,7 +166,7 @@ private struct VoiceTile: View {
 private struct VocabularyTile: View {
     var body: some View {
         let words = VoiceVocabulary.shared.vocabulary.terms.count
-        Tile(symbol: "character.book.closed.fill", color: .orange, title: words == 1 ? "word in Your Words" : "words in Your Words", value: words.formatted())
+        Tile(symbol: "character.book.closed.fill", color: .orange, title: "Your Words", value: words.formatted())
     }
 }
 

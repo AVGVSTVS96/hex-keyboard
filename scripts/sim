@@ -236,16 +236,19 @@ plistlib.dump(prefs, open(path, 'wb'))" "$group/Library/Preferences/group.com.sh
       done <<PAGES
 home -HexTab home
 typing -HexFocus YES
+settings -HexSettings YES
 keyboard -HexSettings theme
 typing-settings -HexSettings typing
 layout -HexSettings layout
 feedback -HexSettings feedback
-voice -HexSettings voice
-transcripts -HexTab voice
+voice -HexSettings model
+writing -HexSettings writing
+words -HexSettings words
+mic -HexSettings mic
+transcripts -HexTab transcripts
 taps -HexTaps YES
-more -HexTab more
 sources -HexSettings sources
-access -HexSettings setup
+access -HexSettings access
 PAGES
     done
   done <<SCREENS

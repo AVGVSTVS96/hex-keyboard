@@ -2,87 +2,6 @@ import KeyboardCore
 import KeyboardUI
 import SwiftUI
 
-/// The keyboard's settings, after Raycast's Keyboard page: Hex drawn as it will look, with a field to try it, and the
-/// settings in pills beside it, a page per subject.
-struct KeyboardPage: View {
-    /// How the keys look, which keys there are and where, what typing does to your text, and how a press feels.
-    enum Tab: String, CaseIterable, Hashable {
-        case theme, layout, typing, feedback
-
-        var title: String {
-            switch self {
-            case .theme: "Theme"
-            case .layout: "Layout"
-            case .typing: "Typing"
-            case .feedback: "Feedback"
-            }
-        }
-    }
-
-    @Bindable private var router = Router.shared
-    @Environment(\.arrangement) private var arrangement
-    private let model = SettingsModel.shared
-
-    var body: some View {
-        Group {
-            switch arrangement {
-            case .side:
-                Panes {
-                    VStack(alignment: .leading, spacing: 0) {
-                        Spacer(minLength: 16)
-                        TryPreview()
-                        Spacer(minLength: 16)
-                    }
-                    .padding(.horizontal, 16)
-                } second: {
-                    Column(top: 4) { content }
-                        .safeAreaBar(edge: .top) {
-                            Pills(items: Tab.allCases, selection: $router.keyboardPage, title: \.title)
-                                .padding(.top, 12)
-                                .padding(.horizontal, 12)
-                                .padding(.bottom, 10)
-                        }
-                }
-            case .single:
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
-                        TryPreview()
-                            .padding(16)
-                        Section {
-                            VStack(alignment: .leading, spacing: 28) { content }
-                                .padding(.horizontal, 16)
-                                .padding(.top, 8)
-                                .padding(.bottom, 40)
-                        } header: {
-                            Pills(items: Tab.allCases, selection: $router.keyboardPage, title: \.title)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 8)
-                                .background(Color.hexPage)
-                        }
-                    }
-                    .frame(maxWidth: 640)
-                    .frame(maxWidth: .infinity)
-                }
-                .scrollDismissesKeyboard(.interactively)
-                .defaultScrollAnchor(LaunchOptions.scrollAnchor)
-            }
-        }
-        .hexPage()
-        .navigationTitle("Keyboard")
-        .toolbarTitleDisplayMode(.inlineLarge)
-        .onAppear { model.reload() }
-    }
-
-    @ViewBuilder private var content: some View {
-        switch router.keyboardPage {
-        case .theme: ThemeSettings()
-        case .layout: LayoutSettings()
-        case .typing: TypingSettings()
-        case .feedback: FeedbackSettings()
-        }
-    }
-}
-
 /// Hex drawn as these settings make it, at the width it's offered.
 struct KeyboardPreview: UIViewRepresentable {
     let settings: KeyboardSettings
@@ -106,7 +25,7 @@ struct KeyboardPreview: UIViewRepresentable {
 }
 
 /// Hex as it will look, over a pill that brings up the real keyboard in a field, so a change can be tried at once.
-private struct TryPreview: View {
+struct TryPreview: View {
     @State private var trying = false
     @State private var text = ""
     @FocusState private var focused: Bool
@@ -217,7 +136,7 @@ private struct TryPreview: View {
     }
 }
 
-private struct ThemeSettings: View {
+struct ThemeSettings: View {
     private let model = SettingsModel.shared
 
     var body: some View {
@@ -276,7 +195,7 @@ private struct Swatch: UIViewRepresentable {
     }
 }
 
-private struct TypingSettings: View {
+struct TypingSettings: View {
     private let model = SettingsModel.shared
 
     var body: some View {
@@ -305,7 +224,7 @@ private struct TypingSettings: View {
     }
 }
 
-private struct LayoutSettings: View {
+struct LayoutSettings: View {
     private let model = SettingsModel.shared
 
     var body: some View {
@@ -400,7 +319,7 @@ struct MenuRow<Value: Hashable>: View {
     }
 }
 
-private struct FeedbackSettings: View {
+struct FeedbackSettings: View {
     private let model = SettingsModel.shared
     private let status = HexStatus.shared
 

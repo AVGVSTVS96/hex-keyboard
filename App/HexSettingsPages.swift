@@ -2,90 +2,13 @@ import KeyboardCore
 import KeyboardUI
 import SwiftUI
 
-/// Everything that isn't the keyboard's look and feel, as Raycast's More page: a grid of tiles, each opening its page.
-struct MorePage: View {
-    enum Page: String, CaseIterable, Hashable {
-        case sources, setup, privacy, about
-
-        var title: String {
-            switch self {
-            case .sources: "Sources"
-            case .setup: "Keyboard Access"
-            case .privacy: "Privacy & Data"
-            case .about: "About Hex"
-            }
-        }
-
-        var glyph: (String, Color) {
-            switch self {
-            case .sources: ("antenna.radiowaves.left.and.right", .teal)
-            case .setup: ("switch.2", .green)
-            case .privacy: ("hand.raised.fill", .indigo)
-            case .about: ("info", .gray)
-            }
-        }
-    }
-
-    @Bindable private var router = Router.shared
-    @Environment(\.window) private var window
-    private let model = SettingsModel.shared
-    private let status = HexStatus.shared
-
-    var body: some View {
-        NavigationStack(path: $router.morePath) {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 14), count: columns), spacing: 14) {
-                        ForEach(Page.allCases, id: \.self) { page in
-                            NavigationLink(value: page) {
-                                Tile(symbol: page.glyph.0, color: page.glyph.1, title: page.title, detail: detail(of: page))
-                            }
-                            .buttonStyle(CardPress())
-                            .accessibilityIdentifier(page.rawValue)
-                        }
-                    }
-                }
-                .padding(.horizontal, 16)
-                .padding(.top, 4)
-                .padding(.bottom, 40)
-                .frame(maxWidth: 1000)
-                .frame(maxWidth: .infinity)
-            }
-            .defaultScrollAnchor(LaunchOptions.scrollAnchor)
-            .hexPage()
-            .navigationTitle("More")
-            .toolbarTitleDisplayMode(.inlineLarge)
-            .navigationDestination(for: Page.self) { page in
-                switch page {
-                case .sources: SourcesPage()
-                case .setup: SetupPage()
-                case .privacy: PrivacyPage()
-                case .about: AboutPage()
-                }
-            }
-        }
-        .onAppear { model.reload() }
-    }
-
-    private var columns: Int { window.width >= 900 ? 3 : 2 }
-
-    private func detail(of page: Page) -> String {
-        switch page {
-        case .sources: model.sources.isEmpty ? "None yet" : "\(model.sources.count) on"
-        case .setup: status.isSetUp ? "All set" : status.summary
-        case .privacy: "Stays on this iPhone"
-        case .about: AboutPage.version
-        }
-    }
-}
-
-private struct SourcesPage: View {
+struct SourcesPage: View {
     private let model = SettingsModel.shared
     @State private var editing: Source?
     @State private var adding = false
 
     var body: some View {
-        Column {
+        VStack(alignment: .leading, spacing: 28) {
             if !model.sources.isEmpty {
                 Box(header: "Your Sources") {
                     ForEach(model.sources, id: \.self) { source in
@@ -106,7 +29,6 @@ private struct SourcesPage: View {
                 ActionRow(title: "Add Source", symbol: "plus") { adding = true }
             }
         }
-        .pushedPage("Sources")
         .sheet(isPresented: $adding) { SourceForm(source: nil) }
         .sheet(item: $editing) { SourceForm(source: $0) }
     }
@@ -223,9 +145,9 @@ private struct SetupStep: View {
     }
 }
 
-private struct SetupPage: View {
+struct SetupPage: View {
     var body: some View {
-        Column {
+        VStack(alignment: .leading, spacing: 28) {
             Box(footer: "iOS keeps these in Settings › Apps › Hex. Hex checks each one off once the keyboard has seen it on; if you turn one off later, Hex can’t tell.") {
                 SetupSteps()
             }
@@ -233,17 +155,16 @@ private struct SetupPage: View {
                 ActionRow(title: "Open Hex in Settings", symbol: "arrow.up.forward") { HexStatus.openSettings() }
             }
         }
-        .pushedPage("Keyboard Access")
     }
 }
 
-private struct PrivacyPage: View {
+struct PrivacyPage: View {
     @State private var confirmsReset = false
     @State private var confirmsDelete = false
     private let transcripts = Transcripts.shared
 
     var body: some View {
-        Column {
+        VStack(alignment: .leading, spacing: 28) {
             Box(header: "What Leaves This iPhone") {
                 Label("What you type, say and copy stays here.", systemImage: "iphone").row()
                 Label("Hex goes online only to download its voice model once, search GIFs, and reach the sources you add.", systemImage: "network").row()
@@ -256,7 +177,6 @@ private struct PrivacyPage: View {
                     .disabled(transcripts.all.isEmpty)
             }
         }
-        .pushedPage("Privacy & Data")
         .confirmationDialog("Hex will forget the words it learned and everything it learned about your taps.", isPresented: $confirmsReset, titleVisibility: .visible) {
             Button("Reset", role: .destructive) { MemoryStore.reset() }
         }
@@ -266,9 +186,9 @@ private struct PrivacyPage: View {
     }
 }
 
-private struct AboutPage: View {
+struct AboutPage: View {
     var body: some View {
-        Column {
+        VStack(alignment: .leading, spacing: 28) {
             HStack(spacing: 16) {
                 HexMark(size: 64)
                 VStack(alignment: .leading, spacing: 3) {
@@ -288,7 +208,6 @@ private struct AboutPage: View {
                 }
             }
         }
-        .pushedPage("About Hex")
     }
 
     static var version: String {

@@ -10,20 +10,18 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 }
 
-/// Which tab shows, and which page inside the Keyboard and More tabs, so a tile on one tab can open a page on another.
+/// Which tab shows, and which settings page, so a tile, a link or the keyboard's menu can open one.
 @Observable final class Router {
     static let shared = Router()
 
-    enum Destination: String { case home, keyboard, voice, taps, more }
+    enum Destination: String { case home, transcripts, taps, settings }
 
-    var keyboardPage = KeyboardPage.Tab.theme
-    var voicePage = VoicePage.Tab.transcripts
-    var morePath: [MorePage.Page] = []
+    /// The settings page open on its own, or, wide, the one beside the list.
+    var settingsPath: [SettingsPage.Page] = []
     @ObservationIgnored weak var tabs: UITabBarController?
 
-    func show(_ destination: Destination, page: KeyboardPage.Tab? = nil, voice: VoicePage.Tab? = nil) {
-        if let page { keyboardPage = page }
-        if let voice { voicePage = voice }
+    func show(_ destination: Destination, settings page: SettingsPage.Page? = nil) {
+        if destination == .settings { settingsPath = page.map { [$0] } ?? [] }
         tabs?.selectedTab = tabs?.tab(forIdentifier: destination.rawValue)
     }
 }
@@ -40,15 +38,12 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         VoiceProbe.runIfAsked()
         let tabs = UITabBarController(tabs: [
             UITab(title: "Hex", image: UIImage(systemName: "house"), identifier: Router.Destination.home.rawValue) { _ in HomeViewController() },
-            UITab(title: "Keyboard", image: UIImage(systemName: "keyboard"), identifier: Router.Destination.keyboard.rawValue) { _ in
-                Self.hosting(NavigationStack { KeyboardPage() })
-            },
-            UITab(title: "Voice", image: UIImage(systemName: "waveform"), identifier: Router.Destination.voice.rawValue) { _ in
-                Self.hosting(VoicePage())
+            UITab(title: "Transcripts", image: UIImage(systemName: "waveform"), identifier: Router.Destination.transcripts.rawValue) { _ in
+                Self.hosting(TranscriptsPage())
             },
             UITab(title: "Your Taps", image: UIImage(systemName: "hand.tap"), identifier: Router.Destination.taps.rawValue) { _ in Self.navigation(TapsViewController()) },
-            UITab(title: "More", image: UIImage(systemName: "square.grid.2x2"), identifier: Router.Destination.more.rawValue) { _ in
-                Self.hosting(MorePage())
+            UITab(title: "Settings", image: UIImage(systemName: "gearshape"), identifier: Router.Destination.settings.rawValue) { _ in
+                Self.hosting(SettingsPage())
             },
         ])
         Router.shared.tabs = tabs
@@ -79,7 +74,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     private func open(_ contexts: Set<UIOpenURLContext>) {
         if let source = contexts.lazy.compactMap({ Source(link: $0.url) }).first { return offer(source) }
         if contexts.contains(where: { $0.url == HexLink.settings }) { return UIApplication.shared.open(URL(string: UIApplication.openSettingsURLString)!) }
-        if contexts.contains(where: { $0.url == HexLink.keyboard }) { return Router.shared.show(.keyboard, page: .layout) }
+        if contexts.contains(where: { $0.url == HexLink.keyboard }) { return Router.shared.show(.settings) }
         guard let request = contexts.lazy.compactMap({ Dictation.Request($0.url) }).first, let root = window?.rootViewController else { return }
         Task { await listen(thenOpen: request.host) }
         guard !(root.presentedViewController is DictationViewController) else { return }
