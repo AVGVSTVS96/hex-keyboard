@@ -126,9 +126,9 @@ open class HexKeyboardViewController: UIInputViewController {
 
     override open func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
-        let width = view.bounds.width
-        suggestionBar.frame = CGRect(x: 0, y: 0, width: width, height: toolbar.top + toolbar.bar)
-        panelView.frame = CGRect(x: 0, y: 0, width: width, height: toolbar.panelHeight)
+        let width = view.bounds.width, room = toolbarView.bounds.height
+        suggestionBar.frame = CGRect(x: 0, y: max(room - toolbar.height, 0), width: width, height: toolbar.height)
+        panelView.frame = CGRect(x: 0, y: max(room - toolbar.panelHeight, 0), width: width, height: toolbar.panelHeight)
         TouchTrace.shared.layout(view)
     }
 

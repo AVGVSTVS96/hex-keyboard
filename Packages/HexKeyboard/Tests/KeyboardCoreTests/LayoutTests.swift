@@ -145,6 +145,8 @@ struct LayoutTests {
         let toolbar = open.toolbar
         let keys = open.height(rows: 4, hasNumberRow: false)
         #expect(toolbar.fitting(toolbar.panelHeight) == toolbar, "a panel that fits keeps its size")
+        let given = ((keys + toolbar.panelHeight) * 3).rounded(.down) / 3 - keys
+        #expect(toolbar.fitting(given) == toolbar, "the height iOS rounds to the screen's pixels still fits")
         let folded = toolbar.fitting(322 - keys)
         #expect(folded.isCompact && folded.panelHeight <= 322 - keys && folded.results > 40, "one row, still a full one")
         #expect(folded.height == toolbar.height, "the bar stays as it is")
