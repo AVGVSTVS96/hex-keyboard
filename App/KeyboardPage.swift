@@ -111,6 +111,7 @@ private struct TryPreview: View {
     private(set) var sources = SourceStore.load()
     private(set) var keepMicOn = SettingsStore.keepMicOn
     private(set) var dictationStyle = SettingsStore.dictationStyle
+    private(set) var keepsUmAndUh = SettingsStore.keepsUmAndUh
 
     private init() {
         NotificationCenter.default.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: .main) { _ in
@@ -123,6 +124,7 @@ private struct TryPreview: View {
         sources = SourceStore.load()
         keepMicOn = SettingsStore.keepMicOn
         dictationStyle = SettingsStore.dictationStyle
+        keepsUmAndUh = SettingsStore.keepsUmAndUh
     }
 
     func binding(_ path: WritableKeyPath<KeyboardSettings, Bool>) -> Binding<Bool> {
@@ -149,6 +151,13 @@ private struct TryPreview: View {
     func dictationStyle(_ style: DictationStyle) {
         dictationStyle = style
         SettingsStore.dictationStyle = style
+    }
+
+    var umAndUh: Binding<Bool> {
+        Binding { self.keepsUmAndUh } set: {
+            self.keepsUmAndUh = $0
+            SettingsStore.keepsUmAndUh = $0
+        }
     }
 
     /// Adds a source, or puts `replacing` back with its new values.
@@ -262,9 +271,10 @@ struct VoiceSettings: View {
                 }
             }
         }
-        Box(header: "Style", footer: "As Said types every word, um and uh included. The others leave those out and change only capitals and periods. Transcripts keeps what the model wrote.") {
+        Box(header: "Style", footer: "Capitals follow Auto-Capitalization in Typing, as your typing’s do. Transcripts keeps what the model wrote.") {
+            ToggleRow(title: "Um and Uh", detail: "Types them as you say them.", isOn: model.umAndUh)
             ForEach(DictationStyle.allCases, id: \.self) { style in
-                ChoiceRow(title: style.title, detail: style.example, picked: model.dictationStyle == style) { model.dictationStyle(style) }
+                ChoiceRow(title: style.title, detail: style.detail, picked: model.dictationStyle == style) { model.dictationStyle(style) }
             }
         }
         Box(header: "Keep Mic On", footer: "After you dictate, Hex keeps the mic on this long, so the mic beside the suggestions starts and stops without leaving your app. Hold it to turn the mic off.") {

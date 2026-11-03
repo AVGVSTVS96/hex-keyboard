@@ -8,32 +8,40 @@
 	<array>
 		<dict>
 			<key>FooterText</key>
-			<string>As Said types every word you say, um and uh included. The other styles, Wispr Flow’s, leave those out and change only capitals and periods, never your words.</string>
+			<string>Hex types every word you say, um and uh too while that’s on. Capitals follow Auto-Capitalization in Typing, as your typing’s do.</string>
+			<key>Title</key>
+			<string>Style</string>
 			<key>Type</key>
 			<string>PSGroupSpecifier</string>
 		</dict>
 		<dict>
 			<key>DefaultValue</key>
-			<string>asSaid</string>
+			<true/>
+			<key>Key</key>
+			<string>keepsUmAndUh</string>
+			<key>Title</key>
+			<string>Um and Uh</string>
+			<key>Type</key>
+			<string>PSToggleSwitchSpecifier</string>
+		</dict>
+		<dict>
+			<key>DefaultValue</key>
+			<string>formal</string>
 			<key>Key</key>
 			<string>dictationStyle</string>
 			<key>Title</key>
 			<string>Style</string>
 			<key>Titles</key>
 			<array>
-				<string>As Said</string>
 				<string>Formal.</string>
 				<string>Casual</string>
-				<string>very casual</string>
 			</array>
 			<key>Type</key>
 			<string>PSMultiValueSpecifier</string>
 			<key>Values</key>
 			<array>
-				<string>asSaid</string>
 				<string>formal</string>
 				<string>casual</string>
-				<string>veryCasual</string>
 			</array>
 		</dict>
 		<dict>

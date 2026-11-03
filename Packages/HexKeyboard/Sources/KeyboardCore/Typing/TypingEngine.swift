@@ -185,7 +185,8 @@ public struct TypingEngine {
             insertWhole(text, in: document)
         case .dictated(let heard):
             let lexicon = corrector?.lexicon
-            insertWhole(in: document) { Self.fitted(heard, between: $0.before, and: $0.after, lexicon: lexicon) }
+            let capitals = settings.autoCapitalization ? traits.autocapitalization : .none
+            insertWhole(in: document) { Self.fitted(heard, between: $0.before, and: $0.after, lexicon: lexicon, capitals: capitals) }
         }
         return true
     }
@@ -398,25 +399,60 @@ extension TypingEngine {
     /// What dictation heard, fitted between the text around the caret. The speech model writes every dictation as
     /// sentences of their own, so one that goes into the middle of a sentence starts lowercase (unless the lexicon
     /// spells its first word capitalized, as a name or "I"), and loses its final period when the sentence goes on after
-    /// it. It's spaced from the words on either side.
-    static func fitted(_ heard: String, between before: String, and after: String?, lexicon: Lexicon?) -> String {
-        var heard = heard
+    /// it. Its capitals follow the field's and Auto-Capitalization's, as typing's do: with none, a sentence's first word
+    /// is lowered where the lexicon spells it lowercase, and so is "I", leaving names; with sentences, each sentence starts
+    /// with a capital. It's spaced from the words on either side.
+    static func fitted(_ heard: String, between before: String, and after: String?, lexicon: Lexicon?, capitals: Autocapitalization) -> String {
+        var heard = Array(heard)
         let last = before.last { $0 != " " && $0 != "\t" && !closers.contains($0) }
-        if let last, !last.isNewline, !sentenceEnders.contains(last), let lexicon {
-            let word = heard.prefix(while: Words.isWordCharacter)
-            let lower = word.lowercased()
-            if word != lower, word.dropFirst() == lower.dropFirst(), lexicon.canonical(word) == lower {
-                heard = lower + heard.dropFirst(word.count)
+        let startsSentence = last.map { $0.isNewline || sentenceEnders.contains($0) } ?? true
+        for (index, start) in sentenceStarts(in: heard).enumerated() {
+            let word = String(heard[start...].prefix(while: Words.isWordCharacter))
+            let opensSentence = index > 0 || startsSentence
+            if !opensSentence || capitals == .none {
+                if word.dropFirst() == word.lowercased().dropFirst(), lexicon?.canonical(word) == word.lowercased() {
+                    heard[start] = Character(heard[start].lowercased())
+                }
+            } else if capitals == .sentences, word == word.lowercased() {
+                heard[start] = Character(heard[start].uppercased())
             }
         }
+        if capitals == .none {
+            for word in Words.ranges(in: heard) where spellsI(heard[word]) { heard[word.lowerBound] = "i" }
+        }
+        var fitted = String(heard)
         if let next = after?.first, !next.isWhitespace {
-            if next.isLowercase || wordEnders.contains(String(next)), heard.hasSuffix("."), !heard.hasSuffix("..") {
-                heard.removeLast()
+            if next.isLowercase || wordEnders.contains(String(next)), fitted.hasSuffix("."), !fitted.hasSuffix("..") {
+                fitted.removeLast()
             }
-            if !wordEnders.contains(String(next)), !closers.contains(next) { heard += " " }
+            if !wordEnders.contains(String(next)), !closers.contains(next) { fitted += " " }
         }
         let joins = before.last.map { !$0.isWhitespace && !Words.openers.contains($0) } ?? false
-        return (joins ? " " : "") + heard
+        return (joins ? " " : "") + fitted
+    }
+
+    /// Where each sentence's first word starts in dictated text: at its start, and after a period, question mark,
+    /// exclamation mark or line break, past any spaces and openers.
+    private static func sentenceStarts(in text: [Character]) -> [Int] {
+        var starts: [Int] = []
+        var expecting = true
+        for (at, character) in text.enumerated() {
+            if expecting, Words.isWordCharacter(character) {
+                if character.isLetter { starts.append(at) }
+                expecting = false
+            } else if character.isNewline || sentenceEnders.contains(character) && (at + 1 == text.count || text[at + 1].isWhitespace) {
+                expecting = true
+            } else if expecting, !character.isWhitespace, !Words.openers.contains(character) {
+                expecting = false
+            }
+        }
+        return starts
+    }
+
+    private static func spellsI(_ word: ArraySlice<Character>) -> Bool {
+        guard word.first == "I" else { return false }
+        let rest = word.dropFirst()
+        return rest.isEmpty || ["'", "’"].contains(rest.first) && ["m", "ll", "ve", "d"].contains(String(rest.dropFirst()))
     }
 
     static func endsSentenceable(_ text: String?) -> Bool {

@@ -24,6 +24,7 @@ public enum SettingsStore {
     private static let oneHandedKey = "oneHanded"
     private static let keepMicOnKey = "keepMicOn"
     private static let dictationStyleKey = "dictationStyle"
+    private static let keepsUmAndUhKey = "keepsUmAndUh"
 
     private static var group: UserDefaults { UserDefaults(suiteName: appGroup) ?? .standard }
     private static var own: UserDefaults { .standard }
@@ -52,10 +53,16 @@ public enum SettingsStore {
         set { set(newValue, forKey: keepMicOnKey) }
     }
 
-    /// How the app writes what you dictate. Only the app reads it.
+    /// How the app ends what you dictate. Only the app reads it.
     public static var dictationStyle: DictationStyle {
         get { (value(forKey: dictationStyleKey, sharing: true) as? String).flatMap(DictationStyle.init) ?? .standard }
         set { set(newValue.rawValue, forKey: dictationStyleKey) }
+    }
+
+    /// Whether the app types the um and uh you say. Only the app reads it.
+    public static var keepsUmAndUh: Bool {
+        get { value(forKey: keepsUmAndUhKey, sharing: true) as? Bool ?? true }
+        set { set(newValue, forKey: keepsUmAndUhKey) }
     }
 
     /// Set by the keyboard whenever it opens with Allow Full Access, the only time it can write to the App Group, so the
@@ -77,6 +84,7 @@ public enum SettingsStore {
         set(OneHanded.off)
         keepMicOn = Dictation.micDefault
         dictationStyle = .standard
+        keepsUmAndUh = true
     }
 
     static func value(forKey key: String, sharing: Bool) -> Any? {

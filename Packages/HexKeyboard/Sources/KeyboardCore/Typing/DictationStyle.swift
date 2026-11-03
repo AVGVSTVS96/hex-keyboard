@@ -1,40 +1,21 @@
-/// How a dictation is written. As Said types what the voice model wrote, "um" and "uh" included; the others are Wispr
-/// Flow's styles, which leave out "um" and "uh" and change only capitals and periods, never your words.
+/// How a dictation ends, in Wispr Flow's styles. Your words are kept, um and uh too unless you leave them out, and
+/// capitals follow Auto-Capitalization, as typing's do (`TypingEngine.fitted`).
 public enum DictationStyle: String, CaseIterable, Sendable {
-    case asSaid
-    /// Every sentence capitalized and ended.
+    /// Ended with a period.
     case formal
-    /// Capitalized, without the last period.
+    /// Without the last period.
     case casual
-    /// Without the capitals that only start a sentence or spell "I", and without the last period.
-    case veryCasual
 
-    public static let standard = DictationStyle.asSaid
+    public static let standard = DictationStyle.formal
 
-    /// What you said, in this style. The lexicon tells a sentence's ordinary first word ("So") from a name ("Cheryl").
-    public func written(_ heard: String, lexicon: Lexicon) -> String {
-        if self == .asSaid { return heard }
-        var text = Self.withoutFillers(Array(heard))
+    /// What you said, in this style, with um and uh or without them.
+    public func written(_ heard: String, keepingFillers: Bool) -> String {
+        var text = keepingFillers ? Array(heard) : Self.withoutFillers(Array(heard))
         switch self {
-        case .asSaid: break
         case .formal:
-            for start in Self.sentenceStarts(in: text) where text[start].isLowercase {
-                text[start] = Character(text[start].uppercased())
-            }
             if let last = text.last, last.isLetter || last.isNumber { text.append(".") }
         case .casual:
-            Self.dropLastPeriod(&text)
-        case .veryCasual:
-            for start in Self.sentenceStarts(in: text) {
-                let word = String(text[start...].prefix(while: Words.isWordCharacter))
-                if word.dropFirst() == word.lowercased().dropFirst(), lexicon.canonical(word) == word.lowercased() {
-                    text[start] = Character(text[start].lowercased())
-                }
-            }
-            for word in Words.ranges(in: text) where Self.spellsI(text[word]) {
-                text[word.lowerBound] = "i"
-            }
-            Self.dropLastPeriod(&text)
+            if text.last == ".", text.dropLast().last != "." { text.removeLast() }
         }
         return String(text)
     }
@@ -70,33 +51,5 @@ public enum DictationStyle: String, CaseIterable, Sendable {
         var drawn: [Character] = []
         for letter in text[word].map({ Character($0.lowercased()) }) where letter != drawn.last { drawn.append(letter) }
         return ["um", "uh", "uhm", "erm", "hm"].contains(String(drawn))
-    }
-
-    private static func spellsI(_ word: ArraySlice<Character>) -> Bool {
-        guard word.first == "I" else { return false }
-        let rest = word.dropFirst()
-        return rest.isEmpty || ["'", "’"].contains(rest.first) && ["m", "ll", "ve", "d"].contains(String(rest.dropFirst()))
-    }
-
-    private static func dropLastPeriod(_ text: inout [Character]) {
-        if text.last == ".", text.dropLast().last != "." { text.removeLast() }
-    }
-
-    /// Where each sentence's first word starts: the text's start, or after a period, question mark, exclamation mark or
-    /// line break, past any spaces and openers.
-    private static func sentenceStarts(in text: [Character]) -> [Int] {
-        var starts: [Int] = []
-        var expecting = true
-        for (at, character) in text.enumerated() {
-            if expecting, Words.isWordCharacter(character) {
-                if character.isLetter { starts.append(at) }
-                expecting = false
-            } else if character.isNewline || TypingEngine.sentenceEnders.contains(character) && (at + 1 == text.count || text[at + 1].isWhitespace) {
-                expecting = true
-            } else if expecting, !character.isWhitespace, !Words.openers.contains(character) {
-                expecting = false
-            }
-        }
-        return starts
     }
 }
