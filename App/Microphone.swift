@@ -40,12 +40,12 @@ import KeyboardUI
         guard lock == nil else { return }
         let session = AVAudioSession.sharedInstance()
         try session.setCategory(.playAndRecord, options: [.mixWithOthers, .allowBluetoothHFP, .defaultToSpeaker])
-        try? session.setAllowHapticsAndSystemSoundsDuringRecording(true)
         try session.setActive(true)
         let node = engine.inputNode
         if !node.isVoiceProcessingEnabled, (try? node.setVoiceProcessingEnabled(true)) != nil {
             node.voiceProcessingOtherAudioDuckingConfiguration = .init(enableAdvancedDucking: false, duckingLevel: .min)
         }
+        try? session.setAllowHapticsAndSystemSoundsDuringRecording(true)
         node.installTap(onBus: 0, bufferSize: 4096, format: node.outputFormat(forBus: 0), block: Self.tap(feed) { [weak self] level, recorded in
             Dictation.publish(level: level, recorded: recorded)
             Task { @MainActor in self?.onLevel(level, recorded) }
