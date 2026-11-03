@@ -52,9 +52,9 @@ struct MorePage: View {
                 .frame(maxWidth: .infinity)
             }
             .defaultScrollAnchor(LaunchOptions.scrollAnchor)
-            .pinnedHeader { PageTitle(title: "More") }
             .hexPage()
-            .toolbar(.hidden, for: .navigationBar)
+            .navigationTitle("More")
+            .toolbarTitleDisplayMode(.inlineLarge)
             .navigationDestination(for: Page.self) { page in
                 switch page {
                 case .sources: SourcesPage()

@@ -41,7 +41,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             UITab(title: "Voice", image: UIImage(systemName: "waveform"), identifier: Router.Destination.voice.rawValue) { _ in
                 Self.hosting(VoicePage())
             },
-            UITab(title: "Your Taps", image: UIImage(systemName: "hand.tap"), identifier: Router.Destination.taps.rawValue) { _ in TapsViewController() },
+            UITab(title: "Your Taps", image: UIImage(systemName: "hand.tap"), identifier: Router.Destination.taps.rawValue) { _ in Self.navigation(TapsViewController()) },
             UITab(title: "More", image: UIImage(systemName: "square.grid.2x2"), identifier: Router.Destination.more.rawValue) { _ in
                 Self.hosting(MorePage())
             },
@@ -53,6 +53,12 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         self.window = window
         Task { await Transcripts.shared.recover() }
         open(options.urlContexts)
+    }
+
+    private static func navigation(_ root: UIViewController) -> UINavigationController {
+        let navigation = UINavigationController(rootViewController: root)
+        navigation.view.backgroundColor = HexStyle.page
+        return navigation
     }
 
     private static func hosting(_ view: some View) -> UIViewController {

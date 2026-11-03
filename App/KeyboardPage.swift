@@ -29,8 +29,6 @@ struct KeyboardPage: View {
             case .side:
                 Panes {
                     VStack(alignment: .leading, spacing: 0) {
-                        PageTitle(title: "Keyboard")
-                            .padding(.top, 12)
                         Spacer(minLength: 16)
                         TryPreview()
                         Spacer(minLength: 16)
@@ -67,11 +65,11 @@ struct KeyboardPage: View {
                 }
                 .scrollDismissesKeyboard(.interactively)
                 .defaultScrollAnchor(LaunchOptions.scrollAnchor)
-                .pinnedHeader { PageTitle(title: "Keyboard") }
             }
         }
         .hexPage()
-        .toolbar(.hidden, for: .navigationBar)
+        .navigationTitle("Keyboard")
+        .toolbarTitleDisplayMode(.inlineLarge)
         .onAppear { model.reload() }
     }
 

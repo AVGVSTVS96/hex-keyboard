@@ -149,7 +149,7 @@ duo() {
       app=$!
     fi
     while read -r screen hinge orientation display; do
-      [ "$screen" = open-upright ] && unfold "$id" "$hinge"
+      case $screen in open-upright|open-book) unfold "$id" "$hinge" ;; esac
       hub "$id" orientation "$orientation"
       for appearance in ${APPEARANCES:-light dark}; do
         DISPLAY_ID=$display shoot "$id" "$keyboard" "$appearance" "shots/raw/duo/$tag-$screen-$keyboard-$appearance.png" \
@@ -160,6 +160,7 @@ cover-upright 0 portrait 1
 cover-side 0 landscape-right 1
 open-upright 180 portrait 3
 open-side 180 landscape-right 3
+open-book 110 portrait 3
 SCREENS
     [ -z "$app" ] || { kill "$app"; wait "$app" 2>/dev/null || true; app=; }
   done
@@ -177,7 +178,7 @@ themes() {
   boot "$id"
   while read -r screen hinge orientation display; do
     [ -n "${SCREENS:-}" ] && [[ " $SCREENS " != *" $screen "* ]] && continue
-    [ "$screen" = open-upright ] && unfold "$id" "$hinge"
+    case $screen in open-upright|open-book) unfold "$id" "$hinge" ;; esac
     hub "$id" orientation "$orientation"
     for theme in ${THEMES:-standard clear physical physical-dark physical-light mechanical mechanical-dark mechanical-light classic}; do
       local name=${theme%%-*} look=automatic
@@ -192,6 +193,7 @@ cover-upright 0 portrait 1
 cover-side 0 landscape-right 1
 open-upright 180 portrait 3
 open-side 180 landscape-right 3
+open-book 110 portrait 3
 SCREENS
   [ -n "${KEEP:-}" ] || xcrun simctl shutdown "$id"
 }
@@ -219,7 +221,7 @@ prefs = plistlib.load(open(path, 'rb')) if os.path.exists(path) else {}
 prefs['fullAccessSeen'] = True
 plistlib.dump(prefs, open(path, 'wb'))" "$group/Library/Preferences/group.com.shahidy.hexkeyboard.plist"
   while read -r screen hinge orientation display; do
-    [ "$screen" = open-upright ] && unfold "$id" "$hinge"
+    case $screen in open-upright|open-book) unfold "$id" "$hinge" ;; esac
     hub "$id" orientation "$orientation"
     for appearance in ${APPEARANCES:-dark light}; do
       xcrun simctl ui "$id" appearance "$appearance"
@@ -251,6 +253,7 @@ cover-upright 0 portrait 1
 cover-side 0 landscape-right 1
 open-upright 180 portrait 3
 open-side 180 landscape-right 3
+open-book 110 portrait 3
 SCREENS
   [ -n "${KEEP:-}" ] || xcrun simctl shutdown "$id"
 }

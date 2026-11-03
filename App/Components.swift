@@ -50,22 +50,35 @@ private struct WindowReader: ViewModifier {
     }
 }
 
-/// Two columns with a hairline between, each its own page with its own header, scrolling on its own, meeting at the
-/// window's middle, which on the open Duo is the hinge. In one column they follow each other.
+/// Two columns, each its own page with its own header, scrolling on its own. They meet at the fold: open flat, at
+/// its middle with a hairline; partly open, each keeps to its side of the fold's frame, which iOS reports as an
+/// active division with its margins in it, so the fold itself is the gap. In one column they follow each other.
 struct Panes<First: View, Second: View>: View {
     @ViewBuilder var first: First
     @ViewBuilder var second: Second
-    @Environment(\.window) private var window
     @Environment(\.arrangement) private var arrangement
+
+    /// Where the first column ends and the second starts, and whether the Duo lies flat.
+    private static func fold(in proxy: GeometryProxy) -> (start: CGFloat, end: CGFloat, flat: Bool) {
+        let middle = proxy.size.width / 2
+        guard #available(iOS 27.1, *), let fold = proxy.reservedRegions(kind: .division, options: .includeInactive).first else {
+            return (middle, middle, true)
+        }
+        return fold.isActive ? (fold.frame.minX, fold.frame.maxX, false) : (fold.frame.midX, fold.frame.midX, true)
+    }
 
     var body: some View {
         switch arrangement {
         case .side:
             GeometryReader { proxy in
-                let hinge = window.width / 2 - proxy.frame(in: .global).minX
+                let (start, end, flat) = Self.fold(in: proxy)
                 HStack(spacing: 0) {
-                    first.frame(width: max(hinge - 0.5, 0))
-                    Rectangle().fill(Color.hexDivider).frame(width: 1).ignoresSafeArea(edges: .vertical)
+                    first.frame(width: max(start - (flat ? 0.5 : 0), 0))
+                    if flat {
+                        Rectangle().fill(Color.hexDivider).frame(width: 1).ignoresSafeArea(edges: .vertical)
+                    } else {
+                        Color.clear.frame(width: max(end - start, 0))
+                    }
                     second.frame(maxWidth: .infinity)
                 }
             }
@@ -88,23 +101,6 @@ extension View {
                 .padding(.top, 8)
                 .padding(.bottom, 10)
         }
-    }
-}
-
-/// A page's name, small and at its top left, as Raycast's are.
-struct PageTitle: View {
-    let title: String
-    var trailing: AnyView? = nil
-
-    var body: some View {
-        HStack {
-            Text(title)
-                .font(.title3.weight(.semibold))
-                .accessibilityAddTraits(.isHeader)
-            Spacer()
-            trailing
-        }
-        .padding(.horizontal, 4)
     }
 }
 

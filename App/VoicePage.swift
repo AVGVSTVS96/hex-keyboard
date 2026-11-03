@@ -68,9 +68,25 @@ struct VoicePage: View {
                 }
             }
             .hexPage()
-            .toolbar(.hidden, for: .navigationBar)
+            .navigationTitle("Voice")
+            .toolbarTitleDisplayMode(.inlineLarge)
+            .toolbar {
+                if !store.all.isEmpty {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Menu {
+                            Button("Delete All Transcripts", systemImage: "trash", role: .destructive) { confirmsDeleteAll = true }
+                        } label: {
+                            Label("More", systemImage: "ellipsis")
+                        }
+                    }
+                }
+            }
             .navigationDestination(for: Transcript.ID.self) { id in
-                if let transcript = store.all.first(where: { $0.id == id }) { TranscriptDetail(transcript: transcript, beside: false) }
+                if let transcript = store.all.first(where: { $0.id == id }) {
+                    TranscriptDetail(transcript: transcript, beside: false)
+                        .navigationTitle("Transcript")
+                        .navigationBarTitleDisplayMode(.inline)
+                }
             }
             .confirmationDialog("Delete all \(store.all.count) transcripts from this iPhone?", isPresented: $confirmsDeleteAll, titleVisibility: .visible) {
                 Button("Delete All", role: .destructive) { store.delete(Set(store.all.map(\.id))) }
@@ -79,22 +95,8 @@ struct VoicePage: View {
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            PageTitle(title: "Voice", trailing: store.all.isEmpty ? nil : AnyView(
-                Menu {
-                    Button("Delete All Transcripts", systemImage: "trash", role: .destructive) { confirmsDeleteAll = true }
-                } label: {
-                    Image(systemName: "ellipsis")
-                        .font(.body.weight(.semibold))
-                        .frame(width: 36, height: 36)
-                        .background(Color.hexCard, in: .circle)
-                }
-                .foregroundStyle(.primary)
-                .accessibilityLabel("More")
-            ))
-            Pills(items: Tab.allCases, selection: $router.voicePage, title: \.title)
-                .padding(.horizontal, -4)
-        }
+        Pills(items: Tab.allCases, selection: $router.voicePage, title: \.title)
+            .padding(.horizontal, -4)
     }
 
     /// Beside the settings: how much you've dictated, and which model writes it.
@@ -343,8 +345,6 @@ private struct TranscriptDetail: View {
             }
         }
         .hexPage()
-        .navigationTitle(beside ? "" : "Transcript")
-        .navigationBarTitleDisplayMode(.inline)
         .confirmationDialog("Delete this transcript?", isPresented: $confirmsDelete, titleVisibility: .visible) {
             Button("Delete", role: .destructive) {
                 Transcripts.shared.delete([transcript.id])

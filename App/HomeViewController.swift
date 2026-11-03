@@ -13,7 +13,7 @@ final class HomeViewController: UIHostingController<AnyView> {
         let field = UITextView(), state = HomeState()
         self.field = field
         self.state = state
-        super.init(rootView: AnyView(HomeView(state: state, field: field).readsWindow()))
+        super.init(rootView: AnyView(NavigationStack { HomeView(state: state, field: field) }.readsWindow()))
         title = "Hex"
     }
 
@@ -80,7 +80,6 @@ struct HomeView: View {
             case .side:
                 Panes {
                     VStack(alignment: .leading, spacing: 20) {
-                        header
                         tryIt.frame(maxHeight: 300)
                         Spacer(minLength: 0)
                     }
@@ -98,34 +97,20 @@ struct HomeView: View {
                     if !status.isSetUp { setUp }
                     tiles
                 }
-                .pinnedHeader { header }
             }
         }
         .hexPage()
-    }
-
-    private var header: some View {
-        HStack(spacing: 14) {
-            HexMark(size: 48)
-            VStack(alignment: .leading, spacing: 3) {
-                Text("Hex")
-                    .font(.title2.weight(.bold))
-                HStack(spacing: 6) {
-                    Circle().fill(status.color).frame(width: 8, height: 8)
-                    Text(status.summary)
-                        .font(.subheadline)
-                        .foregroundStyle(Color.hexSecondary)
+        .navigationTitle("Hex")
+        .navigationSubtitle(status.summary)
+        .toolbarTitleDisplayMode(.inlineLarge)
+        .toolbar {
+            if !status.isAdded {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Turn On", systemImage: "keyboard.badge.ellipsis") { HexStatus.openSettings() }
+                        .buttonStyle(.borderedProminent)
                 }
             }
-            .accessibilityElement(children: .combine)
-            Spacer()
-            if !status.isAdded {
-                Button("Turn On") { HexStatus.openSettings() }
-                    .buttonStyle(.borderedProminent)
-                    .buttonBorderShape(.capsule)
-            }
         }
-        .padding(.horizontal, 4)
     }
 
     private var tryIt: some View {

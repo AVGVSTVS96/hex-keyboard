@@ -7,8 +7,6 @@ final class TapsViewController: UIViewController {
     private let scroll = UIScrollView()
     private let stats = UIStackView()
     private let modes = PillBar(titles: ["Heat", "Aim", "Accuracy"])
-    private let titleRow = UIStackView()
-    private let layouts = UIButton(configuration: .gray())
     private var split: NSLayoutConstraint?
     private let map = TapMapView()
     private let scale = HeatScale()
@@ -35,19 +33,7 @@ final class TapsViewController: UIViewController {
         title = "Your Taps"
         view.backgroundColor = HexStyle.page
 
-        let name = UILabel()
-        name.text = "Your Taps"
-        name.font = UIFontMetrics(forTextStyle: .title3).scaledFont(for: .systemFont(ofSize: 20, weight: .semibold))
-        name.adjustsFontForContentSizeCategory = true
-        name.accessibilityTraits = .header
-        layouts.configuration?.cornerStyle = .capsule
-        layouts.configuration?.baseBackgroundColor = HexStyle.card
-        layouts.configuration?.baseForegroundColor = .label
-        layouts.showsMenuAsPrimaryAction = true
-        titleRow.addArrangedSubview(name)
-        titleRow.addArrangedSubview(UIView())
-        titleRow.addArrangedSubview(layouts)
-        titleRow.alignment = .center
+        navigationItem.largeTitleDisplayMode = .inline
 
         stats.axis = .vertical
         stats.spacing = 12
@@ -101,16 +87,11 @@ final class TapsViewController: UIViewController {
         scroll.alwaysBounceVertical = true
         scroll.addSubview(columns)
         view.addSubview(scroll)
-        titleRow.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(titleRow)
         let readable = columns.widthAnchor.constraint(equalTo: scroll.frameLayoutGuide.widthAnchor, constant: -32)
         readable.priority = .required - 1
 
         NSLayoutConstraint.activate([
-            titleRow.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
-            titleRow.leadingAnchor.constraint(equalTo: columns.leadingAnchor, constant: 4),
-            titleRow.trailingAnchor.constraint(equalTo: columns.trailingAnchor),
-            scroll.topAnchor.constraint(equalTo: titleRow.bottomAnchor, constant: 10),
+            scroll.topAnchor.constraint(equalTo: view.topAnchor),
             scroll.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             scroll.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor),
             scroll.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor),
@@ -195,17 +176,15 @@ final class TapsViewController: UIViewController {
         if signature.map({ name in !layouts.contains { $0.signature == name } }) ?? true {
             signature = layouts.first { $0.signature == current }?.signature ?? layouts.first?.signature
         }
-        self.layouts.isHidden = layouts.count < 2
-        self.layouts.configuration?.title = signature.map(title(of:)) ?? "Layout"
-        self.layouts.configuration?.image = UIImage(systemName: "chevron.up.chevron.down", withConfiguration: UIImage.SymbolConfiguration(scale: .small))
-        self.layouts.configuration?.imagePlacement = .trailing
-        self.layouts.configuration?.imagePadding = 6
-        self.layouts.menu = UIMenu(children: layouts.map { layout in
-            UIAction(title: title(of: layout.signature), subtitle: "\(layout.taps.formatted()) taps", state: layout.signature == signature ? .on : .off) { [unowned self] _ in
-                signature = layout.signature
-                reload()
-            }
-        })
+        navigationItem.rightBarButtonItem = layouts.count > 1 ? UIBarButtonItem(
+            title: signature.map(title(of:)) ?? "Layout", image: UIImage(systemName: "rectangle.on.rectangle"),
+            menu: UIMenu(title: "Screen", children: layouts.map { layout in
+                UIAction(title: title(of: layout.signature), subtitle: "\(layout.taps.formatted()) taps", state: layout.signature == signature ? .on : .off) { [unowned self] _ in
+                    signature = layout.signature
+                    reload()
+                }
+            })
+        ) : nil
         let hasTaps = signature != nil
         [stats, modes, map, pullCard, missedCard].forEach { $0.isHidden = !hasTaps }
         contentUnavailableConfiguration = hasTaps ? nil : empty
