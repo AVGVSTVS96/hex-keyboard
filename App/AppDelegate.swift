@@ -5,6 +5,22 @@ import UIKit
 @main
 final class AppDelegate: UIResponder, UIApplicationDelegate {}
 
+/// Which tab shows, and which page inside the Keyboard and More tabs, so a tile on one tab can open a page on another.
+@Observable final class Router {
+    static let shared = Router()
+
+    enum Destination: String { case home, keyboard, transcripts, taps, more }
+
+    var keyboardPage = KeyboardPage.Tab.theme
+    var morePath: [MorePage.Page] = []
+    @ObservationIgnored weak var tabs: UITabBarController?
+
+    func show(_ destination: Destination, page: KeyboardPage.Tab? = nil) {
+        if let page { keyboardPage = page }
+        tabs?.selectedTab = tabs?.tab(forIdentifier: destination.rawValue)
+    }
+}
+
 final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     var window: UIWindow?
 
@@ -15,24 +31,30 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         LaunchOptions.applyOneHanded()
         VoiceProbe.runIfAsked()
         let tabs = UITabBarController(tabs: [
-            UITab(title: "Hex", image: UIImage(systemName: "keyboard"), identifier: "home") { _ in HomeViewController() },
-            UITab(title: "Transcripts", image: UIImage(systemName: "waveform"), identifier: "transcripts") { _ in UIHostingController(rootView: SplitWhenWide { TranscriptsView() }) },
-            UITab(title: "Your Taps", image: UIImage(systemName: "hand.tap"), identifier: "taps") { _ in Self.navigation(TapsViewController()) },
-            UITab(title: "Settings", image: UIImage(systemName: "gearshape"), identifier: "settings") { _ in
-                UIHostingController(rootView: SplitWhenWide { SettingsView(page: LaunchOptions.settingsPage) })
+            UITab(title: "Hex", image: UIImage(systemName: "house"), identifier: Router.Destination.home.rawValue) { _ in HomeViewController() },
+            UITab(title: "Keyboard", image: UIImage(systemName: "keyboard"), identifier: Router.Destination.keyboard.rawValue) { _ in
+                Self.hosting(NavigationStack { KeyboardPage() })
+            },
+            UITab(title: "Transcripts", image: UIImage(systemName: "waveform"), identifier: Router.Destination.transcripts.rawValue) { _ in
+                Self.hosting(TranscriptsView())
+            },
+            UITab(title: "Your Taps", image: UIImage(systemName: "hand.tap"), identifier: Router.Destination.taps.rawValue) { _ in TapsViewController() },
+            UITab(title: "More", image: UIImage(systemName: "square.grid.2x2"), identifier: Router.Destination.more.rawValue) { _ in
+                Self.hosting(MorePage())
             },
         ])
-        tabs.selectedTab = tabs.tab(forIdentifier: LaunchOptions.tab)
+        Router.shared.tabs = tabs
+        LaunchOptions.route()
         window.rootViewController = tabs
         window.makeKeyAndVisible()
         self.window = window
         open(options.urlContexts)
     }
 
-    private static func navigation(_ root: UIViewController) -> UINavigationController {
-        let navigation = UINavigationController(rootViewController: root)
-        navigation.navigationBar.prefersLargeTitles = true
-        return navigation
+    private static func hosting(_ view: some View) -> UIViewController {
+        let controller = UIHostingController(rootView: view.readsWindow())
+        controller.view.backgroundColor = HexStyle.page
+        return controller
     }
 
     func sceneDidBecomeActive(_ scene: UIScene) {

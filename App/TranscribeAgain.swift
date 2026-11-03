@@ -47,32 +47,24 @@ struct RecordingSection: View {
     var body: some View {
         let kept = Transcripts.shared.hasRecording(transcript.id)
         if kept || transcript.mic != nil {
-            Section {
-                if let mic = transcript.mic { LabeledContent("Microphone", value: mic) }
+            Box(footer: kept ? "Hex keeps the sound of each dictation on this iPhone, so it can be written again with \(VoiceModel.shared.model.title)." : nil) {
+                if let mic = transcript.mic { Fact(title: "Microphone", value: mic) }
                 if kept {
-                    Button(writing ? "Transcribing Again…" : "Transcribe Again") { Task { await write() } }
+                    ActionRow(title: writing ? "Transcribing Again…" : "Transcribe Again", symbol: "arrow.clockwise") { Task { await write() } }
                         .disabled(writing)
                 }
                 if let again {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(again.text)
-                            .textSelection(.enabled)
-                        Text("Written by \(again.model)")
-                            .font(.footnote)
-                            .foregroundStyle(Color.hexSecondary)
-                    }
-                    .padding(.vertical, 4)
-                    Button("Use This Transcript") {
+                    RowText(title: again.text, detail: "Written by \(again.model)")
+                        .textSelection(.enabled)
+                        .row()
+                    ActionRow(title: "Use This Transcript") {
                         Transcripts.shared.replace(transcript.id, with: again.text, heard: again.heard, model: again.model)
                         self.again = nil
                     }
-                    Button("Copy") { UIPasteboard.general.string = again.text }
+                    ActionRow(title: "Copy", symbol: "doc.on.doc") { UIPasteboard.general.string = again.text }
                 }
-                if let failure { Text(failure).foregroundStyle(.red) }
-            } footer: {
-                if kept { Text("Hex keeps the sound of each dictation on this iPhone, so it can be written again with \(VoiceModel.shared.model.title).") }
+                if let failure { Text(failure).foregroundStyle(.red).row() }
             }
-            .listRowBackground(Color.hexCard)
         }
     }
 

@@ -150,11 +150,12 @@ SCREENS
 
 # Screenshots each of the app's screens on the iPhone Duo's four screens, as duo does for the keyboard:
 # shots/raw/duo/app/<tag>-<screen>-<page>-<appearance>.png. TOUCHES (a touch model, as the keyboard shares it) and
-# TRANSCRIPTS (JSON lines, as the app keeps them) fill Your Taps and Transcripts; PAGES picks the screens.
+# TRANSCRIPTS (JSON lines, as the app keeps them) fill Your Taps and Transcripts; PAGES picks the screens; SIM names
+# the simulator (hexkb <SIM>), so checkouts side by side don't share one.
 duoapp() {
   local tag=$1 id data group; shift
   RUNTIME=com.apple.CoreSimulator.SimRuntime.iOS-27-1
-  id=$(ensure "iPhone Duo" iPhone-Duo)
+  id=$(ensure "${SIM:-iPhone Duo}" iPhone-Duo)
   boot "$id"
   use "$id" hex
   unfold "$id" 0
@@ -185,13 +186,16 @@ plistlib.dump(prefs, open(path, 'wb'))" "$group/Library/Preferences/group.com.sh
       done <<PAGES
 home -HexTab home
 typing -HexFocus YES
-settings -HexSettings YES
+keyboard -HexSettings theme
+typing-settings -HexSettings typing
 keys -HexSettings keys
 voice -HexSettings voice
-sources -HexSettings sources
-access -HexSettings setup
+sound -HexSettings sound
 transcripts -HexTab transcripts
 taps -HexTaps YES
+more -HexTab more
+sources -HexSettings sources
+access -HexSettings setup
 PAGES
     done
   done <<SCREENS

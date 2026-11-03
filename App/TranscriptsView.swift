@@ -1,15 +1,14 @@
 import Charts
 import SwiftUI
 
-/// Everything you've dictated with Hex, newest first, grouped by day, with how much and how fast you talk; on the
-/// iPhone Duo's open screen the transcript you pick shows beside the list.
+/// Everything you've dictated with Hex, newest first, grouped by day, with how much and how fast you talk. Wide, the
+/// transcript you pick shows past the hinge; on the cover a transcript opens on its own.
 struct TranscriptsView: View {
     private let store = Transcripts.shared
     @State private var query = ""
     @State private var confirmsDeleteAll = false
     @State private var selected: Transcript.ID?
-    @State private var columns = NavigationSplitViewVisibility.all
-    @Environment(\.horizontalSizeClass) private var width
+    @Environment(\.arrangement) private var arrangement
 
     private var shown: [Transcript] {
         let query = query.trimmingCharacters(in: .whitespaces)
@@ -26,75 +25,94 @@ struct TranscriptsView: View {
         return days
     }
 
+    private var beside: Bool { arrangement == .side }
+
     var body: some View {
-        NavigationSplitView(columnVisibility: $columns) {
-            List(selection: $selected) {
-                if query.isEmpty, !store.all.isEmpty {
-                    Section {
-                        Summary(transcripts: store.all)
-                    }
-                    .listRowBackground(Color.hexCard)
-                }
-                ForEach(days, id: \.day) { day in
-                    Section(Self.title(of: day.day)) {
-                        ForEach(day.transcripts) { transcript in
-                            NavigationLink(value: transcript.id) { Row(transcript: transcript) }
-                                .hexList(selected: width == .regular && selected == transcript.id)
-                                .contextMenu { Actions(transcript: transcript) }
-                                .swipeActions {
-                                    Button("Delete", systemImage: "trash", role: .destructive) { store.delete([transcript.id]) }
-                                }
-                                .swipeActions(edge: .leading) {
-                                    Button("Copy", systemImage: "doc.on.doc") { UIPasteboard.general.string = transcript.text }
-                                        .tint(.accentColor)
-                                }
+        NavigationStack {
+            Group {
+                if beside {
+                    Panes {
+                        list
+                    } second: {
+                        if let transcript = store.all.first(where: { $0.id == (selected ?? store.all.first?.id) }) {
+                            TranscriptDetail(transcript: transcript, beside: true)
+                        } else {
+                            empty
                         }
                     }
-                    .listRowBackground(Color.hexCard)
+                } else {
+                    list
                 }
             }
-            .scrollContentBackground(.hidden)
-            .background(Color.hexBackdrop)
-            .overlay {
-                if store.all.isEmpty {
-                    ContentUnavailableView {
-                        Label("No Transcripts", systemImage: "waveform")
-                    } description: {
-                        Text("Tap the mic at the right end of the keyboard’s suggestions and talk. Everything you dictate is kept here, on this iPhone.")
-                    }
-                } else if shown.isEmpty {
-                    ContentUnavailableView.search(text: query)
-                }
-            }
-            .navigationTitle("Transcripts")
-            .navigationSplitViewColumnWidth(min: 320, ideal: 380)
-            .searchable(text: $query)
-            .toolbar {
-                if !store.all.isEmpty {
-                    Menu("More", systemImage: "ellipsis") {
-                        Button("Delete All", systemImage: "trash", role: .destructive) { confirmsDeleteAll = true }
-                    }
-                }
+            .hexPage()
+            .toolbar(.hidden, for: .navigationBar)
+            .navigationDestination(for: Transcript.ID.self) { id in
+                if let transcript = store.all.first(where: { $0.id == id }) { TranscriptDetail(transcript: transcript, beside: false) }
             }
             .confirmationDialog("Delete all \(store.all.count) transcripts from this iPhone?", isPresented: $confirmsDeleteAll, titleVisibility: .visible) {
                 Button("Delete All", role: .destructive) { store.delete(Set(store.all.map(\.id))) }
             }
-        } detail: {
-            if let transcript = store.all.first(where: { $0.id == selected }) {
-                NavigationStack { TranscriptDetail(transcript: transcript) }
-            } else {
-                ContentUnavailableView(store.all.isEmpty ? "Nothing Dictated Yet" : "Pick a Transcript", systemImage: "waveform")
-                    .hexBackground()
-            }
         }
-        .navigationSplitViewStyle(.balanced)
-        .onAppear(perform: pickNewest)
-        .onChange(of: width, pickNewest)
     }
 
-    /// Beside the list there's room for a transcript, so the newest shows until you pick another.
-    private func pickNewest() {
-        if width == .regular, selected == nil { selected = store.all.first?.id }
+    private var list: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 24) {
+                PageTitle(title: "Transcripts", trailing: store.all.isEmpty ? nil : AnyView(
+                    Menu {
+                        Button("Delete All", systemImage: "trash", role: .destructive) { confirmsDeleteAll = true }
+                    } label: {
+                        Image(systemName: "ellipsis")
+                            .font(.body.weight(.semibold))
+                            .frame(width: 36, height: 36)
+                            .background(Color.hexCard, in: .circle)
+                    }
+                    .foregroundStyle(.primary)
+                ))
+                if store.all.isEmpty {
+                    empty.frame(minHeight: 360)
+                } else {
+                    SearchField(text: $query)
+                    if query.isEmpty { Summary(transcripts: store.all) }
+                    if shown.isEmpty { ContentUnavailableView.search(text: query) }
+                    ForEach(days, id: \.day) { day in
+                        Box(header: Self.title(of: day.day)) {
+                            ForEach(day.transcripts) { transcript in
+                                row(transcript)
+                            }
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
+            .padding(.bottom, 40)
+            .frame(maxWidth: 640)
+            .frame(maxWidth: .infinity)
+        }
+        .scrollDismissesKeyboard(.interactively)
+    }
+
+    @ViewBuilder private func row(_ transcript: Transcript) -> some View {
+        let picked = beside && transcript.id == (selected ?? store.all.first?.id)
+        Group {
+            if beside {
+                Button { selected = transcript.id } label: { Row(transcript: transcript) }
+            } else {
+                NavigationLink(value: transcript.id) { Row(transcript: transcript) }
+            }
+        }
+        .buttonStyle(.plain)
+        .background(picked ? Color.hexPressed : .clear)
+        .contextMenu { Actions(transcript: transcript) }
+    }
+
+    private var empty: some View {
+        ContentUnavailableView {
+            Label("No Transcripts", systemImage: "waveform")
+        } description: {
+            Text("Tap the mic at the right end of the keyboard’s suggestions and talk. Everything you dictate is kept here, on this iPhone.")
+        }
     }
 
     private static func title(of day: Date) -> String {
@@ -104,6 +122,27 @@ struct TranscriptsView: View {
         if let days = calendar.dateComponents([.day], from: day, to: .now).day, days < 7 { return day.formatted(.dateTime.weekday(.wide)) }
         let thisYear = calendar.isDate(day, equalTo: .now, toGranularity: .year)
         return thisYear ? day.formatted(.dateTime.weekday(.wide).month(.wide).day()) : day.formatted(date: .long, time: .omitted)
+    }
+}
+
+/// Raycast's search field: a magnifier and the query in a rounded card.
+struct SearchField: View {
+    @Binding var text: String
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "magnifyingglass").foregroundStyle(Color.hexSecondary)
+            TextField("Search", text: $text)
+                .submitLabel(.search)
+            if !text.isEmpty {
+                Button { text = "" } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(Color.hexSecondary) }
+                    .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 14)
+        .frame(height: 44)
+        .background(Color.hexCard, in: .capsule)
+        .overlay(Capsule().strokeBorder(Color.hexEdge))
     }
 }
 
@@ -128,7 +167,8 @@ private struct Row: View {
             .font(.footnote)
             .foregroundStyle(Color.hexSecondary)
         }
-        .padding(.vertical, 2)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .row()
     }
 }
 
@@ -176,7 +216,7 @@ private struct Summary: View {
                     .foregroundStyle(Color.hexSecondary)
                 Chart(fortnight) { day in
                     BarMark(x: .value("Day", day.date, unit: .day), y: .value("Words", day.words), width: .ratio(0.62))
-                        .foregroundStyle(Calendar.current.isDateInToday(day.date) ? Color.accentColor : Color.accentColor.opacity(0.45))
+                        .foregroundStyle(Calendar.current.isDateInToday(day.date) ? Color.primary : Color.hexSecondary.opacity(0.55))
                         .clipShape(.rect(cornerRadius: 3))
                 }
                 .chartXAxis {
@@ -193,7 +233,9 @@ private struct Summary: View {
                 .frame(height: 120)
             }
         }
-        .padding(.vertical, 8)
+        .padding(20)
+        .background(Color.hexCard, in: .rect(cornerRadius: HexStyle.cardRadius, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: HexStyle.cardRadius, style: .continuous).strokeBorder(Color.hexEdge))
     }
 }
 
@@ -219,50 +261,69 @@ private struct Stat: View {
 
 private struct TranscriptDetail: View {
     let transcript: Transcript
+    let beside: Bool
     @Environment(\.dismiss) private var dismiss
     @State private var confirmsDelete = false
 
     var body: some View {
-        List {
-            Section {
-                Text(transcript.text)
-                    .font(.title3)
-                    .textSelection(.enabled)
-                    .padding(.vertical, 6)
+        Column(top: beside ? 12 : 8) {
+            HStack {
+                Text(transcript.date.formatted(.dateTime.weekday(.wide).month(.abbreviated).day().hour().minute()))
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(Color.hexSecondary)
+                Spacer()
+                Button { UIPasteboard.general.string = transcript.text } label: { Image(systemName: "doc.on.doc") }
+                    .accessibilityLabel("Copy")
+                ShareLink(item: transcript.text) { Image(systemName: "square.and.arrow.up") }
             }
-            .listRowBackground(Color.hexCard)
-            Section {
-                LabeledContent("Date", value: transcript.date.formatted(date: .abbreviated, time: .shortened))
-                LabeledContent("Length", value: Duration.seconds(transcript.seconds).formatted(.time(pattern: .minuteSecond)))
-                LabeledContent("Words", value: transcript.words.formatted())
+            .font(.body.weight(.semibold))
+            .foregroundStyle(.primary)
+            .padding(.horizontal, 4)
+            Text(transcript.text)
+                .font(.title3)
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(20)
+                .background(Color.hexCard, in: .rect(cornerRadius: HexStyle.cardRadius, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: HexStyle.cardRadius, style: .continuous).strokeBorder(Color.hexEdge))
+            Box {
+                Fact(title: "Length", value: Duration.seconds(transcript.seconds).formatted(.time(pattern: .minuteSecond)))
+                Fact(title: "Words", value: transcript.words.formatted())
                 if transcript.seconds >= 1 {
-                    LabeledContent("Pace", value: "\(Int((Double(transcript.words) / transcript.seconds * 60).rounded())) wpm")
+                    Fact(title: "Pace", value: "\(Int((Double(transcript.words) / transcript.seconds * 60).rounded())) wpm")
                 }
-                LabeledContent("Typed", value: transcript.typed ? "Yes" : "No, you canceled it")
-                if let model = transcript.model { LabeledContent("Written by", value: model) }
+                Fact(title: "Typed", value: transcript.typed ? "Yes" : "No, you canceled it")
+                if let model = transcript.model { Fact(title: "Written by", value: model) }
             }
-            .listRowBackground(Color.hexCard)
             RecordingSection(transcript: transcript)
-            Section {
-                Button("Delete Transcript", role: .destructive) { confirmsDelete = true }
+            Box {
+                ActionRow(title: "Delete Transcript", role: .destructive) { confirmsDelete = true }
             }
-            .listRowBackground(Color.hexCard)
         }
-        .scrollContentBackground(.hidden)
-        .background(Color.hexBackdrop)
-        .navigationTitle(transcript.date.formatted(.dateTime.month(.abbreviated).day().hour().minute()))
+        .hexPage()
+        .navigationTitle(beside ? "" : "Transcript")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItemGroup(placement: .topBarTrailing) {
-                Button("Copy", systemImage: "doc.on.doc") { UIPasteboard.general.string = transcript.text }
-                ShareLink(item: transcript.text)
-            }
-        }
         .confirmationDialog("Delete this transcript?", isPresented: $confirmsDelete, titleVisibility: .visible) {
             Button("Delete", role: .destructive) {
                 Transcripts.shared.delete([transcript.id])
-                dismiss()
+                if !beside { dismiss() }
             }
         }
+    }
+}
+
+/// A fact about something, its name on the left and its value in gray on the right.
+struct Fact: View {
+    let title: String
+    let value: String
+
+    var body: some View {
+        HStack {
+            Text(title)
+            Spacer()
+            Text(value).foregroundStyle(Color.hexSecondary).multilineTextAlignment(.trailing)
+        }
+        .row()
+        .accessibilityElement(children: .combine)
     }
 }

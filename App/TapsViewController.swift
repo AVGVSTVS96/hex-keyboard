@@ -6,7 +6,10 @@ import notify
 final class TapsViewController: UIViewController {
     private let scroll = UIScrollView()
     private let stats = UIStackView()
-    private let modes = UISegmentedControl(items: ["Heat", "Aim", "Accuracy"])
+    private let modes = PillBar(titles: ["Heat", "Aim", "Accuracy"])
+    private let titleRow = UIStackView()
+    private let layouts = UIButton(configuration: .gray())
+    private var split: NSLayoutConstraint?
     private let map = TapMapView()
     private let scale = HeatScale()
     private let legend = UILabel()
@@ -30,16 +33,29 @@ final class TapsViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         title = "Your Taps"
-        view.backgroundColor = HexStyle.backdrop
+        view.backgroundColor = HexStyle.page
+
+        let name = UILabel()
+        name.text = "Your Taps"
+        name.font = UIFontMetrics(forTextStyle: .title3).scaledFont(for: .systemFont(ofSize: 20, weight: .semibold))
+        name.adjustsFontForContentSizeCategory = true
+        name.accessibilityTraits = .header
+        layouts.configuration?.cornerStyle = .capsule
+        layouts.configuration?.baseBackgroundColor = HexStyle.card
+        layouts.configuration?.baseForegroundColor = .label
+        layouts.showsMenuAsPrimaryAction = true
+        titleRow.addArrangedSubview(name)
+        titleRow.addArrangedSubview(UIView())
+        titleRow.addArrangedSubview(layouts)
+        titleRow.alignment = .center
 
         stats.axis = .vertical
         stats.spacing = 12
 
-        modes.selectedSegmentIndex = 0
-        modes.addAction(UIAction { [unowned self] _ in
-            map.mode = Self.modeOrder[modes.selectedSegmentIndex]
+        modes.onChange = { [unowned self] index in
+            map.mode = Self.modeOrder[index]
             updateLegend()
-        }, for: .valueChanged)
+        }
 
         map.onSelect = { [unowned self] aim in
             showDetail(aim)
@@ -79,7 +95,7 @@ final class TapsViewController: UIViewController {
             column.spacing = 16
         }
         columns.alignment = .top
-        columns.spacing = 20
+        columns.spacing = 36
         columns.translatesAutoresizingMaskIntoConstraints = false
         scroll.translatesAutoresizingMaskIntoConstraints = false
         scroll.alwaysBounceVertical = true
@@ -91,15 +107,14 @@ final class TapsViewController: UIViewController {
         NSLayoutConstraint.activate([
             scroll.topAnchor.constraint(equalTo: view.topAnchor),
             scroll.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            scroll.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            scroll.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            scroll.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor),
+            scroll.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor),
             columns.topAnchor.constraint(equalTo: scroll.contentLayoutGuide.topAnchor, constant: 8),
             columns.bottomAnchor.constraint(equalTo: scroll.contentLayoutGuide.bottomAnchor, constant: -32),
             columns.centerXAnchor.constraint(equalTo: scroll.frameLayoutGuide.centerXAnchor),
             columns.widthAnchor.constraint(lessThanOrEqualToConstant: 1000),
             columns.widthAnchor.constraint(lessThanOrEqualTo: scroll.frameLayoutGuide.widthAnchor, constant: -32),
             readable,
-            secondary.widthAnchor.constraint(equalToConstant: 320).withPriority(.defaultHigh),
         ])
         arrange()
 
@@ -139,22 +154,31 @@ final class TapsViewController: UIViewController {
 
     override func viewWillLayoutSubviews() {
         super.viewWillLayoutSubviews()
-        if (view.bounds.width >= 800) != isWide { arrange() }
+        if wantsWide != isWide { arrange() }
+        if let window = view.window, isWide {
+            let left = view.convert(CGPoint.zero, to: window).x + view.safeAreaInsets.left + 16
+            split?.constant = max(window.bounds.width / 2 - left - columns.spacing / 2, 200)
+        }
     }
+
+    private var wantsWide: Bool { view.bounds.width > view.bounds.height }
 
     private var isWide: Bool { secondary.superview != nil }
 
-    /// On a wide screen the map and how your thumbs pull sit on the left, your numbers, a key's close-up and the most
-    /// missed keys on the right; otherwise all of it in one column, the numbers first.
+    /// Wider than tall, the map and how your thumbs pull take the half before the hinge, your numbers, a key's close-up
+    /// and the most missed keys the half after it; otherwise all of it in one column, the numbers first.
     private func arrange() {
-        let wide = view.bounds.width >= 800
+        let wide = wantsWide
         for stack in [columns, primary, secondary] { stack.arrangedSubviews.forEach { $0.removeFromSuperview() } }
+        split?.isActive = false
         if wide {
-            [modes, map, pullCard].forEach(primary.addArrangedSubview)
+            [titleRow, modes, map, pullCard].forEach(primary.addArrangedSubview)
             [stats, detail, missedCard].forEach(secondary.addArrangedSubview)
             [primary, secondary].forEach(columns.addArrangedSubview)
+            split = primary.widthAnchor.constraint(equalToConstant: 400)
+            split?.isActive = true
         } else {
-            [stats, modes, map, detail, pullCard, missedCard].forEach(primary.addArrangedSubview)
+            [titleRow, stats, modes, map, detail, pullCard, missedCard].forEach(primary.addArrangedSubview)
             columns.addArrangedSubview(primary)
         }
         primary.setCustomSpacing(12, after: modes)
@@ -166,12 +190,17 @@ final class TapsViewController: UIViewController {
         if signature.map({ name in !layouts.contains { $0.signature == name } }) ?? true {
             signature = layouts.first { $0.signature == current }?.signature ?? layouts.first?.signature
         }
-        navigationItem.rightBarButtonItem = layouts.count > 1 ? UIBarButtonItem(title: signature.map(title(of:)) ?? "Layout", image: nil, menu: UIMenu(children: layouts.map { layout in
+        self.layouts.isHidden = layouts.count < 2
+        self.layouts.configuration?.title = signature.map(title(of:)) ?? "Layout"
+        self.layouts.configuration?.image = UIImage(systemName: "chevron.up.chevron.down", withConfiguration: UIImage.SymbolConfiguration(scale: .small))
+        self.layouts.configuration?.imagePlacement = .trailing
+        self.layouts.configuration?.imagePadding = 6
+        self.layouts.menu = UIMenu(children: layouts.map { layout in
             UIAction(title: title(of: layout.signature), subtitle: "\(layout.taps.formatted()) taps", state: layout.signature == signature ? .on : .off) { [unowned self] _ in
                 signature = layout.signature
                 reload()
             }
-        })) : nil
+        })
         let hasTaps = signature != nil
         [stats, modes, map, pullCard, missedCard].forEach { $0.isHidden = !hasTaps }
         contentUnavailableConfiguration = hasTaps ? nil : empty
@@ -186,7 +215,7 @@ final class TapsViewController: UIViewController {
 
     private func applyLaunchOptions() {
         if let mode = LaunchOptions.tapsMode {
-            modes.selectedSegmentIndex = Self.modeOrder.firstIndex(of: mode) ?? 0
+            modes.selected = Self.modeOrder.firstIndex(of: mode) ?? 0
             map.mode = mode
         }
         if let label = LaunchOptions.tapsKey, let aim = map.aims.first(where: { $0.key.label == label }) { map.select(aim) }
@@ -411,7 +440,7 @@ private final class Keycap: UILabel {
         text = TapMapPalette.name(of: key)
         textAlignment = .center
         font = .systemFont(ofSize: key.label?.count == 1 && key.label != " " ? size : size * 0.6)
-        backgroundColor = HexStyle.backdrop
+        backgroundColor = HexStyle.pressed
         layer.cornerRadius = 8
         layer.cornerCurve = .continuous
         clipsToBounds = true
@@ -656,9 +685,60 @@ private final class MissTrack: UIView {
     required init?(coder: NSCoder) { fatalError() }
 
     override func draw(_ rect: CGRect) {
-        HexStyle.backdrop.setFill()
+        HexStyle.pressed.setFill()
         UIBezierPath(roundedRect: bounds, cornerRadius: 3).fill()
         TapMapPalette.miss.setFill()
         UIBezierPath(roundedRect: CGRect(x: 0, y: 0, width: max(bounds.width * fraction, 6), height: bounds.height), cornerRadius: 3).fill()
+    }
+}
+
+/// Raycast's pills in UIKit: a row of titles, the picked one on a filled capsule.
+final class PillBar: UIView {
+    var onChange: (Int) -> Void = { _ in }
+    var selected = 0 { didSet { paint() } }
+    private let buttons: [UIButton]
+
+    init(titles: [String]) {
+        buttons = titles.map { title in
+            var configuration = UIButton.Configuration.plain()
+            configuration.title = title
+            configuration.cornerStyle = .capsule
+            configuration.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 15, bottom: 8, trailing: 15)
+            configuration.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer {
+                var attributes = $0
+                attributes.font = UIFontMetrics(forTextStyle: .body).scaledFont(for: .systemFont(ofSize: 17, weight: .medium))
+                return attributes
+            }
+            return UIButton(configuration: configuration)
+        }
+        super.init(frame: .zero)
+        let row = UIStackView(arrangedSubviews: buttons + [UIView()])
+        row.spacing = 2
+        row.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(row)
+        NSLayoutConstraint.activate([
+            row.topAnchor.constraint(equalTo: topAnchor),
+            row.bottomAnchor.constraint(equalTo: bottomAnchor),
+            row.leadingAnchor.constraint(equalTo: leadingAnchor),
+            row.trailingAnchor.constraint(equalTo: trailingAnchor),
+        ])
+        for (index, button) in buttons.enumerated() {
+            button.addAction(UIAction { [unowned self] _ in
+                UIView.animate(withDuration: 0.2) { self.selected = index }
+                onChange(index)
+            }, for: .touchUpInside)
+        }
+        paint()
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    private func paint() {
+        for (index, button) in buttons.enumerated() {
+            let picked = index == selected
+            button.configuration?.background.backgroundColor = picked ? HexStyle.pill : .clear
+            button.configuration?.baseForegroundColor = picked ? HexStyle.pillLabel : HexStyle.secondary
+            button.accessibilityTraits = picked ? [.button, .selected] : .button
+        }
     }
 }

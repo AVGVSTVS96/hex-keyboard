@@ -54,8 +54,7 @@ struct VocabularyView: View {
             .listRowBackground(Color.hexCard)
         }
         .scrollContentBackground(.hidden)
-        .background(Color.hexBackdrop)
-        .navigationTitle("Vocabulary")
+        .pushedPage("Vocabulary")
         .sheet(isPresented: $adding) {
             TermEditor(term: Vocabulary.Term("")) { store.set(store.vocabulary.terms + [$0]) }
         }

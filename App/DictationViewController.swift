@@ -13,7 +13,7 @@ final class DictationViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = HexStyle.backdrop
+        view.backgroundColor = HexStyle.page
         orb.backgroundColor = .systemRed
         orb.isAccessibilityElement = false
         orb.layer.cornerRadius = 48

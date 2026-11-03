@@ -10,14 +10,22 @@ enum LaunchOptions {
     }
 
     static var focus: Bool { defaults.bool(forKey: "HexFocus") }
-    /// `-HexSettings typing` opens Settings on that page; `-HexSettings YES`, on its list.
-    static var settingsPage: SettingsView.Page? { defaults.string(forKey: "HexSettings").flatMap(SettingsView.Page.init) }
-    /// The tab the app opens on: `-HexTab transcripts`, `-HexTaps YES` for Your Taps, or `-HexSettings` for Settings.
-    static var tab: String {
-        if defaults.bool(forKey: "HexTaps") { return "taps" }
-        if defaults.string(forKey: "HexSettings") != nil { return "settings" }
-        return defaults.string(forKey: "HexTab") ?? "home"
+    /// The tab and page the app opens on: `-HexTab keyboard`, `-HexTaps YES` for Your Taps, `-HexSettings typing` for a
+    /// Keyboard page (`YES` for its first), or `-HexSettings sources` for a page under More.
+    static func route() {
+        let router = Router.shared
+        if defaults.bool(forKey: "HexTaps") { return router.show(.taps) }
+        if let page = defaults.string(forKey: "HexSettings") {
+            if let keyboard = KeyboardPage.Tab(rawValue: page == "feedback" ? "sound" : page) { return router.show(.keyboard, page: keyboard) }
+            if let more = MorePage.Page(rawValue: page) {
+                router.morePath = [more]
+                return router.show(.more)
+            }
+            return router.show(.keyboard)
+        }
+        router.show(defaults.string(forKey: "HexTab").flatMap(Router.Destination.init) ?? .home)
     }
+
     static var tapsMode: TapMapView.Mode? {
         switch defaults.string(forKey: "HexTapsMode") {
         case "heat": .heat
