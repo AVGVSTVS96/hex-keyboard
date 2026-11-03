@@ -14,9 +14,13 @@ Layouts, pop-ups, accents, the space bar cursor and the suggestion bar work as A
 
 Raycast's five themes (Default, Clear, Physical, Mechanical and iOS 5), its key shapes, and one bar with the tools at its left and the mic at its end.
 
+![Hex's five themes on the iPhone Duo's cover](docs/themes.png)
+
 ## Made for the iPhone Duo
 
 Hex fits each of the Duo's screens: the cover upright and on its side, open and held wide or tall, and half folded. Open and held wide, hold 123 to split the keys for two thumbs. The app lays out every page for the screen it's on, in two panes beside the hinge when there's room.
+
+![Hex on the iPhone Duo's cover and open screen, upright and on its side](docs/duo.png)
 
 ## It learns where you tap
 
