@@ -2,7 +2,8 @@
 keyboard's start with listening and a voice's worth of levels, and finish with writing it down. The first waits for the
 model to get ready, and meanwhile the keyboard starts a second; the first is typed as the second records. Stop ends the way a quit app
 does, mid-writing: the status stays, the lock goes. scripts/voiceapp.py <simulator id> <App Group container>
-[listening], which only listens, until it's killed, for screenshots of the bar while you talk."""
+[listening|saved|waiting], which holds one state until it's killed, for screenshots of the bar: talking; talking with two
+saved; three saved waiting for the model."""
 import fcntl, json, math, os, struct, subprocess, sys, threading, time
 
 simulator, group = sys.argv[1:3]
@@ -56,6 +57,12 @@ fcntl.flock(lock, fcntl.LOCK_EX)
 if sys.argv[3:] == ["listening"]:
     publish(listening=True)
     speak(threading.Event())
+if sys.argv[3:] == ["saved"]:
+    publish(listening=True, writing=[5.2, 3.1], waiting=True)
+    speak(threading.Event())
+if sys.argv[3:] == ["waiting"]:
+    publish(writing=[5.2, 3.1, 8.4], waiting=True)
+    threading.Event().wait()
 started = notify("-1", f"{prefix}.start")
 publish()
 started.wait()
