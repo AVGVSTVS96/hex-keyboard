@@ -253,13 +253,17 @@ open class HexKeyboardViewController: UIInputViewController {
         var metrics = KeyboardMetrics.for(device, width: screenSize.width, height: screenSize.height, style: .current, oneHanded: context.oneHanded, split: context.isSplit)
         if device == .phone, !context.isLandscape { metrics = metrics.fitted(screen: screenSize.width, window: view.bounds.width) }
         let wanted = metrics.toolbar.showing(engine.panel, compact: engine.settings.compactPanels)
-        let height = metrics.height(rows: layout.rows.count, hasNumberRow: layout.hasNumberRow)
+        let keys = metrics.height(rows: layout.rows.count, hasNumberRow: layout.hasNumberRow)
         let ask = engine.panel == nil ? wanted.height : wanted.panelHeight
+        let height = metrics.asked(rows: layout.rows.count, hasNumberRow: layout.hasNumberRow, above: ask)
         let room = view.bounds.height
         metrics.toolbar = wanted
         if ask == toolbarHeightConstraint.constant, height == keyboardHeightConstraint.constant, room > 0 {
-            if engine.panel != nil { metrics.toolbar = wanted.fitting(room - height) }
-            metrics = metrics.filling(room - ask, rows: layout.rows.count, hasNumberRow: layout.hasNumberRow)
+            if engine.panel != nil { metrics.toolbar = wanted.fitting(room - keys) }
+            let above = engine.panel == nil ? metrics.toolbar.height : metrics.toolbar.panelHeight
+            metrics = metrics.filling(room - above, rows: layout.rows.count, hasNumberRow: layout.hasNumberRow)
+        } else {
+            metrics = metrics.filling(height, rows: layout.rows.count, hasNumberRow: layout.hasNumberRow)
         }
         if toolbarHeightConstraint.constant != ask { toolbarHeightConstraint.constant = ask }
         keyboardView.menu = (context.menuKey(in: layout), context.menu, context.menuPick)
@@ -268,10 +272,8 @@ open class HexKeyboardViewController: UIInputViewController {
         suggestionBar.update(more: moreMenu(context))
         renderSuggestions()
 
-        if keyboardHeightConstraint.constant != height {
-            keyboardHeightConstraint.constant = height
-            keysMinimumConstraint.constant = height
-        }
+        if keyboardHeightConstraint.constant != height { keyboardHeightConstraint.constant = height }
+        if keysMinimumConstraint.constant != keys { keysMinimumConstraint.constant = keys }
     }
 
     /// The bar, or the open panel in its place, across the keys block.

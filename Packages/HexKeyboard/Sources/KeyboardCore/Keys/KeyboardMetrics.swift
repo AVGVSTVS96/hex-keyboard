@@ -31,6 +31,9 @@ public struct KeyboardMetrics: Hashable, Sendable {
     public var pairBaselineRatio: Double = 0.216
     public var margin = Margin.none
     public var toolbar = Toolbar.phone
+    /// How tall the whole keyboard, bar or panel included, asks to be where it should reach further than its keys:
+    /// the rows share the difference (`filling`).
+    public var reach: Double = 0
 
     public var grid: GridMetrics {
         GridMetrics(columns: columns, sideInset: sideInset, keyGap: keyGap, rowGap: rowGap, keyHeight: keyHeight, numberRowHeight: numberRowHeight, topInset: topInset, margin: margin)
@@ -39,6 +42,11 @@ public struct KeyboardMetrics: Hashable, Sendable {
     public func height(rows: Int, hasNumberRow: Bool) -> Double {
         let keys = Double(rows) * keyHeight - (hasNumberRow ? keyHeight - numberRowHeight : 0)
         return topInset + keys + Double(rows - 1) * rowGap + bottomInset
+    }
+
+    /// The height the keys ask for under `above` (the bar, or an open panel): their own, or what's left of `reach`.
+    public func asked(rows: Int, hasNumberRow: Bool, above: Double) -> Double {
+        max(height(rows: rows, hasNumberRow: hasNumberRow), reach - above)
     }
 
     /// The keys in `room`, where iOS gives the keyboard more height than it asks for (the open Duo partly folded held
@@ -137,6 +145,7 @@ extension KeyboardMetrics {
             metrics.letterSize = 28
             metrics.labelSize = 22
             metrics.symbolSize = 23
+            metrics.reach = height / 2 - Self.belowOpenTall - Toolbar.backdropAbove
             return metrics.oneHanded(oneHanded, width: width)
         case (false, true):
             metrics.sideInset = 4.5
@@ -162,6 +171,11 @@ extension KeyboardMetrics {
         }
         return metrics
     }
+
+    /// Open held tall, the keyboard reaches up to the hinge, the screen's middle, as Bassim asked ("as much available
+    /// space as possible", Nov 3): iOS ends it this far above the screen's bottom (Apple's last row ends 73 above it,
+    /// 3 above the keyboard's own bottom).
+    static let belowOpenTall = 70.0
 
     /// The split keyboard's width in keys, from Apple's split on the open Duo held wide (iOS 27.1 simulator): iOS gives a
     /// keyboard 801 of the screen's 951 points there, and Apple's split keys repeat every 57 points.
