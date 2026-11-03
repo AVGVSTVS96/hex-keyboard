@@ -134,6 +134,7 @@ struct SettingsView: View {
     private(set) var settings = SettingsStore.load()
     private(set) var sources = SourceStore.load()
     private(set) var keepMicOn = SettingsStore.keepMicOn
+    private(set) var dictationStyle = SettingsStore.dictationStyle
 
     private init() {
         NotificationCenter.default.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: .main) { _ in
@@ -145,6 +146,7 @@ struct SettingsView: View {
         settings = SettingsStore.load()
         sources = SourceStore.load()
         keepMicOn = SettingsStore.keepMicOn
+        dictationStyle = SettingsStore.dictationStyle
     }
 
     func binding(_ path: WritableKeyPath<KeyboardSettings, Bool>) -> Binding<Bool> {
@@ -166,6 +168,11 @@ struct SettingsView: View {
         keepMicOn = seconds
         SettingsStore.keepMicOn = seconds
         Listener.shared.keepMicOn()
+    }
+
+    func dictationStyle(_ style: DictationStyle) {
+        dictationStyle = style
+        SettingsStore.dictationStyle = style
     }
 
     /// Adds a source, or puts `replacing` back with its new values.
@@ -340,6 +347,26 @@ private struct VoicePage: View {
                 Text("Voice Model")
             } footer: {
                 Text("What you say is written down on this iPhone and never leaves it. Until the model you pick is ready, Apple’s writes, and Transcripts shows which one wrote each dictation.")
+            }
+            .hexList()
+            Section {
+                Picker("Style", selection: Binding { model.dictationStyle } set: { model.dictationStyle($0) }) {
+                    ForEach(DictationStyle.allCases, id: \.self) { style in
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(style.title)
+                            Text(style.example)
+                                .font(.footnote)
+                                .foregroundStyle(Color.hexSecondary)
+                        }
+                        .tag(style)
+                    }
+                }
+                .pickerStyle(.inline)
+                .labelsHidden()
+            } header: {
+                Text("Style")
+            } footer: {
+                Text("As Said types every word you say, um and uh included. The other styles, Wispr Flow’s, leave those out and change only capitals and periods, never your words. Transcripts keeps what the model wrote.")
             }
             .hexList()
             Section {

@@ -6,6 +6,21 @@ enum Words {
         character.isLetter || character.isNumber || apostrophes.contains(character)
     }
 
+    static func ranges(in characters: [Character]) -> [Range<Int>] {
+        var words: [Range<Int>] = []
+        var start: Int?
+        for (at, character) in characters.enumerated() {
+            if isWordCharacter(character) {
+                if start == nil { start = at }
+            } else if let begun = start {
+                words.append(begun ..< at)
+                start = nil
+            }
+        }
+        if let start { words.append(start ..< characters.count) }
+        return words
+    }
+
     static func current(in text: String) -> Substring {
         let start = text.lastIndex { !isWordCharacter($0) }.map(text.index(after:)) ?? text.startIndex
         return text[start...].drop { apostrophes.contains($0) }

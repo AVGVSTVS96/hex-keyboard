@@ -12,7 +12,7 @@ struct Transcript: Codable, Identifiable, Hashable {
     var model: String?
     /// The microphone it was said into, as iOS names it; nil before Hex kept it.
     var mic: String?
-    /// What the model wrote, when your `Vocabulary` changed it.
+    /// What the model wrote, when your style or `Vocabulary` changed it.
     var heard: String?
 
     var words: Int { text.split(whereSeparator: \.isWhitespace).count }

@@ -1,4 +1,5 @@
 import AVFoundation
+import KeyboardCore
 import KeyboardUI
 import UIKit
 
@@ -108,7 +109,7 @@ import UIKit
         }
         guard transcription === self.transcription else { return }
         self.transcription = nil
-        let text = VoiceVocabulary.shared.vocabulary.corrected(heard)
+        let text = DictationStyle.typed(heard)
         set(.idle, heard: text)
         Transcripts.shared.add(text, heard: heard, at: started, seconds: listened, typed: true, model: writer.model, mic: mic, recording: recording)
         HostApp.log.notice("\(writer.model, privacy: .public) wrote \(self.listened, format: .fixed(precision: 1))s down in \(Date.now.timeIntervalSince(self.started) - self.listened, format: .fixed(precision: 2))s")
@@ -133,7 +134,7 @@ import UIKit
         let background = UIApplication.shared.beginBackgroundTask()
         defer { UIApplication.shared.endBackgroundTask(background) }
         guard let heard = try? await transcription.text(of: recording) else { return }
-        let text = VoiceVocabulary.shared.vocabulary.corrected(heard)
+        let text = DictationStyle.typed(heard)
         Transcripts.shared.add(text, heard: heard, at: started, seconds: Date.now.timeIntervalSince(started), typed: false, model: transcription.model, mic: mic, recording: recording)
     }
 

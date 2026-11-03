@@ -1,9 +1,10 @@
 import AVFoundation
+import KeyboardCore
 import SwiftUI
 
 extension VoiceModel {
-    /// Writes a kept `Recording` down again, with the model picked now, or Apple's while it gets ready, and your
-    /// vocabulary.
+    /// Writes a kept `Recording` down again, with the model picked now, or Apple's while it gets ready, in your style
+    /// and with your vocabulary.
     func again(_ recording: [Float]) async throws -> (text: String, heard: String, model: String) {
         let transcription = try await transcription()
         if let format = transcription.format {
@@ -11,7 +12,7 @@ extension VoiceModel {
             transcription.hear(heard)
         }
         let heard = try await transcription.text(of: recording)
-        return (VoiceVocabulary.shared.vocabulary.corrected(heard), heard, transcription.model)
+        return (DictationStyle.typed(heard), heard, transcription.model)
     }
 
     private static func converted(_ recording: [Float], to format: AVAudioFormat) -> AVAudioPCMBuffer? {

@@ -22,6 +22,7 @@ public enum SettingsStore {
 
     private static let oneHandedKey = "oneHanded"
     private static let keepMicOnKey = "keepMicOn"
+    private static let dictationStyleKey = "dictationStyle"
 
     private static var group: UserDefaults { UserDefaults(suiteName: appGroup) ?? .standard }
     private static var own: UserDefaults { .standard }
@@ -50,6 +51,12 @@ public enum SettingsStore {
         set { set(newValue, forKey: keepMicOnKey) }
     }
 
+    /// How the app writes what you dictate. Only the app reads it.
+    public static var dictationStyle: DictationStyle {
+        get { (value(forKey: dictationStyleKey, sharing: true) as? String).flatMap(DictationStyle.init) ?? .standard }
+        set { set(newValue.rawValue, forKey: dictationStyleKey) }
+    }
+
     /// Set by the keyboard whenever it opens with Allow Full Access, the only time it can write to the App Group, so the
     /// app can tell the setting is on. It stays set if you turn Full Access off later.
     public static var fullAccessSeen: Bool {
@@ -69,6 +76,7 @@ public enum SettingsStore {
         for (key, path) in toggles { set(settings[keyPath: path], forKey: key) }
         set(OneHanded.off)
         keepMicOn = Dictation.micDefault
+        dictationStyle = .standard
     }
 
     static func value(forKey key: String, sharing: Bool) -> Any? {

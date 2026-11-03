@@ -29,7 +29,7 @@ public struct Vocabulary: Codable, Equatable, Sendable {
         }
         guard !spellings.isEmpty else { return text }
         let characters = Array(text)
-        let words = Self.words(in: characters)
+        let words = Words.ranges(in: characters)
         var result = ""
         var copied = 0
         var index = 0
@@ -71,20 +71,5 @@ public struct Vocabulary: Codable, Equatable, Sendable {
 
     private static func key(_ spelling: some StringProtocol) -> String {
         String(spelling.lowercased().filter { $0 != " " && $0 != "-" })
-    }
-
-    private static func words(in characters: [Character]) -> [Range<Int>] {
-        var words: [Range<Int>] = []
-        var start: Int?
-        for (at, character) in characters.enumerated() {
-            if Words.isWordCharacter(character) {
-                if start == nil { start = at }
-            } else if let begun = start {
-                words.append(begun ..< at)
-                start = nil
-            }
-        }
-        if let start { words.append(start ..< characters.count) }
-        return words
     }
 }
