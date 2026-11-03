@@ -31,7 +31,10 @@ struct TapsPage: View {
                 }
             }
         }
-        .onAppear { model.screen = window }
+        .onAppear {
+            model.screen = window
+            model.reload()
+        }
         .onChange(of: window) { _, size in model.screen = size }
     }
 
