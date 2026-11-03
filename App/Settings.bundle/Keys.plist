@@ -24,6 +24,22 @@
 		</dict>
 		<dict>
 			<key>FooterText</key>
+			<string>Opens every emoji from beside the space bar. Without it, the emoji for the word you type still show at the right of the suggestions; swipe them left for more.</string>
+			<key>Type</key>
+			<string>PSGroupSpecifier</string>
+		</dict>
+		<dict>
+			<key>DefaultValue</key>
+			<true/>
+			<key>Key</key>
+			<string>emojiKey</string>
+			<key>Title</key>
+			<string>Emoji Key</string>
+			<key>Type</key>
+			<string>PSToggleSwitchSpecifier</string>
+		</dict>
+		<dict>
+			<key>FooterText</key>
 			<string>Moves the keys toward one thumb while the iPhone is upright. You can also hold 123 and slide.</string>
 			<key>Type</key>
 			<string>PSGroupSpecifier</string>

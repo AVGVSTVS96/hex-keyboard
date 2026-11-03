@@ -82,7 +82,7 @@ extension TypingEngine {
     }
 
     public func layout(on device: DeviceClass, showsGlobe: Bool = false, isLandscape: Bool = false, isOpen: Bool = false) -> LayoutContext {
-        LayoutContext(device: device, layer: layer, kind: panel == nil ? traits.kind : .text, showsGlobe: showsGlobe, isLandscape: isLandscape, isOpen: isOpen, oneHanded: settings.oneHanded)
+        LayoutContext(device: device, layer: layer, kind: panel == nil ? traits.kind : .text, showsGlobe: showsGlobe, isLandscape: isLandscape, isOpen: isOpen, oneHanded: settings.oneHanded, showsEmoji: settings.emojiKey)
     }
 
     /// While a panel is open, the keys are a plain text keyboard whose return closes it.
@@ -298,7 +298,7 @@ extension TypingEngine {
         guard showsSuggestions else { return suggestions = [] }
         suggestionsBefore = String(text[..<word.startIndex])
         let named = word.isEmpty && text.hasSuffix(" ") ? Words.current(in: String(text.dropLast())) : word
-        emojiSuggestions = emojiCatalog?.suggestions(for: String(named), history: emojiHistory) ?? []
+        emojiSuggestions = emojiCatalog?.suggestions(for: String(named), history: emojiHistory, limit: 30) ?? []
         guard let corrector else { return suggestions = [] }
         let typed = TypedWord(String(word), taps: typing.letters, previous: Words.previous(before: word, in: text))
         if let revert, revert.isOffered(before: text) {

@@ -74,7 +74,7 @@ final class GifPanel: UIView, PanelContent, UIScrollViewDelegate {
     }
 
     func show(query: String, theme: KeyboardTheme, metrics: KeyboardMetrics) {
-        rows = metrics.toolbar.pills == nil ? 1 : 2
+        rows = metrics.toolbar.isCompact ? 1 : 2
         if theme != self.theme {
             self.theme = theme
             message.textColor = theme.candidate.ui

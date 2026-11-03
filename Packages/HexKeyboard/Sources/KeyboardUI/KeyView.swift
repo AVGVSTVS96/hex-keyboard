@@ -145,6 +145,7 @@ final class KeyView: UIView {
         case .layer(.symbols): "symbols"
         case .nextKeyboard: "next keyboard"
         case .dismiss: "dismiss keyboard"
+        case .emoji: "emoji"
         }
     }
 

@@ -9,7 +9,6 @@ open class HexKeyboardViewController: UIInputViewController {
     private var micIsOn = false
     private var dictationTokens: [Int32] = []
     private let suggestionBar = SuggestionBar()
-    private let pillRow = PillRow()
     private let panelView = PanelView()
     private let toolbarView = UIView()
     private var toolbar = KeyboardMetrics.phone(width: 390).toolbar
@@ -43,7 +42,7 @@ open class HexKeyboardViewController: UIInputViewController {
         panel.changed = { [unowned self] in render() }
         return panel
     }()
-    /// The panels this keyboard has, in the pills' order. GIFs need a KLIPY key built in.
+    /// The panels this keyboard has, in the tools' order. GIFs need a KLIPY key built in.
     private lazy var panels: [Panel: PanelContent] = [.emoji: emojiPanel, .gif: gifPanel, .clipboard: clipboardPanel].compactMapValues { $0 }
     private lazy var document = ProxyDocument { [unowned self] in textDocumentProxy }
     private var engine = TypingEngine()
@@ -64,7 +63,7 @@ open class HexKeyboardViewController: UIInputViewController {
             $0.translatesAutoresizingMaskIntoConstraints = false
             view.addSubview($0)
         }
-        [suggestionBar, pillRow, panelView].forEach(toolbarView.addSubview)
+        [suggestionBar, panelView].forEach(toolbarView.addSubview)
         keyboardHeightConstraint.priority = .required - 1
         NSLayoutConstraint.activate([
             toolbarView.topAnchor.constraint(equalTo: view.topAnchor),
@@ -79,7 +78,6 @@ open class HexKeyboardViewController: UIInputViewController {
         ])
         suggestionBar.onMic = { [unowned self] in toggleVoice() }
         suggestionBar.onTool = { [unowned self] in open($0) }
-        pillRow.onTool = { [unowned self] in open($0) }
         panelView.onClose = { [unowned self] in handle(.panel(nil)) }
         panelView.onClear = { [unowned self] in handle(.panel(engine.panel)) }
         suggestionBar.onNotice = { [unowned self] in
@@ -130,7 +128,6 @@ open class HexKeyboardViewController: UIInputViewController {
         super.viewDidLayoutSubviews()
         let width = view.bounds.width
         suggestionBar.frame = CGRect(x: 0, y: 0, width: width, height: toolbar.top + toolbar.bar)
-        pillRow.frame = CGRect(x: 0, y: suggestionBar.frame.maxY + Toolbar.pillGap, width: width, height: toolbar.pills ?? 0)
         panelView.frame = CGRect(x: 0, y: 0, width: width, height: toolbar.panelHeight)
         TouchTrace.shared.layout(view)
     }
@@ -259,7 +256,7 @@ open class HexKeyboardViewController: UIInputViewController {
         if keyboardHeightConstraint.constant != height { keyboardHeightConstraint.constant = height }
     }
 
-    /// The bar and the pill row, or the open panel in their place, across the keys block.
+    /// The bar, or the open panel in its place, across the keys block.
     private func renderToolbar(_ metrics: KeyboardMetrics, device: DeviceClass) {
         let width = view.bounds.width
         let block = (minX: CGFloat(metrics.margin.leading + metrics.sideInset), maxX: width - CGFloat(metrics.margin.trailing + metrics.sideInset))
@@ -267,22 +264,19 @@ open class HexKeyboardViewController: UIInputViewController {
             toolbar = metrics.toolbar
             view.setNeedsLayout()
         }
-        let tools = Panel.allCases.filter { panels[$0] != nil }
+        let tools = Panel.allCases.filter { panels[$0] != nil && ($0 != .emoji || engine.settings.emojiKey && device != .phone) }
         let panel = engine.panel.flatMap { panels[$0] }
         panelView.open(panel)
         panelView.isHidden = panel == nil
         suggestionBar.isHidden = panel != nil
-        pillRow.isHidden = panel != nil || toolbar.pills == nil
         panelView.block = block
-        pillRow.block = block
         suggestionBar.block = block
         suggestionBar.toolbar = toolbar
         suggestionBar.maximumSlotWidth = device == .phone ? .infinity : 154.5
-        suggestionBar.update(tools: toolbar.pills == nil ? tools : [], theme: theme)
+        suggestionBar.update(tools: tools, theme: theme)
         suggestionBar.update(mic: mic, listeningSince: listeningSince, notice: dictation.failure ?? hint, theme: theme)
-        pillRow.update(tools, theme: theme)
         if panel != nil { panelView.show(query: engine.query, theme: theme, metrics: metrics) }
-        keyboardView.deadTop = toolbar.pills != nil || panel != nil ? max(metrics.topInset - Toolbar.keysReach, 0) : 0
+        keyboardView.deadTop = panel != nil ? max(metrics.topInset - Toolbar.keysReach, 0) : 0
         let height = panel == nil ? toolbar.height : toolbar.panelHeight
         if toolbarHeightConstraint.constant != height { toolbarHeightConstraint.constant = height }
     }

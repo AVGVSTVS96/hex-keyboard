@@ -244,7 +244,7 @@ private struct TypingPage: View {
 }
 
 private struct KeysPage: View {
-    @Bindable private var model = SettingsModel.shared
+    private let model = SettingsModel.shared
 
     var body: some View {
         List {
@@ -255,13 +255,15 @@ private struct KeysPage: View {
             }
             .hexList()
             Section {
-                Picker("One-Handed Keyboard", selection: $model.oneHanded) {
-                    ForEach(OneHanded.allCases, id: \.self) { hand in
-                        Text(Self.title(of: hand)).tag(hand)
-                    }
+                Toggle("Emoji Key", isOn: model.binding(\.emojiKey))
+            } footer: {
+                Text("Opens every emoji from beside the space bar. Without it, the emoji for the word you type still show at the right of the suggestions; swipe them left for more.")
+            }
+            .hexList()
+            Section {
+                ForEach(OneHanded.allCases, id: \.self) { hand in
+                    Choice(title: Self.title(of: hand), picked: model.oneHanded == hand) { model.oneHanded = hand }
                 }
-                .pickerStyle(.inline)
-                .labelsHidden()
             } header: {
                 Text("One-Handed Keyboard")
             } footer: {
@@ -370,13 +372,9 @@ private struct VoicePage: View {
             }
             .hexList()
             Section {
-                Picker("Keep Mic On", selection: Binding { model.keepMicOn } set: { model.keepMicOn($0) }) {
-                    ForEach(Dictation.micChoices, id: \.self) { seconds in
-                        Text(Dictation.title(keepingMicOn: seconds)).tag(seconds)
-                    }
+                ForEach(Dictation.micChoices, id: \.self) { seconds in
+                    Choice(title: Dictation.title(keepingMicOn: seconds), picked: model.keepMicOn == seconds) { model.keepMicOn(seconds) }
                 }
-                .pickerStyle(.inline)
-                .labelsHidden()
             } header: {
                 Text("Keep Mic On")
             } footer: {
@@ -426,6 +424,31 @@ private struct VoicePage: View {
         case .ready:
             EmptyView()
         }
+    }
+}
+
+/// One of a setting's values, checked when it's the one picked, as Settings lists them.
+private struct Choice: View {
+    let title: String
+    let picked: Bool
+    let pick: () -> Void
+
+    var body: some View {
+        Button(action: pick) {
+            HStack {
+                Text(title)
+                    .foregroundStyle(.primary)
+                Spacer()
+                if picked {
+                    Image(systemName: "checkmark")
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(Color.accentColor)
+                }
+            }
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(picked ? .isSelected : [])
     }
 }
 

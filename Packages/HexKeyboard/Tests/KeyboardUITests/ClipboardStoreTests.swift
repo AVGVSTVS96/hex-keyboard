@@ -19,6 +19,17 @@ struct ClipboardStoreTests {
         #expect(ClipboardStore(folder: folder).history.items.map(\.content) == [.text("Meet at 7")])
     }
 
+    @Test func twoKeyboardsOpenAtOnceKeepEachOthersCopies() {
+        let messages = ClipboardStore(folder: folder), notes = ClipboardStore(folder: folder)
+        pasteboard.string = "copied in Messages"
+        messages.catchUp(pasteboard)
+        pasteboard.string = "copied in Notes"
+        notes.catchUp(pasteboard)
+        messages.setPinned(true, .text("copied in Messages"))
+        #expect(ClipboardStore(folder: folder).history.items.map(\.content) == [.text("copied in Messages"), .text("copied in Notes")],
+                "the keyboard in Messages read the history before Notes kept a copy, and pinning there kept it")
+    }
+
     @Test func passwordsAreNeverKept() {
         let store = ClipboardStore(folder: folder)
         pasteboard.setItems([[UTType.utf8PlainText.identifier: "hunter2", "org.nspasteboard.ConcealedType": "hunter2"]])

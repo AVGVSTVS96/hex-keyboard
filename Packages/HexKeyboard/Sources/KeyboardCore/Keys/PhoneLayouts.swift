@@ -45,6 +45,7 @@ enum PhoneLayouts {
             : [.key(Key(.layer(layerKey), width: .pitch(side)))]
         let space = RowItem.key(Key(.space, width: .fill))
         let returnKey = RowItem.key(Key(.return, width: .pitch(side)))
+        let emoji: [RowItem] = context.showsEmoji ? [.key(Key(.emoji, width: .pitch(side / 2)))] : []
         let character = { (value: String, width: KeyWidth) in RowItem.key(Key(.character(value), width: width)) }
         switch context.kind {
         case .email:
@@ -56,7 +57,8 @@ enum PhoneLayouts {
         case .webSearch:
             return leading + [space, character(".", .input), .key(Key(.return, width: .pitch(1.75)))]
         default:
-            return leading + [space, returnKey]
+            guard context.showsEmoji else { return leading + [space, returnKey] }
+            return leading + emoji + [space, .key(Key(.return, width: .pitch(side - 0.5)))]
         }
     }
 }

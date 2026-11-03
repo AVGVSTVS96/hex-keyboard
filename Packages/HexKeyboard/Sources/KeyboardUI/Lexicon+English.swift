@@ -18,7 +18,7 @@ extension Phrases {
 extension EmojiCatalog {
     nonisolated static let english: EmojiCatalog = {
         let url = Bundle.module.url(forResource: "emoji", withExtension: "txt")!
-        return EmojiCatalog(text: try! String(contentsOf: url, encoding: .utf8))
+        return EmojiCatalog(text: try! String(contentsOf: url, encoding: .utf8), search: .english)
     }()
 }
 

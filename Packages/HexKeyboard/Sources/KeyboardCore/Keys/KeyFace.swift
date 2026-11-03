@@ -85,6 +85,8 @@ extension KeyFace {
             self.init(content: .symbol("globe"), alignment: edge)
         case .dismiss:
             self.init(content: .symbol("keyboard.chevron.compact.down"), alignment: edge)
+        case .emoji:
+            self.init(content: .symbol("face.smiling"), alignment: edge)
         }
     }
 

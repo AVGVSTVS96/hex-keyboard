@@ -1,6 +1,6 @@
 # Design
 
-Hex's look follows the Raycast keyboard for iOS (October 2026): one bar of suggestions with the mic at its end, a row of tool pills under it, and big flat keys, with no AI tools. This file is the spec: every size is in points, every color is sRGB hex. The Paper file "hex keyboard · Raycast" (`01M66Y7ME0SWEVV7YJM62FBE02`) draws each frame from the same numbers.
+Hex's look follows the Raycast keyboard for iOS (October 2026): one bar of suggestions with the tools at its left and the mic at its end, and big flat keys, with no AI tools. This file is the spec: every size is in points, every color is sRGB hex. The Paper file "hex keyboard · Raycast" (`01M66Y7ME0SWEVV7YJM62FBE02`) draws each frame from the same numbers.
 
 Where this file and a Paper frame disagree, this file wins.
 
@@ -8,18 +8,16 @@ Where this file and a Paper frame disagree, this file wins.
 
 ```
 ┌──────────────────────────────────────────┐  ← system card (iOS draws it)
-│  the   │  noon  │   ☕            (mic)  │  bar, 40
-│                                          │  8
-│ (  🙂  )   (  GIF  )   (  clipboard  )   │  pills, 40
+│ GIF  📋 │ the │ noon │ ☕ 🍵 →     (mic)  │  bar, 40
 │                                          │  11, the dead gap
 │ q  w  e  r  t  y  u  i  o  p             │
 │  a  s  d  f  g  h  j  k  l               │  keys: 4 rows
 │ ⇧   z  x  c  v  b  n  m   ⌫              │
-│ 123  🌐  [        space       ]  return  │
+│ 123  🌐  🙂 [      space      ]  return  │
 └──────────────────────────────────────────┘
 ```
 
-From top to bottom: 8 of padding, the bar (40), 8, the pill row (40), 11, four rows of keys, the bottom inset.
+From top to bottom: 8 of padding, the bar (40), 11, four rows of keys, the bottom inset. The tools take no row of their own: Bassim would rather the space go to nothing than to a row of buttons, so on every screen they sit at the bar's left, as they did only where height was short.
 
 ### Keys
 
@@ -28,7 +26,7 @@ From top to bottom: 8 of padding, the bar (40), 8, the pill row (40), 11, four r
 - Corner radius 9 on every key and every size (Apple 8, Raycast ~8.5).
 - Row 2 is centered (a half pitch in on each side). Row 3: shift and delete are 1.3 pitch − 6 wide at the edges; z to m are centered between them.
 - Bottom row: `123` and the globe are 1.12 pitch − 6 wide, return is 2.3 pitch − 6, space takes the rest. The globe shows only when `needsInputModeSwitchKey` is true. It is true on the Duo (Touch ID, no system globe bar), so the Duo's row is `123 · globe · space · return`; Face ID iPhones get `123 · space · return`, because iOS puts the globe in the bar under the keyboard.
-- The emoji key leaves the bottom row: emoji live in the pill row, with GIFs and the clipboard, so every panel opens from one place and the bottom row only types.
+- The emoji key sits where Apple's does, after `123` (and the globe), half the width `123` would have alone; return gives up half a pitch to make room, and space takes the rest. Settings › Keys › Emoji Key takes it away, leaving the bar's emoji for the word as the way to emoji; on iPad, which has no room for it in the bottom row, the emoji tool sits in the bar instead.
 - Space is blank (no "hex" label).
 - Return shows the `return.left` glyph. For go, search, send, join, route, done and next it turns into the prominent key: accent fill, white label (`go`, `search`, `send`, …), semibold 17.
 - All keys share one fill; letter and function keys look the same, as in Raycast and in iOS 27.
@@ -44,25 +42,23 @@ From top to bottom: 8 of padding, the bar (40), 8, the pill row (40), 11, four r
 
 - 40 tall. Three suggestion slots of equal width share what the mic leaves, divided by 1pt lines 28 tall.
 - The mic is a 38 circle at the bar's right end, in line with the keys' right edge. Dark: white circle, black glyph. Light: black circle, white glyph. It is always there.
-- The last slot gives way to the word's emoji when it has one (as today: `EmojiCatalog`; none beats a wrong one).
+- The last slot gives way to the word's emoji when it has some (`EmojiCatalog`; none beats a wrong one): the ones picked for the word, then every emoji whose name or keywords hold the word, up to 30, 36 apart. As many as fit show, centered when they all do; the rest are a swipe left away.
 - What the slots hold and what a tap does doesn't change (`SuggestionBar`, Apple's three suggestions, a quoted middle when it will autocorrect).
 
-### The pill row
+### The tools
 
-- Three pills of equal width, 40 tall, fully rounded (radius 20), 8 apart, spanning the keys block. Fill is the key fill; in light mode they get the keys' 1pt shadow.
-- Left to right: Emoji (`face.smiling`), GIF, Clipboard (`list.clipboard`). Icons only, 22, in the label color. Each opens its panel (section "Panels").
-- Nothing AI goes here. Snippets, if they come, take a fourth pill.
+- GIF and Clipboard (and, on iPad with the emoji key on, Emoji) are 36 × 36 icon buttons (34 on the folded landscape) at the bar's left end, 2 apart, in the label color, before the suggestions. Each opens its panel (section "Panels").
+- Nothing AI goes here.
 
 ### Where taps land
 
 Bassim reaches for the top row fast, so a reach must never pick a suggestion or open a panel.
 
 - The bar takes taps in its full 40.
-- The 8 between bar and pills goes nowhere.
-- A pill takes taps in its top 34; its bottom 6 goes nowhere.
-- The 11 between pills and keys: its bottom 5 belongs to the top key row (as today's `KeyGrid` gives the top row the space above it); its top 6 goes nowhere.
+- The bar's bottom 6 goes nowhere.
+- The 11 between the bar and the keys belongs to the top key row (as `KeyGrid` gives the top row the space above it).
 - Gaps between keys still take taps (`KeyboardInputView`'s invisible fill).
-- Callouts of top-row keys may draw over the pill row; they no longer need clamping into a thin strip.
+- Callouts of top-row keys draw over the bar.
 
 ### The mic
 
@@ -80,7 +76,7 @@ Behavior is what `MicButton` does today; only its look changes.
 | Role | Dark | Light |
 |---|---|---|
 | Card (iOS draws it behind the keyboard; Hex draws nothing there) | `#222223` | `#E2E3E8` |
-| Key, pill | `#444444` | `#FFFFFF` |
+| Key | `#444444` | `#FFFFFF` |
 | Key pressed | `#6B6B6B` | `#ABB0BA` |
 | Key shadow | none | 0 1 0 `rgba(0,0,0,0.18)` |
 | Label, glyphs | `#FFFFFF` | `#000000` |
@@ -91,46 +87,45 @@ Behavior is what `MicButton` does today; only its look changes.
 | Record (stop, recording) | `#FF453A` | `#FF3B30` |
 | Search field | `#333335` | `#FFFFFF` |
 
-The key, pressed and label colors are today's iOS 27 theme (`KeyboardTheme`); pills and the mic are new.
+The key, pressed and label colors are the iOS 27 theme (`KeyboardTheme`); the mic is new.
 
 ### Per device
 
-| | Keys block | Key h | Row gap | Top | Bar | Pills | Pills → keys | Bottom | Total |
+| | Keys block | Key h | Row gap | Top | Bar | Bar → keys | Bottom | Total |
 |---|---|---|---|---|---|---|---|---|---|
-| Duo folded (cover), upright, 466 × 678 | 6.5 in, keys 6 apart | 45 | 11 | 8 | 40 | 8 + 40 | 11 | 39 | |
-| Duo open, upright, 951 × 669 (compact) | 9 in, keys 10 apart | 38.67 | 13 | 8 | 40 | none | 11 | 20 | |
-| Duo open, on its side, 669 × 951 | 18 in, keys 9 apart | 45.67 | 14 | 8 | 40 | 8 + 40 | 11 | 73 | |
-| Duo folded, on its side, 678 × 466 (compact) | 4.5 in, keys 7 apart | 33.33 | 9 | 4 | 34 | none | 8 | 20 | |
-| iPhone portrait (Face ID), 375–440 wide | full width | 43, or 45 from 415 wide | 11 | 8 | 40 | 8 + 40 | 11 | today's `bottomInset` | today's + 51 |
-| iPhone landscape (compact) | today's | today's 27.33 | today's 8 | 4 | 34 | none | 8 | today's | |
-| iPad (all) | today's | today's | today's | today's | today's 36pt row, compact bar | none | today's | today's | today's |
+| Duo folded (cover), upright, 466 × 678 | 6.5 in, keys 6 apart | 45 | 11 | 8 | 40 | 11 | 39 | |
+| Duo open, upright, 951 × 669 (compact) | 9 in, keys 10 apart | 38.67 | 13 | 8 | 40 | 11 | 20 | |
+| Duo open, on its side, 669 × 951 | 18 in, keys 9 apart | 45.67 | 14 | 8 | 40 | 11 | 73 | |
+| Duo folded, on its side, 678 × 466 (compact) | 4.5 in, keys 7 apart | 33.33 | 9 | 4 | 34 | 8 | 20 | |
+| iPhone portrait (Face ID), 375–440 wide | full width | 43, or 45 from 415 wide | 11 | 8 | 40 | 11 | today's `bottomInset` | |
+| iPhone landscape (compact) | today's | today's 27.33 | today's 8 | 4 | 34 | 8 | today's | |
+| iPad (all) | today's | today's | today's | today's | today's 36pt row, compact bar | today's | today's | today's |
 
 - Every Duo row is Apple's keyboard measured in the iOS 27.1 simulator (`scripts/sim duo`, which unfolds it with Device Hub's hinge event). "Keys block" is the side inset inside the keyboard's own width, which iOS narrows on the side layouts; "Bottom" is how far above the screen's bottom Apple's last row ends.
 - The open Duo is wide when you hold it upright (951 × 669) and tall on its side (669 × 951).
 - Apple's letters on the Duo are bigger than on other iPhones: 25.5 on the cover, 23.5 folded on its side, 28.5 open and upright, 28 open on its side. Hex's `123`, return and symbols grow by the same share; Apple's own `123` is bigger still, but its key is three times as wide, since its row has no globe.
 - The Duo's keys span the keyboard's whole width on every screen, at Apple's insets.
-- Regular iPhones and iPads keep today's key geometry, which is measured against Apple's. Only the bar, the pill row and the colors above change, so nothing that types today moves.
+- Regular iPhones and iPads keep their key geometry, which is measured against Apple's.
 
 ### The compact layout
 
-Where height is short (any landscape, and iPad), there's no pill row: the three tools sit in the bar's left end as 36 × 36 (34 on the folded landscape) icon buttons, 2 apart, before the suggestions. Same icons, same panels. The bar spans the keys block. The mic is 34 (32 on the folded landscape). With no pill row, the bar's bottom 6 goes nowhere, as today.
+Where height is short (any landscape, and iPad), the bar is 34 (iPad 36) and the mic 34 (32 on the folded landscape), and a panel's results are one row (`Toolbar.isCompact`).
 
 ### Cut from Raycast
 
 - The 2×2 grid button at the bar's left (Raycast's commands): Hex has no commands, so the suggestions get its width.
 - Quick Fix, Ask AI and AI commands.
-- The emoji key in the bottom row (moved to the pill row).
 
 ### States
 
-- Pressed key: the pressed fill, plus today's callout above letter keys. Function keys and pills show only the pressed fill.
+- Pressed key: the pressed fill, plus today's callout above letter keys. Function keys and tools show only the pressed fill.
 - Shift: `shift` off, `shift.fill` on, `capslock.fill` locked. Letters show uppercase while shift is on.
 - The number and symbol layers keep today's keys (`PhoneLayouts`) in this look; `123` reads `ABC` there.
 - Holding `123` still offers the one-handed layouts, as today.
 
 ## Panels
 
-Emoji, GIF and Clipboard open from their pills (or, in the compact layout, the bar's icons). A panel replaces the bar and the pill row with a results area and a search field; the keys stay where they are and type into the field, not into the app.
+Emoji opens from its key, GIF and Clipboard from the bar's tools. A panel replaces the bar with a results area and a search field; the keys stay where they are and type into the field, not into the app.
 
 ```
 ┌──────────────────────────────────────────┐
@@ -145,7 +140,7 @@ Emoji, GIF and Clipboard open from their pills (or, in the compact layout, the b
 
 ### Shared
 
-- Top to bottom: 8, results 136, 6, the search row 40, 11, the keys, the bottom inset. On the Duo cover the keyboard grows from 359 to 453 while a panel is open (Raycast's grows about as much).
+- Top to bottom: 8, results 136, 6, the search row 40, 11, the keys, the bottom inset. On the Duo cover the keyboard grows from 311 to 453 while a panel is open.
 - Search row: a 36-wide back button (`chevron.left` 22, label color), 4, then the field: fully rounded (radius 20), search-field fill (light mode adds the keys' shadow), 14 in on the left and 12 on the right, a leading glyph (secondary, 17–20), text SF Pro 17 (placeholder in secondary), the accent cursor, and trailing buttons.
 - With text in the field, a clear button sits at its right end: a 20 secondary circle with a field-colored `xmark` 11. It empties the field.
 - What the keys do in a panel: letters, numbers, space and shift type into the field. Delete deletes in the field; with the field empty, it deletes before the app's cursor, so a wrong insert can be fixed without leaving the panel. Return and the back button close the panel. The globe works as everywhere.
@@ -166,7 +161,7 @@ Emoji, GIF and Clipboard open from their pills (or, in the compact layout, the b
 ### GIF
 
 - Needs Full Access (it goes online). Without it, the results area says "GIF search needs Full Access." in secondary 15 with a "Turn On" button (accent text) that opens Hex's app where it explains how.
-- Source: KLIPY's API, its key in `Packages/HexKeyboard/Sources/KeyboardUI/Resources/Keys/klipy.key`, kept out of git like `Config/Team.xcconfig`. With no key built in, the GIF pill doesn't show. KLIPY over GIPHY (what Raycast uses): both give a new key 100 requests an hour, but KLIPY's production keys are free and unlimited, where GIPHY reviews each app and discusses pricing; GIPHY forbids keeping anything it sends, even a GIF's URL, where KLIPY lets an app keep slugs and fetch them again (`gifs/items`), which recents need. KLIPY requires the placeholder "Search KLIPY", loading its media straight from its URLs, and showing its results in its order.
+- Source: KLIPY's API, its key in `Packages/HexKeyboard/Sources/KeyboardUI/Resources/Keys/klipy.key`, kept out of git like `Config/Team.xcconfig`. With no key built in, the GIF tool doesn't show. KLIPY over GIPHY (what Raycast uses): both give a new key 100 requests an hour, but KLIPY's production keys are free and unlimited, where GIPHY reviews each app and discusses pricing; GIPHY forbids keeping anything it sends, even a GIF's URL, where KLIPY lets an app keep slugs and fetch them again (`gifs/items`), which recents need. KLIPY requires the placeholder "Search KLIPY", loading its media straight from its URLs, and showing its results in its order.
 - Field: leading GIF glyph (20, secondary), placeholder "Search KLIPY", trailing `clock` (20, secondary) that switches the results to your recent GIFs; it turns accent while on. Raycast's GIF token chip is cut: the panel only searches GIFs.
 - Results: two rows 65 tall, 6 apart, scrolling sideways. Each GIF keeps its own aspect ratio at that height (no letterboxing, unlike Raycast), radius 8, the key fill while it loads.
 - Empty field: KLIPY's trending GIFs.
@@ -181,7 +176,7 @@ Emoji, GIF and Clipboard open from their pills (or, in the compact layout, the b
 - Needs Full Access (a keyboard can't read the clipboard without it) and Settings › Apps › Hex › Paste from Other Apps set to Allow. iOS counts a keyboard's reads as its app's, even inside another app; at Ask (the default) it refuses them silently, since the prompt it means to show never appears over a keyboard, and at Allow it lets them through without asking (iOS 27 simulator, from `pasted`'s log). The panel says which is missing, with a "Turn On" button that opens Hex's app.
 - Hex keeps what you copy when it sees it: each time the keyboard appears and each time this panel opens, it checks the clipboard's `changeCount` and keeps a new item. Nothing runs in the background. A refused read isn't counted as seen, so turning Allow on catches up.
 - Never kept: items marked concealed (`org.nspasteboard.ConcealedType`, which password managers set) and anything copied while a secure field was active.
-- History: the last 50 items, newest first, an identical item moves to the top instead of repeating; pinned items stay above them and never age out. Kept in the keyboard's own container, never online.
+- History: everything you copied, newest first, until you delete it; an identical item moves to the top instead of repeating; pinned items stay above the rest. The newest 200 show, and search reaches all of it. Kept in the keyboard's own container, never online; each keyboard reads the file before changing it, since iOS can run the keyboard in two apps at once and one would write over what the other kept.
 - Results: rows 44 tall, 2 apart, three in view, scrolling up and down. Each row: a 16-wide slot with `pin.fill` (13, secondary) for pinned items, the text on one line in SF Pro 16 (images show a 32 thumbnail, radius 6), and at the right how long ago in secondary 13 (`now`, `5m`, `3h`, `2d`). iOS never tells a keyboard which app copied something (`UIPasteboard` has no such property), so a row can't say where it came from.
 - Field: leading clipboard glyph, placeholder "Search clipboard"; typing filters by substring.
 - Tap: inserts the text at the cursor (an image is copied back to the clipboard, as GIFs are). Hold: Pin or Unpin, Delete.

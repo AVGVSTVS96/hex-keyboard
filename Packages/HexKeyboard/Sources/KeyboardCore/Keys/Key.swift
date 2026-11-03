@@ -13,6 +13,8 @@ public enum KeyAction: Hashable, Sendable {
     case layer(KeyboardLayer)
     case nextKeyboard
     case dismiss
+    /// Opens the emoji panel.
+    case emoji
 }
 
 public enum KeyWidth: Hashable, Sendable {

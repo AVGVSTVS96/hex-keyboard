@@ -1,8 +1,8 @@
 import UIKit
 import KeyboardCore
 
-/// Apple's three suggestions, the last one giving way to emoji when the word has some, and a round mic at the right end
-/// that starts and stops dictation. Where there's no pill row, the tools sit at its left end. While the app listens,
+/// Apple's three suggestions, the last one giving way to the word's emoji when it has some (as many as fit, and the rest
+/// a swipe left away), and a round mic at the right end that starts and stops dictation. The tools sit at its left end. While the app listens,
 /// the suggestions give way to a waveform of your voice and the time so far.
 final class SuggestionBar: UIView {
     var onSelect: (Suggestion) -> Void = { _ in }
@@ -19,6 +19,7 @@ final class SuggestionBar: UIView {
     private let slots = (0..<3).map { SuggestionSlot(index: $0) }
     private let dividers = (0..<2).map { _ in UIView() }
     private var emoji: [EmojiPick] = []
+    private let strip = ButtonScrollView()
     private var tools: [ToolButton] = []
     private let mic = MicButton()
     private let waveform = Waveform()
@@ -37,6 +38,9 @@ final class SuggestionBar: UIView {
             addSubview(slot)
         }
         dividers.forEach(addSubview)
+        strip.alwaysBounceHorizontal = false
+        strip.accessibilityIdentifier = "hex.suggestion.emoji"
+        addSubview(strip)
         mic.addAction(UIAction { [unowned self] _ in onMic() }, for: .touchUpInside)
         mic.onHold = { [unowned self] in onMicHold() }
         addSubview(waveform)
@@ -67,9 +71,10 @@ final class SuggestionBar: UIView {
                 let pick = EmojiPick(emoji: emoji, index: index)
                 pick.addAction(UIAction { [unowned self] _ in onEmoji(emoji) }, for: .touchUpInside)
                 pick.onHighlight = { [unowned self] in refreshDividers() }
-                addSubview(pick)
+                strip.addSubview(pick)
                 return pick
             }
+            strip.contentOffset = .zero
             setNeedsLayout()
         }
         self.emoji.forEach { $0.theme = theme }
@@ -93,7 +98,7 @@ final class SuggestionBar: UIView {
         if panels != tools.map(\.panel) {
             tools.forEach { $0.removeFromSuperview() }
             tools = panels.map { panel in
-                let tool = ToolButton(panel: panel, pill: false)
+                let tool = ToolButton(panel: panel)
                 tool.addAction(UIAction { [unowned self] _ in onTool(panel) }, for: .touchUpInside)
                 addSubview(tool)
                 return tool
@@ -118,6 +123,7 @@ final class SuggestionBar: UIView {
         notice.isHidden = !noticed || recording
         waveform.isHidden = !recording
         slots.forEach { $0.isHidden = quiet }
+        strip.isHidden = quiet || emoji.isEmpty
         emoji.forEach { $0.isHidden = quiet }
         if !emoji.isEmpty { slots[slots.count - 1].isHidden = true }
         refreshDividers()
@@ -134,11 +140,9 @@ final class SuggestionBar: UIView {
         }
     }
 
-    /// The bar takes taps in its full height above a pill row; with no pill row, its bottom edge goes nowhere, so a
-    /// reach for the top row never picks a suggestion.
+    /// The bar's bottom edge goes nowhere, so a reach for the top row never picks a suggestion.
     override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
-        let dead = toolbar.pills == nil ? Toolbar.deadEdge : 0
-        return point.y < bounds.height - dead && super.point(inside: point, with: event)
+        point.y < bounds.height - Toolbar.deadEdge && super.point(inside: point, with: event)
     }
 
     override func layoutSubviews() {
@@ -161,16 +165,19 @@ final class SuggestionBar: UIView {
             slot.frame = CGRect(x: minX, y: content.minY, width: maxX - minX, height: content.height)
         }
         let last = slots[slots.count - 1].frame
-        let pitch = min(last.width / CGFloat(max(emoji.count, 1)), EmojiPick.pitch)
-        let left = last.midX - pitch * CGFloat(emoji.count) / 2
+        strip.frame = last
+        let pitch = EmojiPick.pitch
+        let total = pitch * CGFloat(emoji.count)
+        let left = max((last.width - total) / 2, 0)
         for (index, pick) in emoji.enumerated() {
             let minX = (left + CGFloat(index) * pitch).rounded(scale: scale)
             let glyph = CGRect(x: minX, y: 0, width: (left + CGFloat(index + 1) * pitch).rounded(scale: scale) - minX, height: content.height)
-            let frameMinX = index == 0 ? last.minX : glyph.minX
-            let frameMaxX = index == emoji.count - 1 ? last.maxX : glyph.maxX
-            pick.frame = CGRect(x: frameMinX, y: content.minY, width: frameMaxX - frameMinX, height: content.height)
+            let frameMinX = index == 0 ? 0 : glyph.minX
+            let frameMaxX = index == emoji.count - 1 ? max(last.width, glyph.maxX) : glyph.maxX
+            pick.frame = CGRect(x: frameMinX, y: 0, width: frameMaxX - frameMinX, height: content.height)
             pick.glyph = glyph.offsetBy(dx: -pick.frame.minX, dy: 0)
         }
+        strip.contentSize = CGSize(width: max(total, last.width), height: content.height)
         for (index, divider) in dividers.enumerated() {
             divider.frame = CGRect(x: slots[index].frame.maxX - 0.5, y: content.midY - 14, width: 1, height: 28)
         }
@@ -335,7 +342,7 @@ private final class Waveform: UIView {
 /// One emoji in the bar's last slot: a tap types it in place of the word. The outer ones also take the slot's
 /// margins, so the whole slot answers a tap.
 private final class EmojiPick: UIControl {
-    static let pitch: CGFloat = 44
+    static let pitch: CGFloat = 36
     let emoji: String
     var glyph = CGRect.zero { didSet { setNeedsLayout() } }
     var onHighlight: () -> Void = {}

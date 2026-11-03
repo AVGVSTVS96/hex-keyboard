@@ -14,29 +14,26 @@ struct ClipboardHistoryTests {
     @Test func aCopyTooBigForTheKeyboardsMemoryIsntKept() {
         var history = ClipboardHistory()
         let log = String(repeating: "x", count: 10_000_000)
-        #expect(history.keep(.text(log), at: 1) == [])
+        history.keep(.text(log), at: 1)
         #expect(history.items.count == 0, "fifty of these would be 500 MB in a keyboard that gets well under 100")
         history.keep(.text(String(repeating: "y", count: 50_000)), at: 2)
         #expect(history.items.count == 1, "a long message still is")
     }
 
-    @Test func pinnedItemsStayOnTopAndNeverAgeOut() {
+    @Test func nothingAgesOutAndPinnedItemsStayOnTop() {
         var history = ClipboardHistory()
         history.keep(.text("keep me"), at: 0)
         history.setPinned(true, .text("keep me"))
-        var dropped: [ClipboardHistory.Item.Content] = []
-        for i in 1 ... 52 { dropped += history.keep(.text("\(i)"), at: Double(i)) }
-        #expect(history.items.count == 51)
+        for i in 1 ... 500 { history.keep(.text("\(i)"), at: Double(i)) }
+        #expect(history.items.count == 501, "everything you copied stays until you delete it")
         #expect(history.items.first == .init(content: .text("keep me"), found: 0, pinned: true))
-        #expect(history.items[1].content == .text("52"))
-        #expect(dropped == [.text("1"), .text("2")], "the oldest unpinned items age out, for the store to delete")
+        #expect(history.items[1].content == .text("500"))
+        #expect(history.items.last?.content == .text("1"))
 
-        history.keep(.text("keep me"), at: 60)
+        history.keep(.text("keep me"), at: 600)
         #expect(history.items.first?.pinned == true, "copying a pinned item again keeps it pinned")
         history.setPinned(false, .text("keep me"))
         #expect(history.items.first?.content == .text("keep me"), "unpinned, it's still the newest")
-        history.keep(.text("53"), at: 61)
-        #expect(history.items.count == 50, "once unpinned it counts toward the 50")
         history.remove(.text("keep me"))
         #expect(!history.items.contains { $0.content == .text("keep me") })
     }

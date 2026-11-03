@@ -1,5 +1,5 @@
-/// What you copied, as the keyboard found it on the clipboard (docs/design.md, "Clipboard"): the newest 50 and whatever
-/// you pinned. It stays on the device.
+/// What you copied, as the keyboard found it on the clipboard (docs/design.md, "Clipboard"): all of it, kept until you
+/// delete it. It stays on the device.
 public struct ClipboardHistory: Codable, Hashable, Sendable {
     public struct Item: Codable, Hashable, Sendable, Identifiable {
         public enum Content: Codable, Hashable, Sendable {
@@ -21,24 +21,18 @@ public struct ClipboardHistory: Codable, Hashable, Sendable {
     public var items: [Item] { saved.sorted { ($0.pinned ? 1 : 0, $0.found) > ($1.pinned ? 1 : 0, $1.found) } }
     private var saved: [Item] = []
 
-    static let capacity = 50
     /// The longest text kept, in UTF-8 bytes. The history lives in the keyboard's small memory and is read whenever it
     /// opens, so a copied log or document isn't kept at all rather than kept cut short.
     static let longest = 100_000
 
     public init() {}
 
-    /// Keeps something just copied. Copying it again moves it up rather than repeating it. Returns what aged out, so
-    /// the store can delete its files.
-    @discardableResult
-    public mutating func keep(_ content: Item.Content, at time: Double) -> [Item.Content] {
-        if case .text(let text) = content, text.utf8.count > Self.longest { return [] }
+    /// Keeps something just copied. Copying it again moves it up rather than repeating it.
+    public mutating func keep(_ content: Item.Content, at time: Double) {
+        if case .text(let text) = content, text.utf8.count > Self.longest { return }
         let pinned = saved.first { $0.content == content }?.pinned ?? false
         saved.removeAll { $0.content == content }
         saved.append(Item(content: content, found: time, pinned: pinned))
-        let dropped = items.filter { !$0.pinned }.dropFirst(Self.capacity).map(\.content)
-        saved.removeAll { dropped.contains($0.content) }
-        return dropped
     }
 
     public mutating func setPinned(_ pinned: Bool, _ content: Item.Content) {

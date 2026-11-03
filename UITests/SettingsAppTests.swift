@@ -41,7 +41,8 @@ final class SettingsAppTests: XCTestCase {
         hex.launchArguments = ["-HexResetSettings", "YES", "-HexSettings", "voice"]
         hex.launch()
         let picked = hex.buttons["5 Minutes"]
-        XCTAssertTrue(picked.waitForExistence(timeout: 5))
+        XCTAssertTrue(hex.navigationBars["Voice Typing"].waitForExistence(timeout: 5))
+        for _ in 0 ..< 6 where !picked.isHittable { hex.swipeUp() }
         XCTAssertTrue(picked.isSelected)
         try shot(hex, "keep-mic-on-choices")
         let minute = hex.buttons["1 Minute"]

@@ -22,7 +22,7 @@ final class ClipboardStore {
 
     init(folder: URL = URL.applicationSupportDirectory.appending(path: "clipboard")) {
         self.folder = folder
-        saved = (try? JSONDecoder().decode(Saved.self, from: Data(contentsOf: folder.appending(path: "history.json")))) ?? Saved()
+        saved = Self.read(folder) ?? Saved()
     }
 
     var history: ClipboardHistory { saved.history }
@@ -33,6 +33,7 @@ final class ClipboardStore {
 
     /// Keeps what's on the clipboard if it changed since the keyboard last looked.
     func catchUp(_ pasteboard: UIPasteboard = .general, now: Date = .now) {
+        reload()
         guard pasteboard.changeCount != saved.seen else { return }
         defer { save() }
         guard !pasteboard.types.contains(where: Self.concealed.contains) else { return saved.seen = pasteboard.changeCount }
@@ -49,21 +50,24 @@ final class ClipboardStore {
         guard let content else { return }
         saved.seen = pasteboard.changeCount
         if case .text(let text) = content, text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return }
-        deleteFiles(saved.history.keep(content, at: now.timeIntervalSince1970))
+        saved.history.keep(content, at: now.timeIntervalSince1970)
     }
 
     /// Something the keyboard put on the clipboard itself, which it doesn't keep.
     func skip(changeCount: Int) {
+        reload()
         saved.seen = changeCount
         save()
     }
 
     func setPinned(_ pinned: Bool, _ content: ClipboardHistory.Item.Content) {
+        reload()
         saved.history.setPinned(pinned, content)
         save()
     }
 
     func remove(_ content: ClipboardHistory.Item.Content) {
+        reload()
         saved.history.remove(content)
         deleteFiles([content])
         save()
@@ -94,6 +98,17 @@ final class ClipboardStore {
 
     private func deleteFiles(_ contents: [ClipboardHistory.Item.Content]) {
         for case .image(let name) in contents { try? FileManager.default.removeItem(at: folder.appending(path: name)) }
+    }
+
+    /// The history as the file holds it now. iOS can run the keyboard in more than one app at once, each with the
+    /// history it read when it opened, so each takes the file's before changing it, and one never writes over what
+    /// another kept.
+    private func reload() {
+        if let saved = Self.read(folder) { self.saved = saved }
+    }
+
+    private static func read(_ folder: URL) -> Saved? {
+        try? JSONDecoder().decode(Saved.self, from: Data(contentsOf: folder.appending(path: "history.json")))
     }
 
     private func save() {

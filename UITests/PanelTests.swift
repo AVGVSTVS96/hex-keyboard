@@ -1,7 +1,7 @@
 import XCTest
 
-/// The emoji panel through the real keyboard: the pill opens it, the keys type into its search, a tap types the emoji
-/// into the app, and back brings the bar and pills back. With HEX_SHOTS set, screenshots each step.
+/// The emoji panel through the real keyboard: the emoji key opens it, the keys type into its search, a tap types the emoji
+/// into the app, and back brings the bar back. With HEX_SHOTS set, screenshots each step.
 final class PanelTests: XCTestCase {
     func testTheEmojiPanelSearchesWithTheKeysAndTypesWhatYouPick() throws {
         let shots = ProcessInfo.processInfo.environment["HEX_SHOTS"]
@@ -13,11 +13,11 @@ final class PanelTests: XCTestCase {
         for letter in "coffee at" { key(letter == " " ? "space" : String(letter), in: app).tap() }
         try shot(shots, "main")
 
-        let tool = app.buttons["hex.tool.emoji"]
-        XCTAssertTrue(tool.waitForExistence(timeout: 3), "the emoji tool sits under the bar, or at its left end")
+        let tool = key("emoji", in: app)
+        XCTAssertTrue(tool.waitForExistence(timeout: 3), "the emoji key sits beside the space bar")
         tool.tap()
         let grid = app.collectionViews["hex.emoji"]
-        XCTAssertTrue(grid.waitForExistence(timeout: 3), "the emoji pill opens the emoji panel")
+        XCTAssertTrue(grid.waitForExistence(timeout: 3), "the emoji key opens the emoji panel")
         try shot(shots, "emoji")
 
         for letter in "pizza" { key(String(letter), in: app).tap() }
@@ -38,7 +38,7 @@ final class PanelTests: XCTestCase {
 
     func testHoldingDeleteToEmptyTheSearchLeavesTheMessageAlone() throws {
         let app = launchAndType("coffee at")
-        app.buttons["hex.tool.emoji"].tap()
+        openEmoji(in: app)
         for letter in "pizza" { key(String(letter), in: app).tap() }
         let search = app.descendants(matching: .any).matching(identifier: "hex.panel.search").firstMatch
         XCTAssertTrue(wait { (search.value as? String) == "pizza" })
@@ -49,7 +49,7 @@ final class PanelTests: XCTestCase {
 
     func testHoldingAnEmojiAtTheRightEdgeWithoutSlidingPicksIt() throws {
         let app = launchAndType("hi ")
-        app.buttons["hex.tool.emoji"].tap()
+        openEmoji(in: app)
         for letter in "hand" { key(String(letter), in: app).tap() }
         let cells = app.collectionViews["hex.emoji"].cells
         XCTAssertTrue(cells.firstMatch.waitForExistence(timeout: 3))
@@ -85,7 +85,12 @@ final class PanelTests: XCTestCase {
     }
 
     private func key(_ name: String, in app: XCUIApplication) -> XCUIElement {
-        let hex = app.keys.matching(identifier: "hex.\(name)").firstMatch
-        return hex.exists ? hex : app.keys.matching(NSPredicate(format: "label ==[c] %@", name)).firstMatch
+        app.keys.matching(NSPredicate(format: "identifier == %@ OR label ==[c] %@", "hex.\(name)", name)).firstMatch
+    }
+
+    private func openEmoji(in app: XCUIApplication) {
+        let emoji = key("emoji", in: app)
+        XCTAssertTrue(emoji.waitForExistence(timeout: 5), "the emoji key sits beside the space bar")
+        emoji.tap()
     }
 }

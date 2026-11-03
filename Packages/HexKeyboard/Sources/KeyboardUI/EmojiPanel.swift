@@ -54,7 +54,7 @@ final class EmojiPanel: UIView, PanelContent, UICollectionViewDataSource, UIColl
 
     func show(query: String, theme: KeyboardTheme, metrics: KeyboardMetrics) {
         self.metrics = metrics
-        size = metrics.toolbar.pills == nil ? 26 : 30
+        size = metrics.toolbar.isCompact ? 26 : 30
         if theme != self.theme {
             self.theme = theme
             empty.textColor = theme.candidate.ui

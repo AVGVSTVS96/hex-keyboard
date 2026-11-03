@@ -18,6 +18,7 @@ public enum SettingsStore {
         ("characterPreview", \.characterPreview),
         ("haptics", \.haptics),
         ("sound", \.sound),
+        ("emojiKey", \.emojiKey),
     ]
 
     private static let oneHandedKey = "oneHanded"
@@ -28,7 +29,7 @@ public enum SettingsStore {
     private static var own: UserDefaults { .standard }
 
     public static func load(sharing: Bool = true) -> KeyboardSettings {
-        var settings = KeyboardSettings()
+        var settings = KeyboardSettings.initial
         for (key, path) in toggles {
             if let value = value(forKey: key, sharing: sharing) as? Bool { settings[keyPath: path] = value }
         }
@@ -71,8 +72,7 @@ public enum SettingsStore {
         set { group.set(newValue, forKey: "pasteAllowed") }
     }
 
-    public static func reset() {
-        let settings = KeyboardSettings()
+    public static func reset(to settings: KeyboardSettings = .initial) {
         for (key, path) in toggles { set(settings[keyPath: path], forKey: key) }
         set(OneHanded.off)
         keepMicOn = Dictation.micDefault

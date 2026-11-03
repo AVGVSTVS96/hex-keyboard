@@ -2,7 +2,7 @@ import KeyboardCore
 import UIKit
 
 /// The clipboard panel's results (docs/design.md, "Clipboard"): what you copied, pinned items first, as rows scrolling up
-/// and down (cards in one row in the compact layout). A tap types the text, or puts an image back on the clipboard;
+/// and down (cards in one row scrolling sideways in the compact layout). A tap types the text, or puts an image back on the clipboard;
 /// holding a row offers Pin and Delete.
 final class ClipboardPanel: UIView, PanelContent {
     var fullAccess: () -> Bool = { false }
@@ -28,18 +28,14 @@ final class ClipboardPanel: UIView, PanelContent {
     private var theme = KeyboardTheme.lightCurrent
     private var holding: ClipboardHistory.Item.Content?
     private var shown: Shown?
-    private let scroll = UIScrollView()
+    private let scroll = ButtonScrollView()
     private var rows: [ClipRow] = []
     private let message = UIButton(type: .system)
 
     init(store: ClipboardStore) {
         self.store = store
         super.init(frame: .zero)
-        scroll.delaysContentTouches = false
-        scroll.showsVerticalScrollIndicator = false
-        scroll.showsHorizontalScrollIndicator = false
         scroll.accessibilityIdentifier = "hex.clipboard"
-        [scroll.topEdgeEffect, scroll.bottomEdgeEffect, scroll.leftEdgeEffect, scroll.rightEdgeEffect].forEach { $0.isHidden = true }
         message.titleLabel?.font = .systemFont(ofSize: 15)
         message.titleLabel?.numberOfLines = 0
         message.titleLabel?.textAlignment = .center
@@ -50,6 +46,9 @@ final class ClipboardPanel: UIView, PanelContent {
     }
 
     required init?(coder: NSCoder) { fatalError() }
+
+    /// The newest this many show, so a long history opens as fast as a short one; searching reaches the rest.
+    static let shownAtMost = 200
 
     func reset() {
         if fullAccess() { store.catchUp() }
@@ -63,12 +62,12 @@ final class ClipboardPanel: UIView, PanelContent {
         if query != self.query { notice = nil }
         self.query = query
         self.theme = theme
-        compact = metrics.toolbar.pills == nil
+        compact = metrics.toolbar.isCompact
         refresh()
     }
 
     private func refresh() {
-        let items = fullAccess() ? store.history.matching(query) : []
+        let items = fullAccess() ? Array(store.history.matching(query).prefix(Self.shownAtMost)) : []
         let missing: String? = if !fullAccess() { "Clipboard needs Full Access." } else if store.refused { "To keep what you copy, set Paste from Other Apps to Allow." } else { nil }
         let empty: String? = items.isEmpty ? (query.isEmpty ? "Things you copy show up here." : "Nothing copied with “\(query)”") : nil
         let next = Shown(items: items, message: missing ?? empty, compact: compact, theme: theme, holding: holding)

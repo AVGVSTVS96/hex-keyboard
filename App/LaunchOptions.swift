@@ -36,9 +36,11 @@ enum LaunchOptions {
         }
     }
 
+    /// `-HexResetSettings YES` puts back Apple's keyboard settings, which the UI tests are written against, and forgets
+    /// what Hex learned.
     static func resetSettingsIfAsked() {
         guard defaults.bool(forKey: "HexResetSettings") else { return }
-        SettingsStore.reset()
+        SettingsStore.reset(to: KeyboardSettings())
         MemoryStore.reset()
     }
 

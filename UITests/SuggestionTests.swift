@@ -57,7 +57,7 @@ final class SuggestionTests: XCTestCase {
         app.launch()
         let toggle = app.switches["Auto-Correction"]
         XCTAssertTrue(toggle.waitForExistence(timeout: 5))
-        toggle.tap()
+        toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5)).tap()
         XCTAssertEqual(toggle.value as? String, "0")
         app.tabBars.buttons["Hex"].tap()
         field.tap()

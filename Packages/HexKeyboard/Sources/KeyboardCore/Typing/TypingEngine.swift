@@ -63,7 +63,7 @@ public struct TypingEngine {
             layer = target
             suggestionsChanged()
             return
-        case .nextKeyboard, .dismiss:
+        case .nextKeyboard, .dismiss, .emoji:
             return
         case .character, .space, .return, .tab, .delete:
             break
@@ -158,6 +158,8 @@ public struct TypingEngine {
             let layer = self.layer
             perform(.character(text), in: document)
             if self.layer == layer { perform(.layer(.letters), in: document) }
+        case .trigger(let key) where key.action == .emoji:
+            show(.emoji)
         case .trigger(let key):
             guard key.action == .return || key.action == .tab else { return false }
             perform(key.action, in: document)

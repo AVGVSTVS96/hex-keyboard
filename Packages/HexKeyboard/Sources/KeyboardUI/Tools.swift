@@ -1,53 +1,14 @@
 import UIKit
 import KeyboardCore
 
-/// The row of tools under the bar on an upright iPhone: one pill per panel, equal widths across the keys block. A
-/// pill's bottom edge goes nowhere, so a reach for the top row never opens a panel.
-final class PillRow: UIView {
-    var onTool: (Panel) -> Void = { _ in }
-    var block = (minX: CGFloat(0), maxX: CGFloat(0)) { didSet { if block != oldValue { setNeedsLayout() } } }
-    private var pills: [ToolButton] = []
-
-    func update(_ panels: [Panel], theme: KeyboardTheme) {
-        if panels != pills.map(\.panel) {
-            pills.forEach { $0.removeFromSuperview() }
-            pills = panels.map { panel in
-                let pill = ToolButton(panel: panel, pill: true)
-                pill.addAction(UIAction { [unowned self] _ in onTool(panel) }, for: .touchUpInside)
-                addSubview(pill)
-                return pill
-            }
-            setNeedsLayout()
-        }
-        pills.forEach { $0.theme = theme }
-    }
-
-    override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
-        point.y < bounds.height - Toolbar.deadEdge && super.point(inside: point, with: event)
-    }
-
-    override func layoutSubviews() {
-        super.layoutSubviews()
-        let scale = traitCollection.displayScale
-        let count = CGFloat(pills.count)
-        let width = (block.maxX - block.minX - Toolbar.pillGap * (count - 1)) / count
-        for (index, pill) in pills.enumerated() {
-            let minX = (block.minX + CGFloat(index) * (width + Toolbar.pillGap)).rounded(scale: scale)
-            pill.frame = CGRect(x: minX, y: 0, width: (minX + width).rounded(scale: scale) - minX, height: bounds.height)
-        }
-    }
-}
-
-/// A panel's tool: a pill in the pill row, or an icon at the bar's left in the compact layout.
+/// A panel's tool: an icon at the bar's left.
 final class ToolButton: UIControl {
     let panel: Panel
     var theme = KeyboardTheme.lightCurrent { didSet { refresh() } }
-    private let pill: Bool
     private let icon = UIImageView()
 
-    init(panel: Panel, pill: Bool) {
+    init(panel: Panel) {
         self.panel = panel
-        self.pill = pill
         super.init(frame: .zero)
         accessibilityIdentifier = "hex.tool.\(panel)"
         accessibilityLabel = panel.title
@@ -68,7 +29,7 @@ final class ToolButton: UIControl {
 
     private func refresh() {
         icon.tintColor = theme.label.ui
-        backgroundColor = pill ? (isHighlighted ? theme.keyPressed.ui : theme.key.ui) : (isHighlighted ? theme.candidatePill.ui : .clear)
+        backgroundColor = isHighlighted ? theme.candidatePill.ui : .clear
     }
 
     override func layoutSubviews() {

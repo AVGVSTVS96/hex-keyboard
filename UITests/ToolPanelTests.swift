@@ -17,7 +17,7 @@ final class ToolPanelTests: XCTestCase {
         XCTAssertTrue(tool.waitForExistence(timeout: 3), "the GIF tool shows when a KLIPY key is built in")
         tool.tap()
         let gifs = app.scrollViews["hex.gifs"]
-        XCTAssertTrue(gifs.waitForExistence(timeout: 3), "the GIF pill opens the GIF panel")
+        XCTAssertTrue(gifs.waitForExistence(timeout: 3), "the GIF tool opens the GIF panel")
         let tile = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH 'hex.gif.'"))
         XCTAssertTrue(tile.firstMatch.waitForExistence(timeout: 15), "an empty search shows KLIPY's trending GIFs")
         try shot("gif")

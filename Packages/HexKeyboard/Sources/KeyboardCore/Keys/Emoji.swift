@@ -1,9 +1,12 @@
 /// The emoji each word finds, for the suggestion bar.
 public struct EmojiCatalog: Sendable {
     private let byWord: [String: [String]]
+    /// Where the rest of a word's emoji come from, after the ones picked for it.
+    private let search: EmojiSearch?
 
     /// Reads the index (`emoji.txt`): each line is a word, a tab, and the emoji it finds, best first, or none.
-    public init(text: String) {
+    public init(text: String, search: EmojiSearch? = nil) {
+        self.search = search
         var byWord: [String: [String]] = [:]
         for line in text.split(separator: "\n") {
             guard let tab = line.firstIndex(of: "\t") else { continue }
@@ -13,7 +16,8 @@ public struct EmojiCatalog: Sendable {
     }
 
     /// The emoji for a word typed in the text, for the suggestion bar: what the word finds, or else what its singular
-    /// finds. A word the index gives no emoji ("with", "heard") finds none, even when its singular would.
+    /// finds, then every emoji the search names with that word. A word the index gives no emoji ("with", "heard") finds
+    /// none, even when its singular or the search would.
     public func suggestions(for word: String, history: EmojiHistory, limit: Int = 3) -> [String] {
         let word = word.lowercased()
         guard word.count > 1 else { return [] }
@@ -24,7 +28,10 @@ public struct EmojiCatalog: Sendable {
             if word.hasSuffix("es"), ["s", "x", "z", "ch", "sh", "o"].contains(where: stem.hasSuffix) { forms.append(String(stem)) }
         }
         let found = forms.lazy.compactMap { byWord[$0] }.first ?? []
-        return Array(ranked(found, history: history).prefix(limit))
+        guard !found.isEmpty else { return [] }
+        let picked = ranked(found, history: history)
+        let named = search?.named(word, history: history).filter { !picked.contains($0) } ?? []
+        return Array((picked + named).prefix(limit))
     }
 
     /// Emoji you've used first, most used first, then everyone's order.
@@ -74,6 +81,18 @@ public struct EmojiSearch: Sendable {
         bases[emoji]
     }
 
+    /// The emoji whose name or keywords hold `word` whole, the ones you pick first.
+    public func named(_ word: String, history: EmojiHistory) -> [String] {
+        let term = word.lowercased()
+        return ranked(entries.filter { $0.words.contains { Self.isWhole(term, $0) } }.map(\.emoji), history: history)
+    }
+
+    private func ranked(_ tier: [String], history: EmojiHistory) -> [String] {
+        let tier = tier.map { history.tones[$0] ?? $0 }
+        let used = tier.filter { history.scores[$0] != nil }.sorted { history.scores[$0]! > history.scores[$1]! }
+        return used + tier.filter { history.scores[$0] == nil }
+    }
+
     /// What the panel shows for `query`: each word of it must start a word of the emoji's name or keywords. Emoji that
     /// match every word whole come first, and within each, the ones you pick, then the ones everyone uses most. An
     /// empty query shows what you pick most, then every emoji.
@@ -93,11 +112,7 @@ public struct EmojiSearch: Sendable {
             }
             if matches { tiers[prefixOnly ? 1 : 0].append(entry.emoji) }
         }
-        return tiers.flatMap { tier in
-            let tier = tier.map { history.tones[$0] ?? $0 }
-            let used = tier.filter { history.scores[$0] != nil }.sorted { history.scores[$0]! > history.scores[$1]! }
-            return used + tier.filter { history.scores[$0] == nil }
-        }
+        return tiers.flatMap { ranked($0, history: history) }
     }
 
     private static func isWhole(_ term: String, _ word: String) -> Bool {

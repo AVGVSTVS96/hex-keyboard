@@ -296,6 +296,7 @@ public enum TapMapPalette {
         case .layer(.symbols): "#+="
         case .nextKeyboard: "globe"
         case .dismiss: "hide"
+        case .emoji: "emoji"
         }
     }
 }

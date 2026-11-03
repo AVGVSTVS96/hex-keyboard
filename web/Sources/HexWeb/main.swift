@@ -19,6 +19,7 @@ import KeyboardCore
             count = lexicon.length
         }
         engine.corrector = Lexicon(bytes: bytes).map { Corrector(source: $0) }
+        engine.settings.emojiKey = false
         engine.documentChanged(self.document)
         render()
     }

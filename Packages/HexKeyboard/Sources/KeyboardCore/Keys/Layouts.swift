@@ -14,8 +14,10 @@ public struct LayoutContext: Hashable, Sendable {
     /// The iPhone Duo unfolded, whose keys are half again as wide as on its cover.
     public var isOpen: Bool
     public var oneHanded: OneHanded
+    /// The emoji key in an iPhone's bottom row, beside space.
+    public var showsEmoji: Bool
 
-    public init(device: DeviceClass, layer: KeyboardLayer, kind: InputKind = .text, showsGlobe: Bool = false, isLandscape: Bool = false, isOpen: Bool = false, oneHanded: OneHanded = .off) {
+    public init(device: DeviceClass, layer: KeyboardLayer, kind: InputKind = .text, showsGlobe: Bool = false, isLandscape: Bool = false, isOpen: Bool = false, oneHanded: OneHanded = .off, showsEmoji: Bool = false) {
         self.device = device
         self.layer = layer
         self.kind = kind
@@ -23,6 +25,7 @@ public struct LayoutContext: Hashable, Sendable {
         self.isLandscape = isLandscape
         self.isOpen = isOpen && device == .phone
         self.oneHanded = oneHanded
+        self.showsEmoji = showsEmoji && device == .phone
         if !allowsOneHanded { self.oneHanded = .off }
     }
 
