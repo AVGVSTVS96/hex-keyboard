@@ -157,12 +157,18 @@ open class HexKeyboardViewController: UIInputViewController {
             observers = [SettingsStore.observe { [weak self] in self?.settingsChanged() }]
             if hasFullAccess {
                 observers += [
+                    Dictation.observe(.appeared) { [weak self] keyboard in
+                        guard let self, keyboard != self.keyboard else { return }
+                        self.observers.forEach(Dictation.stopObserving)
+                        self.observers = []
+                    },
                     Dictation.observe(.changed) { [weak self] in self?.dictationChanged() },
                     Dictation.observeLevel { [weak self] level, recorded in
                         self?.recorded = recorded
                         self?.suggestionBar.hear(level, recorded: recorded)
                     },
                 ]
+                Dictation.send(.appeared, from: keyboard)
                 dictationChanged()
             }
         }

@@ -42,6 +42,9 @@ public enum Dictation {
         case start = "com.shahidy.hexkeyboard.dictation.start"
         /// The keyboard wants the microphone off, with what was said so far typed, carrying its `keyboard` as `finish` does.
         case stop = "com.shahidy.hexkeyboard.dictation.stop"
+        /// A keyboard appeared, carrying its `keyboard` in the state, so any other still listening (one whose app
+        /// ended without it disappearing) stops, and only the keyboard you see takes what the app leaves.
+        case appeared = "com.shahidy.hexkeyboard.dictation.appeared"
         /// How loud you are and how much has been recorded, carried in the notification's state (`level`).
         case level = "com.shahidy.hexkeyboard.dictation.level"
     }
@@ -156,13 +159,13 @@ public enum Dictation {
         notify_post(signal.rawValue)
     }
 
-    /// Sends `finish` or `stop` from `keyboard`, a number the keyboard picks each time it appears.
+    /// Sends `finish`, `stop` or `appeared` from `keyboard`, a number the keyboard picks each time it appears.
     public static func send(_ signal: Signal, from keyboard: UInt64) {
         if let token = stateTokens[signal] { notify_set_state(token, keyboard) }
         send(signal)
     }
 
-    nonisolated private static let stateTokens = Dictionary(uniqueKeysWithValues: [Signal.finish, .stop].map { signal in
+    nonisolated private static let stateTokens = Dictionary(uniqueKeysWithValues: [Signal.finish, .stop, .appeared].map { signal in
         var token: Int32 = 0
         notify_register_check(signal.rawValue, &token)
         return (signal, token)

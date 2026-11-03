@@ -11,6 +11,10 @@ final class VoiceTests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["-HexFocus", "YES", "-HexOrientation", "portrait", "-HexOneHanded", "off"]
         app.launch()
+        if !key("space", in: app).waitForExistence(timeout: 10) {
+            app.terminate()
+            app.launch()
+        }
         XCTAssertTrue(key("space", in: app).waitForExistence(timeout: 10), "iikb is not the active keyboard")
         for letter in "pizza" { key(String(letter), in: app).tap() }
 
