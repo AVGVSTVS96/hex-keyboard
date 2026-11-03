@@ -1,17 +1,21 @@
-/// A word list with frequencies, stored as a flat trie in one byte array so it loads without parsing.
+/// A word list with frequencies, stored as a flat trie in one run of bytes, read in place without parsing.
 ///
 /// Layout: an 8-byte header (`HXL1`, node count) then 8 bytes per node, children of a node contiguous and in
 /// order: letter, word log-probability, subtree log-mass, flags (last sibling, capitalized), first child index.
 /// Probabilities are stored as `-ln p` in tenths of a nat (0 means "not a word").
 public final class Lexicon: Sendable {
-    public let bytes: [UInt8]
+    public let bytes: Bytes
 
     static let header: [UInt8] = Array("HXL1".utf8)
     static let alphabet = 27
 
-    public init?(bytes: [UInt8]) {
+    public init?(bytes: Bytes) {
         guard bytes.count >= 16, Array(bytes[0..<4]) == Self.header else { return nil }
         self.bytes = bytes
+    }
+
+    public convenience init?(bytes: [UInt8]) {
+        self.init(bytes: Bytes(bytes))
     }
 
     public var wordCount: Int {

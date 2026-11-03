@@ -1,4 +1,4 @@
-/// The words a corpus writes after each word and each pair of words, in one byte array that loads without parsing.
+/// The words a corpus writes after each word and each pair of words, in one run of bytes, read in place without parsing.
 ///
 /// Layout: `HXP1`, then four little-endian u32s (words, contexts, entries, spelling bytes), then
 /// - words: a u32 offset per word into the spellings, then the spellings (lowercase, sorted, each ending in 0);
@@ -6,7 +6,7 @@
 ///   much the context trusts its own counts (Witten-Bell N / (N + T), u8 in 255ths), and its first entry (u32);
 /// - entries: a next word (u24) and P(word | context) as `-ln p` in tenths of a nat (u8), likeliest first.
 public final class Phrases: Sendable {
-    public let bytes: [UInt8]
+    public let bytes: Bytes
 
     static let header: [UInt8] = Array("HXP1".utf8)
     static let none = 0xFF_FFFF
@@ -21,7 +21,11 @@ public final class Phrases: Sendable {
     let contexts: Int
     let entries: Int
 
-    public init?(bytes: [UInt8]) {
+    public convenience init?(bytes: [UInt8]) {
+        self.init(bytes: Bytes(bytes))
+    }
+
+    public init?(bytes: Bytes) {
         guard bytes.count >= 20, Array(bytes[0..<4]) == Self.header else { return nil }
         self.bytes = bytes
         wordCount = Self.u32(bytes, 4)
@@ -115,11 +119,11 @@ public final class Phrases: Sendable {
         return String(decoding: bytes[start..<end], as: UTF8.self)
     }
 
-    private static func u32(_ bytes: [UInt8], _ at: Int) -> Int {
+    private static func u32(_ bytes: Bytes, _ at: Int) -> Int {
         Int(bytes[at]) | Int(bytes[at + 1]) << 8 | Int(bytes[at + 2]) << 16 | Int(bytes[at + 3]) << 24
     }
 
-    private static func u24(_ bytes: [UInt8], _ at: Int) -> Int {
+    private static func u24(_ bytes: Bytes, _ at: Int) -> Int {
         Int(bytes[at]) | Int(bytes[at + 1]) << 8 | Int(bytes[at + 2]) << 16
     }
 }

@@ -2,17 +2,19 @@ import Foundation
 import KeyboardCore
 
 extension Lexicon {
-    public static let english: Lexicon = {
-        let url = Bundle.module.url(forResource: "en", withExtension: "lexicon")!
-        return Lexicon(bytes: [UInt8](try! Data(contentsOf: url, options: .alwaysMapped)))!
-    }()
+    public static let english = Lexicon(bytes: .mapped("en", "lexicon"))!
 }
 
 extension Phrases {
-    static let english: Phrases = {
-        let url = Bundle.module.url(forResource: "en", withExtension: "phrases")!
-        return Phrases(bytes: [UInt8](try! Data(contentsOf: url, options: .alwaysMapped)))!
-    }()
+    static let english = Phrases(bytes: .mapped("en", "phrases"))!
+}
+
+extension Bytes {
+    /// A resource mapped into memory, read in place.
+    static func mapped(_ name: String, _ type: String) -> Bytes {
+        let file = try! NSData(contentsOf: Bundle.module.url(forResource: name, withExtension: type)!, options: .alwaysMapped)
+        return Bytes(UnsafeRawBufferPointer(start: file.bytes, count: file.length), owner: file)
+    }
 }
 
 extension EmojiCatalog {
