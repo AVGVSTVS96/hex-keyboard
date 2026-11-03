@@ -178,6 +178,9 @@ public struct TypingEngine {
             perform(.layer(.letters), in: document)
         case .split(let split):
             settings.split = split
+            perform(.layer(.letters), in: document)
+        case .settings:
+            perform(.layer(.letters), in: document)
         case .panel(let panel):
             show(panel)
         case .emoji(let emoji, let base):

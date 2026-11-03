@@ -48,7 +48,7 @@ struct OneHandedTests {
     @Test func holdingTheLayerKeyOffersTheHandsOnAnUprightPhoneOnly() {
         let context = LayoutContext(device: .phone, layer: .letters)
         #expect(context.menuKey(in: Layouts.layout(for: context))?.action == .layer(.numbers))
-        #expect(context.menu == [.left, .off, .right])
+        #expect(context.menu == [.pick(.left), .pick(.off), .pick(.right), .settings])
         let numbers = LayoutContext(device: .phone, layer: .numbers)
         #expect(numbers.menuKey(in: Layouts.layout(for: numbers))?.action == .layer(.letters))
         #expect(LayoutContext(device: .pad, layer: .letters).menu.isEmpty, "only an upright phone narrows for one hand")

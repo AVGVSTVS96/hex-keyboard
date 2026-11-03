@@ -330,6 +330,9 @@ private struct LayoutSettings: View {
             }
             ToggleRow(title: "Compact Emoji & GIFs", detail: "One row that scrolls sideways, as in landscape, so the keyboard stays short when you hold the iPhone upright.", isOn: model.binding(\.compactPanels))
         }
+        Box(footer: "On the open iPhone Duo held wide, half the keys sit under each thumb. You can also hold 123 and slide, or tap … above the keys.") {
+            ToggleRow(title: "Split Keyboard", isOn: model.binding(\.split))
+        }
         Box(header: "One-Handed Keyboard", footer: "Moves the keys toward one thumb while the iPhone is upright. You can also hold 123 and slide.") {
             ForEach(OneHanded.allCases, id: \.self) { hand in
                 ChoiceRow(title: Self.title(of: hand), picked: model.oneHanded == hand) { model.oneHanded = hand }

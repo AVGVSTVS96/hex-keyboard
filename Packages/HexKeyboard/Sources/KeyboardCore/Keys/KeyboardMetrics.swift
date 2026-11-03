@@ -146,19 +146,15 @@ extension KeyboardMetrics {
             metrics.labelSize = 22
             metrics.symbolSize = 23
             metrics.toolbar = .compact(mic: 38)
-            if split { metrics = metrics.split(width: width) }
+            if split { metrics.columns = Self.splitColumns }
         }
         return metrics
     }
 
-    /// Apple's split keys on the open Duo: each half's keys 57pt apart, 85pt in from the screen's edge, and the rest
-    /// of the width the gap between the halves.
-    func split(width: Double) -> KeyboardMetrics {
-        var metrics = self
-        metrics.sideInset = 85
-        metrics.columns = (width - metrics.sideInset * 2 + keyGap) / 57
-        return metrics
-    }
+    /// The split keyboard's width in keys: each half five and a half keys, from the keyboard's edge, where the full
+    /// keyboard's keys start, toward the hinge, and a key and a half between the two G keys. iOS gives a keyboard about 800
+    /// of the open Duo's 951 points held wide, so a key is about 53 wide, where the full keyboard's are 69.
+    static let splitColumns = 12.5
 
     static let compactPad = KeyboardMetrics(
         columns: 11.2, sideInset: 6, keyGap: 12, rowGap: 9,

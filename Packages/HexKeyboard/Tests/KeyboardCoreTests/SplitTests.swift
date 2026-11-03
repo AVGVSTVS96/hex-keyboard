@@ -2,12 +2,24 @@ import Testing
 @testable import KeyboardCore
 
 struct SplitTests {
-    private let width = Duo.open.height, height = Duo.open.width
+    /// The width iOS gives a keyboard on the open Duo held wide (shots/raw/duo, open-upright), narrower than its screen.
+    private let width = 801.0, height = Duo.open.width
 
     private func grid(_ layer: KeyboardLayer = .letters, kind: InputKind = .text) -> KeyGrid {
         let context = LayoutContext(device: .phone, layer: layer, kind: kind, showsGlobe: true, isLandscape: true, isOpen: true, isSplit: true, showsEmoji: true)
         let metrics = KeyboardMetrics.for(.phone, width: width, height: height, split: context.isSplit)
         return KeyGrid(Layouts.layout(for: context), width: width, metrics: metrics.grid, signature: context.signature)
+    }
+
+    @Test func holding123OrMoreOffersFullSplitAndSettings() {
+        let open = LayoutContext(device: .phone, layer: .numbers, isLandscape: true, isOpen: true)
+        #expect(open.menu == [.split(false), .split(true), .settings])
+        #expect(open.menuKey(in: Layouts.layout(for: open))?.action == .layer(.letters))
+        var engine = TypingEngine()
+        let document = TestDocument()
+        engine.handle(.down(Key(.layer(.numbers)), tapCount: 1), in: document)
+        engine.handle(.split(true), in: document)
+        #expect(engine.layer == .letters, "a pick from 123's hold brings the letters back")
     }
 
     @Test func onlyTheOpenDuoWiderThanTallSplits() {
@@ -28,6 +40,16 @@ struct SplitTests {
             let leftEdge = left.map(\.frame.x).min()!, rightEdge = width - right.map { $0.frame.x + $0.frame.width }.max()!
             #expect(abs(leftEdge - rightEdge) < 0.01, "the halves mirror each other")
         }
+    }
+
+    @Test func splitKeysStayBig() {
+        let full = KeyboardMetrics.for(.phone, width: Duo.open.height, height: height)
+        let letters = KeyGrid(Layouts.layout(for: LayoutContext(device: .phone, layer: .letters, isLandscape: true, isOpen: true)), width: width, metrics: full.grid, signature: "")
+        let fullKey = letters.frame(of: "q")!.width, splitKey = grid().frame(of: "q")!.width
+        #expect(splitKey > 50 && splitKey > fullKey * 0.75, "\(splitKey) against the full keyboard's \(fullKey)")
+        let keys = grid().rows.joined()
+        #expect(keys.map(\.frame.x).min()! < 10 && keys.map { $0.frame.x + $0.frame.width }.max()! > width - 10,
+                "the halves start at the keyboard's edges, where the full keyboard's keys do")
     }
 
     @Test func gAndVSitOnBothHalves() {
@@ -68,6 +90,7 @@ struct SplitTests {
         let document = TestDocument()
         engine.handle(.split(true), in: document)
         #expect(engine.layout(on: .phone, isLandscape: true, isOpen: true).isSplit)
+        #expect(engine.layout(on: .phone, isLandscape: true, isOpen: true).menuPick == .split(true))
         #expect(!engine.layout(on: .phone, isOpen: true).isSplit, "upright, the same setting keeps one keyboard")
         engine.handle(.split(false), in: document)
         #expect(!engine.layout(on: .phone, isLandscape: true, isOpen: true).isSplit)

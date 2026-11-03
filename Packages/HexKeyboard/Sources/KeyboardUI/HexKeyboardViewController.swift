@@ -249,10 +249,10 @@ open class HexKeyboardViewController: UIInputViewController {
         var metrics = KeyboardMetrics.for(device, width: screenSize.width, height: screenSize.height, style: .current, oneHanded: context.oneHanded, split: context.isSplit)
         if device == .phone, !context.isLandscape { metrics = metrics.fitted(screen: screenSize.width, window: view.bounds.width) }
         metrics.toolbar = metrics.toolbar.showing(engine.panel, compact: engine.settings.compactPanels)
-        keyboardView.menu = (context.menuKey(in: layout), context.menu, context.oneHanded)
+        keyboardView.menu = (context.menuKey(in: layout), context.menu, context.menuPick)
         keyboardView.update(layout: layout, signature: context.signature, metrics: metrics, faces: engine.faces(on: device), theme: theme)
         renderToolbar(metrics, device: device)
-        suggestionBar.update(more: context.allowsSplit ? layoutMenu(split: context.isSplit) : nil)
+        suggestionBar.update(more: context.allowsSplit ? moreMenu(context) : nil)
         renderSuggestions()
 
         let height = metrics.height(rows: layout.rows.count, hasNumberRow: layout.hasNumberRow)
@@ -286,11 +286,15 @@ open class HexKeyboardViewController: UIInputViewController {
         if toolbarHeightConstraint.constant != height { toolbarHeightConstraint.constant = height }
     }
 
-    /// Apple's More menu on the open Duo wider than tall: the keys whole, or split under the thumbs.
-    private func layoutMenu(split: Bool) -> UIMenu {
-        UIMenu(children: [("Full", false), ("Split", true)].map { title, value in
-            UIAction(title: title, state: split == value ? .on : .off) { [unowned self] _ in handle(.split(value)) }
-        })
+    /// Apple's More button on the open Duo held wide, offering what holding 123 does: the layouts, then Hex's settings.
+    private func moreMenu(_ context: LayoutContext) -> UIMenu {
+        let action = { (item: KeyboardEvent) in
+            UIAction(title: item.title, image: UIImage(systemName: item.symbol), state: item == context.menuPick ? .on : .off) { [unowned self] _ in
+                handle(item)
+            }
+        }
+        let layouts = context.menu.filter { $0 != .settings }.map(action)
+        return UIMenu(children: [UIMenu(options: .displayInline, children: layouts), action(.settings)])
     }
 
     private func open(_ panel: Panel) {
@@ -341,6 +345,8 @@ open class HexKeyboardViewController: UIInputViewController {
             SettingsStore.set(hand, sharing: hasFullAccess)
         case .split(let split):
             SettingsStore.set(split, for: \.split, sharing: hasFullAccess)
+        case .settings:
+            open(HexLink.keyboard)
         case .cursorLines:
             let margins = systemMinimumLayoutMargins
             engine.lineLayout = HostLayout(width: view.bounds.width - margins.leading - margins.trailing)
@@ -443,4 +449,6 @@ private extension Corrector {
 public enum HexLink {
     /// Opens Settings › Apps › Hex, where Full Access (under Keyboards) and Paste from Other Apps are.
     public static let settings = URL(string: "hexkeyboard://settings")!
+    /// Opens Hex's app on its keyboard settings.
+    public static let keyboard = URL(string: "hexkeyboard://keyboard")!
 }

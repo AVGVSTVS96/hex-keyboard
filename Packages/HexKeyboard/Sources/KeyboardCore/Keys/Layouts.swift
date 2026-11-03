@@ -50,9 +50,19 @@ public struct LayoutContext: Hashable, Sendable {
         }.first
     }
 
-    /// What holding the layer key offers: the one-handed layouts, where they apply.
-    public var menu: [OneHanded] {
-        allowsOneHanded ? OneHanded.menuOrder : []
+    /// What holding the layer key offers, left to right, and the bar's More button where it shows: the layouts that
+    /// apply here (one hand or the other on an upright iPhone, Full and Split on the open Duo held wide), then Hex's
+    /// settings.
+    public var menu: [KeyboardEvent] {
+        let layouts: [KeyboardEvent] = if allowsSplit { [.split(false), .split(true)] }
+            else if allowsOneHanded { OneHanded.menuOrder.map(KeyboardEvent.pick) }
+            else { [] }
+        return layouts.isEmpty ? [] : layouts + [.settings]
+    }
+
+    /// The layout in use, as the menu offers it.
+    public var menuPick: KeyboardEvent {
+        allowsSplit ? .split(isSplit) : .pick(oneHanded)
     }
 }
 

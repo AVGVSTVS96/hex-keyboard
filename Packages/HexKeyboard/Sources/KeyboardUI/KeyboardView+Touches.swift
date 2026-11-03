@@ -33,7 +33,7 @@ extension KeyboardView {
             guard let view = keyView(at: point) else { continue }
             let tracked = TrackedTouch(keyView: view, start: point)
             self.tracked[ObjectIdentifier(touch)] = tracked
-            if view.key == menu.key, !menu.hands.isEmpty { tracked.menuFrame = view.frame }
+            if view.key == menu.key, !menu.items.isEmpty { tracked.menuFrame = view.frame }
             press(view, tracked: tracked)
             onEvent(.down(view.key, tapCount: touch.tapCount))
             if case .layer = view.key.action { tracked.mode = .slide }
@@ -128,7 +128,7 @@ extension KeyboardView {
             }
             alternates.hide()
         case .menu:
-            if commit, menu.hands.indices.contains(alternates.selection) { onEvent(.pick(menu.hands[alternates.selection])) }
+            if commit, menu.items.indices.contains(alternates.selection) { onEvent(menu.items[alternates.selection]) }
             alternates.hide()
         case .trackpad:
             setLabelsVisible(true)
@@ -210,8 +210,8 @@ extension KeyboardView {
                 guard let self, let tracked, tracked.mode == .slide, let frame = tracked.menuFrame else { return }
                 tracked.mode = .menu
                 self.callout.hide()
-                let hands = self.menu.hands
-                self.alternates.show(symbols: hands.map(\.symbol), selected: hands.firstIndex(of: self.menu.current) ?? 0, over: frame, in: self.drawableBounds, metrics: self.metrics, theme: self.theme)
+                let items = self.menu.items
+                self.alternates.show(symbols: items.map(\.symbol), selected: self.menu.current.flatMap(items.firstIndex) ?? 0, over: frame, in: self.drawableBounds, metrics: self.metrics, theme: self.theme)
             }
         }
     }
@@ -223,12 +223,25 @@ extension KeyboardView {
     }
 }
 
-private extension OneHanded {
+extension KeyboardEvent {
+    /// How the layer menu and the bar's More button show a pick.
     var symbol: String {
         switch self {
-        case .left: "keyboard.onehanded.left"
-        case .off: "keyboard"
-        case .right: "keyboard.onehanded.right"
+        case .pick(.left): "keyboard.onehanded.left"
+        case .pick(.right): "keyboard.onehanded.right"
+        case .split(true): "rectangle.split.2x1"
+        case .settings: "gearshape"
+        default: "keyboard"
+        }
+    }
+
+    var title: String {
+        switch self {
+        case .pick(.left): "Left"
+        case .pick(.right): "Right"
+        case .split(true): "Split"
+        case .settings: "Hex Settings"
+        default: "Full"
         }
     }
 }
