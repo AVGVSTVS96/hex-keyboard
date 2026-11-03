@@ -1,0 +1,13 @@
+#!/bin/sh
+# Builds this checkout's tree, uncommitted edits included, for the iPhone here on Linux with xtool, as scripts/phone
+# does but without signing or installing, so a change that breaks the phone build shows before it lands. One run at a
+# time, in ../hex-keyboard-check, where files are compared by content so the build stays incremental across checkouts.
+set -e
+cd "$(dirname "$0")/.."
+check=../hex-keyboard-check
+exec 9>"$check.lock"
+flock -n 9 || { echo "waiting for another scripts/check to finish" >&2; flock 9; }
+mkdir -p "$check"
+rsync -rlp --checksum --delete --exclude .git --exclude /build --exclude .build --exclude /xtool --exclude /shots ./ "$check/"
+cd "$check"
+xtool dev build
