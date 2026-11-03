@@ -47,6 +47,7 @@ open class HexKeyboardViewController: UIInputViewController {
     private var engine = TypingEngine()
     private lazy var toolbarHeightConstraint = toolbarView.heightAnchor.constraint(equalToConstant: 0)
     private lazy var keyboardHeightConstraint = keyboardView.heightAnchor.constraint(equalToConstant: 0)
+    private lazy var keysMinimumConstraint = keyboardView.heightAnchor.constraint(greaterThanOrEqualToConstant: 0)
     private var deleteRepeat: DeleteRepeat?
     private let haptics = KeyHaptics()
     private let clipboard = ClipboardStore()
@@ -63,8 +64,9 @@ open class HexKeyboardViewController: UIInputViewController {
             view.addSubview($0)
         }
         [suggestionBar, panelView].forEach(toolbarView.addSubview)
-        keyboardHeightConstraint.priority = .required - 1
+        keysMinimumConstraint.priority = .required - 1
         toolbarHeightConstraint.priority = .required - 2
+        keyboardHeightConstraint.priority = .defaultHigh
         NSLayoutConstraint.activate([
             toolbarView.topAnchor.constraint(equalTo: view.topAnchor),
             toolbarView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -75,6 +77,7 @@ open class HexKeyboardViewController: UIInputViewController {
             keyboardView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             keyboardView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             keyboardHeightConstraint,
+            keysMinimumConstraint,
         ])
         suggestionBar.onMic = { [unowned self] in toggleVoice() }
         suggestionBar.onTool = { [unowned self] in open($0) }
@@ -252,8 +255,12 @@ open class HexKeyboardViewController: UIInputViewController {
         let wanted = metrics.toolbar.showing(engine.panel, compact: engine.settings.compactPanels)
         let height = metrics.height(rows: layout.rows.count, hasNumberRow: layout.hasNumberRow)
         let ask = engine.panel == nil ? wanted.height : wanted.panelHeight
-        let settled = ask == toolbarHeightConstraint.constant && height == keyboardHeightConstraint.constant
-        metrics.toolbar = engine.panel != nil && settled && view.bounds.height > 0 ? wanted.fitting(view.bounds.height - height) : wanted
+        let room = view.bounds.height
+        metrics.toolbar = wanted
+        if ask == toolbarHeightConstraint.constant, height == keyboardHeightConstraint.constant, room > 0 {
+            if engine.panel != nil { metrics.toolbar = wanted.fitting(room - height) }
+            metrics = metrics.filling(room - ask, rows: layout.rows.count, hasNumberRow: layout.hasNumberRow)
+        }
         if toolbarHeightConstraint.constant != ask { toolbarHeightConstraint.constant = ask }
         keyboardView.menu = (context.menuKey(in: layout), context.menu, context.menuPick)
         keyboardView.update(layout: layout, signature: context.signature, metrics: metrics, faces: engine.faces(on: device), theme: theme)
@@ -261,7 +268,10 @@ open class HexKeyboardViewController: UIInputViewController {
         suggestionBar.update(more: moreMenu(context))
         renderSuggestions()
 
-        if keyboardHeightConstraint.constant != height { keyboardHeightConstraint.constant = height }
+        if keyboardHeightConstraint.constant != height {
+            keyboardHeightConstraint.constant = height
+            keysMinimumConstraint.constant = height
+        }
     }
 
     /// The bar, or the open panel in its place, across the keys block.

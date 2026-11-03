@@ -162,6 +162,21 @@ struct LayoutTests {
         #expect(toolbar.fitting(0).results == 0)
     }
 
+    /// His Duo open held tall, partly folded: iOS gave Apple's keyboard and Hex the same height, about 50pt more than
+    /// Hex asked for flat (his photos, Nov 3 1:51am and 1:53am), and Apple's rows took it.
+    @Test func theKeysFillTheExtraHeightIOSGives() {
+        let open = KeyboardMetrics.for(.phone, width: 669, height: 951)
+        let keys = open.height(rows: 4, hasNumberRow: false)
+        let tall = open.filling(keys + 50, rows: 4, hasNumberRow: false)
+        #expect(tall.height(rows: 4, hasNumberRow: false) == keys + 50)
+        #expect(tall.keyHeight == open.keyHeight + 12.5)
+        #expect(tall.rowGap == open.rowGap && tall.topInset == open.topInset && tall.bottomInset == open.bottomInset)
+        #expect(open.filling(keys, rows: 4, hasNumberRow: false) == open)
+        #expect(open.filling(keys - 100, rows: 4, hasNumberRow: false) == open, "short of room, the panel gives way, not the keys")
+        let numbers = open.filling(open.height(rows: 5, hasNumberRow: true) + 50, rows: 5, hasNumberRow: true)
+        #expect(numbers.height(rows: 5, hasNumberRow: true) == open.height(rows: 5, hasNumberRow: true) + 50)
+    }
+
     /// docs/design.md, "Per device": Apple's keys and letters on each of the Duo's screens, measured in the iOS 27.1
     /// simulator: (key height, row gap, key gap, side inset, letter size).
     @Test func theDuoMatchesApplesKeysOnEachScreen() {

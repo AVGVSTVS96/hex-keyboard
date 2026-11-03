@@ -40,6 +40,18 @@ public struct KeyboardMetrics: Hashable, Sendable {
         let keys = Double(rows) * keyHeight - (hasNumberRow ? keyHeight - numberRowHeight : 0)
         return topInset + keys + Double(rows - 1) * rowGap + bottomInset
     }
+
+    /// The keys in `room`, where iOS gives the keyboard more height than it asks for (the open Duo partly folded held
+    /// tall gives Apple's keyboard and Hex the same taller height): each row takes its share of the extra, as Apple's
+    /// do, and the gaps and insets stay as they are.
+    public func filling(_ room: Double, rows: Int, hasNumberRow: Bool) -> KeyboardMetrics {
+        let extra = room - height(rows: rows, hasNumberRow: hasNumberRow)
+        guard extra > 0, rows > 0 else { return self }
+        var metrics = self
+        metrics.keyHeight += extra / Double(rows)
+        metrics.numberRowHeight += extra / Double(rows)
+        return metrics
+    }
 }
 
 extension KeyboardMetrics {
