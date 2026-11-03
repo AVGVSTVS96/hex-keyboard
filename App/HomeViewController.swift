@@ -157,7 +157,7 @@ struct HomeView: View {
                 Button { Router.shared.show(.taps) } label: {
                     Tile(
                         symbol: "hand.tap.fill", color: .blue, title: "taps learned",
-                        value: state.taps > 0 ? state.taps.formatted() : "None yet",
+                        value: state.taps.formatted(),
                         detail: state.taps > 0 ? nil : status.fullAccess ? "Type with Hex and they show up here." : "Needs Allow Full Access."
                     )
                 }
@@ -179,7 +179,7 @@ struct HomeView: View {
 private struct VoiceTile: View {
     var body: some View {
         let today = Transcripts.shared.all.prefix { Calendar.current.isDateInToday($0.date) }.reduce(0) { $0 + $1.words }
-        Tile(symbol: "text.bubble.fill", color: .pink, title: today == 1 ? "word dictated today" : "words dictated today", value: today > 0 ? today.formatted() : "None yet")
+        Tile(symbol: "text.bubble.fill", color: .pink, title: today == 1 ? "word dictated today" : "words dictated today", value: today.formatted())
     }
 }
 

@@ -114,6 +114,7 @@ private struct TryPreview: View {
     @State private var trying = false
     @State private var text = ""
     @FocusState private var focused: Bool
+    @Environment(\.window) private var window
     private let model = SettingsModel.shared
 
     var body: some View {
@@ -146,8 +147,13 @@ private struct TryPreview: View {
                 .foregroundStyle(.primary)
             }
         }
-        .frame(maxWidth: 520)
+        .frame(maxWidth: maxWidth)
         .frame(maxWidth: .infinity)
+    }
+
+    /// Wide enough to read, short enough to leave the settings in view: at most two fifths of the window's height.
+    private var maxWidth: CGFloat {
+        min(520, window.height * 0.4 / (KeyboardPreviewView.height(forWidth: 100, settings: model.settings) / 100))
     }
 }
 

@@ -114,7 +114,7 @@ struct Pills<Item: Hashable>: View {
                             Text(title(item))
                                 .font(.body.weight(.medium))
                                 .foregroundStyle(picked ? Color.hexPillLabel : Color.hexSecondary)
-                                .padding(.horizontal, 15)
+                                .padding(.horizontal, 13)
                                 .padding(.vertical, 8)
                                 .background {
                                     if picked { Capsule().fill(Color.hexPill).matchedGeometryEffect(id: "pill", in: pill) }
@@ -321,47 +321,38 @@ struct ActionRow: View {
     }
 }
 
-/// A Raycast tile: a glyph at its top left, a title under it, a value or a line in gray.
+/// A Raycast tile: a glyph at its top left and, right under it, a value, a title and a line in gray, so tiles side
+/// by side line up whatever their text.
 struct Tile: View {
     let symbol: String
     let color: Color
     let title: String
     var value: String? = nil
     var detail: String? = nil
-    var badge: String? = nil
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(alignment: .top) {
-                Glyph(symbol: symbol, color: color, size: 34)
-                Spacer()
-                if let badge {
-                    Text(badge)
-                        .font(.caption.weight(.semibold))
-                        .padding(.horizontal, 9)
-                        .padding(.vertical, 4)
-                        .background(Color.blue.opacity(0.85), in: .capsule)
-                        .foregroundStyle(.white)
+        VStack(alignment: .leading, spacing: 14) {
+            Glyph(symbol: symbol, color: color, size: 34)
+            VStack(alignment: .leading, spacing: 2) {
+                if let value {
+                    Text(value)
+                        .font(.title2.weight(.semibold))
+                        .monospacedDigit()
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
+                }
+                Text(title)
+                    .font(value == nil ? .body.weight(.medium) : .subheadline)
+                    .foregroundStyle(value == nil ? Color.primary : Color.hexSecondary)
+                    .lineLimit(2)
+                if let detail {
+                    Text(detail)
+                        .font(.footnote)
+                        .foregroundStyle(Color.hexSecondary)
+                        .lineLimit(2)
                 }
             }
-            Spacer(minLength: 18)
-            if let value {
-                Text(value)
-                    .font(.title2.weight(.semibold))
-                    .monospacedDigit()
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
-            }
-            Text(title)
-                .font(value == nil ? .body.weight(.medium) : .subheadline)
-                .foregroundStyle(value == nil ? Color.primary : Color.hexSecondary)
-            if let detail {
-                Text(detail)
-                    .font(.footnote)
-                    .foregroundStyle(Color.hexSecondary)
-                    .lineLimit(2)
-                    .padding(.top, 2)
-            }
+            Spacer(minLength: 0)
         }
         .padding(18)
         .frame(maxWidth: .infinity, minHeight: 128, alignment: .topLeading)

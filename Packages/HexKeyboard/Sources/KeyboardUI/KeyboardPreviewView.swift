@@ -43,6 +43,7 @@ public final class KeyboardPreviewView: UIView {
         bar.toolbar = metrics.toolbar
         bar.block = (CGFloat(metrics.sideInset), CGFloat(Self.width - metrics.sideInset))
         bar.update(tools: [.gif, .clipboard], theme: theme)
+        bar.update(more: UIMenu(children: []))
         bar.update(mic: .off, listeningSince: nil, notice: nil, theme: theme)
         bar.update([Suggestion("The", .candidate), Suggestion("I", .candidate), Suggestion("And", .candidate)], emoji: [], enabled: true, theme: theme)
         let card = dark ? Self.card.dark : Self.card.light

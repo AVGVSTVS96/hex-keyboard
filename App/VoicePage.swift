@@ -105,7 +105,7 @@ struct VoicePage: View {
         Column(top: 4) {
             if !store.all.isEmpty { Summary(transcripts: store.all) }
             Box(header: "Writing Now") {
-                Fact(title: VoiceModel.shared.model.title, value: VoiceModel.shared.status)
+                Fact(title: "Voice Model", value: VoiceModel.shared.status)
             }
         }
     }
