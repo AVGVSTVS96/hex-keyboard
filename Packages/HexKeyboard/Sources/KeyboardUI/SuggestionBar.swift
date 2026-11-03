@@ -142,12 +142,12 @@ final class SuggestionBar: UIView {
     private var recording: Bool { mic.phase == .listening || mic.phase == .writing }
 
     private func refresh() {
-        let quiet = !enabled || noticed || recording
+        let busy = noticed || recording
         notice.isHidden = !noticed || recording
         waveform.isHidden = !recording
-        slots.forEach { $0.isHidden = quiet }
-        strip.isHidden = quiet || emoji.isEmpty
-        emoji.forEach { $0.isHidden = quiet }
+        slots.forEach { $0.isHidden = busy || !enabled }
+        strip.isHidden = busy || emoji.isEmpty
+        emoji.forEach { $0.isHidden = busy }
         if !emoji.isEmpty, !emojiBeside { slots[slots.count - 1].isHidden = true }
         refreshDividers()
     }

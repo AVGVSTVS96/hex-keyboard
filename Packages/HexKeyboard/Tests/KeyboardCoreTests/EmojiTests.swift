@@ -50,6 +50,19 @@ struct EmojiTests {
         #expect(engine.emojiSuggestions.isEmpty)
     }
 
+    @Test func withoutTheEmojiKeyTheBarsEmojiShowEvenWithPredictiveTextOff() {
+        var engine = TypingEngine()
+        engine.emojiCatalog = catalog
+        engine.settings.predictiveText = false
+        let document = TestDocument()
+        engine.type("i love pizza", in: document)
+        #expect(engine.emojiSuggestions.isEmpty, "the emoji key is there for emoji")
+        engine.settings.emojiKey = false
+        engine.type(" pizza", in: document)
+        #expect(engine.emojiSuggestions == ["🍕"])
+        #expect(engine.suggestions.isEmpty, "Predictive Text stays off")
+    }
+
     @Test func dictationJoinsWhatsThereWithASpace() {
         var engine = TypingEngine()
         let document = TestDocument()

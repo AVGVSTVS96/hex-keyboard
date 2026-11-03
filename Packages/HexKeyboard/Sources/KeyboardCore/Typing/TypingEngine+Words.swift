@@ -67,10 +67,16 @@ extension TypingEngine {
         settings.smartPunctuation && traits.smartPunctuation ? String(word.map { $0 == "'" ? "’" : $0 }) : word
     }
 
-    public var showsSuggestions: Bool {
+    public var showsSuggestions: Bool { suggestsHere && settings.predictiveText }
+
+    /// A word's emoji in the bar. With the emoji key off they're the only way to an emoji, so they show even with
+    /// Predictive Text off.
+    var showsEmoji: Bool { suggestsHere && (settings.predictiveText || !settings.emojiKey) }
+
+    private var suggestsHere: Bool {
         switch traits.kind {
         case .email, .url, .number, .decimal: false
-        default: settings.predictiveText
+        default: true
         }
     }
 
@@ -330,11 +336,11 @@ extension TypingEngine {
         let word = Words.current(in: text)
         let inWords = layer == .letters && traits.allowsCorrection && (word.isEmpty || Words.isCorrectable(word, in: text))
         keyMap = corrector?.keyMap(revision: revision, after: inWords ? String(word) : nil)
-        guard showsSuggestions else { return suggestions = [] }
+        guard showsEmoji else { return suggestions = [] }
         suggestionsBefore = String(text[..<word.startIndex])
         let named = word.isEmpty && text.hasSuffix(" ") ? Words.current(in: String(text.dropLast())) : word
         emojiSuggestions = emojiCatalog?.suggestions(for: String(named), history: emojiHistory, limit: 30) ?? []
-        guard let corrector else { return suggestions = [] }
+        guard showsSuggestions, let corrector else { return suggestions = [] }
         let typed = TypedWord(String(word), taps: typing.letters, previous: Words.previous(before: word, in: text))
         defer { suggestions = suggestions.map { Suggestion(written($0.text), $0.kind) } }
         if let revert, revert.isOffered(before: text) {
