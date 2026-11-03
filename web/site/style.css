@@ -1,5 +1,4 @@
 :root {
-  --page: #f2f2f7;
   --screen: #ffffff;
   --text: #000000;
   --field: #f2f2f7;
@@ -22,7 +21,6 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --page: #000000;
     --screen: #000000;
     --text: #ffffff;
     --field: #1c1c1e;
@@ -42,27 +40,6 @@
   }
 }
 
-* { box-sizing: border-box; }
-
-html, body {
-  margin: 0;
-  height: 100%;
-  background: var(--page);
-  color: var(--text);
-  font-family: var(--system);
-  -webkit-text-size-adjust: 100%;
-}
-
-.stage {
-  min-height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 20px;
-  padding: 20px 16px;
-}
-
 .screen {
   position: relative;
   width: 402px;
@@ -70,19 +47,20 @@ html, body {
   flex: none;
   background: var(--screen);
   border-radius: 55px;
-  box-shadow: 0 0 0 10px var(--frame), 0 30px 60px rgb(0 0 0 / 0.18);
+  box-shadow: 0 0 0 10px var(--frame);
   overflow: hidden;
-  transform-origin: top center;
+  transform-origin: top left;
+  font-family: var(--system);
+  text-align: left;
 }
 
-.screen h1 {
+.screen .title {
   margin: 0;
   padding-top: 52px;
   height: 92px;
   text-align: center;
-  font-size: 17px;
-  font-weight: 600;
-  letter-spacing: -0.4px;
+  font: 700 18px/1 var(--display);
+  letter-spacing: -0.2px;
 }
 
 .screen > .nav { position: relative; }
@@ -457,32 +435,19 @@ html, body {
 
 .status[hidden] { display: none; }
 
-.about {
-  max-width: 402px;
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.45;
-  color: var(--muted);
-  text-align: center;
-}
-
-.about a { color: inherit; }
-
 @media (max-width: 500px), (max-height: 500px) and (pointer: coarse) {
-  .stage { padding: 0; gap: 0; display: block; min-height: 0; height: 100%; }
   .screen {
     width: 100%;
     height: 100%;
     border-radius: 0;
     box-shadow: none;
   }
-  .screen h1 { padding-top: calc(env(safe-area-inset-top) + 14px); height: calc(env(safe-area-inset-top) + 48px); }
-  .screen > .nav .glass { top: calc(env(safe-area-inset-top) + 3px); }
-  .about { display: none; }
+  .screen .title { padding-top: 14px; height: 48px; }
+  .screen > .nav .glass { top: 3px; }
 }
 
 @media (max-height: 500px) and (pointer: coarse) {
-  .screen h1 { display: none; }
+  .screen .title { display: none; }
   .screen > .nav .glass { top: 9px; right: calc(env(safe-area-inset-right) + 12px); }
   .screen textarea { height: 64px; width: calc(100% - 80px); }
 }

@@ -127,12 +127,16 @@ let layout;
 const caps = [];
 const slots = [];
 
+const stage = screen.parentElement;
+const frameless = matchMedia("(max-width: 500px), (max-height: 500px) and (pointer: coarse)");
+
 function size() {
-  const mock = !matchMedia("(max-width: 500px), (max-height: 500px) and (pointer: coarse)").matches;
+  const mock = !frameless.matches;
   screen.classList.toggle("mock", mock);
-  const scale = mock ? Math.min(1, (innerHeight - 100) / 894) : 1;
+  const scale = mock ? Math.min(1, (innerHeight - 80) / 894, stage.parentElement.clientWidth / 422) : 1;
   screen.style.transform = scale < 1 ? `scale(${scale})` : "";
-  screen.style.marginBottom = scale < 1 ? `${(scale - 1) * 874}px` : "";
+  stage.style.width = mock ? `${402 * scale + 20}px` : "";
+  stage.style.height = mock ? `${874 * scale + 20}px` : "";
   kb.resize(keysView.offsetWidth, screen.offsetHeight, dark.matches);
   render();
 }
@@ -497,6 +501,7 @@ document.addEventListener("visibilitychange", () => document.hidden && kb.endSes
 
 dark.addEventListener("change", size);
 addEventListener("resize", size);
+new ResizeObserver(size).observe(stage.parentElement);
 size();
 remember();
 field.focus({ preventScroll: true });
