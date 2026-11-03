@@ -15,3 +15,5 @@ xcuserdata/
 /Config/Team.xcconfig
 /xtool/
 /Packages/HexKeyboard/Sources/KeyboardUI/Resources/Keys/*.key
+/.scratch/
+node_modules/

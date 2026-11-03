@@ -1,0 +1,1 @@
+{ "name": "iikb-brand", "private": true, "type": "module", "dependencies": { "opentype.js": "^1.3.4" } }
