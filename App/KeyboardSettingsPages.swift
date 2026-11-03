@@ -292,6 +292,80 @@ private struct PreviewDrawing: View {
     private var letter: some View { Text("q").foregroundStyle(.primary) }
 }
 
+/// The key haptics' strengths as stops on one track, Standard in the middle; each stop taps at its strength as it's
+/// picked, so the levels can be felt apart.
+struct HapticSlider: View {
+    @Binding var level: HapticFeedback
+    @State private var haptics = KeyHaptics()
+    private let levels = HapticFeedback.levels
+    private let thumb: CGFloat = 28
+
+    private var index: Int { levels.firstIndex(of: level) ?? levels.count / 2 }
+
+    var body: some View {
+        VStack(spacing: 10) {
+            HStack {
+                Text("Strength").foregroundStyle(.primary)
+                Spacer()
+                Text(level.title).foregroundStyle(Color.hexSecondary)
+            }
+            GeometryReader { geometry in
+                let step = (geometry.size.width - thumb) / CGFloat(levels.count - 1)
+                let x = thumb / 2 + CGFloat(index) * step
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Color.hexDivider).frame(height: 4)
+                    Capsule().fill(Color.blue).frame(width: x, height: 4)
+                    ForEach(levels.indices, id: \.self) { stop in
+                        Circle()
+                            .fill(stop <= index ? Color.blue : Color.hexSecondary.opacity(0.45))
+                            .frame(width: 8, height: 8)
+                            .position(x: thumb / 2 + CGFloat(stop) * step, y: thumb / 2)
+                    }
+                    Circle()
+                        .fill(.white)
+                        .shadow(color: .black.opacity(0.25), radius: 3, y: 1)
+                        .frame(width: thumb, height: thumb)
+                        .position(x: x, y: thumb / 2)
+                }
+                .frame(height: thumb)
+                .contentShape(.rect)
+                .gesture(DragGesture(minimumDistance: 0).onChanged { drag in
+                    pick(Int(((drag.location.x - thumb / 2) / step).rounded()))
+                })
+                .animation(.snappy(duration: 0.18), value: index)
+            }
+            .frame(height: thumb)
+            HStack {
+                Text("Lighter")
+                Spacer()
+                Text("Stronger")
+            }
+            .overlay { Text("Standard") }
+            .font(.footnote)
+            .foregroundStyle(Color.hexSecondary)
+        }
+        .row()
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Haptic Strength")
+        .accessibilityValue(level.title)
+        .accessibilityAdjustableAction { direction in
+            switch direction {
+            case .increment: pick(index + 1)
+            case .decrement: pick(index - 1)
+            @unknown default: break
+            }
+        }
+    }
+
+    private func pick(_ stop: Int) {
+        let picked = levels[min(max(stop, 0), levels.count - 1)]
+        guard picked != level else { return }
+        level = picked
+        haptics.strength = Float(picked.strength)
+        haptics.play(.input)
+    }
+}
+
 /// A row whose value opens a menu of the others, as Raycast's pop-up rows do.
 struct MenuRow<Value: Hashable>: View {
     let title: String
@@ -322,6 +396,14 @@ struct MenuRow<Value: Hashable>: View {
 struct FeedbackSettings: View {
     private let model = SettingsModel.shared
     private let status = HexStatus.shared
+    @State private var lastLevel = HapticFeedback.standard
+
+    private var hapticsOn: Binding<Bool> {
+        Binding { model.settings.haptics != .off } set: { on in
+            if !on { lastLevel = model.settings.haptics }
+            withAnimation(.snappy) { model.update { $0.haptics = on ? lastLevel : .off } }
+        }
+    }
 
     var body: some View {
         Box(header: "Character Preview") {
@@ -346,8 +428,11 @@ struct FeedbackSettings: View {
             .padding(.vertical, 18)
             .padding(.horizontal, 8)
         }
-        Box(header: "Touch and Sound", footer: status.fullAccess ? "Standard is Apple’s keyboard’s own tap; Soft is about half as strong." : "Haptics need Allow Full Access.") {
-            MenuRow(title: "Key Haptic Feedback", selection: model.binding(\.haptics), choices: HapticFeedback.allCases) { $0.title }
+        Box(header: "Touch and Sound", footer: status.fullAccess ? "Standard is Apple’s keyboard’s own tap. Each step taps as you pick it." : "Haptics need Allow Full Access.") {
+            ToggleRow(title: "Key Haptics", isOn: hapticsOn)
+            if model.settings.haptics != .off {
+                HapticSlider(level: model.binding(\.haptics))
+            }
             ToggleRow(title: "Sound", detail: "The key click, while Keyboard Clicks is on in iOS Settings › Sounds & Haptics.", isOn: model.binding(\.sound))
             if !status.fullAccess {
                 ActionRow(title: "Allow Full Access", symbol: "arrow.up.forward") { HexStatus.openSettings() }

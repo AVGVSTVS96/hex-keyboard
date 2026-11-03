@@ -50,16 +50,26 @@
 			<key>Titles</key>
 			<array>
 				<string>Off</string>
-				<string>Soft</string>
+				<string>Lightest</string>
+				<string>Lighter</string>
+				<string>Light</string>
 				<string>Standard</string>
+				<string>Strong</string>
+				<string>Stronger</string>
+				<string>Strongest</string>
 			</array>
 			<key>Type</key>
 			<string>PSMultiValueSpecifier</string>
 			<key>Values</key>
 			<array>
 				<string>off</string>
-				<string>soft</string>
+				<string>lightest</string>
+				<string>lighter</string>
+				<string>light</string>
 				<string>standard</string>
+				<string>strong</string>
+				<string>stronger</string>
+				<string>strongest</string>
 			</array>
 		</dict>
 		<dict>

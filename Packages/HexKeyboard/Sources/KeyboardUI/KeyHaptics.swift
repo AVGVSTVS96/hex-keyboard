@@ -5,10 +5,10 @@ import Foundation
 ///
 /// UIKit's feedback generators share one engine per process that suspends itself when a host goes to the background
 /// and only wakes on that host's next foreground notification, so a keyboard that hops between hosts runs its own.
-final class KeyHaptics {
+public final class KeyHaptics {
     /// Apple's keyboard patterns are Core Haptics library entries (`CHHapticPatternLibraryKeyKeyboard…`) of one
     /// transient each, plus a click sound. These are their haptic values, exported on iOS 27 (iPhone 16 Pro Max).
-    enum Kind: CaseIterable {
+    public enum Kind: CaseIterable, Sendable {
         case input, separator, deletion, deletionRepeat, deletionRapid, other
 
         var intensity: Float {
@@ -34,36 +34,38 @@ final class KeyHaptics {
         func pattern(strength: Float) -> CHHapticPattern? {
             try? CHHapticPattern(events: [
                 CHHapticEvent(eventType: .hapticTransient, parameters: [
-                    CHHapticEventParameter(parameterID: .hapticIntensity, value: intensity * strength),
+                    CHHapticEventParameter(parameterID: .hapticIntensity, value: min(1, intensity * strength)),
                     CHHapticEventParameter(parameterID: .hapticSharpness, value: sharpness),
                 ], relativeTime: 0),
             ], parameters: [])
         }
     }
 
+    public init() {}
+
     private var engine: CHHapticEngine?
     private var players: [Kind: CHHapticPatternPlayer] = [:]
     private var running = false
     /// A share of Apple's intensity (`HapticFeedback.strength`).
-    var strength: Float = 1 {
+    public var strength: Float = 1 {
         didSet {
             guard strength != oldValue, let engine else { return }
             players = Self.players(on: engine, strength: strength)
         }
     }
 
-    func start() {
+    public func start() {
         if engine == nil { engine = makeEngine() }
         guard let engine, !running else { return }
         running = (try? engine.start()) != nil
     }
 
-    func stop() {
+    public func stop() {
         engine?.stop()
         running = false
     }
 
-    func play(_ kind: Kind) {
+    public func play(_ kind: Kind) {
         start()
         try? players[kind]?.start(atTime: CHHapticTimeImmediate)
     }

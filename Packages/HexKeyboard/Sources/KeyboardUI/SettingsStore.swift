@@ -139,8 +139,8 @@ private struct Choice<Value: RawRepresentable<String>> {
     }
 
     func load(into settings: inout KeyboardSettings, sharing: Bool) {
-        if let value = (SettingsStore.value(forKey: key, sharing: sharing) as? String).flatMap({ Value(rawValue: $0) }) {
-            settings[keyPath: path] = value
+        if let raw = SettingsStore.value(forKey: key, sharing: sharing) as? String {
+            if let value = Value(rawValue: raw) { settings[keyPath: path] = value }
         } else if let switchKey, let old = SettingsStore.value(forKey: switchKey, sharing: sharing) as? Bool, let value = old ? on : off {
             settings[keyPath: path] = value
         }

@@ -51,24 +51,37 @@ public enum CharacterPreview: String, CaseIterable, Hashable, Sendable {
     }
 }
 
-/// How hard each key taps back: Standard is Apple's keyboard's own values.
+/// How hard each key taps back: Standard, in the middle, is Apple's keyboard's own tap, with three steps softer and
+/// three stronger.
 public enum HapticFeedback: String, CaseIterable, Hashable, Sendable {
-    case off, soft, standard
+    case off, lightest, lighter, light, standard, strong, stronger, strongest
+
+    public static let levels = allCases.filter { $0 != .off }
 
     public var title: String {
         switch self {
         case .off: "Off"
-        case .soft: "Soft"
+        case .lightest: "Lightest"
+        case .lighter: "Lighter"
+        case .light: "Light"
         case .standard: "Standard"
+        case .strong: "Strong"
+        case .stronger: "Stronger"
+        case .strongest: "Strongest"
         }
     }
 
-    /// A share of Apple's intensity.
+    /// A share of Apple's intensity. Strongest doubles Apple's key tap, the most Core Haptics plays.
     public var strength: Double {
         switch self {
         case .off: 0
-        case .soft: 0.55
+        case .lightest: 0.5
+        case .lighter: 0.65
+        case .light: 0.8
         case .standard: 1
+        case .strong: 1.3
+        case .stronger: 1.6
+        case .strongest: 2
         }
     }
 }
