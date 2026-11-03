@@ -57,9 +57,9 @@ struct WritingSettings: View {
     private let model = SettingsModel.shared
 
     var body: some View {
-        Box(header: "Style", footer: "A style sets capitals and punctuation, as Wispr Flow’s do. Fields that want no capitals, like web addresses, get none.") {
+        Box(header: "Style", footer: "A style sets punctuation, as Wispr Flow’s do. Capitals follow Auto-Capitalization in Keyboard › Typing, as typing’s do, and very casual has none.") {
             ForEach(DictationStyle.allCases, id: \.self) { style in
-                let writing = DictationWriting(style: style, editing: model.settings.dictationEditing, lists: model.settings.dictationLists)
+                let writing = { var writing = model.settings.dictation; writing.style = style; return writing }()
                 ChoiceRow(title: style.title, detail: "“\(writing.typed(Self.said, lexicon: .english))”", picked: model.settings.dictationStyle == style) {
                     model.update { $0.dictationStyle = style }
                 }
