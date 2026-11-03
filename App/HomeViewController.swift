@@ -155,6 +155,8 @@ struct HomeView: View {
                     Tile(symbol: "waveform", color: .red, title: "Voice Model", detail: VoiceModel.shared.status)
                 }
                 .buttonStyle(CardPress())
+                NavigationLink { VocabularyView() } label: { VocabularyTile() }
+                    .buttonStyle(CardPress())
             }
         }
     }
@@ -165,6 +167,14 @@ private struct VoiceTile: View {
     var body: some View {
         let today = Transcripts.shared.all.prefix { Calendar.current.isDateInToday($0.date) }.reduce(0) { $0 + $1.words }
         Tile(symbol: "text.bubble.fill", color: .pink, title: today == 1 ? "word dictated today" : "words dictated today", value: today.formatted())
+    }
+}
+
+/// Your Words, the dictionary voice typing writes with.
+private struct VocabularyTile: View {
+    var body: some View {
+        let words = VoiceVocabulary.shared.vocabulary.terms.count
+        Tile(symbol: "character.book.closed.fill", color: .orange, title: words == 1 ? "word in Your Words" : "words in Your Words", value: words.formatted())
     }
 }
 

@@ -29,6 +29,7 @@ struct VocabularyView: View {
     var body: some View {
         List {
             Section {
+                Button("Add Word", systemImage: "plus") { adding = true }
                 ForEach(Array(store.vocabulary.terms.enumerated()), id: \.offset) { index, term in
                     Button { editing = Edited(index: index) } label: {
                         VStack(alignment: .leading, spacing: 3) {
@@ -47,7 +48,6 @@ struct VocabularyView: View {
                     terms.remove(atOffsets: offsets)
                     store.set(terms)
                 }
-                Button("Add Word") { adding = true }
             } footer: {
                 Text("Hex types each word as you spell it here, in place of what the voice model wrote instead, or of the word with other spaces, hyphens or capitals. Only whole words change, and nothing that isn’t listed.")
             }
