@@ -36,13 +36,13 @@ struct DictationTests {
 
     @Test func withAutoCapitalizationOffADictationStartsSentencesLowercaseInEveryStyle() {
         for style in DictationStyle.allCases {
-            #expect(dictate("Hello. I think it's done. Cheryl liked it.", into: "", style: style, autoCapitalization: false).hasPrefix("hello. i think it's done. Cheryl liked it"))
+            #expect(dictate("Hello. I think it's done. Sam liked it.", into: "", style: style, autoCapitalization: false).hasPrefix("hello. i think it's done. Sam liked it"))
         }
     }
 
     @Test func veryCasualStartsSentencesLowercaseAndNamesKeepTheirCapitals() {
         let off = { (heard: String, text: String) in dictate(heard, into: text, style: .veryCasual) }
-        #expect(off("Hello. I think it's done. Cheryl liked it.", "") == "hello. i think it's done. Cheryl liked it.")
+        #expect(off("Hello. I think it's done. Sam liked it.", "") == "hello. i think it's done. Sam liked it.")
         #expect(off("Hello. I'm home and I left.", "Done. ") == "Done. hello. i'm home and i left.")
         #expect(off("The job is done! OK, go.", "") == "the job is done! OK, go.")
         #expect(off("\"Hello,\" he said.", "") == "\"hello,\" he said.")
