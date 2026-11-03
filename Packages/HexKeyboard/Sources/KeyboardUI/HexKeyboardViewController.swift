@@ -12,7 +12,6 @@ open class HexKeyboardViewController: UIInputViewController {
     private let panelView = PanelView()
     private let toolbarView = UIView()
     private var toolbar = KeyboardMetrics.phone(width: 390).toolbar
-    private var listeningSince: Date?
     private lazy var emojiPanel: EmojiPanel = {
         let panel = EmojiPanel()
         panel.onPick = { [unowned self] emoji, base in
@@ -276,7 +275,7 @@ open class HexKeyboardViewController: UIInputViewController {
         suggestionBar.toolbar = toolbar
         suggestionBar.maximumSlotWidth = device == .phone ? .infinity : 154.5
         suggestionBar.update(tools: tools, theme: theme)
-        suggestionBar.update(mic: mic, listeningSince: listeningSince, notice: dictation.failure ?? hint, theme: theme)
+        suggestionBar.update(mic: mic, listeningSince: dictation.since, notice: dictation.failure ?? hint, theme: theme)
         if panel != nil { panelView.show(query: engine.query, theme: theme, metrics: metrics) }
         keyboardView.deadTop = panel != nil ? max(metrics.topInset - Toolbar.keysReach, 0) : 0
         let height = panel == nil ? toolbar.height : toolbar.panelHeight
@@ -379,8 +378,6 @@ open class HexKeyboardViewController: UIInputViewController {
         }
         micIsOn = Dictation.micIsOn
         if status.state != .idle, !micIsOn { status.state = .idle }
-        if status.state == .listening, dictation.state != .listening { listeningSince = Date() }
-        if status.state == .idle { listeningSince = nil }
         dictation = status
         render()
     }

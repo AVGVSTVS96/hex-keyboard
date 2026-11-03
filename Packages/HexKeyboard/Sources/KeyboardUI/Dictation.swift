@@ -11,12 +11,15 @@ public enum Dictation {
 
     public struct Status: Codable, Equatable, Sendable {
         public var state = State.idle
+        /// When the dictation in progress started, by the app recording it, so every keyboard that opens shows the same time.
+        public var since: Date?
         /// What the app heard, until the keyboard types it.
         public var heard: String?
         public var failure: String?
 
-        public init(state: State = .idle, heard: String? = nil, failure: String? = nil) {
+        public init(state: State = .idle, since: Date? = nil, heard: String? = nil, failure: String? = nil) {
             self.state = state
+            self.since = since
             self.heard = heard
             self.failure = failure
         }

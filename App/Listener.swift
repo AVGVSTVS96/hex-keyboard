@@ -50,8 +50,8 @@ import UIKit
     func start() async {
         guard state == .idle else { return }
         micOff?.cancel()
-        set(.listening)
         started = .now
+        set(.listening)
         do {
             guard await AVAudioApplication.requestRecordPermission() else { throw Failure.microphone }
             let transcription = try await VoiceModel.shared.transcription()
@@ -170,7 +170,7 @@ import UIKit
 
     private func set(_ state: Dictation.State, heard: String? = nil, failure: String? = nil) {
         self.state = state
-        Dictation.publish(Dictation.Status(state: state, heard: heard.flatMap { $0.isEmpty ? nil : $0 }, failure: failure))
+        Dictation.publish(Dictation.Status(state: state, since: state == .idle ? nil : started, heard: heard.flatMap { $0.isEmpty ? nil : $0 }, failure: failure))
         onChange?()
     }
 
