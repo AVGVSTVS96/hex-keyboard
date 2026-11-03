@@ -230,7 +230,7 @@ extension TypingEngine {
             final = join.word
             typedText = join.word
             previous = join.previous
-        } else if let correction = corrector.correction(for: typed, guessing: traits.spellChecking).map(written) {
+        } else if let correction = corrector.correction(for: typed).map(written) {
             write(correction, replacing: word.count, in: document)
             revert = Revert(original: final, replacement: correction)
             final = correction
@@ -359,7 +359,7 @@ extension TypingEngine {
             }
         } else {
             let correcting = traits.allowsCorrection && Words.isCorrectable(word, in: text)
-            suggestions = corrector.suggestions(for: typed, correcting: correcting, applying: settings.autoCorrection, guessing: traits.spellChecking)
+            suggestions = corrector.suggestions(for: typed, correcting: correcting, applying: settings.autoCorrection, guessing: true)
         }
     }
 }

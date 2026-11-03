@@ -46,7 +46,6 @@ public struct InputTraits: Hashable, Sendable {
     public var smartPunctuation: Bool
     public var returnRequiresText: Bool
     public var autocorrection: Bool
-    public var spellChecking: Bool
 
     public init(
         kind: InputKind = .text,
@@ -54,8 +53,7 @@ public struct InputTraits: Hashable, Sendable {
         autocapitalization: Autocapitalization = .sentences,
         smartPunctuation: Bool = true,
         returnRequiresText: Bool = false,
-        autocorrection: Bool = true,
-        spellChecking: Bool = true
+        autocorrection: Bool = true
     ) {
         self.kind = kind
         self.returnKind = returnKind
@@ -63,7 +61,6 @@ public struct InputTraits: Hashable, Sendable {
         self.smartPunctuation = smartPunctuation
         self.returnRequiresText = returnRequiresText
         self.autocorrection = autocorrection
-        self.spellChecking = spellChecking
     }
 
     public var allowsCorrection: Bool {

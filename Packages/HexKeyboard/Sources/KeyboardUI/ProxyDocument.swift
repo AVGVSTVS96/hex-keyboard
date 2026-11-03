@@ -32,8 +32,7 @@ extension InputTraits {
             autocapitalization: Autocapitalization(proxy.autocapitalizationType ?? .sentences),
             smartPunctuation: proxy.smartQuotesType != .no,
             returnRequiresText: proxy.enablesReturnKeyAutomatically ?? false,
-            autocorrection: proxy.autocorrectionType != .no && !(content.map(Self.literalContent.contains) ?? false),
-            spellChecking: proxy.spellCheckingType != .no
+            autocorrection: proxy.autocorrectionType != .no && !(content.map(Self.literalContent.contains) ?? false)
         )
     }
 
