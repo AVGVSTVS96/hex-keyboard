@@ -5,7 +5,9 @@ import UIKit
 @main
 final class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        if !VoiceProbe.asked { VoiceModel.shared.prepare() }
+        guard !VoiceProbe.asked else { return true }
+        VoiceModel.shared.prepare()
+        Task { await Transcripts.shared.recover() }
         return true
     }
 }
@@ -55,7 +57,6 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         window.rootViewController = tabs
         window.makeKeyAndVisible()
         self.window = window
-        Task { await Transcripts.shared.recover() }
         open(options.urlContexts)
     }
 

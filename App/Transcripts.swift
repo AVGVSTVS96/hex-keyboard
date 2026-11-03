@@ -1,4 +1,5 @@
 import Foundation
+import KeyboardUI
 import Observation
 
 struct Transcript: Codable, Identifiable, Hashable {
@@ -6,8 +7,10 @@ struct Transcript: Codable, Identifiable, Hashable {
     var date: Date
     var text: String
     var seconds: Double
-    /// False when you canceled it in Hex: kept here, never typed.
+    /// False when it wasn't typed where you said it: you canceled it, or Hex ended mid-dictation.
     var typed: Bool
+    /// Written down after Hex ended mid-dictation (an install, a crash, a dead iPhone), the next time it started.
+    var recovered: Bool?
     /// The speech model that wrote it; nil before Hex kept it.
     var model: String?
     /// The microphone it was said into, as iOS names it; nil before Hex kept it.
@@ -24,7 +27,7 @@ struct Transcript: Codable, Identifiable, Hashable {
 /// Every dictation the app transcribed, newest first, in one JSON line each in the app's own container, and the sound of
 /// each as a `Recording` beside it, written as it's heard, up to 512 MB (about 4½ hours of talking), past which the oldest
 /// lose their sound. A recording with no transcript, left by an app that ended mid-dictation, is written down the next
-/// time the app opens. Nothing leaves the iPhone: the keyboard never reads it, and the app's only download is the voice
+/// time the app starts, and the keyboard says so. Nothing leaves the iPhone: the keyboard never reads it, and the app's only download is the voice
 /// model.
 @Observable final class Transcripts {
     static let shared = Transcripts()
@@ -45,8 +48,8 @@ struct Transcript: Codable, Identifiable, Hashable {
         }
     }
 
-    /// Writes down the recordings an ended app left without a transcript, kept as not typed. One that can't be written
-    /// now waits for the next launch.
+    /// Writes down the recordings an ended app left without a transcript, kept as not typed, and tells the keyboard.
+    /// One that can't be written now waits for the next launch.
     func recover() async {
         for file in unwritten {
             guard let id = UUID(uuidString: file.deletingPathExtension().lastPathComponent), let samples = try? Recording.read(file) else { continue }
@@ -58,7 +61,8 @@ struct Transcript: Codable, Identifiable, Hashable {
             do {
                 let written = try await VoiceModel.shared.write(samples)
                 try? Recording.write(samples, to: file)
-                add(written.text, heard: written.heard, id: id, at: date, seconds: Double(samples.count) / 16_000, typed: false, model: written.model, mic: nil)
+                add(written.text, heard: written.heard, id: id, at: date, seconds: Double(samples.count) / 16_000, typed: false, model: written.model, mic: nil, recovered: true)
+                Dictation.leave(.notice("A dictation cut off when Hex closed is in Hex › Transcripts"))
             } catch {
                 HostApp.log.error("couldn't write down \(file.lastPathComponent, privacy: .public): \(error.localizedDescription, privacy: .public)")
             }
@@ -69,8 +73,8 @@ struct Transcript: Codable, Identifiable, Hashable {
     /// Keeps a dictation whose `Recording` was written to `recording(of: id)` as it was heard, with its sound, even when
     /// the model wrote nothing: that's when it failed you (a low rumble, speech too quiet, or an "um" your editing left
     /// out), and the sound is the only copy, to write again.
-    func add(_ text: String, heard: String, id: Transcript.ID, at date: Date, seconds: Double, typed: Bool, model: String, mic: String?) {
-        let transcript = Transcript(id: id, date: date, text: text, seconds: seconds, typed: typed, model: model, mic: mic, heard: heard == text ? nil : heard)
+    func add(_ text: String, heard: String, id: Transcript.ID, at date: Date, seconds: Double, typed: Bool, model: String, mic: String?, recovered: Bool = false) {
+        let transcript = Transcript(id: id, date: date, text: text, seconds: seconds, typed: typed, recovered: recovered ? true : nil, model: model, mic: mic, heard: heard == text ? nil : heard)
         all.insert(transcript, at: all.firstIndex { $0.date < date } ?? all.endIndex)
         trim()
         guard let line = try? JSONEncoder().encode(transcript) else { return }

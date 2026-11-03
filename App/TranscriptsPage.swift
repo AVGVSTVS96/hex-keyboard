@@ -169,7 +169,7 @@ private struct Row: View {
                     .monospacedDigit()
                 if !transcript.typed {
                     Text("·")
-                    Text("Canceled, not typed")
+                    Text(transcript.recovered == true ? "Recovered" : "Not typed")
                 }
             }
             .font(.footnote)
@@ -301,7 +301,7 @@ private struct TranscriptDetail: View {
                 if transcript.seconds >= 1 {
                     Fact(title: "Pace", value: "\(Int((Double(transcript.words) / transcript.seconds * 60).rounded())) wpm")
                 }
-                Fact(title: "Typed", value: transcript.typed ? "Yes" : "No, you canceled it")
+                Fact(title: "Typed", value: transcript.typed ? "Yes" : transcript.recovered == true ? "No, Hex closed during it" : "No")
                 if let model = transcript.model { Fact(title: "Written by", value: model) }
             }
             RecordingSection(transcript: transcript)
