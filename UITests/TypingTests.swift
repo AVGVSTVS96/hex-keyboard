@@ -75,6 +75,43 @@ final class TypingTests: XCTestCase {
         XCTAssertEqual(field.value as? String, "Axbc")
     }
 
+    func testSpaceBarMovesCursorUpAndDownLines() {
+        type("aaaa")
+        tap("return")
+        type("bbbb")
+        tap("return")
+        type("cccc")
+        drag(dy: -25)
+        type("x")
+        drag(dy: -25)
+        type("y")
+        drag(dy: 50)
+        type("z")
+        XCTAssertEqual((field.value as? String)?.lowercased(), "aaaay\nbbbbx\nccccz")
+    }
+
+    func testSpaceBarMovesCursorUpThroughAWrappedParagraph() {
+        let paragraph = (1...40).map { "word\($0)" }.joined(separator: " ")
+        relaunch(with: paragraph)
+        drag(dy: -25)
+        type("q")
+        let text = field.value as? String ?? ""
+        let moved = text.count - 1 - (text.firstIndex(of: "q").map { text.distance(from: text.startIndex, to: $0) } ?? 0)
+        XCTAssert((20...70).contains(moved), "moved \(moved) characters back for one line up")
+    }
+
+    private func relaunch(with text: String) {
+        app.terminate()
+        app.launchArguments += ["-HexText", text]
+        app.launch()
+        XCTAssertTrue(key("space").waitForExistence(timeout: 10))
+    }
+
+    private func drag(dy: CGFloat) {
+        let space = key("space").coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        space.press(forDuration: 1, thenDragTo: space.withOffset(CGVector(dx: 0, dy: dy)), withVelocity: 100, thenHoldForDuration: 0.2)
+    }
+
     func testHoldingDeleteSpeedsUpToWords() {
         let sentence = "the quick brown fox jumps over the lazy dog"
         type(sentence)

@@ -11,7 +11,7 @@ extension KeyboardView {
         var flicked = false
         let start: CGPoint
         var point: CGPoint
-        var lastCursorX: CGFloat
+        var lastCursor: CGPoint
         var hold: Timer?
         var menuFrame: CGRect?
 
@@ -20,7 +20,7 @@ extension KeyboardView {
             self.keyView = keyView
             self.start = start
             self.point = start
-            self.lastCursorX = start.x
+            self.lastCursor = start
         }
     }
 
@@ -52,11 +52,16 @@ extension KeyboardView {
             case .alternates, .menu:
                 alternates.track(point)
             case .trackpad:
-                let step: CGFloat = 9
-                let offset = Int((point.x - tracked.lastCursorX) / step)
+                let column: CGFloat = 9, line = HostLayout.lineHeight
+                let offset = Int((point.x - tracked.lastCursor.x) / column)
                 if offset != 0 {
-                    tracked.lastCursorX += CGFloat(offset) * step
+                    tracked.lastCursor.x += CGFloat(offset) * column
                     onEvent(.cursor(offset: offset))
+                }
+                let lines = Int((point.y - tracked.lastCursor.y) / line)
+                if lines != 0 {
+                    tracked.lastCursor.y += CGFloat(lines) * line
+                    onEvent(.cursorLines(lines))
                 }
             case .typing, .slide:
                 if let flick = flickTarget(tracked, point) {
@@ -184,6 +189,7 @@ extension KeyboardView {
                 guard let self, let tracked, tracked.mode == .typing, let view = tracked.keyView else { return }
                 if isSpace {
                     tracked.mode = .trackpad
+                    tracked.lastCursor = tracked.point
                     view.isPressed = false
                     self.setLabelsVisible(false)
                 } else {

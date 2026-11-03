@@ -327,6 +327,8 @@ open class HexKeyboardViewController: UIInputViewController {
             TouchTrace.shared.mark("typed")
         case .oneHanded(let hand), .pick(let hand):
             SettingsStore.set(hand, sharing: hasFullAccess)
+        case .cursorLines:
+            engine.lineLayout = HostLayout(keyboardWidth: view.bounds.width, host: KeyboardHost.app(of: self))
         default:
             break
         }

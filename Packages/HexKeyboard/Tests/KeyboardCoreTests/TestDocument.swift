@@ -1,6 +1,6 @@
 @testable import KeyboardCore
 
-final class TestDocument: TextDocument {
+class TestDocument: TextDocument {
     var text: String
     var cursor: Int
 

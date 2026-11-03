@@ -23,6 +23,9 @@ public struct TypingEngine {
         didSet { if settings != oldValue { suggestionsChanged() } }
     }
     public var corrector: Corrector?
+    /// How the host likely wraps its text, for moving the caret up and down lines.
+    public var lineLayout: (any LineLayout)?
+    private var lineGoal: LineGoal?
     /// The one copy of the text the engine reads. The keyboard's edits reach it through `write` and `moveCursor`, the
     /// host's reports through `documentChanged`.
     public private(set) var text = TextState()
@@ -166,6 +169,8 @@ public struct TypingEngine {
             perform(key.action, in: document)
         case .cursor(let offset):
             moveCursor(by: offset, in: document)
+        case .cursorLines(let count):
+            moveCursor(lines: count, in: document)
         case .oneHanded(let hand):
             settings.oneHanded = hand
         case .pick(let hand):
@@ -227,6 +232,7 @@ public struct TypingEngine {
     mutating func moveCursor(by offset: Int, in document: some TextDocument) {
         guard panel == nil else { return }
         attach(document)
+        lineGoal = nil
         moveCaret(by: offset, in: document)
         forgetWord()
         refreshShift()
@@ -236,6 +242,16 @@ public struct TypingEngine {
     mutating func moveCaret(by offset: Int, in document: some TextDocument) {
         document.moveCursor(by: offset)
         text.moveCursor(by: offset)
+    }
+
+    /// Moves the caret down `count` lines, up when negative, as the space bar trackpad does.
+    mutating func moveCursor(lines count: Int, in document: some TextDocument) {
+        guard panel == nil, let lineLayout else { return }
+        attach(document)
+        guard text.isKnown else { return }
+        let move = Lines.move(count, before: text.before, after: text.after ?? "", goal: lineGoal, layout: lineLayout)
+        if move.offset != 0 { moveCursor(by: move.offset, in: document) }
+        lineGoal = move.goal
     }
 
     mutating func pressShift(doubleTap: Bool) {
@@ -301,6 +317,7 @@ public struct TypingEngine {
             refreshShift()
             suggestionsChanged()
         }
+        if let goal = lineGoal, goal.landing == nil { moveCursor(lines: 0, in: document) }
         return report
     }
 
@@ -315,6 +332,7 @@ public struct TypingEngine {
     /// The one way text changes: deletes `count` characters before the caret, then inserts `string`, in the host and
     /// in `text` alike.
     mutating func write(_ string: String, replacing count: Int = 0, in document: some TextDocument) {
+        lineGoal = nil
         if count > 0 {
             document.deleteBackward(count)
             text.deleteBackward(count)
