@@ -16,6 +16,11 @@ final class TapsViewController: UIViewController {
     private let pullCaption = UILabel()
     private let missedHeader = UILabel()
     private let missed = UIStackView()
+    private let pullCard = UIStackView()
+    private let missedCard = UIStackView()
+    private let primary = UIStackView()
+    private let secondary = UIStackView()
+    private let columns = UIStackView()
     private var touches = TouchModel()
     private var signature: String?
     private var observer: Int32 = 0
@@ -28,7 +33,7 @@ final class TapsViewController: UIViewController {
         view.backgroundColor = HexStyle.backdrop
 
         stats.axis = .vertical
-        stats.spacing = 16
+        stats.spacing = 12
 
         modes.selectedSegmentIndex = 0
         modes.addAction(UIAction { [unowned self] _ in
@@ -42,7 +47,7 @@ final class TapsViewController: UIViewController {
 
         legend.numberOfLines = 0
         legend.font = .preferredFont(forTextStyle: .footnote)
-        legend.textColor = .secondaryLabel
+        legend.textColor = HexStyle.secondary
 
         for header in [pullHeader, missedHeader] {
             header.font = .preferredFont(forTextStyle: .headline)
@@ -50,39 +55,53 @@ final class TapsViewController: UIViewController {
         pullHeader.text = "How your thumbs pull"
         pullCaption.numberOfLines = 0
         pullCaption.font = .preferredFont(forTextStyle: .footnote)
-        pullCaption.textColor = .secondaryLabel
+        pullCaption.textColor = HexStyle.secondary
 
         missedHeader.text = "Most missed"
         missed.axis = .vertical
         missed.spacing = 10
 
 
-        let top = Self.column([stats, modes], spacing: 20)
-        let bottom = Self.column([scale, legend, detail, pullHeader, pull, pullCaption, missedHeader, missed], spacing: 12)
-        bottom.setCustomSpacing(8, after: scale)
-        bottom.setCustomSpacing(20, after: legend)
-        bottom.setCustomSpacing(32, after: detail)
-        bottom.setCustomSpacing(32, after: pullCaption)
-        let stack = UIStackView(arrangedSubviews: [top, map, bottom])
-        stack.axis = .vertical
-        stack.spacing = 16
-        stack.setCustomSpacing(12, after: map)
-        stack.translatesAutoresizingMaskIntoConstraints = false
+        map.layer.cornerRadius = HexStyle.cardRadius
+        for view in [scale, legend, pullHeader, pull, pullCaption] { pullCard.addArrangedSubview(view) }
+        pullCard.setCustomSpacing(8, after: scale)
+        pullCard.setCustomSpacing(20, after: legend)
+        for view in [missedHeader, missed] { missedCard.addArrangedSubview(view) }
+        for card in [pullCard, missedCard] {
+            card.axis = .vertical
+            card.spacing = 12
+            card.isLayoutMarginsRelativeArrangement = true
+            card.directionalLayoutMargins = NSDirectionalEdgeInsets(top: 16, leading: 16, bottom: 16, trailing: 16)
+            HexStyle.makeCard(card)
+        }
+        for column in [primary, secondary] {
+            column.axis = .vertical
+            column.spacing = 16
+        }
+        columns.alignment = .top
+        columns.spacing = 20
+        columns.translatesAutoresizingMaskIntoConstraints = false
         scroll.translatesAutoresizingMaskIntoConstraints = false
         scroll.alwaysBounceVertical = true
-        scroll.addSubview(stack)
+        scroll.addSubview(columns)
         view.addSubview(scroll)
+        let readable = columns.widthAnchor.constraint(equalTo: scroll.frameLayoutGuide.widthAnchor, constant: -32)
+        readable.priority = .required - 1
 
         NSLayoutConstraint.activate([
             scroll.topAnchor.constraint(equalTo: view.topAnchor),
             scroll.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             scroll.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scroll.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            stack.topAnchor.constraint(equalTo: scroll.contentLayoutGuide.topAnchor, constant: 8),
-            stack.bottomAnchor.constraint(equalTo: scroll.contentLayoutGuide.bottomAnchor, constant: -32),
-            stack.leadingAnchor.constraint(equalTo: scroll.frameLayoutGuide.leadingAnchor),
-            stack.trailingAnchor.constraint(equalTo: scroll.frameLayoutGuide.trailingAnchor),
+            columns.topAnchor.constraint(equalTo: scroll.contentLayoutGuide.topAnchor, constant: 8),
+            columns.bottomAnchor.constraint(equalTo: scroll.contentLayoutGuide.bottomAnchor, constant: -32),
+            columns.centerXAnchor.constraint(equalTo: scroll.frameLayoutGuide.centerXAnchor),
+            columns.widthAnchor.constraint(lessThanOrEqualToConstant: 1000),
+            columns.widthAnchor.constraint(lessThanOrEqualTo: scroll.frameLayoutGuide.widthAnchor, constant: -32),
+            readable,
+            secondary.widthAnchor.constraint(equalToConstant: 320).withPriority(.defaultHigh),
         ])
+        arrange()
 
         observer = MemoryStore.observeTouches { [weak self] in self?.reload() }
         NotificationCenter.default.addObserver(forName: UIScene.willEnterForegroundNotification, object: nil, queue: .main) { [weak self] _ in
@@ -101,39 +120,64 @@ final class TapsViewController: UIViewController {
         notify_cancel(observer)
     }
 
-    private static let empty = {
+    private var empty: UIContentUnavailableConfiguration {
         var empty = UIContentUnavailableConfiguration.empty()
         empty.image = UIImage(systemName: "hand.tap")
         empty.text = "No Taps Yet"
+        guard !SettingsStore.fullAccessSeen else {
+            empty.secondaryText = "Type with Hex anywhere, and your taps show up here each time the keyboard closes."
+            return empty
+        }
         empty.secondaryText = "Type with Hex anywhere, and your taps show up here each time the keyboard closes. Hex needs Allow Full Access to share them with this app."
+        var button = UIButton.Configuration.borderedProminent()
+        button.title = "Allow Full Access"
+        button.cornerStyle = .capsule
+        empty.button = button
+        empty.buttonProperties.primaryAction = UIAction { _ in HexStatus.openSettings() }
         return empty
-    }()
+    }
 
-    private static func column(_ views: [UIView], spacing: CGFloat) -> UIStackView {
-        let column = UIStackView(arrangedSubviews: views)
-        column.axis = .vertical
-        column.spacing = spacing
-        column.isLayoutMarginsRelativeArrangement = true
-        column.directionalLayoutMargins = NSDirectionalEdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16)
-        return column
+    override func viewWillLayoutSubviews() {
+        super.viewWillLayoutSubviews()
+        if (view.bounds.width >= 800) != isWide { arrange() }
+    }
+
+    private var isWide: Bool { secondary.superview != nil }
+
+    /// On a wide screen the map and how your thumbs pull sit on the left, your numbers, a key's close-up and the most
+    /// missed keys on the right; otherwise all of it in one column, the numbers first.
+    private func arrange() {
+        let wide = view.bounds.width >= 800
+        for stack in [columns, primary, secondary] { stack.arrangedSubviews.forEach { $0.removeFromSuperview() } }
+        if wide {
+            [modes, map, pullCard].forEach(primary.addArrangedSubview)
+            [stats, detail, missedCard].forEach(secondary.addArrangedSubview)
+            [primary, secondary].forEach(columns.addArrangedSubview)
+        } else {
+            [stats, modes, map, detail, pullCard, missedCard].forEach(primary.addArrangedSubview)
+            columns.addArrangedSubview(primary)
+        }
+        primary.setCustomSpacing(12, after: modes)
     }
 
     private func reload() {
         touches = MemoryStore.sharedTouches() ?? TouchModel()
         let layouts = touches.signatures.filter { LayoutContext(signature: $0.signature) != nil }
-        if signature.map({ name in !layouts.contains { $0.signature == name } }) ?? true { signature = layouts.first?.signature }
-        navigationItem.rightBarButtonItem = layouts.count > 1 ? UIBarButtonItem(title: "Layout", image: UIImage(systemName: "keyboard"), menu: UIMenu(children: layouts.map { layout in
-            UIAction(title: Self.title(of: layout.signature), subtitle: "\(layout.taps.formatted()) taps", state: layout.signature == signature ? .on : .off) { [unowned self] _ in
+        if signature.map({ name in !layouts.contains { $0.signature == name } }) ?? true {
+            signature = layouts.first { $0.signature == current }?.signature ?? layouts.first?.signature
+        }
+        navigationItem.rightBarButtonItem = layouts.count > 1 ? UIBarButtonItem(title: signature.map(title(of:)) ?? "Layout", image: nil, menu: UIMenu(children: layouts.map { layout in
+            UIAction(title: title(of: layout.signature), subtitle: "\(layout.taps.formatted()) taps", state: layout.signature == signature ? .on : .off) { [unowned self] _ in
                 signature = layout.signature
                 reload()
             }
         })) : nil
         let hasTaps = signature != nil
-        [stats, modes, map, legend, pullHeader, pull, pullCaption, missedHeader, missed].forEach { $0.isHidden = !hasTaps }
-        contentUnavailableConfiguration = hasTaps ? nil : Self.empty
+        [stats, modes, map, pullCard, missedCard].forEach { $0.isHidden = !hasTaps }
+        contentUnavailableConfiguration = hasTaps ? nil : empty
         detail.isHidden = true
         guard let signature, let context = LayoutContext(signature: signature) else { return updateLegend() }
-        map.show(touches, on: context, screen: view.window?.windowScene?.screen.bounds.size ?? view.bounds.size)
+        map.show(touches, on: context, screen: screen)
         showStats()
         showPull()
         showMissed()
@@ -155,15 +199,37 @@ final class TapsViewController: UIViewController {
         scroll.contentOffset.y = min(max(frame.minY - scroll.adjustedContentInset.top - 60, -scroll.adjustedContentInset.top), bottom)
     }
 
-    private static func title(of signature: String) -> String {
+    /// The screen and hold a touch model was kept for: on the iPhone Duo, which screen and which way up (open and
+    /// upright, the screen is wider than tall).
+    private func title(of signature: String) -> String {
         guard let context = LayoutContext(signature: signature) else { return signature }
-        let device = context.device == .phone ? "iPhone" : "iPad"
+        let screen = if context.device != .phone {
+            "iPad, \(context.isLandscape ? "landscape" : "portrait")"
+        } else if isDuo {
+            "\(context.isOpen ? "Open" : "Folded"), \(context.isLandscape != context.isOpen ? "on its side" : "upright")"
+        } else {
+            "iPhone, \(context.isLandscape ? "landscape" : "portrait")"
+        }
+        let layer = switch context.layer {
+        case .letters: ""
+        case .numbers: ", numbers"
+        case .symbols: ", symbols"
+        }
         let hand = switch context.oneHanded {
         case .left: ", left hand"
         case .right: ", right hand"
         case .off: ""
         }
-        return "\(device), \(context.isLandscape ? "landscape" : "portrait")\(hand)"
+        return screen + layer + hand
+    }
+
+    private var screen: CGSize { view.window?.windowScene?.screen.bounds.size ?? view.bounds.size }
+
+    private var isDuo: Bool { Duo.isDuo(short: min(screen.width, screen.height)) }
+
+    /// The letters of the screen the app is on now, whose taps show first.
+    private var current: String {
+        LayoutContext(device: .phone, layer: .letters, isLandscape: screen.width > screen.height, isOpen: Duo.isOpen(short: min(screen.width, screen.height))).signature
     }
 
     private func showStats() {
@@ -177,15 +243,15 @@ final class TapsViewController: UIViewController {
         stats.arrangedSubviews.forEach { $0.removeFromSuperview() }
         let tiles = [
             StatView(value: taps.formatted(), caption: "taps learned"),
-            StatView(value: TapMapPalette.percent(onTarget), caption: "of your letter taps land on the key you meant"),
-            StatView(value: lately.map { TapMapPalette.percent($0) } ?? "–", caption: "on target in your last \(recent.count.formatted()) letter taps"),
-            StatView(value: String(format: "%.1f pt", drift), caption: "from a letter’s center to where you aim, on average"),
+            StatView(value: TapMapPalette.percent(onTarget), caption: "of letter taps land on the key you meant"),
+            StatView(value: lately.map { TapMapPalette.percent($0) } ?? "–", caption: recent.isEmpty ? "on target lately" : "on target in your last \(recent.count.formatted())"),
+            StatView(value: String(format: "%.1f pt", drift), caption: "from a letter’s center to where you aim"),
         ]
         for pair in [tiles[0...1], tiles[2...3]] {
             let row = UIStackView(arrangedSubviews: Array(pair))
             row.distribution = .fillEqually
             row.spacing = 12
-            row.alignment = .top
+            row.alignment = .fill
             stats.addArrangedSubview(row)
         }
     }
@@ -216,7 +282,7 @@ final class TapsViewController: UIViewController {
     private func showMissed() {
         missed.arrangedSubviews.forEach { $0.removeFromSuperview() }
         let worst = map.aims.filter { $0.taps >= 10 }.sorted { $0.onTarget < $1.onTarget }.prefix(5)
-        missedHeader.isHidden = worst.isEmpty
+        missedCard.isHidden = worst.isEmpty
         for aim in worst {
             let row = MissRow(aim: aim, worst: 1 - (worst.first?.onTarget ?? 0))
             row.addAction(UIAction { [unowned self] _ in
@@ -261,7 +327,7 @@ private final class HeatScale: UIView {
         for (label, text) in [(fewer, "fewer taps"), (more, "more")] {
             label.text = text
             label.font = .preferredFont(forTextStyle: .caption2)
-            label.textColor = .secondaryLabel
+            label.textColor = HexStyle.secondary
             label.setContentHuggingPriority(.required, for: .horizontal)
         }
         let row = UIStackView(arrangedSubviews: [fewer, ramp, more])
@@ -309,25 +375,30 @@ private final class StatView: UIView {
         super.init(frame: .zero)
         let number = UILabel()
         number.text = value
-        number.font = UIFont.monospacedDigitSystemFont(ofSize: 26, weight: .semibold)
+        number.font = UIFontMetrics(forTextStyle: .title1).scaledFont(for: .monospacedDigitSystemFont(ofSize: 26, weight: .semibold))
+        number.adjustsFontForContentSizeCategory = true
         number.adjustsFontSizeToFitWidth = true
         number.minimumScaleFactor = 0.6
         let label = UILabel()
         label.text = caption
         label.numberOfLines = 0
         label.font = .preferredFont(forTextStyle: .caption1)
-        label.textColor = .secondaryLabel
+        label.adjustsFontForContentSizeCategory = true
+        label.textColor = HexStyle.secondary
         let stack = UIStackView(arrangedSubviews: [number, label])
         stack.axis = .vertical
         stack.spacing = 2
         stack.alignment = .leading
         stack.translatesAutoresizingMaskIntoConstraints = false
         addSubview(stack)
+        HexStyle.makeCard(self)
+        isAccessibilityElement = true
+        accessibilityLabel = "\(value) \(caption)"
         NSLayoutConstraint.activate([
-            stack.topAnchor.constraint(equalTo: topAnchor),
-            stack.bottomAnchor.constraint(lessThanOrEqualTo: bottomAnchor),
-            stack.leadingAnchor.constraint(equalTo: leadingAnchor),
-            stack.trailingAnchor.constraint(equalTo: trailingAnchor),
+            stack.topAnchor.constraint(equalTo: topAnchor, constant: 14),
+            stack.bottomAnchor.constraint(lessThanOrEqualTo: bottomAnchor, constant: -14),
+            stack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 14),
+            stack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -14),
         ])
     }
 
@@ -340,11 +411,9 @@ private final class Keycap: UILabel {
         text = TapMapPalette.name(of: key)
         textAlignment = .center
         font = .systemFont(ofSize: key.label?.count == 1 && key.label != " " ? size : size * 0.6)
-        backgroundColor = UIColor { $0.userInterfaceStyle == .dark ? UIColor(white: 0.27, alpha: 1) : .white }
+        backgroundColor = HexStyle.backdrop
         layer.cornerRadius = 8
         layer.cornerCurve = .continuous
-        layer.borderColor = UIColor.separator.cgColor
-        layer.borderWidth = 1 / 3
         clipsToBounds = true
         translatesAutoresizingMaskIntoConstraints = false
     }
@@ -359,9 +428,7 @@ private final class KeyDetailView: UIView {
 
     override init(frame: CGRect) {
         super.init(frame: frame)
-        backgroundColor = .secondarySystemBackground
-        layer.cornerRadius = 20
-        layer.cornerCurve = .continuous
+        HexStyle.makeCard(self)
         stack.axis = .vertical
         stack.spacing = 12
         stack.translatesAutoresizingMaskIntoConstraints = false
@@ -387,7 +454,7 @@ private final class KeyDetailView: UIView {
         let aimed = TapsViewController.describe(aim.drift)
         where_.text = aimed == "right on center" ? "You aim at its center." : "You aim \(aimed) of its center."
         where_.font = .preferredFont(forTextStyle: .subheadline)
-        where_.textColor = .secondaryLabel
+        where_.textColor = HexStyle.secondary
         where_.numberOfLines = 0
         let text = UIStackView(arrangedSubviews: [taps, where_])
         text.axis = .vertical
@@ -427,7 +494,7 @@ private final class KeyDetailView: UIView {
         let lands = UILabel()
         lands.numberOfLines = 0
         lands.font = .preferredFont(forTextStyle: .footnote)
-        lands.textColor = .secondaryLabel
+        lands.textColor = HexStyle.secondary
         lands.text = shares.map { "\($0.name) \(TapMapPalette.percent($0.share))" }.joined(separator: " · ")
         stack.addArrangedSubview(lands)
     }
@@ -442,13 +509,13 @@ private final class KeyDetailView: UIView {
     /// Glyphs drawn as the close-up draws them, each beside what it marks.
     private static func legend(_ items: [(glyph: TapGlyph, color: UIColor, text: String)]) -> UIStackView {
         let rows = items.map { item in
-            let glyph = UIImageView(image: item.glyph.image(color: item.color, surface: .secondarySystemBackground))
+            let glyph = UIImageView(image: item.glyph.image(color: item.color, surface: HexStyle.card))
             glyph.setContentHuggingPriority(.required, for: .horizontal)
             let label = UILabel()
             label.text = item.text
             label.numberOfLines = 0
             label.font = .preferredFont(forTextStyle: .footnote)
-            label.textColor = .secondaryLabel
+            label.textColor = HexStyle.secondary
             let row = UIStackView(arrangedSubviews: [glyph, label])
             row.spacing = 8
             row.alignment = .center
@@ -542,7 +609,7 @@ private final class MissRow: UIControl {
         let arrow = UILabel()
         arrow.text = neighbor.map { "mostly onto \(TapMapPalette.name(of: $0.key))" } ?? ""
         arrow.font = .preferredFont(forTextStyle: .subheadline)
-        arrow.textColor = .secondaryLabel
+        arrow.textColor = HexStyle.secondary
         let value = UILabel()
         value.text = "\(TapMapPalette.percent(miss)) miss"
         value.font = UIFont.monospacedDigitSystemFont(ofSize: 15, weight: .semibold)
@@ -589,7 +656,7 @@ private final class MissTrack: UIView {
     required init?(coder: NSCoder) { fatalError() }
 
     override func draw(_ rect: CGRect) {
-        UIColor.tertiarySystemFill.setFill()
+        HexStyle.backdrop.setFill()
         UIBezierPath(roundedRect: bounds, cornerRadius: 3).fill()
         TapMapPalette.miss.setFill()
         UIBezierPath(roundedRect: CGRect(x: 0, y: 0, width: max(bounds.width * fraction, 6), height: bounds.height), cornerRadius: 3).fill()

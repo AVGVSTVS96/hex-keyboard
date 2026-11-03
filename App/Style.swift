@@ -1,4 +1,5 @@
 import KeyboardCore
+import KeyboardUI
 import SwiftUI
 import UIKit
 
@@ -22,28 +23,26 @@ enum HexStyle {
         }
     }
 
-    /// A table in the keyboard's colors, for the screens built from table views.
-    static func dress(_ table: UITableView) {
-        table.backgroundColor = backdrop
-        table.separatorColor = divider
-    }
-
-    /// A white SF Symbol on a colored rounded square, as Settings draws its rows.
-    static func glyph(_ symbol: String, _ color: UIColor) -> UIImage {
-        UIGraphicsImageRenderer(size: CGSize(width: 30, height: 30)).image { _ in
-            color.setFill()
-            UIBezierPath(roundedRect: CGRect(x: 0, y: 0, width: 30, height: 30), cornerRadius: 7.5).fill()
-            let image = UIImage(systemName: symbol, withConfiguration: UIImage.SymbolConfiguration(pointSize: 15, weight: .semibold))!
-                .withTintColor(.white, renderingMode: .alwaysOriginal)
-            let size = image.size
-            image.draw(in: CGRect(x: (30 - size.width) / 2, y: (30 - size.height) / 2, width: size.width, height: size.height))
+    /// A UIKit view as a card: the key fill, rounded, with the keys' 1pt shadow in light mode.
+    static func makeCard(_ view: UIView) {
+        view.backgroundColor = card
+        view.layer.cornerRadius = cardRadius
+        view.layer.cornerCurve = .continuous
+        view.layer.shadowOffset = CGSize(width: 0, height: 1)
+        view.layer.shadowRadius = 0
+        view.layer.shadowOpacity = 1
+        let paint = { (view: UIView) in
+            view.layer.shadowColor = view.traitCollection.userInterfaceStyle == .dark ? UIColor.clear.cgColor : shadow.resolvedColor(with: view.traitCollection).cgColor
         }
+        paint(view)
+        view.registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (view: UIView, _) in paint(view) }
     }
+}
 
-    static func dress(_ cell: UITableViewCell) {
-        var background = UIBackgroundConfiguration.listCell()
-        background.backgroundColor = card
-        cell.backgroundConfiguration = background
+extension NSLayoutConstraint {
+    func withPriority(_ priority: UILayoutPriority) -> NSLayoutConstraint {
+        self.priority = priority
+        return self
     }
 }
 
@@ -51,6 +50,91 @@ extension Color {
     static let hexBackdrop = Color(HexStyle.backdrop)
     static let hexCard = Color(HexStyle.card)
     static let hexSecondary = Color(HexStyle.secondary)
+    static let hexDivider = Color(HexStyle.divider)
+}
+
+extension View {
+    /// A list in the keyboard's colors: the backdrop behind, the key fill on its rows, and the pressed key's fill on
+    /// the row a sidebar has selected.
+    func hexList(selected: Bool = false) -> some View {
+        listRowBackground(selected ? Color(HexStyle.pressed) : Color.hexCard)
+    }
+
+    func hexBackground() -> some View {
+        scrollContentBackground(.hidden)
+            .background(Color.hexBackdrop)
+    }
+}
+
+/// A list beside a page only where both fit, 800 points and wider: iOS calls the open iPhone Duo on its side (669 wide)
+/// regular too, and would lay the list over the page there.
+struct SplitWhenWide<Content: View>: View {
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        GeometryReader { proxy in
+            content.environment(\.horizontalSizeClass, proxy.size.width >= 800 ? .regular : .compact)
+        }
+    }
+}
+
+/// A white SF Symbol on a colored rounded square, as Settings draws its rows.
+struct Glyph: View {
+    let symbol: String
+    let color: Color
+    var size: CGFloat = 30
+
+    var body: some View {
+        Image(systemName: symbol)
+            .font(.system(size: size / 2, weight: .semibold))
+            .foregroundStyle(.white)
+            .frame(width: size, height: size)
+            .background(color.gradient, in: .rect(cornerRadius: size / 4, style: .continuous))
+            .accessibilityHidden(true)
+    }
+}
+
+/// A press that looks like a key's: the card takes the pressed fill.
+struct KeyPress: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .overlay(Color(HexStyle.pressed).opacity(configuration.isPressed ? 0.35 : 0).clipShape(.rect(cornerRadius: HexStyle.cardRadius, style: .continuous)))
+            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+    }
+}
+
+/// What iOS keeps for Hex in Settings › Apps › Hex, as far as Hex can tell, read again whenever Hex comes forward.
+@Observable final class HexStatus {
+    static let shared = HexStatus()
+
+    private(set) var isAdded = false
+    private(set) var fullAccess = false
+    /// Nil until the keyboard has tried reading the clipboard with Full Access.
+    private(set) var pasteAllowed: Bool?
+
+    var isSetUp: Bool { isAdded && fullAccess && pasteAllowed == true }
+
+    private init() {
+        refresh()
+        NotificationCenter.default.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: .main) { _ in
+            MainActor.assumeIsolated { HexStatus.shared.refresh() }
+        }
+    }
+
+    func refresh() {
+        isAdded = (UserDefaults.standard.array(forKey: "AppleKeyboards") as? [String] ?? []).contains("com.shahidy.hexkeyboard.keyboard")
+        fullAccess = SettingsStore.fullAccessSeen
+        pasteAllowed = SettingsStore.pasteAllowed
+    }
+
+    var summary: String {
+        guard isAdded else { return "Not added yet" }
+        return fullAccess ? "On, with Full Access" : "On, without Full Access"
+    }
+
+    static func openSettings() {
+        UIApplication.shared.open(URL(string: UIApplication.openSettingsURLString)!)
+    }
 }
 
 /// A card in the key fill, with the keys' 1pt shadow in light mode.

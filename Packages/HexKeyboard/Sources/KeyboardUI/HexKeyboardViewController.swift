@@ -215,7 +215,7 @@ open class HexKeyboardViewController: UIInputViewController {
     /// The iPhone Duo draws no globe under a third-party keyboard, yet its iOS 27.1 simulator says none is needed, so
     /// on its screens (the only iPhones over 440pt on the short side) the keys always carry one.
     private var showsGlobe: Bool {
-        needsInputModeSwitchKey || (device == .phone && min(screenSize.width, screenSize.height) > 440)
+        needsInputModeSwitchKey || (device == .phone && Duo.isDuo(short: min(screenSize.width, screenSize.height)))
     }
 
     private var mic: MicButton.Phase {
@@ -243,7 +243,10 @@ open class HexKeyboardViewController: UIInputViewController {
     private func render() {
         tellSources(.keyboard)
         let device = device
-        let context = engine.layout(on: device, showsGlobe: showsGlobe, isLandscape: screenSize.width > screenSize.height)
+        let context = engine.layout(
+            on: device, showsGlobe: showsGlobe, isLandscape: screenSize.width > screenSize.height,
+            isOpen: Duo.isOpen(short: min(screenSize.width, screenSize.height))
+        )
         let layout = Layouts.layout(for: context)
         var metrics = KeyboardMetrics.for(device, width: screenSize.width, height: screenSize.height, style: .current, oneHanded: context.oneHanded)
         if device == .phone, !context.isLandscape { metrics = metrics.fitted(screen: screenSize.width, window: view.bounds.width) }

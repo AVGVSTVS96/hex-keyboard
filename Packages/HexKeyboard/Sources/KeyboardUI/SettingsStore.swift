@@ -57,6 +57,13 @@ public enum SettingsStore {
         set { group.set(newValue, forKey: "fullAccessSeen") }
     }
 
+    /// Whether iOS let the keyboard read the clipboard the last time it tried (Settings › Apps › Hex › Paste from Other
+    /// Apps), or nil before it has tried with Full Access.
+    public static var pasteAllowed: Bool? {
+        get { group.object(forKey: "pasteAllowed") as? Bool }
+        set { group.set(newValue, forKey: "pasteAllowed") }
+    }
+
     public static func reset() {
         let settings = KeyboardSettings()
         for (key, path) in toggles { set(settings[keyPath: path], forKey: key) }

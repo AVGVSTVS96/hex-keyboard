@@ -11,14 +11,17 @@ public struct LayoutContext: Hashable, Sendable {
     public var kind: InputKind
     public var showsGlobe: Bool
     public var isLandscape: Bool
+    /// The iPhone Duo unfolded, whose keys are half again as wide as on its cover.
+    public var isOpen: Bool
     public var oneHanded: OneHanded
 
-    public init(device: DeviceClass, layer: KeyboardLayer, kind: InputKind = .text, showsGlobe: Bool = false, isLandscape: Bool = false, oneHanded: OneHanded = .off) {
+    public init(device: DeviceClass, layer: KeyboardLayer, kind: InputKind = .text, showsGlobe: Bool = false, isLandscape: Bool = false, isOpen: Bool = false, oneHanded: OneHanded = .off) {
         self.device = device
         self.layer = layer
         self.kind = kind
         self.showsGlobe = showsGlobe
         self.isLandscape = isLandscape
+        self.isOpen = isOpen && device == .phone
         self.oneHanded = oneHanded
         if !allowsOneHanded { self.oneHanded = .off }
     }
@@ -41,9 +44,10 @@ public struct LayoutContext: Hashable, Sendable {
 }
 
 extension LayoutContext {
-    /// What a touch model is kept per: the same keys under the same hands.
+    /// What a touch model is kept per: the same keys under the same hands, so the open Duo's wider keys learn apart
+    /// from its cover's.
     public var signature: String {
-        "\(device)-\(isLandscape ? "landscape" : "portrait")-\(layer)" + (oneHanded == .off ? "" : "-\(oneHanded)")
+        "\(device)-\(isLandscape ? "landscape" : "portrait")-\(layer)" + (isOpen ? "-open" : "") + (oneHanded == .off ? "" : "-\(oneHanded)")
     }
 
     /// The layout a touch model's signature was kept for.
@@ -51,13 +55,25 @@ extension LayoutContext {
         let contexts = DeviceClass.allCases.flatMap { device in
             KeyboardLayer.allCases.flatMap { layer in
                 [false, true].flatMap { landscape in
-                    OneHanded.allCases.map { LayoutContext(device: device, layer: layer, isLandscape: landscape, oneHanded: $0) }
+                    [false, true].flatMap { open in
+                        OneHanded.allCases.map { LayoutContext(device: device, layer: layer, isLandscape: landscape, isOpen: open, oneHanded: $0) }
+                    }
                 }
             }
         }
         guard let context = contexts.first(where: { $0.signature == signature }) else { return nil }
         self = context
     }
+}
+
+/// The iPhone Duo's screens in points, upright: the cover, and the inner screen unfolded. They are the only iPhones over
+/// 440 points on the short side.
+public enum Duo {
+    public static let cover = (width: 466.0, height: 678.0)
+    public static let open = (width: 669.0, height: 951.0)
+
+    public static func isDuo(short side: Double) -> Bool { side > 440 }
+    public static func isOpen(short side: Double) -> Bool { side >= 600 }
 }
 
 public enum Layouts {

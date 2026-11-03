@@ -106,22 +106,34 @@ VARIANTS
   [ -n "${KEEP:-}" ] || xcrun simctl shutdown "$id"
 }
 
+# Sends Device Hub's events to a booted iPhone Duo (scripts/devicehub.c): hub ID hinge 180, hub ID orientation portrait.
+hub() {
+  local helper=build/devicehub
+  [ "$helper" -nt scripts/devicehub.c ] || { xcrun -sdk iphonesimulator clang -arch arm64 -mios-simulator-version-min=27.0 -O2 \
+    -o "$helper" scripts/devicehub.c -framework IOKit -framework CoreFoundation && codesign -f -s - "$helper" 2>/dev/null; }
+  xcrun simctl spawn "$1" "$PWD/$helper" "${@:2}"
+}
+
+# Opens a booted iPhone Duo (or folds it, with 0); a reboot folds it again.
+unfold() {
+  hub "$1" hinge "${2:-180}"
+  sleep 3
+}
+
 # Screenshots each keyboard on the iPhone Duo's four screens (cover and open, upright and on its side) in the iOS 27.1
 # simulator, the only one with the Duo: shots/raw/duo/<tag>-<screen>-<keyboard>-<appearance>.png. The open screen
 # comes from unfolding the simulator (scripts/devicehub.c); a reboot folds it again. Open and upright, the screen is
 # 951 wide; on its side, 669.
 duo() {
-  local tag=$1 id helper=build/devicehub; shift
+  local tag=$1 id; shift
   RUNTIME=com.apple.CoreSimulator.SimRuntime.iOS-27-1
   id=$(ensure "iPhone Duo" iPhone-Duo)
-  [ "$helper" -nt scripts/devicehub.c ] || { xcrun -sdk iphonesimulator clang -arch arm64 -mios-simulator-version-min=27.0 -O2 \
-    -o "$helper" scripts/devicehub.c -framework IOKit -framework CoreFoundation && codesign -f -s - "$helper" 2>/dev/null; }
   for keyboard in ${KEYBOARDS:-system hex}; do
     xcrun simctl shutdown "$id" 2>/dev/null || true
     boot "$id"
     while read -r screen hinge orientation display; do
-      [ "$screen" = open-upright ] && { xcrun simctl spawn "$id" "$PWD/$helper" hinge "$hinge"; sleep 3; }
-      xcrun simctl spawn "$id" "$PWD/$helper" orientation "$orientation"
+      [ "$screen" = open-upright ] && unfold "$id" "$hinge"
+      hub "$id" orientation "$orientation"
       for appearance in ${APPEARANCES:-light dark}; do
         DISPLAY_ID=$display shoot "$id" "$keyboard" "$appearance" "shots/raw/duo/$tag-$screen-$keyboard-$appearance.png" \
           -HexOrientation "$([ "$orientation" = portrait ] && echo portrait || echo landscape)" "$@"
@@ -133,6 +145,61 @@ open-upright 180 portrait 3
 open-side 180 landscape-right 3
 SCREENS
   done
+  [ -n "${KEEP:-}" ] || xcrun simctl shutdown "$id"
+}
+
+# Screenshots each of the app's screens on the iPhone Duo's four screens, as duo does for the keyboard:
+# shots/raw/duo/app/<tag>-<screen>-<page>-<appearance>.png. TOUCHES (a touch model, as the keyboard shares it) and
+# TRANSCRIPTS (JSON lines, as the app keeps them) fill Your Taps and Transcripts; PAGES picks the screens.
+duoapp() {
+  local tag=$1 id data group; shift
+  RUNTIME=com.apple.CoreSimulator.SimRuntime.iOS-27-1
+  id=$(ensure "iPhone Duo" iPhone-Duo)
+  boot "$id"
+  use "$id" hex
+  unfold "$id" 0
+  group=$(xcrun simctl get_app_container "$id" "$BUNDLE" group.com.shahidy.hexkeyboard)
+  data=$(xcrun simctl get_app_container "$id" "$BUNDLE" data)
+  [ -n "${TOUCHES:-}" ] && cp "$TOUCHES" "$group/touches.json"
+  [ -n "${TRANSCRIPTS:-}" ] && mkdir -p "$data/Library/Application Support" && cp "$TRANSCRIPTS" "$data/Library/Application Support/transcripts.jsonl"
+  mkdir -p "$group/Library/Preferences"
+  /usr/bin/python3 -c "
+import plistlib, sys, os
+path = sys.argv[1]
+prefs = plistlib.load(open(path, 'rb')) if os.path.exists(path) else {}
+prefs['fullAccessSeen'] = True
+plistlib.dump(prefs, open(path, 'wb'))" "$group/Library/Preferences/group.com.shahidy.hexkeyboard.plist"
+  while read -r screen hinge orientation display; do
+    [ "$screen" = open-upright ] && unfold "$id" "$hinge"
+    hub "$id" orientation "$orientation"
+    for appearance in ${APPEARANCES:-dark light}; do
+      xcrun simctl ui "$id" appearance "$appearance"
+      while read -r page args; do
+        [ -n "${PAGES:-}" ] && [[ " $PAGES " != *" $page "* ]] && continue
+        xcrun simctl terminate "$id" "$BUNDLE" 2>/dev/null || true
+        hub "$id" orientation "$orientation"
+        xcrun simctl launch "$id" "$BUNDLE" -HexOrientation "$([ "$orientation" = portrait ] && echo portrait || echo landscape)" $args >/dev/null 2>&1 || true
+        sleep "${SETTLE:-4}"
+        mkdir -p shots/raw/duo/app
+        xcrun simctl io "$id" screenshot --display="$display" "shots/raw/duo/app/$tag-$screen-$page-$appearance.png" >/dev/null 2>&1
+      done <<PAGES
+home -HexTab home
+typing -HexFocus YES
+settings -HexSettings YES
+keys -HexSettings keys
+voice -HexSettings voice
+sources -HexSettings sources
+access -HexSettings setup
+transcripts -HexTab transcripts
+taps -HexTaps YES
+PAGES
+    done
+  done <<SCREENS
+cover-upright 0 portrait 1
+cover-side 0 landscape-right 1
+open-upright 180 portrait 3
+open-side 180 landscape-right 3
+SCREENS
   [ -n "${KEEP:-}" ] || xcrun simctl shutdown "$id"
 }
 

@@ -190,11 +190,37 @@ Emoji, GIF and Clipboard open from their pills (or, in the compact layout, the b
 
 ## The app
 
-The app wears the keyboard's colors, so it looks like the keys it sets up: the backdrop iOS draws behind the keyboard (`#222223` dark, `#E2E3E8` light) behind every screen, and the key fill (`#444444`, white with the keys' 1pt shadow) on every card and list row. Rows carry Settings' colored glyphs (a white SF Symbol on a 30pt rounded square).
+The app wears the keyboard's colors, so it looks like the keys it sets up: the backdrop iOS draws behind the keyboard (`#222223` dark, `#E2E3E8` light) behind every screen, and the key fill (`#444444`, white with the keys' 1pt shadow) on every card and list row; a sidebar's selected row takes the pressed key's fill. Rows carry Settings' colored glyphs (a white SF Symbol on a 30pt rounded square). Text is SF Pro in Dynamic Type styles; secondary text is the keyboard's secondary label.
 
-- **Hex** (home): the app's mark, "Hex" and whether the keyboard is on (green dot, "On, with Full Access"; orange with a Turn On button until it's added). Then "Try It", a field in a card; two tiles, what you dictated today with the voice model's state (opens Transcripts) and how many taps Hex learned your aim from (opens Your Taps); "Set Up", the three switches iOS keeps (Add Hex, Allow Full Access, Paste from Other Apps), each checked when Hex can tell, opening Settings; and Keyboard Settings. At most 680 wide, centered, so the open Duo reads like the cover.
-- **Keyboard Settings**, **Transcripts** and **Your Taps** keep their content in the same colors.
-- Full Access is known on once the keyboard has opened with it (`SettingsStore.fullAccessSeen`); a keyboard can't write to the App Group without it, so turning it off later goes unseen.
+Four tabs, in the floating tab bar on every screen: **Hex**, **Transcripts**, **Your Taps**, **Settings**. The iPhone Duo folded is a phone; open it is wide, and each tab uses the width as Apple's Settings does there, a list beside its page, wherever both fit (800 points and wider: open and upright). Open on its side (669 wide) iOS calls the width regular, but a list there would cover its page, so the lists stack as on the cover.
+
+```
+open, upright (951 × 669)                       cover (466 × 678)
+┌──────────────┬─────────────────────────┐     ┌──────────────────┐
+│ Settings     │ Typing                  │     │ Settings         │
+│ ┌──────────┐ │ ┌─────────────────────┐ │     │ ┌──────────────┐ │
+│ │ ⬡ Hex    │ │ │ Auto-Capitalization │ │     │ │ ⬡ Hex        │ │
+│ └──────────┘ │ │ Auto-Correction     │ │     │ └──────────────┘ │
+│ ▣ Typing   ◀ │ │ Predictive Text     │ │     │ Typing         › │
+│   Keys       │ └─────────────────────┘ │     │ Keys           › │
+│   Sound …    │                         │     │ …                │
+└──────────────┴─────────────────────────┘     └──────────────────┘
+```
+
+- **Hex**: the app's mark, "Hex" and whether the keyboard is on (green "On, with Full Access", yellow without it, orange "Not added yet" with Turn On). Then "Try It", a field in a card; "Set Up", the three switches iOS keeps (Add Hex, Allow Full Access, Paste from Other Apps), each checked once the keyboard has seen it on, shown until all three are; and two tiles, what you dictated today with the voice model's state (opens Transcripts) and how many taps Hex learned your aim from (opens Your Taps). Wide, the field and Set Up take the left and the tiles a 300pt column on the right, so the field stays above the keys while you try it.
+- **Transcripts**: every dictation, newest first by day, under words, time talking, pace and a two-week chart. Wide, the picked transcript (the newest until you pick) shows beside the list. A canceled dictation reads "Canceled, not typed".
+- **Your Taps**: the touch model drawn on the keyboard (Heat, Aim, Accuracy), four numbers in cards, a picked key's close-up, how your thumbs pull, and the most-missed keys. Wide, the map and the pull take the left and the numbers, the close-up and the most missed a 320pt column on the right. Each screen of the Duo learns apart (open, its keys are half again as wide as on the cover), the menu names them (Folded, upright · Open, on its side), and the screen you're on shows first, drawn at its own size.
+- **Settings**: a header card (the mark, "Hex Keyboard", the status) that opens Keyboard Access, then a page per subject:
+  - **Typing**: Auto-Capitalization, Auto-Correction, Predictive Text; Smart Punctuation, Enable Caps Lock, "." Shortcut; where Text Replacements come from.
+  - **Keys**: Character Preview; One-Handed Keyboard (Off, Left, Right).
+  - **Sound & Haptics**: Haptic Feedback (with Allow Full Access when Hex hasn't seen it), Sound.
+  - **Voice Typing**: the voice model, each with a line on what it costs and, for the picked one, its download, getting ready, or why it failed with Try Again; Keep Mic On.
+  - **Sources**: the sources, with Edit to delete and reorder; Add Source and a tapped source open a form (name, https address, secure token) that says what's wrong before Save.
+  - **Keyboard Access**: the three switches iOS keeps, and Open Hex in Settings.
+  - **Privacy & Data**: what stays on the iPhone and what goes online; Reset Learned Words and Taps; Delete All Transcripts.
+- Settings › Apps › Hex has the same pages for the keyboard's switches (Typing, Keys, Sound & Haptics, Voice Typing), and says the app also picks the voice model and adds sources.
+- Full Access is known on once the keyboard has opened with it (`SettingsStore.fullAccessSeen`), and Paste from Other Apps once the keyboard has tried the clipboard (`SettingsStore.pasteAllowed`); a keyboard can't write to the App Group without Full Access, so turning either off later goes unseen.
+- The dictation screen (opened by the keyboard's mic) is the record-red circle swelling with your voice over a readable-width hint; if it couldn't listen it says why, with Close.
 
 ## Out of this design
 

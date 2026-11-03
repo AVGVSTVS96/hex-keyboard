@@ -6,7 +6,7 @@ struct Transcript: Codable, Identifiable, Hashable {
     var date: Date
     var text: String
     var seconds: Double
-    /// False when you tapped ✕: kept here, never typed.
+    /// False when you canceled it in Hex: kept here, never typed.
     var typed: Bool
     /// The speech model that wrote it; nil before Hex kept it.
     var model: String?

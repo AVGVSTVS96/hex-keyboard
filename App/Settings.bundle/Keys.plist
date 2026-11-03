@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>ApplicationGroupContainerIdentifier</key>
+	<string>group.com.shahidy.hexkeyboard</string>
+	<key>PreferenceSpecifiers</key>
+	<array>
+		<dict>
+			<key>FooterText</key>
+			<string>Shows the letter bigger above your thumb as you press it.</string>
+			<key>Type</key>
+			<string>PSGroupSpecifier</string>
+		</dict>
+		<dict>
+			<key>DefaultValue</key>
+			<true/>
+			<key>Key</key>
+			<string>characterPreview</string>
+			<key>Title</key>
+			<string>Character Preview</string>
+			<key>Type</key>
+			<string>PSToggleSwitchSpecifier</string>
+		</dict>
+		<dict>
+			<key>FooterText</key>
+			<string>Moves the keys toward one thumb while the iPhone is upright. You can also hold 123 and slide.</string>
+			<key>Type</key>
+			<string>PSGroupSpecifier</string>
+		</dict>
+		<dict>
+			<key>DefaultValue</key>
+			<string>off</string>
+			<key>Key</key>
+			<string>oneHanded</string>
+			<key>Title</key>
+			<string>One-Handed Keyboard</string>
+			<key>Titles</key>
+			<array>
+				<string>Off</string>
+				<string>Left</string>
+				<string>Right</string>
+			</array>
+			<key>Type</key>
+			<string>PSMultiValueSpecifier</string>
+			<key>Values</key>
+			<array>
+				<string>off</string>
+				<string>left</string>
+				<string>right</string>
+			</array>
+		</dict>
+	</array>
+	<key>Title</key>
+	<string>Keys</string>
+</dict>
+</plist>

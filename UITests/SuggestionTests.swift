@@ -53,13 +53,13 @@ final class SuggestionTests: XCTestCase {
     }
 
     func testAutoCorrectionSettingIsSharedWithTheKeyboard() {
-        app.launchArguments += ["-HexSettings", "YES"]
+        app.launchArguments += ["-HexSettings", "typing"]
         app.launch()
         let toggle = app.switches["Auto-Correction"]
         XCTAssertTrue(toggle.waitForExistence(timeout: 5))
         toggle.tap()
         XCTAssertEqual(toggle.value as? String, "0")
-        app.navigationBars.buttons.firstMatch.tap()
+        app.tabBars.buttons["Hex"].tap()
         field.tap()
         XCTAssertTrue(key("space").waitForExistence(timeout: 10))
         type("helo ")

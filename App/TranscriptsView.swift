@@ -1,15 +1,15 @@
 import Charts
 import SwiftUI
 
-/// Everything you've dictated with Hex, newest first, grouped by day, with how much and how fast you talk.
+/// Everything you've dictated with Hex, newest first, grouped by day, with how much and how fast you talk; on the
+/// iPhone Duo's open screen the transcript you pick shows beside the list.
 struct TranscriptsView: View {
     private let store = Transcripts.shared
     @State private var query = ""
     @State private var confirmsDeleteAll = false
-
-    static func controller() -> UIViewController {
-        UIHostingController(rootView: TranscriptsView())
-    }
+    @State private var selected: Transcript.ID?
+    @State private var columns = NavigationSplitViewVisibility.all
+    @Environment(\.horizontalSizeClass) private var width
 
     private var shown: [Transcript] {
         let query = query.trimmingCharacters(in: .whitespaces)
@@ -27,8 +27,8 @@ struct TranscriptsView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            List {
+        NavigationSplitView(columnVisibility: $columns) {
+            List(selection: $selected) {
                 if query.isEmpty, !store.all.isEmpty {
                     Section {
                         Summary(transcripts: store.all)
@@ -38,7 +38,8 @@ struct TranscriptsView: View {
                 ForEach(days, id: \.day) { day in
                     Section(Self.title(of: day.day)) {
                         ForEach(day.transcripts) { transcript in
-                            NavigationLink(value: transcript) { Row(transcript: transcript) }
+                            NavigationLink(value: transcript.id) { Row(transcript: transcript) }
+                                .hexList(selected: width == .regular && selected == transcript.id)
                                 .contextMenu { Actions(transcript: transcript) }
                                 .swipeActions {
                                     Button("Delete", systemImage: "trash", role: .destructive) { store.delete([transcript.id]) }
@@ -59,14 +60,14 @@ struct TranscriptsView: View {
                     ContentUnavailableView {
                         Label("No Transcripts", systemImage: "waveform")
                     } description: {
-                        Text("Tap the mic beside the keyboard's suggestions. Everything you dictate is saved here, on this iPhone.")
+                        Text("Tap the mic at the right end of the keyboard’s suggestions and talk. Everything you dictate is kept here, on this iPhone.")
                     }
                 } else if shown.isEmpty {
                     ContentUnavailableView.search(text: query)
                 }
             }
             .navigationTitle("Transcripts")
-            .navigationDestination(for: Transcript.self) { TranscriptDetail(transcript: $0) }
+            .navigationSplitViewColumnWidth(min: 320, ideal: 380)
             .searchable(text: $query)
             .toolbar {
                 if !store.all.isEmpty {
@@ -78,7 +79,22 @@ struct TranscriptsView: View {
             .confirmationDialog("Delete all \(store.all.count) transcripts from this iPhone?", isPresented: $confirmsDeleteAll, titleVisibility: .visible) {
                 Button("Delete All", role: .destructive) { store.delete(Set(store.all.map(\.id))) }
             }
+        } detail: {
+            if let transcript = store.all.first(where: { $0.id == selected }) {
+                NavigationStack { TranscriptDetail(transcript: transcript) }
+            } else {
+                ContentUnavailableView(store.all.isEmpty ? "Nothing Dictated Yet" : "Pick a Transcript", systemImage: "waveform")
+                    .hexBackground()
+            }
         }
+        .navigationSplitViewStyle(.balanced)
+        .onAppear(perform: pickNewest)
+        .onChange(of: width, pickNewest)
+    }
+
+    /// Beside the list there's room for a transcript, so the newest shows until you pick another.
+    private func pickNewest() {
+        if width == .regular, selected == nil { selected = store.all.first?.id }
     }
 
     private static func title(of day: Date) -> String {
@@ -98,7 +114,7 @@ private struct Row: View {
         VStack(alignment: .leading, spacing: 5) {
             Text(transcript.text)
                 .lineLimit(3)
-                .foregroundStyle(transcript.typed ? .primary : .secondary)
+                .foregroundStyle(transcript.typed ? Color.primary : Color.hexSecondary)
             HStack(spacing: 6) {
                 Text(transcript.date, format: .dateTime.hour().minute())
                 Text("·")
@@ -106,13 +122,11 @@ private struct Row: View {
                     .monospacedDigit()
                 if !transcript.typed {
                     Text("·")
-                    Label("Not typed", systemImage: "xmark")
-                        .labelStyle(.titleAndIcon)
-                        .imageScale(.small)
+                    Text("Canceled, not typed")
                 }
             }
             .font(.footnote)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(Color.hexSecondary)
         }
         .padding(.vertical, 2)
     }
@@ -159,15 +173,15 @@ private struct Summary: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Words a day, last 2 weeks")
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.hexSecondary)
                 Chart(fortnight) { day in
                     BarMark(x: .value("Day", day.date, unit: .day), y: .value("Words", day.words), width: .ratio(0.62))
                         .foregroundStyle(Calendar.current.isDateInToday(day.date) ? Color.accentColor : Color.accentColor.opacity(0.45))
                         .clipShape(.rect(cornerRadius: 3))
                 }
                 .chartXAxis {
-                    AxisMarks(values: .stride(by: .day)) { value in
-                        AxisValueLabel(format: .dateTime.weekday(.narrow), centered: true)
+                    AxisMarks(values: .stride(by: .day, count: 7)) { _ in
+                        AxisValueLabel(format: .dateTime.month(.abbreviated).day(), centered: true)
                     }
                 }
                 .chartYAxis {
@@ -196,9 +210,10 @@ private struct Stat: View {
                 .minimumScaleFactor(0.7)
             Text(title)
                 .font(.footnote)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.hexSecondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -217,13 +232,13 @@ private struct TranscriptDetail: View {
             }
             .listRowBackground(Color.hexCard)
             Section {
-                LabeledContent("Said", value: transcript.date.formatted(date: .abbreviated, time: .shortened))
+                LabeledContent("Date", value: transcript.date.formatted(date: .abbreviated, time: .shortened))
                 LabeledContent("Length", value: Duration.seconds(transcript.seconds).formatted(.time(pattern: .minuteSecond)))
                 LabeledContent("Words", value: transcript.words.formatted())
                 if transcript.seconds >= 1 {
                     LabeledContent("Pace", value: "\(Int((Double(transcript.words) / transcript.seconds * 60).rounded())) wpm")
                 }
-                LabeledContent("Typed", value: transcript.typed ? "Yes" : "No, you tapped ✕")
+                LabeledContent("Typed", value: transcript.typed ? "Yes" : "No, you canceled it")
                 if let model = transcript.model { LabeledContent("Written by", value: model) }
             }
             .listRowBackground(Color.hexCard)
@@ -235,7 +250,7 @@ private struct TranscriptDetail: View {
         }
         .scrollContentBackground(.hidden)
         .background(Color.hexBackdrop)
-        .navigationTitle(transcript.date.formatted(.dateTime.hour().minute()))
+        .navigationTitle(transcript.date.formatted(.dateTime.month(.abbreviated).day().hour().minute()))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {

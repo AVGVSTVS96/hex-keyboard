@@ -46,7 +46,7 @@ extension KeyboardMetrics {
     public static func `for`(_ device: DeviceClass, width: Double, height: Double, style: KeyboardStyle = .ios26, oneHanded: OneHanded = .off) -> KeyboardMetrics {
         let landscape = width > height
         switch device {
-        case .phone where min(width, height) > 440: return duo(width: width, height: height, style: style, oneHanded: oneHanded)
+        case .phone where Duo.isDuo(short: min(width, height)): return duo(width: width, height: height, style: style, oneHanded: oneHanded)
         case .phone where landscape: return phoneLandscape(width: width)
         case .phone: return phone(width: width, style: style).oneHanded(oneHanded, width: width)
         case .compactPad: return compactPad
@@ -107,7 +107,7 @@ extension KeyboardMetrics {
     /// iOS 27.1 simulator (docs/design.md), across the keyboard's whole width.
     static func duo(width: Double, height: Double, style: KeyboardStyle, oneHanded: OneHanded) -> KeyboardMetrics {
         var metrics = phone(width: width, style: style)
-        let open = min(width, height) >= 600
+        let open = Duo.isOpen(short: min(width, height))
         switch (open, width > height) {
         case (false, false):
             metrics.letterSize = 25.5

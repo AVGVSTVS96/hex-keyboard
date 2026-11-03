@@ -1,4 +1,5 @@
 import KeyboardUI
+import SwiftUI
 import UIKit
 
 @main
@@ -13,15 +14,16 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         LaunchOptions.resetSettingsIfAsked()
         LaunchOptions.applyOneHanded()
         VoiceProbe.runIfAsked()
-        let home = HomeViewController()
         let tabs = UITabBarController(tabs: [
-            UITab(title: "Hex", image: UIImage(systemName: "keyboard"), identifier: "home") { _ in Self.navigation(home) },
-            UITab(title: "Transcripts", image: UIImage(systemName: "waveform"), identifier: "transcripts") { _ in TranscriptsView.controller() },
+            UITab(title: "Hex", image: UIImage(systemName: "keyboard"), identifier: "home") { _ in HomeViewController() },
+            UITab(title: "Transcripts", image: UIImage(systemName: "waveform"), identifier: "transcripts") { _ in UIHostingController(rootView: SplitWhenWide { TranscriptsView() }) },
             UITab(title: "Your Taps", image: UIImage(systemName: "hand.tap"), identifier: "taps") { _ in Self.navigation(TapsViewController()) },
+            UITab(title: "Settings", image: UIImage(systemName: "gearshape"), identifier: "settings") { _ in
+                UIHostingController(rootView: SplitWhenWide { SettingsView(page: LaunchOptions.settingsPage) })
+            },
         ])
         tabs.selectedTab = tabs.tab(forIdentifier: LaunchOptions.tab)
         window.rootViewController = tabs
-        if LaunchOptions.settings { home.showSettings() }
         window.makeKeyAndVisible()
         self.window = window
         open(options.urlContexts)
@@ -73,7 +75,12 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             preferredStyle: .alert
         )
         alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-        alert.addAction(UIAlertAction(title: "Add", style: .default) { _ in SourceStore.add(source) })
-        window?.rootViewController?.present(alert, animated: true)
+        alert.addAction(UIAlertAction(title: "Add", style: .default) { _ in
+            SourceStore.add(source)
+            SettingsModel.shared.reload()
+        })
+        var top = window?.rootViewController
+        while let presented = top?.presentedViewController { top = presented }
+        top?.present(alert, animated: true)
     }
 }

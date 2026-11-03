@@ -1,5 +1,5 @@
 #!/bin/bash
-# Runs on the Mac. The GIF and clipboard panels through the real keyboard, light and dark, screenshotting
+# Runs on the Mac. OPEN=1 unfolds the iPhone Duo first. The GIF and clipboard panels through the real keyboard, light and dark, screenshotting
 # each step into shots/raw/panels/: scripts/paneltest ["iPhone Duo"] [iPhone-Duo] (RUNTIME picks the iOS; ORIENTATION=landscape)
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -14,6 +14,7 @@ xcodebuild build-for-testing -project HexKeyboard.xcodeproj -scheme Hex -destina
   -derivedDataPath build/uitest -quiet 2>&1 | grep -E "error" || true
 scripts/sim boot "$ID"
 scripts/sim use "$ID" hex
+[ -n "${OPEN:-}" ] && scripts/sim unfold "$ID"
 # Full Access, written where Settings › General › Keyboard › Keyboards › Hex › Allow Full Access writes it, since
 # Settings' rows differ between iOS versions. Paste from Other Apps is left for the test to turn on.
 xcrun simctl shutdown "$ID"

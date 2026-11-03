@@ -1,5 +1,5 @@
 #!/bin/bash
-# Runs on the Mac. The bar, the pills and the emoji panel through the real keyboard, light and dark, screenshotting
+# Runs on the Mac. OPEN=1 unfolds the iPhone Duo first. The bar, the pills and the emoji panel through the real keyboard, light and dark, screenshotting
 # each step into shots/raw/look/: scripts/looktest ["iPhone Duo"] [iPhone-Duo] (RUNTIME picks the iOS; ORIENTATION=landscape)
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -14,6 +14,7 @@ xcodebuild build-for-testing -project HexKeyboard.xcodeproj -scheme Hex -destina
   -derivedDataPath build/uitest -quiet 2>&1 | grep -E "error" || true
 scripts/sim boot "$ID"
 scripts/sim use "$ID" hex
+[ -n "${OPEN:-}" ] && scripts/sim unfold "$ID"
 for appearance in ${APPEARANCES:-light dark}; do
   xcrun simctl terminate "$ID" com.shahidy.hexkeyboard 2>/dev/null || true
   xcrun simctl ui "$ID" appearance "$appearance"

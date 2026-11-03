@@ -14,19 +14,23 @@ final class DictationViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = HexStyle.backdrop
-        orb.backgroundColor = .tintColor
+        orb.backgroundColor = .systemRed
+        orb.isAccessibilityElement = false
         orb.layer.cornerRadius = 48
         status.font = .preferredFont(forTextStyle: .largeTitle).bold
         status.textAlignment = .center
         status.numberOfLines = 0
         hint.font = .preferredFont(forTextStyle: .body)
-        hint.textColor = .secondaryLabel
+        hint.textColor = HexStyle.secondary
         hint.textAlignment = .center
         hint.numberOfLines = 0
         done.configuration?.title = "Done"
         done.addAction(UIAction { _ in Task { await Listener.shared.finish() } }, for: .touchUpInside)
         cancel.configuration?.title = "Cancel"
-        cancel.addAction(UIAction { _ in Task { await Listener.shared.cancel() } }, for: .touchUpInside)
+        cancel.addAction(UIAction { [unowned self] _ in
+            if Listener.shared.state == .idle { return dismiss(animated: true) }
+            Task { await Listener.shared.cancel() }
+        }, for: .touchUpInside)
 
         let buttons = UIStackView(arrangedSubviews: [cancel, done])
         buttons.spacing = 12
@@ -45,8 +49,8 @@ final class DictationViewController: UIViewController {
             orb.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             orb.bottomAnchor.constraint(equalTo: stack.topAnchor, constant: -48),
             stack.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: 60),
-            stack.leadingAnchor.constraint(equalTo: view.layoutMarginsGuide.leadingAnchor, constant: 8),
-            stack.trailingAnchor.constraint(equalTo: view.layoutMarginsGuide.trailingAnchor, constant: -8),
+            stack.leadingAnchor.constraint(equalTo: view.readableContentGuide.leadingAnchor, constant: 8),
+            stack.trailingAnchor.constraint(equalTo: view.readableContentGuide.trailingAnchor, constant: -8),
             buttons.heightAnchor.constraint(equalToConstant: 50),
         ])
 
@@ -66,20 +70,20 @@ final class DictationViewController: UIViewController {
         switch Listener.shared.state {
         case .listening:
             status.text = "Listening"
-            hint.text = "Go back to your app and keep talking. Swipe right along the bottom edge, or tap the app's name in the top corner. Tap the red mic beside the suggestions when you're finished."
+            hint.text = "Go back to your app and keep talking: swipe right along the bottom edge, or tap the app’s name in the top corner. When you’re finished, tap the red stop button at the right end of the suggestions."
         case .transcribing:
             status.text = "Writing it down"
             hint.text = "It'll be typed where you were."
         case .idle:
             if let failure = current.failure {
-                status.text = "Couldn't listen"
+                status.text = "Couldn’t listen"
                 hint.text = failure
             } else if hasListened {
                 return dismiss(animated: false)
             }
         }
         done.isHidden = Listener.shared.state != .listening
-        cancel.isHidden = Listener.shared.state == .idle
+        cancel.configuration?.title = Listener.shared.state == .idle ? "Close" : "Cancel"
     }
 }
 

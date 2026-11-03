@@ -21,6 +21,15 @@ import Speech
             }
         }
 
+        var detail: String {
+            switch self {
+            case .unified: "English only. Fewest mistakes, and leaves out um and uh, but often skips the last period. Downloads once, about 600 MB."
+            case .v3: "Fast and accurate. Downloads once, about 500 MB."
+            case .ultra: "A little more accurate. Takes minutes to get ready, and warms the iPhone, each time Hex opens."
+            case .apple: "Built into iOS. Writes as you speak."
+            }
+        }
+
         var version: AsrModelVersion? {
             switch self {
             case .ultra: .ultra
@@ -77,6 +86,23 @@ import Speech
         prepare()
     }
 
+    /// Tries the picked model again after it failed to download or load.
+    func retry() {
+        guard case .failed = state else { return }
+        state = .loading
+        prepare()
+    }
+
+    /// The picked model and how far along it is, in a few words.
+    var status: String {
+        switch state {
+        case .downloading(let done): "\(model.title), downloading \(done.formatted(.percent.precision(.fractionLength(0))))"
+        case .loading: "\(model.title), getting ready"
+        case .ready: "\(model.title), ready"
+        case .failed: "\(model.title) couldn’t load"
+        }
+    }
+
     /// Downloads the picked Parakeet if it isn't on the iPhone yet, then loads it, unless it's loaded, on its way, or
     /// failed since it was picked. The first load compiles it for the Neural Engine; later ones read that from a cache.
     func prepare() {
@@ -120,7 +146,7 @@ import Speech
         prepare()
         if let loaded { return loaded }
         let apple = try await SpeechTranscription.make()
-        if model != .apple { apple.model = "Apple, while \(model.title) loaded" }
+        if model != .apple { apple.model = "Apple, while \(model.title) got ready" }
         return apple
     }
 
