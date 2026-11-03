@@ -74,6 +74,15 @@ struct LayoutTests {
         #expect(landscape.keys.first { $0.action == .return }?.width == .pitch(2))
     }
 
+    @Test func bottomRowKeysAreRaycastsWithTheEmojiKeyWider() {
+        for isLandscape in [false, true] {
+            let keys = Layouts.layout(for: LayoutContext(device: .phone, layer: .letters, showsGlobe: true, isLandscape: isLandscape, showsEmoji: true)).keys
+            let width = { (action: KeyAction) in keys.first { $0.action == action }?.width.span ?? 0 }
+            #expect(width(.layer(.numbers)) == 0.93 && width(.nextKeyboard) == 0.93)
+            #expect(width(.emoji) == (isLandscape ? 1 : 1.25), "the emoji key keeps its width")
+        }
+    }
+
     @Test func rowsFitTheirColumns() {
         let columns: [DeviceClass: Double] = [.phone: 10, .compactPad: 11.2, .pad: 12.5, .largePad: 14.54]
         for (device, total) in columns {
