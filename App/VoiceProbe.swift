@@ -3,9 +3,10 @@ import CoreML
 import FluidAudio
 import UIKit
 
-/// `-HexVoiceProbe <ultra|v3|unified|unified-fp16> [-HexVoiceProbeUnits ane|cpu|gpu]` (`scripts/voiceprobe`): times
-/// each of a Parakeet's parts loading on this iPhone (Unified's as a whole, twice), then writes `Documents/probe.wav`
-/// three times, as it is and as dictation does (`ParakeetTranscription`), logging to `Documents/probe.log`.
+/// `-HexVoiceProbe <ultra|v3|unified|unified-fp16|clean> [-HexVoiceProbeUnits ane|cpu|gpu]` (`scripts/voiceprobe`):
+/// times each of a Parakeet's parts loading on this iPhone (Unified's as a whole, twice), then writes
+/// `Documents/probe.wav` three times, as it is and as dictation does (`ParakeetTranscription`), logging to
+/// `Documents/probe.log`.
 nonisolated enum VoiceProbe {
     static var asked: Bool { UserDefaults.standard.string(forKey: "HexVoiceProbe") != nil }
 
@@ -54,6 +55,7 @@ nonisolated enum VoiceProbe {
     private static func run(_ name: String) async throws {
         let clip = URL.documentsDirectory.appendingPathComponent("probe.wav")
         let samples = try AudioConverter().resampleAudioFile(clip)
+        if name == "clean" { return removeUnified() }
         if name.hasPrefix("unified") { return try await probeUnified(name, samples) }
         guard let version = VoiceModel.Model(rawValue: name)?.version else { return say("no Parakeet named \(name)") }
         let units: MLComputeUnits = switch UserDefaults.standard.string(forKey: "HexVoiceProbeUnits") {
@@ -83,9 +85,11 @@ nonisolated enum VoiceProbe {
         try await write(samples, with: manager, name: name)
     }
 
-    /// `unified` or `unified-fp16`: Parakeet Unified loaded twice, the first time downloading and compiling it for the
-    /// Neural Engine if this iPhone hasn't yet, the second from what the first left.
+    /// `unified` or `unified-fp16`: Parakeet Unified, the English Parakeet Anomaly's Hex uses, which Hex doesn't offer
+    /// because on the iPhone Duo it never ran on the Neural Engine (AGENTS.md), loaded twice: the first time
+    /// downloading and compiling it, the second from what the first left. Its download, a gigabyte or two, goes after.
     private static func probeUnified(_ name: String, _ samples: [Float]) async throws {
+        defer { removeUnified() }
         let precision: UnifiedEncoderPrecision = name.hasSuffix("fp16") ? .fp16 : .int8
         say("\(name), \(precision.rawValue) encoder")
         var parakeet: UnifiedAsrManager?
@@ -98,6 +102,13 @@ nonisolated enum VoiceProbe {
             say("\(pass) load in \(seconds(since: began))")
         }
         try await write(samples, with: parakeet!, name: name)
+    }
+
+    /// `clean`: what a Unified probe downloaded.
+    private static func removeUnified() {
+        let models = URL.applicationSupportDirectory.appending(path: "FluidAudio/Models")
+        try? FileManager.default.removeItem(at: models.appending(path: Repo.parakeetUnified.folderName))
+        say("removed Parakeet Unified's download")
     }
 
     private static func write(_ samples: [Float], with parakeet: any Parakeet, name: String) async throws {
@@ -114,5 +125,11 @@ nonisolated enum VoiceProbe {
 
     private static func seconds(since date: Date) -> String {
         Date.now.timeIntervalSince(date).formatted(.number.precision(.fractionLength(2))) + "s"
+    }
+}
+
+extension UnifiedAsrManager: Parakeet {
+    func write(_ samples: [Float]) async throws -> String {
+        try await transcribe(samples)
     }
 }

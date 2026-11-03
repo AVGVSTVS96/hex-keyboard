@@ -10,11 +10,10 @@ import Speech
     static let shared = VoiceModel()
 
     nonisolated enum Model: String, CaseIterable {
-        case unified, ultra, v3, apple
+        case ultra, v3, apple
 
         var title: String {
             switch self {
-            case .unified: "Parakeet Unified"
             case .ultra: "Parakeet Ultra"
             case .v3: "Parakeet v3"
             case .apple: "Apple"
@@ -23,7 +22,6 @@ import Speech
 
         var detail: String {
             switch self {
-            case .unified: "English only. Fewest mistakes, and leaves out um and uh, but often skips the last period. Downloads once, about 600 MB."
             case .v3: "Fast and accurate. Downloads once, about 500 MB."
             case .ultra: "A little more accurate. Takes minutes to get ready, and warms the iPhone, each time Hex opens."
             case .apple: "Built into iOS. Writes as you speak."
@@ -34,19 +32,12 @@ import Speech
             switch self {
             case .ultra: .ultra
             case .v3: .v3
-            case .unified, .apple: nil
+            case .apple: nil
             }
         }
 
         /// Loads the Parakeet, downloading it first if it isn't on the iPhone yet; nil for Apple's.
         var loader: (@Sendable (@escaping ProgressHandler) async throws -> any Parakeet)? {
-            if self == .unified {
-                return { progress in
-                    let parakeet = UnifiedAsrManager()
-                    try await parakeet.loadModels(progressHandler: progress)
-                    return parakeet
-                }
-            }
             guard let version else { return nil }
             return { progress in
                 let folder = try await AsrModels.download(version: version, progressHandler: progress)
@@ -180,12 +171,6 @@ extension AsrManager: Parakeet {
     func write(_ samples: [Float]) async throws -> String {
         var state = TdtDecoderState.make(decoderLayers: decoderLayerCount)
         return try await transcribe(samples, decoderState: &state, language: .english).text
-    }
-}
-
-extension UnifiedAsrManager: Parakeet {
-    func write(_ samples: [Float]) async throws -> String {
-        try await transcribe(samples)
     }
 }
 

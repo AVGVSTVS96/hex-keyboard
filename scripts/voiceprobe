@@ -1,9 +1,10 @@
 #!/bin/sh
 # Times a Parakeet loading and writing on the iPhone the Mac reaches, in the installed Hex (scripts/phone):
-# scripts/voiceprobe <ultra|v3|unified|unified-fp16> <clip.wav> [ane|cpu|gpu]. Hex plays silence while it runs, so a
-# locked screen or another app in front doesn't suspend it. Prints Documents/probe.log once the run is done.
+# scripts/voiceprobe <ultra|v3|unified|unified-fp16|clean> <clip.wav> [ane|cpu|gpu]. Hex plays silence while it runs, so
+# a locked screen or another app in front doesn't suspend it. Prints Documents/probe.log once the run is done. clean
+# deletes what a Unified probe downloaded.
 set -e
-[ -n "$2" ] || { echo "usage: scripts/voiceprobe <ultra|v3|unified|unified-fp16> <clip.wav> [ane|cpu|gpu]" >&2; exit 1; }
+[ -n "$2" ] || { echo "usage: scripts/voiceprobe <ultra|v3|unified|unified-fp16|clean> <clip.wav> [ane|cpu|gpu]" >&2; exit 1; }
 scp -q "$2" mac:/tmp/hex-probe.wav
 ssh mac sh -s "$1" "${3:-ane}" <<'MAC'
 set -e
