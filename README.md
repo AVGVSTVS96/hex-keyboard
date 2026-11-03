@@ -104,7 +104,8 @@ Tests:
 
 ```sh
 scripts/coretest   # KeyboardCore's tests on Linux, no Mac needed (about 25 s)
-scripts/test       # on a Mac: KeyboardCore and KeyboardUI on an iPhone 17 simulator, without the slow autocorrect scorer
+scripts/check      # builds the app and keyboard for the iPhone on Linux
+scripts/test       # on a Mac: KeyboardUI on an iPhone Duo simulator, without the slow autocorrect scorer
 scripts/uitest     # on a Mac: types through the real keyboard
 ```
 
