@@ -50,7 +50,7 @@ struct TapsPage: View {
                     Column(top: 4) {
                         Numbers(summary: summary)
                         detail(board)
-                        Misses(summary: summary, selected: model.selected) { pick($0, reader: reader, anchor: "detail") }
+                        Misses(summary: summary, selected: model.selected) { pick($0, reader: $1 ? reader : nil, anchor: "detail") }
                     }
                     .onAppear { scrollForLaunch(reader) }
                 }
@@ -62,7 +62,7 @@ struct TapsPage: View {
                     map(board, reader: reader)
                     detail(board)
                     Thumbs(board: board, summary: summary)
-                    Misses(summary: summary, selected: model.selected) { pick($0, reader: reader, anchor: "map") }
+                    Misses(summary: summary, selected: model.selected) { pick($0, reader: $1 ? reader : nil, anchor: "map") }
                         .id("misses")
                 }
                 .onAppear { scrollForLaunch(reader) }
@@ -72,7 +72,7 @@ struct TapsPage: View {
 
     private func map(_ board: TapBoard, reader: ScrollViewProxy) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Pills(items: TapMapView.Mode.allCases, selection: $mode, title: \.title)
+            ModePills(selection: $mode)
             MapView(board: board, revision: model.revision, mode: mode, selected: model.selected) { key in
                 withAnimation(.snappy(duration: 0.25)) { model.selected = key }
             }
@@ -93,8 +93,10 @@ struct TapsPage: View {
         }
     }
 
-    private func pick(_ key: Key, reader: ScrollViewProxy, anchor: String) {
+    /// Picks a key, and brings it into view when picked from a row rather than dragged to on the chart.
+    private func pick(_ key: Key, reader: ScrollViewProxy?, anchor: String) {
         withAnimation(.snappy(duration: 0.25)) { model.selected = key }
+        guard let reader else { return }
         withAnimation(.snappy(duration: 0.35)) { reader.scrollTo(anchor, anchor: .top) }
     }
 
@@ -146,6 +148,7 @@ struct TapsPage: View {
     private(set) var board: TapBoard?
     private(set) var revision = 0
     var selected: Key? = nil
+    @ObservationIgnored private var launchKey = LaunchOptions.tapsKey
     var signature: String? { didSet { if signature != oldValue { rebuild() } } }
     var screen = CGSize.zero { didSet { if screen != oldValue { reload() } } }
     @ObservationIgnored private var token: Int32 = 0
@@ -175,7 +178,10 @@ struct TapsPage: View {
         let kept = signature.flatMap { name in layouts.contains { $0.signature == name } ? name : nil }
         let picked = kept ?? layouts.first { $0.signature == current }?.signature ?? layouts.first?.signature
         if picked == signature { rebuild() } else { signature = picked }
-        if selected == nil, let label = LaunchOptions.tapsKey { selected = board?.aims.first { $0.key.label == label }?.key }
+        if let label = launchKey, let key = board?.aims.first(where: { $0.key.label == label })?.key {
+            selected = key
+            launchKey = nil
+        }
     }
 
     private func rebuild() {
@@ -269,6 +275,36 @@ private extension TapMapView.Mode {
         case .aim: "Aim"
         case .accuracy: "Accuracy"
         }
+    }
+}
+
+/// Raycast's pills for the map's three modes: a row of titles, the picked one on a filled capsule.
+private struct ModePills: View {
+    @Binding var selection: TapMapView.Mode
+    @Namespace private var pill
+
+    var body: some View {
+        HStack(spacing: 2) {
+            ForEach(TapMapView.Mode.allCases, id: \.self) { mode in
+                let picked = mode == selection
+                Button {
+                    withAnimation(.snappy(duration: 0.28)) { selection = mode }
+                } label: {
+                    Text(mode.title)
+                        .font(.body.weight(.medium))
+                        .foregroundStyle(picked ? Color.hexPillLabel : Color.hexSecondary)
+                        .padding(.horizontal, 13)
+                        .padding(.vertical, 8)
+                        .background {
+                            if picked { Capsule().fill(Color.hexPill).matchedGeometryEffect(id: "pill", in: pill) }
+                        }
+                        .contentShape(.capsule)
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(picked ? [.isSelected, .isButton] : .isButton)
+            }
+        }
+        .sensoryFeedback(.selection, trigger: selection)
     }
 }
 
@@ -709,7 +745,7 @@ private struct Target: View {
 private struct Misses: View {
     let summary: TapSummary
     let selected: Key?
-    let pick: (Key) -> Void
+    let pick: (Key, _ scrolls: Bool) -> Void
     @State private var hovered: String?
 
     private var shown: [TapSummary.Miss] { summary.misses.filter { $0.share >= 0.005 } }
@@ -749,14 +785,14 @@ private struct Misses: View {
         }
         .chartXSelection(value: $hovered)
         .onChange(of: hovered) { _, name in
-            if let name, let miss = shown.first(where: { TapMapPalette.name(of: $0.key) == name }) { pick(miss.key) }
+            if let name, let miss = shown.first(where: { TapMapPalette.name(of: $0.key) == name }) { pick(miss.key, false) }
         }
         .frame(height: 132)
         .accessibilityLabel("Misses by key")
     }
 
     private func row(_ miss: TapSummary.Miss) -> some View {
-        Button { pick(miss.key) } label: {
+        Button { pick(miss.key, true) } label: {
             HStack(spacing: 12) {
                 Keycap(key: miss.key, size: 34)
                 if let onto = miss.onto {
