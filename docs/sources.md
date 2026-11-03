@@ -12,7 +12,7 @@ Sources need Allow Full Access (Settings › Apps › Hex › Keyboards), since 
 
 ## Adding one
 
-In the Hex app: Keyboard Settings › Sources › Add Source…, with a name, a URL and an optional token. iOS lets a keyboard reach `https` URLs, and `http` only on your local network (`localhost`, `.local` names). Or a source can give you a link, which the app asks about before adding:
+In the Hex app: Settings › Hex › Sources › Add Source, with a name, an address and an optional token. iOS lets a keyboard reach `https` URLs, and `http` only on your local network (`localhost`, `.local` names). Or a source can give you a link, which the app asks about before adding:
 
 ```
 hexkeyboard://source?name=Example&url=https%3A%2F%2Fexample.com%2Fhex&token=secret
@@ -57,12 +57,12 @@ A `2xx` with JSON:
 
 ## What a source can't see
 
-iOS doesn't tell a keyboard which app it's in, which conversation a field belongs to, or anything on the screen beyond the field's text and its keyboard settings. As of iOS 27:
+iOS has no public way to tell a keyboard which app it's in, which conversation a field belongs to, or anything on the screen beyond the field's text and its keyboard settings. As of iOS 27:
 
 - Apps can describe a conversation to the keyboard (`UIConversationContext`, iOS 18.4), but iOS keeps it for its own keyboard: a third-party keyboard reads `nil` and is never told it changed, even in an app that sets it.
-- A keyboard's own ways to learn its host app stopped working in iOS 26.4. Hex still finds the app through a private UIKit path to send you back after voice typing (`KeyboardHost`), but doesn't send it to sources.
+- A keyboard's own ways to learn its host app stopped working in iOS 26.4. Hex still finds the app through a private UIKit path (`KeyboardHost`, UIKit's keyboard arbiter), from the moment the keyboard appears, before you type. Only voice typing uses it so far, to send you back to the app; updates to sources don't carry it yet.
 
-So a source learns who a message was for after it's sent (an `app` update that empties the field right after the text you sent), or from outside the keyboard.
+So for now a source learns the app from Shortcuts (below), and who a message was for after it's sent (an `app` update that empties the field right after the text you sent), or from outside the keyboard.
 
 ### Which app you're in, before you type
 
