@@ -5,7 +5,7 @@ set -e
 cd "$(dirname "$0")/.."
 dir=$(scripts/sync)
 printf '%s\n' "$*" | ssh mac "cd ~/$dir && export DEVELOPER_DIR=\${DEVELOPER_DIR:-/Applications/Xcode-beta.app/Contents/Developer} &&
-  { lockf -t 0 /tmp/hexkb.lock true || echo 'waiting for the Mac: another Hex keyboard run has it' >&2; } &&
+  { lockf -t 0 /tmp/hexkb.lock true 2>/dev/null || echo 'waiting for the Mac: another Hex keyboard run has it' >&2; } &&
   lockf /tmp/hexkb.lock zsh -s"
 mkdir -p shots/raw
 rsync -a "mac:$dir/shots/raw/" shots/raw/ 2>/dev/null || true

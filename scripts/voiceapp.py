@@ -13,13 +13,13 @@ def notify(*arguments):
     return subprocess.Popen(["xcrun", "simctl", "spawn", simulator, "notifyutil", *arguments], stdout=subprocess.DEVNULL)
 
 
-started = None
+began = None
 
 
 def publish(state, heard=None):
-    global started
-    started = None if state == "idle" else started or time.time() - 978307200
-    since = {"since": started} if started else {}
+    global began
+    began = None if state == "idle" else began or time.time() - 978307200
+    since = {"since": began} if began else {}
     with open(f"{group}/Library/dictation.json", "w") as file:
         json.dump({"state": state, **since, **({"heard": heard} if heard else {})}, file)
     notify("-p", prefix).wait()
