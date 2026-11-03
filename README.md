@@ -6,6 +6,10 @@ Hex types like Apple's keyboard and looks like Raycast's. It learns where each o
 
 Open source and MIT, a foundation to build your own keyboard on. For iPhone and iPad on iOS 26 and later, and the iPhone Duo in every pose. Type with its engine in your browser at [hex-keyboard.vercel.app](https://hex-keyboard.vercel.app).
 
+Apple's keyboard on the left, Hex on the right, on the iPhone Duo's cover:
+
+![Apple's keyboard and Hex on the iPhone Duo's cover](docs/apple-and-hex.png)
+
 ## It feels like Apple's
 
 Layouts, pop-ups, accents, the space bar cursor and the suggestion bar work as Apple's do, measured against Apple's keyboard in the same simulator on every iPhone and iPad size and each of the Duo's screens, in light and dark. Keys sit where Apple's do, except where the look moves them on purpose: Raycast's bottom-row widths, and on the Duo keys that grow into the room each screen gives ([docs/design.md](docs/design.md) has every size). Haptics start at the strength Apple's keyboard uses, read off a real iPhone, with three steps softer and three stronger. Settings have Apple's names and defaults, except that auto-capitalization and auto-correction start off, and your Text Replacements still work.
