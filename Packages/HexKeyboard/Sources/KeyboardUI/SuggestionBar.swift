@@ -168,7 +168,7 @@ final class SuggestionBar: UIView {
         let scale = traitCollection.displayScale
         let layout = BarLayout(
             toolbar, width: bounds.width, screenInset: screenInset, block: (block.minX, block.maxX), topInset: topInset,
-            tools: tools.count, more: !more.isHidden, emoji: emoji.count, maximumSlot: maximumSlotWidth
+            tools: tools.count, more: !more.isHidden, maximumSlot: maximumSlotWidth
         )
         mic.frame = CGRect(layout.mic)
         for (tool, frame) in zip(tools, layout.tools) { tool.frame = CGRect(frame) }

@@ -1,8 +1,7 @@
 import Testing
 @testable import KeyboardCore
 
-/// The bar on every screen Hex knows, on the Duo's four screens, one-handed, and with each number of
-/// tools and emoji.
+/// The bar on every screen Hex knows, on the Duo's four screens, one-handed, and with each number of tools.
 struct BarLayoutTests {
     private struct Screen {
         var name: String
@@ -35,13 +34,10 @@ struct BarLayoutTests {
         // An iPhone's emoji open from the key beside space, so its bar has two tools at most.
         return Array(0...(screen.device == .phone ? 2 : 3)).flatMap { tools in
             [false, true].flatMap { more in
-                [0, 1, 4, 40].map { emoji in
-                    let layout = BarLayout(
-                        metrics.toolbar, width: screen.window, screenInset: (screen.width - screen.window) / 2, block: block,
-                        topInset: metrics.topInset, tools: tools, more: more, emoji: emoji, maximumSlot: screen.device == .phone ? .infinity : 154.5
-                    )
-                    return (metrics, layout, "\(screen.name), \(tools) tools\(more ? " and More" : ""), \(emoji) emoji")
-                }
+                [BarLayout(
+                    metrics.toolbar, width: screen.window, screenInset: (screen.width - screen.window) / 2, block: block,
+                    topInset: metrics.topInset, tools: tools, more: more, maximumSlot: screen.device == .phone ? .infinity : 154.5
+                )].map { (metrics, $0, "\(screen.name), \(tools) tools\(more ? " and More" : "")") }
             }
         }
     }
@@ -116,8 +112,9 @@ struct BarLayoutTests {
     /// Where the bar has room for three suggestions and more, the word's emoji sit beside them; folded in portrait
     /// they take the third suggestion's place.
     @Test func wideBarsKeepTheThirdSuggestion() {
-        func beside(_ index: Int) -> Bool { layouts(Self.screens[index]).first { $0.label.hasSuffix("2 tools, 4 emoji") }!.layout.emojiBeside }
+        func beside(_ index: Int) -> Bool { layouts(Self.screens[index]).first { $0.label.hasSuffix("2 tools") }!.layout.emojiBeside }
         #expect(!beside(0) && beside(2) && beside(3))
-        #expect(!layouts(Self.screens[3]).first { $0.label.hasSuffix("2 tools, 0 emoji") }!.layout.emojiBeside)
+        let open = layouts(Self.screens[3]).first { $0.label.hasSuffix("2 tools") }!.layout
+        #expect(open.emoji.width >= 6 * BarLayout.emojiPitch, "held open in landscape, six emoji show beside")
     }
 }

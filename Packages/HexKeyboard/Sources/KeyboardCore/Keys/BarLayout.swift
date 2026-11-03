@@ -1,7 +1,9 @@
 /// Where the bar's parts go, on every screen from the same rule: the mic is as far from the keyboard's side as it is
 /// from the keys below it, or in line with the keys where they sit further in, so it never crowds the keyboard's
-/// corner. The tools mirror it at the left, round cells the mic's size, after the More button, half as wide, at the far left. Between them, the three suggestions take
-/// what they need and, on a bar wide enough, the word's emoji get the rest beside them rather than the third one's place.
+/// corner. The tools mirror it at the left, round cells the mic's size, after the More button, half as wide, at the far
+/// left. Between them the three suggestions share the bar, or on a phone's bar wide enough take what they need and
+/// leave the rest to the word's emoji, beside them rather than in the third one's place. Neither depends on the emoji,
+/// so the suggestions never move as you type, as Apple's don't.
 public struct BarLayout: Hashable, Sendable {
     public var mic: Rect
     public var tools: [Rect]
@@ -9,7 +11,7 @@ public struct BarLayout: Hashable, Sendable {
     /// The suggestions' and the waveform's span.
     public var minX, maxX: Double
     public var slots: [Rect]
-    /// The emoji's place: beside the suggestions where the bar has room, else the third suggestion's.
+    /// The emoji's place: beside the suggestions where the bar has room for them, else the third suggestion's.
     public var emoji: Rect
     public var emojiBeside: Bool
 
@@ -24,7 +26,7 @@ public struct BarLayout: Hashable, Sendable {
     /// at most `maximumSlot` wide (Apple's iPad), the three are centered in their span.
     public init(
         _ toolbar: Toolbar, width: Double, screenInset: Double, block: (minX: Double, maxX: Double), topInset: Double,
-        tools: Int, more: Bool = false, emoji: Int, maximumSlot: Double = .infinity
+        tools: Int, more: Bool = false, maximumSlot: Double = .infinity
     ) {
         let side = toolbar.mic
         let y = toolbar.top + (toolbar.bar - side) / 2
@@ -38,15 +40,12 @@ public struct BarLayout: Hashable, Sendable {
         minX = self.tools.last.map { $0.x + $0.width + Self.gap } ?? start
         maxX = mic.x - Self.gap
         let span = maxX - minX
-        let room = span - 3 * Self.slotWidth
-        emojiBeside = emoji > 0 && room >= 2 * Self.emojiPitch
-        let emojiWidth = emojiBeside ? min(Double(emoji) * Self.emojiPitch, room) : 0
-        let slot = min((span - emojiWidth) / 3, maximumSlot)
-        let first = minX + (span - emojiWidth - 3 * slot) / 2
+        emojiBeside = maximumSlot == .infinity && span - 3 * Self.slotWidth >= 2 * Self.emojiPitch
+        let slot = emojiBeside ? Self.slotWidth : min(span / 3, maximumSlot)
+        let first = emojiBeside ? minX : minX + (span - 3 * slot) / 2
         let row = (y: toolbar.top, height: toolbar.bar)
         slots = (0..<3).map { Rect(x: first + Double($0) * slot, y: row.y, width: slot, height: row.height) }
-        self.emoji = emojiBeside
-            ? Rect(x: maxX - emojiWidth, y: row.y, width: emojiWidth, height: row.height)
-            : slots[2]
+        let besideX = first + 3 * slot
+        self.emoji = emojiBeside ? Rect(x: besideX, y: row.y, width: maxX - besideX, height: row.height) : slots[2]
     }
 }

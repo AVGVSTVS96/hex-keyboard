@@ -217,13 +217,14 @@ final class TapsViewController: UIViewController {
         scroll.contentOffset.y = min(max(frame.minY - scroll.adjustedContentInset.top - 60, -scroll.adjustedContentInset.top), bottom)
     }
 
-    /// The screen and hold a touch model was kept for: on the iPhone Duo, folded or open, portrait or landscape.
+    /// The screen and hold a touch model was kept for: on the iPhone Duo, which screen and which way up (open and
+    /// upright, the screen is wider than tall).
     private func title(of signature: String) -> String {
         guard let context = LayoutContext(signature: signature) else { return signature }
         let screen = if context.device != .phone {
             "iPad, \(context.isLandscape ? "landscape" : "portrait")"
         } else if isDuo {
-            Duo.Screen(open: context.isOpen, landscape: context.isLandscape).name
+            "\(context.isOpen ? "Open" : "Folded"), \(context.isLandscape != context.isOpen ? "on its side" : "upright")"
         } else {
             "iPhone, \(context.isLandscape ? "landscape" : "portrait")"
         }
