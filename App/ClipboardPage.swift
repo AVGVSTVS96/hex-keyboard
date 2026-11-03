@@ -116,6 +116,7 @@ struct ClipboardPage: View {
     /// Hex read the clipboard without asking.
     private func catchUp() {
         copied = nil
+        store.onChange = { refresh() }
         if store.started, status.fullAccess, status.pasteAllowed { store.catchUp() } else { store.reload() }
         refresh()
     }

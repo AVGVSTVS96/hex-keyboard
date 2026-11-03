@@ -60,11 +60,16 @@ final class HomeViewController: UIHostingController<AnyView> {
     var taps = 0
     var copied = 0
     var typed = false
+    @ObservationIgnored private lazy var clipboard: ClipboardStore = {
+        let store = ClipboardStore()
+        store.onChange = { [unowned self, unowned store] in copied = store.history.items.count }
+        return store
+    }()
 
     func refresh() {
         HexStatus.shared.refresh()
         taps = MemoryStore.sharedTouches()?.signatures.reduce(0) { $0 + $1.taps } ?? 0
-        copied = ClipboardStore().history.items.count
+        clipboard.reload()
     }
 }
 
