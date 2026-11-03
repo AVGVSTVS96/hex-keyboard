@@ -116,21 +116,21 @@ struct SetupSteps: View {
     var body: some View {
         SetupStep(done: status.isAdded, title: "Add Hex", detail: status.isAdded ? "Hex is one of your keyboards." : "Turn on Keyboards › Hex.")
         SetupStep(done: status.fullAccess, title: "Allow Full Access", detail: "For voice typing, haptics, GIFs, the clipboard, sources and your taps.")
-        SetupStep(done: status.pasteAllowed, title: "Paste from Other Apps", detail: status.pasteAllowed == false ? "Set it to Allow, so the clipboard keeps what you copy." : "Set it to Allow, for the clipboard.")
+        SetupStep(done: status.pasteAllowed, title: "Paste from Other Apps", detail: "Set it to Allow, so the clipboard keeps what you copy.")
     }
 }
 
 private struct SetupStep: View {
-    let done: Bool?
+    let done: Bool
     let title: String
     let detail: String
 
     var body: some View {
         Button { HexStatus.openSettings() } label: {
             HStack(spacing: 14) {
-                Image(systemName: done == true ? "checkmark.circle.fill" : "circle")
+                Image(systemName: done ? "checkmark.circle.fill" : "circle")
                     .font(.title2)
-                    .foregroundStyle(done == true ? Color.green : Color.hexSecondary)
+                    .foregroundStyle(done ? Color.green : Color.hexSecondary)
                     .accessibilityHidden(true)
                 RowText(title: title, detail: detail)
                 Image(systemName: "arrow.up.forward")
@@ -141,7 +141,7 @@ private struct SetupStep: View {
             .row()
         }
         .buttonStyle(.plain)
-        .accessibilityValue(done == true ? "Done" : "Not done")
+        .accessibilityValue(done ? "Done" : "Not done")
     }
 }
 

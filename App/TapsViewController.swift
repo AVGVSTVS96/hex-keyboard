@@ -125,7 +125,7 @@ final class TapsViewController: UIViewController {
         var empty = UIContentUnavailableConfiguration.empty()
         empty.image = UIImage(systemName: "hand.tap")
         empty.text = "No Taps Yet"
-        guard !SettingsStore.fullAccessSeen else {
+        guard !HexStatus.shared.fullAccess else {
             empty.secondaryText = "Type with Hex anywhere, and your taps show up here each time the keyboard closes."
             return empty
         }

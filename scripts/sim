@@ -34,6 +34,15 @@ boot() {
   xcrun simctl install "$1" "$APP"
 }
 
+# Turns on Full Access and Paste from Other Apps, which iOS keeps in TCC's database, restarting the simulator to change them.
+allow() {
+  local db=~/Library/Developer/CoreSimulator/Devices/$1/data/Library/TCC/TCC.db
+  [ "$(sqlite3 "$db" "select count(*) from access where client = '$BUNDLE' and auth_value = 2 and service in ('kTCCServiceKeyboardNetwork', 'kTCCServicePasteboard')")" = 2 ] && return
+  xcrun simctl shutdown "$1"
+  sqlite3 "$db" "insert or replace into access (service, client, client_type, auth_value, auth_reason, auth_version, flags) values ('kTCCServiceKeyboardNetwork', '$BUNDLE', 0, 2, 2, 1, 0), ('kTCCServicePasteboard', '$BUNDLE', 0, 2, 2, 1, 0)"
+  boot "$1"
+}
+
 use() {
   local id=$1 keyboards
   case $2 in
@@ -208,6 +217,7 @@ duoapp() {
   RUNTIME=com.apple.CoreSimulator.SimRuntime.iOS-27-1
   id=$(ensure "${SIM:-iPhone Duo}" iPhone-Duo)
   boot "$id"
+  allow "$id"
   use "$id" hex
   unfold "$id" 0
   group=$(xcrun simctl get_app_container "$id" "$BUNDLE" group.com.shahidy.hexkeyboard)
@@ -215,13 +225,6 @@ duoapp() {
   [ -n "${TOUCHES:-}" ] && cp "$TOUCHES" "$group/touches.json"
   [ -n "${TRANSCRIPTS:-}" ] && mkdir -p "$data/Library/Application Support" && cp "$TRANSCRIPTS" "$data/Library/Application Support/transcripts.jsonl"
   [ -n "${CLIPBOARD:-}" ] && mkdir -p "$group/Library/clipboard" && cp "$CLIPBOARD" "$group/Library/clipboard/history.json"
-  mkdir -p "$group/Library/Preferences"
-  /usr/bin/python3 -c "
-import plistlib, sys, os
-path = sys.argv[1]
-prefs = plistlib.load(open(path, 'rb')) if os.path.exists(path) else {}
-prefs['fullAccessSeen'] = True
-plistlib.dump(prefs, open(path, 'wb'))" "$group/Library/Preferences/group.com.shahidy.hexkeyboard.plist"
   while read -r screen hinge orientation display; do
     case $screen in open-upright|open-book) unfold "$id" "$hinge" ;; esac
     hub "$id" orientation "$orientation"

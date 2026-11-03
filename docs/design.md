@@ -257,7 +257,7 @@ open, upright 951 × 669         open, held tall 669 × 951     cover 466 × 678
     - **Privacy & Data**: what stays on the iPhone and what goes online; Reset Learned Words and Taps; Delete All Transcripts.
     - **About Hex**.
 - Settings › Apps › Hex has the same pages for the keyboard's switches (Theme, Layout, Typing, Feedback, Voice Typing), and says the app also picks the voice model and adds sources.
-- Full Access is known on once the keyboard has opened with it (`SettingsStore.fullAccessSeen`), and Paste from Other Apps once the keyboard has tried the clipboard (`SettingsStore.pasteAllowed`); a keyboard can't write to the App Group without Full Access, so turning either off later goes unseen.
+- Full Access and Paste from Other Apps are read from TCC, where iOS keeps them for the app (`HexStatus`), and with Add Hex each time the app comes forward, so Home's setup steps check off as you come back from Settings and leave once all three are on.
 - The dictation screen (opened by the keyboard's mic) is the record-red circle swelling with your voice over a readable-width hint; if it couldn't listen it says why, with Close.
 
 ## Out of this design

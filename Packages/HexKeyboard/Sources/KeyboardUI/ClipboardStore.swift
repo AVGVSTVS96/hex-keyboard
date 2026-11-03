@@ -60,7 +60,6 @@ public final class ClipboardStore {
             return saved.seen = pasteboard.changeCount
         }
         refused = content == nil
-        if SettingsStore.pasteAllowed != !refused { SettingsStore.pasteAllowed = !refused }
         guard let content else { return }
         saved.seen = pasteboard.changeCount
         if case .text(let text) = content, text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return }

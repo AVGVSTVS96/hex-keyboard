@@ -71,16 +71,16 @@ struct Glyph: View {
     }
 }
 
-/// What iOS keeps for Hex in Settings › Apps › Hex, as far as Hex can tell, read again whenever Hex comes forward.
+/// What iOS keeps for Hex in Settings › Apps › Hex, read again whenever Hex comes forward, as it does when you come back
+/// from Settings.
 @Observable final class HexStatus {
     static let shared = HexStatus()
 
     private(set) var isAdded = false
     private(set) var fullAccess = false
-    /// Nil until the keyboard has tried reading the clipboard with Full Access.
-    private(set) var pasteAllowed: Bool?
+    private(set) var pasteAllowed = false
 
-    var isSetUp: Bool { isAdded && fullAccess && pasteAllowed == true }
+    var isSetUp: Bool { isAdded && fullAccess && pasteAllowed }
 
     private init() {
         refresh()
@@ -91,8 +91,16 @@ struct Glyph: View {
 
     func refresh() {
         isAdded = (UserDefaults.standard.array(forKey: "AppleKeyboards") as? [String] ?? []).contains("com.shahidy.hexkeyboard.keyboard")
-        fullAccess = SettingsStore.fullAccessSeen
-        pasteAllowed = SettingsStore.pasteAllowed
+        fullAccess = Self.allowed("kTCCServiceKeyboardNetwork")
+        pasteAllowed = Self.allowed("kTCCServicePasteboard")
+    }
+
+    /// Asks TCC, where iOS keeps privacy switches, through its private `TCCAccessPreflight`. iOS files the keyboard's Full
+    /// Access under the app, and Paste from Other Apps is only granted at Allow, never at Ask.
+    private static func allowed(_ service: String) -> Bool {
+        typealias Preflight = @convention(c) (CFString, CFDictionary?) -> Int32
+        guard let tcc = dlopen("/System/Library/PrivateFrameworks/TCC.framework/TCC", RTLD_LAZY), let preflight = dlsym(tcc, "TCCAccessPreflight") else { return false }
+        return unsafeBitCast(preflight, to: Preflight.self)(service as CFString, nil) == 0
     }
 
     var summary: String {

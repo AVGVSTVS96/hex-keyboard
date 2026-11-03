@@ -83,20 +83,6 @@ public enum SettingsStore {
         set { set(newValue, forKey: keepMicOnKey) }
     }
 
-    /// Set by the keyboard whenever it opens with Allow Full Access, the only time it can write to the App Group, so the
-    /// app can tell the setting is on. It stays set if you turn Full Access off later.
-    public static var fullAccessSeen: Bool {
-        get { group.bool(forKey: "fullAccessSeen") }
-        set { group.set(newValue, forKey: "fullAccessSeen") }
-    }
-
-    /// Whether iOS let the keyboard read the clipboard the last time it tried (Settings › Apps › Hex › Paste from Other
-    /// Apps), or nil before it has tried with Full Access.
-    public static var pasteAllowed: Bool? {
-        get { group.object(forKey: "pasteAllowed") as? Bool }
-        set { group.set(newValue, forKey: "pasteAllowed") }
-    }
-
     public static func reset(to settings: KeyboardSettings = .initial) {
         save(settings)
         keepMicOn = Dictation.micDefault

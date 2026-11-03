@@ -88,7 +88,7 @@ struct ClipboardPage: View {
     /// Hex read the clipboard without asking.
     private func catchUp() {
         copied = nil
-        if store.started, status.fullAccess, status.pasteAllowed == true { store.catchUp() } else { store.reload() }
+        if store.started, status.fullAccess, status.pasteAllowed { store.catchUp() } else { store.reload() }
         refresh()
     }
 
@@ -99,7 +99,7 @@ struct ClipboardPage: View {
 
     private var missing: String? {
         if !status.fullAccess { return "Turn on Allow Full Access, so the keyboard can keep what you copy." }
-        if status.pasteAllowed == false { return "Set Paste from Other Apps to Allow, so the keyboard can keep what you copy." }
+        if !status.pasteAllowed { return "Set Paste from Other Apps to Allow, so the keyboard can keep what you copy." }
         return nil
     }
 
