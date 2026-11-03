@@ -57,10 +57,11 @@ final class SuggestionTests: XCTestCase {
         app.launch()
         let toggle = app.switches["Auto-Correction"]
         XCTAssertTrue(toggle.waitForExistence(timeout: 5))
-        toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5)).tap()
+        toggle.switches.firstMatch.tap()
         XCTAssertEqual(toggle.value as? String, "0")
-        app.tabBars.buttons["iikb"].tap()
-        field.tap()
+        app.terminate()
+        app.launchArguments = ["-HexFocus", "YES"]
+        app.launch()
         XCTAssertTrue(key("space").waitForExistence(timeout: 10))
         type("helo ")
         XCTAssertEqual(text, "Helo ")
