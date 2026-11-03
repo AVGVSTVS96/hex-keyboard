@@ -48,7 +48,7 @@ final class VoiceTests: XCTestCase {
         XCTAssertTrue(wait(for: mic, label: "Dictate", value: "Mic On"))
         try shot("\(shots)-typed")
 
-        let notice = app.staticTexts["hex.notice"]
+        let notice = app.descendants(matching: .any).matching(identifier: "hex.notice").firstMatch
         XCTAssertTrue(wait { notice.exists && notice.label.hasPrefix("Not typed") }, "one stopped in a keyboard that has since closed says where it is")
         XCTAssertTrue((field.value as? String ?? "").hasSuffix("and again"), "and isn't typed here")
         try shot("\(shots)-elsewhere")
