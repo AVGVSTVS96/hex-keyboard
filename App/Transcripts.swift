@@ -16,6 +16,9 @@ struct Transcript: Codable, Identifiable, Hashable {
     var heard: String?
 
     var words: Int { text.split(whereSeparator: \.isWhitespace).count }
+
+    /// The text, or, when the model wrote nothing, what it heard that your editing left out, else that it heard nothing.
+    var shown: String { text.isEmpty ? heard.map { "Left out: \($0)" } ?? "Nothing heard" : text }
 }
 
 /// Every dictation the app transcribed, newest first, in one JSON line each in the app's own container, and the sound of
@@ -63,13 +66,10 @@ struct Transcript: Codable, Identifiable, Hashable {
         unwritten = []
     }
 
-    /// Keeps a dictation whose `Recording` was written to `recording(of: id)` as it was heard, or, when nothing was
-    /// said, drops its sound.
+    /// Keeps a dictation whose `Recording` was written to `recording(of: id)` as it was heard, with its sound, even when
+    /// the model wrote nothing: that's when it failed you (a low rumble, speech too quiet, or an "um" your editing left
+    /// out), and the sound is the only copy, to write again.
     func add(_ text: String, heard: String, id: Transcript.ID, at date: Date, seconds: Double, typed: Bool, model: String, mic: String?) {
-        guard !text.isEmpty else {
-            try? FileManager.default.removeItem(at: recording(of: id))
-            return
-        }
         let transcript = Transcript(id: id, date: date, text: text, seconds: seconds, typed: typed, model: model, mic: mic, heard: heard == text ? nil : heard)
         all.insert(transcript, at: all.firstIndex { $0.date < date } ?? all.endIndex)
         trim()

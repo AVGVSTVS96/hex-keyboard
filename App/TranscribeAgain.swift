@@ -17,7 +17,9 @@ struct RecordingSection: View {
                     ActionRow(title: writing ? VoiceModel.shared.state == .ready ? "Transcribing Again…" : "Transcribing Again once \(VoiceModel.shared.model.title) is ready…" : "Transcribe Again", symbol: "arrow.clockwise") { Task { await write() } }
                         .disabled(writing)
                 }
-                if let again {
+                if let again, again.text.isEmpty {
+                    RowText(title: "Nothing heard", detail: "Written by \(again.model)").row()
+                } else if let again {
                     RowText(title: again.text, detail: "Written by \(again.model)")
                         .textSelection(.enabled)
                         .row()

@@ -159,9 +159,9 @@ private struct Row: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
-            Text(transcript.text)
+            Text(transcript.shown)
                 .lineLimit(3)
-                .foregroundStyle(transcript.typed ? Color.primary : Color.hexSecondary)
+                .foregroundStyle(transcript.typed && !transcript.text.isEmpty ? Color.primary : Color.hexSecondary)
             HStack(spacing: 6) {
                 Text(transcript.date, format: .dateTime.hour().minute())
                 Text("·")
@@ -287,8 +287,9 @@ private struct TranscriptDetail: View {
             .font(.body.weight(.semibold))
             .foregroundStyle(.primary)
             .padding(.horizontal, 4)
-            Text(transcript.text)
+            Text(transcript.shown)
                 .font(.title3)
+                .foregroundStyle(transcript.text.isEmpty ? Color.hexSecondary : Color.primary)
                 .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(20)
