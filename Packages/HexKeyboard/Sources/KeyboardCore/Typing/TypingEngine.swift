@@ -20,7 +20,11 @@ public struct TypingEngine {
     var suggestionsBefore = ""
     var revision = 0
     public var settings = KeyboardSettings() {
-        didSet { if settings != oldValue { suggestionsChanged() } }
+        didSet {
+            guard settings != oldValue else { return }
+            if settings.autoCapitalization != oldValue.autoCapitalization, text.isKnown { refreshShift() }
+            suggestionsChanged()
+        }
     }
     public var corrector: Corrector?
     /// How the host likely wraps its text, for moving the caret up and down lines.

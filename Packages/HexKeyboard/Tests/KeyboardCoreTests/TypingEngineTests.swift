@@ -12,6 +12,31 @@ struct TypingEngineTests {
         #expect(engine.shift == .off)
     }
 
+    @Test func autoCapitalizationTakesEffectTheMomentItChanges() {
+        var engine = TypingEngine()
+        let document = TestDocument()
+        engine.documentChanged(document)
+        engine.settings.autoCapitalization = false
+        #expect(engine.shift == .off)
+        engine.type("a", in: document)
+        #expect(document.text == "a")
+
+        engine.perform(.delete, in: document)
+        engine.settings.autoCapitalization = true
+        #expect(engine.shift == .on)
+        engine.type("a", in: document)
+        #expect(document.text == "A")
+    }
+
+    @Test func aSettingsChangeKeepsTheShiftYouPressed() {
+        var engine = TypingEngine()
+        let document = TestDocument("hi ")
+        engine.documentChanged(document)
+        engine.perform(.shift, in: document)
+        engine.settings.oneHanded = .left
+        #expect(engine.shift == .on)
+    }
+
     @Test func capitalizesAfterSentenceEnd() {
         var engine = TypingEngine()
         let document = TestDocument()
