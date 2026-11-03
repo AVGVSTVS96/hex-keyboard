@@ -219,7 +219,7 @@ open class HexKeyboardViewController: UIInputViewController {
 
     private var mic: MicButton.Phase {
         if dictation.listening { return .listening }
-        if dictation.writing > 0 { return .writing }
+        if !dictation.writing.isEmpty { return .writing }
         return micIsOn ? .on : .off
     }
 
@@ -289,7 +289,7 @@ open class HexKeyboardViewController: UIInputViewController {
         suggestionBar.toolbar = toolbar
         suggestionBar.maximumSlotWidth = device == .phone ? .infinity : 154.5
         suggestionBar.update(tools: tools, theme: theme)
-        suggestionBar.update(mic: mic, listeningSince: dictation.since, saved: dictation.writing, waitingFor: dictation.waitingFor, notice: dictation.failure ?? hint, theme: theme)
+        suggestionBar.update(mic: mic, listeningSince: dictation.since, saved: dictation.writing, waitingFor: dictation.waiting, notice: dictation.failure ?? hint, theme: theme)
         if panel != nil { panelView.show(query: engine.query, theme: theme, metrics: metrics) }
         keyboardView.deadTop = panel != nil ? max(metrics.topInset - Toolbar.keysReach, 0) : 0
     }
@@ -404,7 +404,7 @@ open class HexKeyboardViewController: UIInputViewController {
             for text in heard { engine.handle(.dictated(text), in: document) }
         }
         micIsOn = Dictation.micIsOn
-        if !micIsOn { (status.listening, status.writing, status.waitingFor) = (false, 0, nil) }
+        if !micIsOn { (status.listening, status.writing, status.waiting) = (false, [], nil) }
         dictation = status
         render()
     }

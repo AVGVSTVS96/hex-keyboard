@@ -17,13 +17,13 @@ def notify(*arguments):
 began = None
 
 
-def publish(listening=False, writing=0, heard=(), waiting=False):
+def publish(listening=False, writing=(), heard=(), waiting=False):
     global began
     if listening:
         began = time.time() - 978307200
-    status = {"listening": listening, "writing": writing, "heard": list(heard)}
+    status = {"listening": listening, "writing": list(writing), "heard": list(heard)}
     if waiting:
-        status["waitingFor"] = "Parakeet v3"
+        status["waiting"] = "Waiting for Parakeet v3"
     if began and (listening or writing):
         status["since"] = began
     with open(f"{group}/Library/dictation.json", "w") as file:
@@ -63,18 +63,18 @@ finished = notify("-1", f"{prefix}.finish")
 publish(listening=True)
 listen(finished)
 started = notify("-1", f"{prefix}.start")
-publish(writing=1, waiting=True)
+publish(writing=[5.2], waiting=True)
 started.wait()
 finished = notify("-1", f"{prefix}.finish")
-publish(listening=True, writing=1, waiting=True)
+publish(listening=True, writing=[5.2], waiting=True)
 time.sleep(3)
 publish(listening=True, heard=["hello from the mic"])
 listen(finished)
 stopped = notify("-1", f"{prefix}.stop")
-publish(writing=1)
+publish(writing=[2.8])
 publish(heard=["and again"])
 stopped.wait()
-publish(writing=1)
+publish(writing=[2.8])
 fcntl.flock(lock, fcntl.LOCK_UN)
 lock.close()
 notify("-p", prefix).wait()

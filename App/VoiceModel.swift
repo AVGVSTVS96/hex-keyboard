@@ -95,6 +95,16 @@ import UIKit
         }
     }
 
+    /// What dictations wait for while the model gets ready, in a few words for the keyboard's bar; nil once it's ready.
+    var waiting: String? {
+        switch state {
+        case .downloading(let done): "Downloading \(model.title), \(done.formatted(.percent.precision(.fractionLength(0))))"
+        case .loading: "Waiting for \(model.title)"
+        case .ready: nil
+        case .failed: "\(model.title) couldn’t load"
+        }
+    }
+
     /// Downloads the picked Parakeet if it isn't on the iPhone yet, then loads it, unless it's loaded or on its way; one
     /// that failed is tried again. The first load after an install compiles it for the Neural Engine; later ones read
     /// that from a cache. It asks iOS for time in the background to finish, since iOS suspends Hex there within seconds

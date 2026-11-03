@@ -11,19 +11,19 @@ public enum Dictation {
         public var listening = false
         /// When the newest dictation started, by the app recording it, so every keyboard that opens shows the same time.
         public var since: Date?
-        /// How many dictations the app has recorded and is still writing down.
-        public var writing = 0
-        /// The model those dictations wait for while it gets ready, nil once it's ready to write them.
-        public var waitingFor: String?
+        /// How long each dictation the app has recorded and is still writing down is, in seconds, oldest first.
+        public var writing: [Double] = []
+        /// What those dictations wait for while the model gets ready, in a few words; nil once it's ready.
+        public var waiting: String?
         /// What the app wrote down, oldest first, until the keyboard types it.
         public var heard: [String] = []
         public var failure: String?
 
-        public init(listening: Bool = false, since: Date? = nil, writing: Int = 0, waitingFor: String? = nil, heard: [String] = [], failure: String? = nil) {
+        public init(listening: Bool = false, since: Date? = nil, writing: [Double] = [], waiting: String? = nil, heard: [String] = [], failure: String? = nil) {
             self.listening = listening
             self.since = since
             self.writing = writing
-            self.waitingFor = waitingFor
+            self.waiting = waiting
             self.heard = heard
             self.failure = failure
         }

@@ -96,9 +96,9 @@ final class SuggestionBar: UIView {
     }
 
     /// `notice` (why voice couldn't start, or a source's hint) stands in for the suggestions. Tapping it dismisses it.
-    /// `listeningSince` is when the app started listening, for the time beside the waveform; `saved` dictations are
-    /// recorded and still to be written, by `waitingFor` once that model is ready.
-    func update(mic: MicButton.Phase, listeningSince: Date?, saved: Int, waitingFor: String?, notice: String?, theme: KeyboardTheme) {
+    /// `listeningSince` is when the app started listening, for the time beside the waveform; `saved` are the lengths of
+    /// the dictations recorded and still to be written, and `waitingFor` what they wait for while the model gets ready.
+    func update(mic: MicButton.Phase, listeningSince: Date?, saved: [Double], waitingFor: String?, notice: String?, theme: KeyboardTheme) {
         self.mic.show(mic, theme: theme)
         waveform.show(mic, since: listeningSince, saved: saved, waitingFor: waitingFor, theme: theme)
         self.notice.text = notice
@@ -299,16 +299,22 @@ final class MicButton: UIControl {
 }
 
 /// The suggestions' place while the app listens: the time so far, then bars that trace your voice, newest on the
-/// right. Both move only as the app publishes a level, never on a timer of the keyboard's own. Dictations recorded
-/// while the model gets ready are said to be saved: beside the bars while you talk, in their place once you stop.
+/// right, each as bright as it was loud, the older ones fading out to the left. Both move only as the app publishes a
+/// level, never on a timer of the keyboard's own. Dictations recorded while the model gets ready are saved: while you
+/// talk the bar counts them at its right, and once you stop each shows its length beside what the model is doing.
 private final class Waveform: UIView {
     private let time = UILabel()
-    private let saved = UILabel()
+    private let track = UIView()
+    private let fade = CAGradientLayer()
     private var bars: [UIView] = []
     private var levels: [CGFloat] = []
+    /// How many are saved while you talk; what they wait for once you stop.
+    private let words = UILabel()
+    private var chips: [UILabel] = []
+    private var lengths: [Double] = []
     private var since: Date?
     private var phase = MicButton.Phase.off
-    /// Stopped, with every dictation saved and waiting for the model: the saved count takes the bars' place.
+    /// Stopped, with every dictation saved and waiting for the model: their chips take the bars' place.
     private var waiting = false
     private var theme = KeyboardTheme.lightCurrent
 
@@ -316,85 +322,144 @@ private final class Waveform: UIView {
         super.init(frame: frame)
         isUserInteractionEnabled = false
         time.font = .monospacedDigitSystemFont(ofSize: 15, weight: .regular)
-        saved.font = .systemFont(ofSize: 15)
-        saved.adjustsFontSizeToFitWidth = true
-        saved.minimumScaleFactor = 0.7
-        saved.lineBreakMode = .byTruncatingTail
-        saved.accessibilityIdentifier = "hex.saved"
-        addSubview(time)
-        addSubview(saved)
+        words.font = .systemFont(ofSize: 15)
+        words.adjustsFontSizeToFitWidth = true
+        words.minimumScaleFactor = 0.7
+        words.lineBreakMode = .byTruncatingTail
+        words.accessibilityIdentifier = "hex.saved"
+        fade.startPoint = CGPoint(x: 0, y: 0.5)
+        fade.endPoint = CGPoint(x: 1, y: 0.5)
+        fade.colors = [UIColor.clear.cgColor, UIColor.black.cgColor]
+        fade.locations = [0, 0.4]
+        track.layer.mask = fade
+        for view in [time, track, words] { addSubview(view) }
     }
 
     required init?(coder: NSCoder) { fatalError() }
 
-
-    func show(_ phase: MicButton.Phase, since: Date?, saved count: Int, waitingFor model: String?, theme: KeyboardTheme) {
+    /// `lengths` are the saved dictations' lengths in seconds, oldest first, and `waitingFor` what they wait for.
+    func show(_ phase: MicButton.Phase, since: Date?, saved lengths: [Double], waitingFor: String?, theme: KeyboardTheme) {
         if phase != .listening, phase != .writing { levels = levels.map { _ in 0 } }
         self.phase = phase
         self.since = since
         self.theme = theme
-        let model = count > 0 ? model : nil
-        saved.isHidden = model == nil
-        waiting = phase == .writing && model != nil
-        if let model {
-            saved.text = !waiting ? "\(count) saved" : count == 1 ? "Saved · waiting for \(model)" : "\(count) saved · waiting for \(model)"
-        }
+        let waits = waitingFor != nil && !lengths.isEmpty
+        waiting = phase == .writing && waits
+        words.isHidden = !waits
+        words.text = waiting ? waitingFor : "\(lengths.count) saved"
+        words.textColor = theme.candidate.ui
         time.textColor = theme.candidate.ui
-        saved.textColor = theme.candidate.ui
+        if lengths != self.lengths {
+            self.lengths = lengths
+            chips.forEach { $0.removeFromSuperview() }
+            chips = lengths.indices.map { index in
+                let chip = UILabel()
+                chip.font = .monospacedDigitSystemFont(ofSize: 13, weight: .medium)
+                chip.textAlignment = .center
+                chip.clipsToBounds = true
+                chip.accessibilityIdentifier = "hex.saved.\(index)"
+                addSubview(chip)
+                return chip
+            }
+        }
+        for chip in chips {
+            chip.isHidden = !waiting
+            chip.textColor = theme.label.ui
+            chip.backgroundColor = theme.candidatePill.ui
+        }
         time.isHidden = waiting
-        bars.forEach { $0.isHidden = waiting }
+        track.isHidden = waiting
         alpha = phase == .writing && !waiting ? 0.4 : 1
-        bars.forEach { $0.backgroundColor = theme.label.ui }
         tick()
+        layoutBars()
         setNeedsLayout()
     }
 
     func hear(_ level: Float) {
         guard phase == .listening, !levels.isEmpty else { return }
         let decibels = 20 * log10(max(level, 1e-6))
-        levels = Array(levels.dropFirst()) + [CGFloat(min(max((decibels + 55) / 40, 0), 1))]
+        let heard = CGFloat(min(max((decibels + 55) / 40, 0), 1))
+        let last = levels.last ?? 0
+        levels = Array(levels.dropFirst()) + [heard > last ? heard : last + (heard - last) / 2]
         tick()
         layoutBars()
     }
 
     private func tick() {
         let seconds = since.map { max(0, Int(Date().timeIntervalSince($0))) } ?? 0
-        time.text = String(format: "%d:%02d", seconds / 60, seconds % 60)
+        time.text = Self.clock(seconds)
         time.sizeToFit()
     }
 
-    /// Room the saved count takes at the right while you talk.
-    private var savedWidth: CGFloat {
-        saved.isHidden || waiting ? 0 : (saved.intrinsicContentSize.width + 12).rounded(.up)
+    private static func clock(_ seconds: Int) -> String {
+        String(format: "%d:%02d", seconds / 60, seconds % 60)
     }
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        let count = max(Int((bounds.width - 48 - savedWidth) / 6), 0)
-        if count != bars.count {
+        time.frame = CGRect(x: 0, y: 0, width: 44, height: bounds.height)
+        if waiting { return layoutChips() }
+        let saved = words.isHidden ? 0 : (words.intrinsicContentSize.width + 12).rounded(.up)
+        words.textAlignment = .right
+        words.frame = CGRect(x: bounds.width - saved, y: 0, width: saved, height: bounds.height)
+        track.frame = CGRect(x: 48, y: 0, width: max(bounds.width - 48 - saved, 0), height: bounds.height)
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        fade.frame = track.bounds
+        CATransaction.commit()
+        let fits = Int(track.bounds.width / 6)
+        if fits != bars.count {
             bars.forEach { $0.removeFromSuperview() }
-            bars = (0..<count).map { _ in
+            bars = (0..<fits).map { _ in
                 let bar = UIView()
-                bar.backgroundColor = theme.label.ui
                 bar.layer.cornerRadius = 1.5
-                bar.isHidden = waiting
-                addSubview(bar)
+                track.addSubview(bar)
                 return bar
             }
-            levels = Array(repeating: 0, count: max(count - levels.count, 0)) + levels.suffix(count)
+            levels = Array(repeating: 0, count: max(fits - levels.count, 0)) + levels.suffix(fits)
         }
-        time.frame = CGRect(x: 0, y: 0, width: 44, height: bounds.height)
-        saved.textAlignment = waiting ? .center : .right
-        saved.frame = waiting ? bounds : CGRect(x: bounds.width - savedWidth, y: 0, width: savedWidth, height: bounds.height)
         layoutBars()
+    }
+
+    /// The saved dictations' chips, oldest first, then what they wait for, centered; the last chip that fits counts
+    /// the ones that don't.
+    private func layoutChips() {
+        let scale = traitCollection.displayScale
+        let gap: CGFloat = 6, height = min(bounds.height - 12, 24)
+        let wordsWidth = min(words.intrinsicContentSize.width.rounded(.up), bounds.width * 0.6)
+        var shown = chips.count
+        func widths() -> [CGFloat] {
+            chips.prefix(shown).enumerated().map { index, chip in
+                chip.text = index == shown - 1 && shown < chips.count ? "+\(chips.count - index)" : Self.clock(max(Int(lengths[index].rounded()), 1))
+                return chip.intrinsicContentSize.width.rounded(.up) + 16
+            }
+        }
+        var sizes = widths()
+        while shown > 1, sizes.reduce(0, +) + gap * CGFloat(shown - 1) > bounds.width - wordsWidth - 10 {
+            shown -= 1
+            sizes = widths()
+        }
+        let row = sizes.reduce(0, +) + gap * CGFloat(shown - 1)
+        var x = ((bounds.width - row - 10 - wordsWidth) / 2).rounded(scale: scale)
+        for (index, chip) in chips.enumerated() {
+            chip.isHidden = index >= shown
+            guard index < shown else { continue }
+            chip.frame = CGRect(x: x, y: ((bounds.height - height) / 2).rounded(scale: scale), width: sizes[index], height: height)
+            chip.layer.cornerRadius = height / 2
+            x += sizes[index] + gap
+        }
+        words.textAlignment = .left
+        words.frame = CGRect(x: x - gap + 10, y: 0, width: wordsWidth, height: bounds.height)
     }
 
     private func layoutBars() {
         let scale = traitCollection.displayScale
         let tallest = min(bounds.height - 12, 24)
         for (index, bar) in bars.enumerated() {
-            let height = (3 + (tallest - 3) * levels[index]).rounded(scale: scale)
-            bar.frame = CGRect(x: 48 + CGFloat(index) * 6, y: ((bounds.height - height) / 2).rounded(scale: scale), width: 3, height: height)
+            let level = levels[index]
+            let height = (3 + (tallest - 3) * level).rounded(scale: scale)
+            bar.frame = CGRect(x: CGFloat(index) * 6, y: ((bounds.height - height) / 2).rounded(scale: scale), width: 3, height: height)
+            bar.backgroundColor = theme.label.ui.withAlphaComponent(0.35 + 0.65 * level)
         }
     }
 }

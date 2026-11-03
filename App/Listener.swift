@@ -29,7 +29,10 @@ import UIKit
     private init() {
         microphone.onLost = { Task { await Listener.shared.turnMicOff() } }
         microphone.onLevel = { Listener.shared.onLevel?($0) }
-        VoiceModel.shared.onState = { if Listener.shared.isWriting { Listener.shared.publish() } }
+        VoiceModel.shared.onState = {
+            guard Listener.shared.isWriting, VoiceModel.shared.waiting != Dictation.status.waiting else { return }
+            Listener.shared.publish()
+        }
         tokens = [
             Dictation.observe(.finish) { Task { await Listener.shared.finish() } },
             Dictation.observe(.start) {
@@ -150,8 +153,8 @@ import UIKit
         var status = Dictation.status
         status.listening = isListening
         status.since = recording?.started ?? writing.last?.started
-        status.writing = writing.count
-        status.waitingFor = VoiceModel.shared.state == .ready ? nil : VoiceModel.shared.model.title
+        status.writing = writing.map { $0.stopped.timeIntervalSince($0.started) }
+        status.waiting = VoiceModel.shared.waiting
         if let text, !text.isEmpty { status.heard.append(text) }
         status.failure = failure
         Dictation.publish(status)
