@@ -248,7 +248,7 @@ layout -HexSettings layout
 feedback -HexSettings feedback
 voice -HexSettings model
 writing -HexSettings writing
-words -HexSettings words
+dictionary -HexSettings dictionary
 mic -HexSettings mic
 transcripts -HexTab transcripts
 clipboard -HexTab clipboard

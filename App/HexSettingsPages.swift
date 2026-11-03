@@ -169,7 +169,7 @@ struct PrivacyPage: View {
                 Label("What you type, say and copy stays here.", systemImage: "iphone").row()
                 Label("Hex goes online only to download its voice model once, search GIFs, and reach the sources you add.", systemImage: "network").row()
             }
-            Box(footer: "Hex forgets the words it learned from you and where your thumbs land on each key.") {
+            Box(footer: "Hex forgets the words it learned from your typing and where your thumbs land on each key. Your Dictionary stays.") {
                 ActionRow(title: "Reset Learned Words and Taps", role: .destructive) { confirmsReset = true }
             }
             Box(footer: transcripts.all.isEmpty ? "You haven’t dictated anything yet." : "Deletes all \(transcripts.all.count.formatted()) dictations and their sound from this iPhone.") {

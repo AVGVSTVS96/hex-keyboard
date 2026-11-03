@@ -6,11 +6,11 @@ import SwiftUI
 /// takes the pane before the hinge and the picked page the one after; elsewhere a page opens on its own.
 struct SettingsPage: View {
     enum Page: String, CaseIterable, Hashable {
-        case theme, layout, typing, feedback, model, writing, words, mic, sources, access, privacy, about
+        case theme, layout, typing, feedback, model, writing, dictionary, mic, sources, access, privacy, about
 
         static let sections: [(title: String, pages: [Page])] = [
             ("Keyboard", [.theme, .layout, .typing, .feedback]),
-            ("Voice Typing", [.model, .writing, .words, .mic]),
+            ("Voice Typing", [.model, .writing, .dictionary, .mic]),
             ("Hex", [.sources, .access, .privacy, .about]),
         ]
 
@@ -22,7 +22,7 @@ struct SettingsPage: View {
             case .feedback: "Sound & Haptics"
             case .model: "Voice Model"
             case .writing: "Writing Style"
-            case .words: "Your Words"
+            case .dictionary: "Dictionary"
             case .mic: "Keep Mic On"
             case .sources: "Sources"
             case .access: "Keyboard Access"
@@ -39,7 +39,7 @@ struct SettingsPage: View {
             case .feedback: ("hand.tap.fill", .pink)
             case .model: ("waveform", .red)
             case .writing: ("textformat", .orange)
-            case .words: ("character.book.closed.fill", .brown)
+            case .dictionary: ("character.book.closed.fill", .brown)
             case .mic: ("mic.fill", .green)
             case .sources: ("antenna.radiowaves.left.and.right", .teal)
             case .access: ("switch.2", .indigo)
@@ -57,7 +57,7 @@ struct SettingsPage: View {
             case .feedback: settings.haptics.title
             case .model: VoiceModel.shared.model.title
             case .writing: settings.dictationStyle.title
-            case .words: words == 1 ? "1 word" : "\(words.formatted()) words"
+            case .dictionary: words == 1 ? "1 word" : "\(words.formatted()) words"
             case .mic: Dictation.title(keepingMicOn: model.keepMicOn)
             case .sources: model.sources.isEmpty ? "None" : model.sources.count.formatted()
             case .access: HexStatus.shared.isSetUp ? "All Set" : "Needs Setup"
@@ -153,7 +153,7 @@ struct SettingsContent: View {
     var top: CGFloat = 8
 
     var body: some View {
-        if page == .words {
+        if page == .dictionary {
             VocabularyView()
         } else {
             Column(top: top) {
@@ -165,7 +165,7 @@ struct SettingsContent: View {
                 case .feedback: FeedbackSettings()
                 case .model: ModelSettings()
                 case .writing: WritingSettings()
-                case .words: EmptyView()
+                case .dictionary: EmptyView()
                 case .mic: MicSettings()
                 case .sources: SourcesPage()
                 case .access: SetupPage()
