@@ -10,7 +10,7 @@ Turn on Auto-Correction (Hex app › Settings › Keyboard › Typing; it starts
 
 ## Driving it with XCUITest
 
-`UITests/SuggestionTests.swift` types "helo", reads `hex.suggestion.0`–`2`, and checks the field after space and delete. Accuracy is measured by `scripts/mac scripts/eval` against `scripts/eval.expected`; the rules behind it are pinned in `AutocorrectTests` and `TypingModelTests`.
+`UITests/SuggestionTests.swift` types "helo", reads `hex.suggestion.0`–`2`, and checks the field after space and delete. Accuracy is measured by `scripts/eval` (here on Linux) against `scripts/eval.expected`; the rules behind it are pinned in `AutocorrectTests` and `TypingModelTests`.
 
 ## Gotchas
 

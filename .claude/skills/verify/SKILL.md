@@ -7,7 +7,7 @@ description: Prove a change to Hex Keyboard works the way a user meets it, with 
 
 ## Order
 
-1. Here, on Linux: `scripts/coretest` for anything in `KeyboardCore`, and `scripts/check` for anything that builds into the app or the keyboard (the iPhone build, unsigned, a few minutes). Both must pass before a change lands.
+1. Here, on Linux: `scripts/coretest` for anything in `KeyboardCore` (and `scripts/eval` when it changes what gets typed), and `scripts/check` for anything that builds into the app or the keyboard (the iPhone build, unsigned, a few minutes). Both must pass before a change lands.
 2. Land on main and run `scripts/phone`, the moment the change is ready: the iPhone is where changes are tried. It prints `build <N> (main <commit>) is on the iPhone`; quote that line, and the same number shows in the app at Settings › About.
 3. The simulator only for what only it shows: one row below, on the iPhone Duo.
 4. What landed together goes through `scripts/mac scripts/verify`, run by the one to three agents verifying, never by every builder.
@@ -26,7 +26,7 @@ For one change, the row that applies:
 | --- | --- | --- |
 | anything in `KeyboardCore` | `scripts/coretest` | `Test run with N tests … passed`. `TextStateStressTests` (3,000 seeded runs against a host that reports late and cut off) is one of them. |
 | anything in the app or keyboard | `scripts/check` | it ends with `Wrote to …/Hex.app`. |
-| the decoder, models, key map, autocorrect or what a touch types | `scripts/mac scripts/eval` | it ends with `EVAL matches eval.expected`. A change that moves the numbers must beat them and updates `scripts/eval.expected` in the same commit. |
+| the decoder, models, key map, autocorrect or what a touch types | `scripts/eval`, here (about 20 minutes; `scripts/mac scripts/eval` also scores the UITextChecker baseline) | it ends with `EVAL matches eval.expected`. A change that moves the numbers must beat them and updates `scripts/eval.expected` in the same commit. |
 | how the keyboard looks on the Duo | `scripts/mac 'scripts/sim duo <tag>'` (`KEYBOARDS=hex`, `APPEARANCES=dark` narrow it) | `shots/raw/duo/` reads right in every pose. |
 | how the app looks on the Duo | `scripts/mac 'scripts/sim duoapp <tag>'` (`PAGES=` narrows it) | `shots/raw/duo/app/` reads right in every pose. |
 | typing through the real extension | `scripts/mac scripts/uitest` (`-only-testing:HexUITests/<Class>` after the device names one class) | every `Test Case … passed`, none failed. |

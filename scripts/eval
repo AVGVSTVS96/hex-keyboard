@@ -1,15 +1,41 @@
 #!/bin/bash
-# Runs on the Mac. Types the phrase corpus with simulated taps and prints word accuracy for the old and new correctors.
-# Optional argument: one test (noise, biasedThumbs or aimShift). A full run must match eval.expected; a change that moves the
-# numbers updates that file in the same commit.
+# Types the phrase corpus with simulated taps and prints word accuracy for the old and new correctors (AGENTS.md).
+# Here on Linux it runs in a package of KeyboardCore, the word lists and Evaluation alone, and scores Hex's two
+# keyboards; the UITextChecker baseline needs Apple's platforms, so on the Mac (scripts/mac scripts/eval) it scores that
+# too. Optional argument: one test (noise, biasedThumbs, aimShift, predictions, emoji). A full run must match
+# eval.expected, its baseline lines only on the Mac; a change that moves the numbers updates that file in the same commit.
 set -euo pipefail
-cd "$(dirname "$0")/../Packages/HexKeyboard"
-ID=$(../../scripts/sim ensure "iPhone 17" iPhone-17)
-BOOTED=$(xcrun simctl list devices | grep -c "$ID) (Booted)" || true)
-OUT=../../build/eval.txt
-xcodebuild test -scheme HexKeyboard-Package -destination "id=$ID" -derivedDataPath ../../build/tests \
-  -configuration Release ENABLE_TESTABILITY=YES \
-  -only-testing:KeyboardUITests/Evaluation${1:+/$1()} 2>&1 | grep -E "error:|EVAL|✘" | tee "$OUT" || true
-[ "$BOOTED" = 1 ] || xcrun simctl shutdown "$ID" 2>/dev/null || true
+root=$(cd "$(dirname "$0")/.." && pwd)
+src=$root/Packages/HexKeyboard
+out=$root/build/eval.txt
+mkdir -p "$root/build"
+if [ "$(uname)" = Darwin ]; then
+  cd "$src"
+  ID=$("$root/scripts/sim" ensure "iPhone 17" iPhone-17)
+  xcodebuild test -scheme HexKeyboard-Package -destination "id=$ID" -derivedDataPath ../../build/tests \
+    -configuration Release ENABLE_TESTABILITY=YES \
+    -only-testing:KeyboardUITests/Evaluation${1:+/$1()} 2>&1 | grep -E "error:|EVAL|✘" | tee "$out"
+  scored=.
+else
+  pkg=$root/build/eval
+  mkdir -p "$pkg/Sources/KeyboardUI/Resources" "$pkg/Tests/KeyboardUITests"
+  ln -sfn "$src/Sources/KeyboardCore" "$pkg/Sources/KeyboardCore"
+  ln -sf "$src/Sources/KeyboardUI/Lexicon+English.swift" "$pkg/Sources/KeyboardUI/"
+  for file in en.lexicon en.phrases emoji.txt emoji-search.txt; do ln -sf "$src/Sources/KeyboardUI/Resources/$file" "$pkg/Sources/KeyboardUI/Resources/"; done
+  for file in Evaluation.swift phrases.txt chat.txt; do ln -sf "$src/Tests/KeyboardUITests/$file" "$pkg/Tests/KeyboardUITests/"; done
+  cat > "$pkg/Package.swift" <<'SWIFT'
+// swift-tools-version: 6.2
+import PackageDescription
+
+let package = Package(name: "Eval", targets: [
+    .target(name: "KeyboardCore"),
+    .target(name: "KeyboardUI", dependencies: ["KeyboardCore"], resources: [.copy("Resources/en.lexicon"), .copy("Resources/en.phrases"), .copy("Resources/emoji.txt"), .copy("Resources/emoji-search.txt")], swiftSettings: [.defaultIsolation(MainActor.self)]),
+    .testTarget(name: "KeyboardUITests", dependencies: ["KeyboardUI"], resources: [.copy("phrases.txt"), .copy("chat.txt")]),
+])
+SWIFT
+  cd "$pkg"
+  swift test -c release -Xswiftc -enable-testing --filter "Evaluation${1:+/$1}" 2>&1 | grep -E "error:|EVAL|✘" | tee "$out"
+  scored='keyboard=(decoder|learning)|EVAL (emoji|predict|thumbs learned)'
+fi
 [ -z "${1:-}" ] || exit 0
-diff -u <(sort ../../scripts/eval.expected) <(grep '^EVAL' "$OUT" | grep -v '^EVAL latency' | sort) && echo "EVAL matches eval.expected"
+diff -u <(grep -E "$scored" "$root/scripts/eval.expected" | sort) <(grep '^EVAL' "$out" | grep -v '^EVAL latency' | sort) && echo "EVAL matches eval.expected"

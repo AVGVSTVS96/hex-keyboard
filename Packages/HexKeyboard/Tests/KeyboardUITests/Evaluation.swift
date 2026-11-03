@@ -14,6 +14,15 @@ struct Evaluation {
 
     enum Keyboard: String, CaseIterable {
         case baseline, decoder, learning
+
+        /// The baseline needs `UITextChecker`, so off Apple's platforms (scripts/eval on Linux) only Hex's two run.
+        static var scored: [Keyboard] {
+            #if canImport(UIKit)
+            allCases
+            #else
+            [.decoder, .learning]
+            #endif
+        }
     }
 
     static func phrases() throws -> [String] {
@@ -23,7 +32,7 @@ struct Evaluation {
 
     @Test func noise() throws {
         let phrases = try Self.phrases()
-        for keyboard in Keyboard.allCases {
+        for keyboard in Keyboard.scored {
             for noise in Self.noiseLevels {
                 var user = SimulatedUser(width: Self.width, noise: noise, seed: 2026)
                 var session = Session(keyboard, grid: user.grid)
@@ -100,7 +109,7 @@ struct Evaluation {
     @Test func biasedThumbs() throws {
         let phrases = try Self.phrases()
         let block = 500
-        for keyboard in Keyboard.allCases {
+        for keyboard in Keyboard.scored {
             var user = SimulatedUser(width: Self.width, noise: 0.2, seed: 7, bias: SimulatedUser.thumbs)
             var session = Session(keyboard, grid: user.grid)
             var curve: [String] = []
@@ -165,7 +174,11 @@ struct Session {
     init(_ keyboard: Evaluation.Keyboard, grid: KeyGrid) {
         self.keyboard = keyboard
         self.grid = grid
+        #if canImport(UIKit)
         let source: any CandidateSource = keyboard == .baseline ? TextCheckerSource(language: "en-US") : Lexicon.english
+        #else
+        let source: any CandidateSource = Lexicon.english
+        #endif
         let corrector = Corrector(source: source, phrases: keyboard == .baseline ? nil : .english)
         corrector.grid = grid
         engine.corrector = corrector
