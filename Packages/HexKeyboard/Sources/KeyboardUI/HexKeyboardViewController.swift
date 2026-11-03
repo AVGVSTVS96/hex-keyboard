@@ -8,6 +8,10 @@ open class HexKeyboardViewController: UIInputViewController {
     private var dictation = Dictation.Status()
     private var micIsOn = false
     private var observers: [Int32] = []
+    /// Who this keyboard is to the app, new each time it appears: dictations you stop here are typed here.
+    private var keyboard = UInt64.random(in: 1 ... .max)
+    /// What the app told you about a dictation, until you tap it or a key.
+    private var voiceNotice: String?
     private let suggestionBar = SuggestionBar()
     private let panelView = PanelView()
     private let toolbarView = UIView()
@@ -84,14 +88,13 @@ open class HexKeyboardViewController: UIInputViewController {
         panelView.onClose = { [unowned self] in handle(.panel(nil)) }
         panelView.onClear = { [unowned self] in handle(.panel(engine.panel)) }
         suggestionBar.onNotice = { [unowned self] in
-            if dictation.failure != nil { return clearFailure() }
-            sources.dismissHint()
+            if voiceNotice != nil { voiceNotice = nil } else { sources.dismissHint() }
             render()
         }
         sources.onHint = { [unowned self] in render() }
         suggestionBar.onMicHold = { [unowned self] in
             feedback(.other)
-            Dictation.send(.stop)
+            Dictation.send(.stop, from: keyboard)
         }
         engine.defersSuggestions = true
         keyboardView.onEvent = { [unowned self] in handle($0) }
@@ -138,6 +141,7 @@ open class HexKeyboardViewController: UIInputViewController {
     override open func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         KeyboardHost.appeared()
+        keyboard = .random(in: 1 ... .max)
         MemoryStore.refresh { [weak self] memory in
             self?.engine.corrector?.memory = memory
             self?.engine.suggestionsChanged()
@@ -317,7 +321,7 @@ open class HexKeyboardViewController: UIInputViewController {
         suggestionBar.toolbar = toolbar
         suggestionBar.maximumSlotWidth = device == .phone ? .infinity : 154.5
         suggestionBar.update(tools: tools, theme: theme)
-        suggestionBar.update(mic: mic, listeningSince: dictation.since, saved: dictation.writing, waitingFor: dictation.waiting, notice: dictation.failure ?? hint, theme: theme)
+        suggestionBar.update(mic: mic, listeningSince: dictation.since, saved: dictation.writing, waitingFor: dictation.waiting, notice: voiceNotice ?? hint, theme: theme)
         if panel != nil { panelView.show(query: engine.query, theme: theme, metrics: metrics) }
     }
 
@@ -370,7 +374,10 @@ open class HexKeyboardViewController: UIInputViewController {
         case .down(let key, _):
             feedback(Self.haptic(for: key))
             if key.action == .delete { startDeleteRepeat() }
-            if dictation.failure != nil { clearFailure() }
+            if voiceNotice != nil {
+                voiceNotice = nil
+                render()
+            }
         case .up(let key) where key.action == .delete:
             deleteRepeat = nil
         case .trigger(let key) where key.action == .dismiss:
@@ -401,11 +408,11 @@ open class HexKeyboardViewController: UIInputViewController {
     /// the microphone and iOS starts a recording only in an app in front.
     private func toggleVoice() {
         guard hasFullAccess else {
-            dictation = Dictation.Status(failure: "Voice needs Allow Full Access in Settings › Apps › iikb › Keyboards")
+            voiceNotice = "Voice needs Allow Full Access in Settings › Apps › iikb › Keyboards"
             return render()
         }
-        if dictation.listening { return Dictation.send(.finish) }
-        if dictation.failure != nil { clearFailure() }
+        if dictation.listening { return Dictation.send(.finish, from: keyboard) }
+        voiceNotice = nil
         micIsOn = Dictation.micIsOn
         if micIsOn { return Dictation.send(.start) }
         render()
@@ -422,25 +429,24 @@ open class HexKeyboardViewController: UIInputViewController {
         }
     }
 
-    /// The app listened, or wrote something down: type what it wrote, once each. A status without the app's microphone
-    /// lock was left by an app that ended mid-dictation, so the mic starts a new one.
+    /// The app listened, or left notes: types what you said in this keyboard, once each, and says so when what you
+    /// said in a keyboard that has since closed isn't typed here. A status without the app's microphone lock was left by
+    /// an app that ended mid-dictation, so the mic starts a new one.
     private func dictationChanged() {
         var status = Dictation.status
-        if !status.heard.isEmpty {
-            let heard = status.heard
-            status.heard = []
-            Dictation.publish(status)
-            for text in heard { engine.handle(.dictated(text), in: document) }
-        }
         micIsOn = Dictation.micIsOn
         if !micIsOn { (status.listening, status.writing, status.waiting) = (false, [], nil) }
         dictation = status
-        render()
-    }
-
-    private func clearFailure() {
-        dictation.failure = nil
-        if hasFullAccess { Dictation.publish(dictation) }
+        for (file, note) in Dictation.notes where Dictation.take(file) {
+            switch note {
+            case .heard(let text, let keyboard) where keyboard == nil || keyboard == self.keyboard:
+                engine.handle(.dictated(text), in: document)
+            case .heard:
+                voiceNotice = "Not typed, as its keyboard closed first: it’s in Hex › Transcripts"
+            case .notice(let notice):
+                voiceNotice = notice
+            }
+        }
         render()
     }
 

@@ -3,10 +3,12 @@ import notify
 
 /// Voice typing runs in the app, because a keyboard can't use the microphone: the keyboard opens the app with a
 /// `Request`, the app listens until the keyboard (or the app) says it's done, and leaves what it wrote down in the App
-/// Group for the keyboard to type. Each side tells the other through a Darwin notification and reads the shared status on it.
+/// Group for the keyboard to type. Each side tells the other through a Darwin notification. The app alone writes the
+/// `Status`, and leaves each `Note` in a file of its own that the keyboard takes by removing it, so the two never write
+/// the same file.
 public enum Dictation {
-    /// Recording and writing are separate: the app records a new dictation while the ones before are still being
-    /// written down, and types them in the order you said them.
+    /// What the app is doing. Recording and writing are separate: the app records a new dictation while the ones before
+    /// are still being written down, and has them typed in the order you said them.
     public struct Status: Codable, Equatable, Sendable {
         public var listening = false
         /// When the newest dictation started, by the app recording it, so every keyboard that opens shows the same time.
@@ -15,28 +17,33 @@ public enum Dictation {
         public var writing: [Double] = []
         /// What those dictations wait for while the model gets ready, in a few words; nil once it's ready.
         public var waiting: String?
-        /// What the app wrote down, oldest first, until the keyboard types it.
-        public var heard: [String] = []
-        public var failure: String?
 
-        public init(listening: Bool = false, since: Date? = nil, writing: [Double] = [], waiting: String? = nil, heard: [String] = [], failure: String? = nil) {
+        public init(listening: Bool = false, since: Date? = nil, writing: [Double] = [], waiting: String? = nil) {
             self.listening = listening
             self.since = since
             self.writing = writing
             self.waiting = waiting
-            self.heard = heard
-            self.failure = failure
         }
+    }
+
+    /// What the app leaves for the keyboard.
+    public enum Note: Codable, Equatable, Sendable {
+        /// A dictation written down, typed only by the keyboard you stopped it in (`keyboard`, which it sent with
+        /// `finish` or `stop`), so it never lands in a field you didn't say it for; one stopped in the app (its Done)
+        /// is typed by the next keyboard to see it.
+        case heard(String, keyboard: UInt64?)
+        /// Something to tell you about a dictation: why it couldn't be made or written down, or where it went.
+        case notice(String)
     }
 
     public enum Signal: String, Sendable {
         /// The app changed the status.
         case changed = "com.shahidy.hexkeyboard.dictation"
-        /// The keyboard wants what was said so far.
+        /// The keyboard wants what was said so far, carrying its `keyboard` in the notification's state.
         case finish = "com.shahidy.hexkeyboard.dictation.finish"
         /// The keyboard wants to dictate again while the app still has the microphone on.
         case start = "com.shahidy.hexkeyboard.dictation.start"
-        /// The keyboard wants the microphone off, with what was said so far typed.
+        /// The keyboard wants the microphone off, with what was said so far typed, carrying its `keyboard` as `finish` does.
         case stop = "com.shahidy.hexkeyboard.dictation.stop"
         /// How loud you are, carried in the notification's state (`level`).
         case level = "com.shahidy.hexkeyboard.dictation.level"
@@ -79,13 +86,15 @@ public enum Dictation {
         }
     }
 
-    private static var statusURL: URL? {
-        FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: SettingsStore.appGroup)?.appending(path: "Library/dictation.json")
+    private static var library: URL? {
+        FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: SettingsStore.appGroup)?.appending(path: "Library")
     }
 
-    private static var micURL: URL? {
-        FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: SettingsStore.appGroup)?.appending(path: "Library/mic.lock")
-    }
+    private static var statusURL: URL? { library?.appending(path: "dictation.json") }
+
+    private static var micURL: URL? { library?.appending(path: "mic.lock") }
+
+    private static var notesURL: URL? { library?.appending(path: "notes") }
 
     /// The app holds this lock while its microphone is on. The kernel lets go of it when the app ends however it ends,
     /// so the lock, unlike a status the app writes, can't outlive the app.
@@ -124,9 +133,43 @@ public enum Dictation {
         send(.changed)
     }
 
+    /// Leaves a note for the keyboard, after the ones before it.
+    public static func leave(_ note: Note) {
+        guard let notesURL, let data = try? JSONEncoder().encode(note) else { return }
+        try? FileManager.default.createDirectory(at: notesURL, withIntermediateDirectories: true)
+        let name = String(format: "%020llu-%@.json", clock_gettime_nsec_np(CLOCK_REALTIME), UUID().uuidString)
+        try? data.write(to: notesURL.appending(path: name), options: .atomic)
+        send(.changed)
+    }
+
+    /// The notes the app has left, oldest first, each where `take` finds it.
+    public static var notes: [(file: URL, note: Note)] {
+        guard let notesURL, let files = try? FileManager.default.contentsOfDirectory(at: notesURL, includingPropertiesForKeys: nil) else { return [] }
+        return files.filter { $0.pathExtension == "json" }.sorted { $0.lastPathComponent < $1.lastPathComponent }.compactMap { file in
+            (try? Data(contentsOf: file)).flatMap { try? JSONDecoder().decode(Note.self, from: $0) }.map { (file, $0) }
+        }
+    }
+
+    /// Takes a note, true for the one taker: removing its file succeeds once.
+    public static func take(_ file: URL) -> Bool {
+        (try? FileManager.default.removeItem(at: file)) != nil
+    }
+
     public static func send(_ signal: Signal) {
         notify_post(signal.rawValue)
     }
+
+    /// Sends `finish` or `stop` from `keyboard`, a number the keyboard picks each time it appears.
+    public static func send(_ signal: Signal, from keyboard: UInt64) {
+        if let token = stateTokens[signal] { notify_set_state(token, keyboard) }
+        send(signal)
+    }
+
+    nonisolated private static let stateTokens = Dictionary(uniqueKeysWithValues: [Signal.finish, .stop].map { signal in
+        var token: Int32 = 0
+        notify_register_check(signal.rawValue, &token)
+        return (signal, token)
+    })
 
     nonisolated private static let levelToken: Int32 = {
         var token: Int32 = 0
@@ -153,9 +196,16 @@ public enum Dictation {
 
     /// Calls `handler` on the main queue on each `signal`, until the token is cancelled with `stopObserving`.
     public static func observe(_ signal: Signal, _ handler: @escaping @MainActor @Sendable () -> Void) -> Int32 {
+        observe(signal) { _ in handler() }
+    }
+
+    /// Calls `handler` on the main queue on each `signal` with the keyboard it came from, nil when none said.
+    public static func observe(_ signal: Signal, _ handler: @escaping @MainActor @Sendable (_ keyboard: UInt64?) -> Void) -> Int32 {
         var token: Int32 = 0
-        notify_register_dispatch(signal.rawValue, &token, .main) { _ in
-            MainActor.assumeIsolated { handler() }
+        notify_register_dispatch(signal.rawValue, &token, .main) { token in
+            var state: UInt64 = 0
+            notify_get_state(token, &state)
+            MainActor.assumeIsolated { handler(state == 0 ? nil : state) }
         }
         return token
     }

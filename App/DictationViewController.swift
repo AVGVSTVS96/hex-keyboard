@@ -74,9 +74,9 @@ final class DictationViewController: UIViewController {
         } else if listener.isWriting {
             status.text = "Writing it down"
             hint.text = "It'll be typed where you were."
-        } else if let failure = Dictation.status.failure {
-            status.text = "Couldn’t listen"
-            hint.text = failure
+        } else if let failure = listener.failure {
+            status.text = failure.title
+            hint.text = failure.reason
         } else if hasListened {
             return dismiss(animated: false)
         }

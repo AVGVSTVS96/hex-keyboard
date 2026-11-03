@@ -46,6 +46,11 @@ final class VoiceTests: XCTestCase {
         XCTAssertTrue(wait(for: mic, label: "Dictate", value: "Mic On"))
         try shot("\(shots)-typed")
 
+        let notice = app.staticTexts["hex.notice"]
+        XCTAssertTrue(wait { notice.exists && notice.label.hasPrefix("Not typed") }, "one stopped in a keyboard that has since closed says where it is")
+        XCTAssertTrue((field.value as? String ?? "").hasSuffix("and again"), "and isn't typed here")
+        try shot("\(shots)-elsewhere")
+
         mic.press(forDuration: 0.8)
         XCTAssertTrue(wait(for: mic, label: "Dictate", value: nil), "holding the mic turns the microphone off, and a dictation the app left unfinished when it ended doesn't hold the mic")
         try shot("\(shots)-off")

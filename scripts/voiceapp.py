@@ -1,14 +1,17 @@
 """Stands in for the Hex app's Listener in the simulator, which can't record: holds the microphone lock, answers the
-keyboard's start with listening and a voice's worth of levels, and finish with writing it down. The first waits for the
-model to get ready, and meanwhile the keyboard starts a second; the first is typed as the second records. Stop ends the way a quit app
+keyboard's start with listening and a voice's worth of levels, and finish with writing it down for the keyboard that
+stopped it. The first waits for the model to get ready, and meanwhile the keyboard starts a second; the first is typed as
+the second records. Then it leaves one for a keyboard that has closed, which isn't typed. Stop ends the way a quit app
 does, mid-writing: the status stays, the lock goes. scripts/voiceapp.py <simulator id> <App Group container>
 [listening|saved|waiting], which holds one state until it's killed, for screenshots of the bar: talking; talking with two
 saved; three saved waiting for the model."""
-import fcntl, json, math, os, struct, subprocess, sys, threading, time
+import fcntl, json, math, os, struct, subprocess, sys, threading, time, uuid
 
 simulator, group = sys.argv[1:3]
 prefix = "com.shahidy.hexkeyboard.dictation"
-os.makedirs(f"{group}/Library", exist_ok=True)
+os.makedirs(f"{group}/Library/notes", exist_ok=True)
+for left in os.listdir(f"{group}/Library/notes"):
+    os.remove(f"{group}/Library/notes/{left}")
 
 
 def notify(*arguments):
@@ -18,11 +21,11 @@ def notify(*arguments):
 began = None
 
 
-def publish(listening=False, writing=(), heard=(), waiting=False):
+def publish(listening=False, writing=(), waiting=False):
     global began
     if listening:
         began = time.time() - 978307200
-    status = {"listening": listening, "writing": list(writing), "heard": list(heard)}
+    status = {"listening": listening, "writing": list(writing)}
     if waiting:
         status["waiting"] = "Model loading…"
     if began and (listening or writing):
@@ -30,6 +33,21 @@ def publish(listening=False, writing=(), heard=(), waiting=False):
     with open(f"{group}/Library/dictation.json", "w") as file:
         json.dump(status, file)
     notify("-p", prefix).wait()
+
+
+def leave(text, keyboard):
+    note = {"heard": {"_0": text, **({"keyboard": keyboard} if keyboard else {})}}
+    name = f"{group}/Library/notes/{time.time_ns():020d}-{uuid.uuid4()}.json"
+    with open(name + ".tmp", "w") as file:
+        json.dump(note, file)
+    os.rename(name + ".tmp", name)
+    notify("-p", prefix).wait()
+
+
+def keyboard(signal):
+    """The keyboard that sent `signal`, from the notification's state."""
+    out = subprocess.run(["xcrun", "simctl", "spawn", simulator, "notifyutil", "-g", f"{prefix}.{signal}"], capture_output=True, text=True).stdout
+    return int(out.split()[-1]) or None
 
 
 def speak(stop):
@@ -75,11 +93,15 @@ started.wait()
 finished = notify("-1", f"{prefix}.finish")
 publish(listening=True, writing=[5.2], waiting=True)
 time.sleep(3)
-publish(listening=True, heard=["hello from the mic"])
+first = keyboard("finish")
+publish(listening=True)
+leave("hello from the mic", first)
 listen(finished)
 stopped = notify("-1", f"{prefix}.stop")
 publish(writing=[2.8])
-publish(heard=["and again"])
+publish()
+leave("and again", keyboard("finish"))
+leave("said elsewhere", 1)
 stopped.wait()
 publish(writing=[2.8])
 fcntl.flock(lock, fcntl.LOCK_UN)
