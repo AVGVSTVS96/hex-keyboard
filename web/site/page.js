@@ -33,8 +33,8 @@ function draw() {
   const dots = (curve, name) => curve.map((value, index) => `<circle class="fade dot-${name}" cx="${x(index)}" cy="${y(value)}" r="3.5"/>`).join("");
   const last = iikbCurve.length - 1;
   const ends = narrow
-    ? `<text class="end end-ours fade" x="${left + 4}" y="${y(iikbCurve[0]) + 22}">iikb</text><text class="end end-theirs fade" x="${left + 4}" y="${y(baselineCurve[0]) + 22}">Nearest key + Apple's spell checker</text>`
-    : `<text class="end end-ours fade" x="${x(last) + 14}" y="${y(iikbCurve[last]) + 5}">iikb</text><text class="end end-theirs fade" x="${x(last) + 14}" y="${y(baselineCurve[last]) - 4}">Nearest key +</text><text class="end end-theirs fade" x="${x(last) + 14}" y="${y(baselineCurve[last]) + 14}">Apple's spell checker</text>`;
+    ? `<text class="end end-ours fade" x="${left + 4}" y="${y(iikbCurve[0]) + 22}">iikb</text><text class="end end-theirs fade" x="${left + 4}" y="${y(baselineCurve[0]) + 22}">Nearest key + Apple’s spell checker</text>`
+    : `<text class="end end-ours fade" x="${x(last) + 14}" y="${y(iikbCurve[last]) + 5}">iikb</text><text class="end end-theirs fade" x="${x(last) + 14}" y="${y(baselineCurve[last]) - 4}">Nearest key +</text><text class="end end-theirs fade" x="${x(last) + 14}" y="${y(baselineCurve[last]) + 14}">Apple’s spell checker</text>`;
   chart.innerHTML = `<svg xmlns="${svg}" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" aria-hidden="true">${ticks}${labels}<path class="series theirs draw" d="${path(baselineCurve)}"/><path class="series ours draw" d="${path(iikbCurve)}"/>${dots(baselineCurve, "theirs")}${dots(iikbCurve, "ours")}${ends}</svg>`;
   for (const line of chart.querySelectorAll(".draw")) line.style.setProperty("--length", line.getTotalLength());
 }
