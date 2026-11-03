@@ -179,9 +179,8 @@ extension TypingEngine {
         guard !word.isEmpty else { return }
         var final = String(word), typedText = final
         var previous = Words.previous(before: word, in: text)
-        let midWord = self.text.after?.first.map(Words.isWordCharacter) ?? false
         let owned = self.text.owned
-        guard correcting, !midWord, owned >= word.count, Words.isCorrectable(word, in: text) else {
+        guard correcting, owned >= word.count, Words.isCorrectable(word, in: text) else {
             return settle(final, typed: final, after: previous, ending: ending)
         }
         let typed = TypedWord(final, taps: typing.letters, previous: previous)

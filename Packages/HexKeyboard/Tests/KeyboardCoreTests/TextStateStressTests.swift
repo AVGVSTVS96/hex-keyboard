@@ -6,7 +6,7 @@ import Testing
 /// view of the text is cut to a window, keyboard edits show up in it at once, and the host's own reports
 /// (`textDidChange`) arrive late, showing the text as it was a few edits ago, sometimes still holding a character a
 /// delete already removed. Ranking jobs finish at random times, suggestions get tapped, words get deleted, and the app
-/// changes the text on its own (clearing a sent message, pasting).
+/// changes the text on its own (clearing a sent message, pasting), and the caret gets tapped somewhere else in the text.
 ///
 /// Three keyboards take exactly the same events: one on a perfect host that never reports, one on a perfect host that
 /// reports at the same moments as the iOS-like one, and one on the iOS-like host. All three must end with the same text
@@ -102,21 +102,28 @@ struct TextStateStressTests {
                 }
                 position = passage[position...].firstIndex(of: " ").map(passage.index(after:)) ?? passage.endIndex
             } else if roll < 0.083 {
-                let change = random.int(0...2)
-                log.append("external\(change)")
+                let change = random.int(0...3)
+                let tapped = random.int(0...ideal.text.count)
+                log.append(change == 3 ? "caret\(tapped)" : "external\(change)")
                 for document in [ideal, confirmed] as [TestDocument] {
                     switch change {
                     case 0: document.text = ""; document.cursor = 0
                     case 1: document.insert("ok ")
-                    default: document.cursor = document.text.count
+                    case 2: document.cursor = document.text.count
+                    default: document.cursor = tapped
                     }
                 }
                 switch change {
                 case 0: host.clear()
                 case 1: host.paste("ok ")
-                default: host.moveToEnd()
+                case 2: host.moveToEnd()
+                default: host.place(cursor: tapped)
                 }
                 changedExternally()
+                for (index, document) in [ideal, confirmed].enumerated() where change == 3 && divergence == nil
+                    && keyboards[index].engine.text.before != document.textBeforeInput {
+                    divergence = "seed \(seed): \(log.joined(separator: " ")) → keyboard \(index) thinks \"\(keyboards[index].engine.text.before)\" is before the caret, but it's \"\(document.textBeforeInput ?? "")\""
+                }
             } else {
                 let character = passage[position]
                 position = passage.index(after: position)
@@ -230,6 +237,13 @@ final class LateHost: TextDocument {
     func moveToEnd() {
         cursor = text.count
         record()
+    }
+
+    /// A tap in the text: the caret moves there, and the host reports it at once.
+    func place(cursor: Int) {
+        self.cursor = min(max(cursor, 0), text.count)
+        record()
+        reportNow()
     }
 
     func reportNow() {

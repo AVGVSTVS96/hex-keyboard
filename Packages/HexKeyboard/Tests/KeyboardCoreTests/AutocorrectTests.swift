@@ -212,6 +212,15 @@ struct AutocorrectTests {
         #expect(document.text == "helo world")
     }
 
+    @Test func correctsAWordTypedRightBeforeAnother() {
+        var engine = TypingEngine.correcting()
+        let document = TestDocument("the world")
+        document.cursor = 4
+        engine.documentChanged(document)
+        engine.type("helo ", in: document)
+        #expect(document.text == "the hello world")
+    }
+
     @Test func learnsNextWordsFromWhatYouType() {
         var engine = TypingEngine.correcting()
         let document = TestDocument("x ")

@@ -23,6 +23,7 @@ public struct TextState: Hashable, Sendable {
 
     private struct Remembered: Hashable, Sendable {
         var tail: String
+        var after: String?
         var isWhole: Bool
     }
 
@@ -61,11 +62,13 @@ public struct TextState: Hashable, Sendable {
     @discardableResult
     public mutating func reconcile(before host: String?, after hostAfter: String?) -> Report {
         let host = host ?? ""
-        if isKnown, !host.isEmpty, let index = unconfirmed.firstIndex(where: { Self.agree(host, $0.tail, isWhole: $0.isWhole) }) {
+        if isKnown, !host.isEmpty, let index = unconfirmed.firstIndex(where: {
+            Self.agree(host, $0.tail, isWhole: $0.isWhole) && Self.agree(after: hostAfter, $0.after)
+        }) {
             unconfirmed.removeFirst(index)
             return .behind
         }
-        if isKnown, Self.agree(host, before, isWhole: isWhole) {
+        if isKnown, Self.agree(host, before, isWhole: isWhole), Self.agree(after: hostAfter, after) {
             if host.count > before.count {
                 owned = min(owned, before.count)
                 before = host
@@ -84,7 +87,7 @@ public struct TextState: Hashable, Sendable {
     }
 
     private mutating func remember() {
-        unconfirmed.append(Remembered(tail: String(before.suffix(Self.window)), isWhole: isWhole))
+        unconfirmed.append(Remembered(tail: String(before.suffix(Self.window)), after: after.map { String($0.prefix(Self.window)) }, isWhole: isWhole))
     }
 
     /// Whether the host's view can be `known`: a window of it, or more of it when `known` doesn't reach the start of
@@ -93,5 +96,15 @@ public struct TextState: Hashable, Sendable {
         guard !host.isEmpty, !known.isEmpty else { return host.isEmpty && known.isEmpty }
         let shown = host.suffix(window), mine = known.suffix(window)
         return mine.hasSuffix(shown) || (!isWhole && shown.hasSuffix(mine))
+    }
+
+    /// Whether the host's text after the caret can be `known`'s, either cut to a window. A caret tapped back into the
+    /// text shows a before that the keyboard's own typing passed through on its way there, so only the text after the
+    /// caret tells the two apart. Hosts show nothing after the caret at the end of the text, as nil or empty.
+    static func agree(after host: String?, _ known: String?) -> Bool {
+        let host = host ?? "", known = known ?? ""
+        guard !host.isEmpty, !known.isEmpty else { return host.isEmpty && known.isEmpty }
+        let shown = host.prefix(window), mine = known.prefix(window)
+        return mine.hasPrefix(shown) || shown.hasPrefix(mine)
     }
 }

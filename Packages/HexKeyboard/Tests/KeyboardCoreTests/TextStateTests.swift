@@ -78,4 +78,32 @@ struct TextStateTests {
         engine.type("s", in: host)
         #expect(host.truth.text == "Helps world")
     }
+
+    @Test func aTapBackIntoTheTextIsNeverTakenForALateReport() {
+        var engine = TypingEngine.correcting()
+        let host = LateHost()
+        engine.documentChanged(host)
+        engine.type("i went to the store", in: host)
+        host.place(cursor: 6)
+        #expect(engine.documentChanged(host) == .changed)
+        #expect(engine.text.before == "I went")
+        #expect(engine.text.after == " to the store")
+        for _ in 0..<4 { engine.perform(.delete, in: host) }
+        engine.type("walked", in: host)
+        #expect(host.text == "I walked to the store")
+        #expect(engine.text.before == "I walked")
+    }
+
+    @Test func aWordRetypedAfterATapBackIsCorrectedWhereItIs() {
+        var engine = TypingEngine.correcting()
+        let host = LateHost()
+        engine.documentChanged(host)
+        engine.type("the help world", in: host)
+        host.place(cursor: 8)
+        engine.documentChanged(host)
+        for _ in 0..<4 { engine.perform(.delete, in: host) }
+        engine.type("wrk", in: host)
+        engine.perform(.character(","), in: host)
+        #expect(host.text == "The work, world")
+    }
 }
