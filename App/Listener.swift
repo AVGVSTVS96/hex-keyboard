@@ -61,6 +61,7 @@ import UIKit
             guard await AVAudioApplication.requestRecordPermission() else { throw Failure.microphone }
             guard recording === take else { return }
             try microphone.open()
+            VoiceModel.shared.micIsOn = true
             take.mic = microphone.input
             try microphone.record(to: Transcripts.shared.recording(of: take.id))
         } catch {
@@ -169,6 +170,7 @@ import UIKit
         micOff = nil
         micOffOnceWritten = false
         microphone.close()
+        VoiceModel.shared.micIsOn = false
     }
 
     private func fail(_ title: String, _ reason: String) {

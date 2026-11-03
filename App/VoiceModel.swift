@@ -31,6 +31,10 @@ import UIKit
             }
         }
 
+        /// Loads in a moment once this install has compiled it, so iikb lets go of it between dictations; Ultra's
+        /// encoder never caches, so iikb keeps it.
+        var reloadsQuickly: Bool { self == .v3 }
+
         var version: AsrModelVersion? {
             switch self {
             case .ultra: .ultra
@@ -51,7 +55,7 @@ import UIKit
                 while true {
                     let parakeet = AsrManager(config: .default)
                     try await parakeet.loadModels(try await AsrModels.load(from: folder, version: version))
-                    guard load < 3, try await !parakeet.onNeuralEngine() else { return parakeet }
+                    guard VoiceModel.hasNeuralEngine, load < 3, try await !parakeet.onNeuralEngine() else { return parakeet }
                     HostApp.log.error("\(title, privacy: .public)'s encoder ran on the CPU after load \(load)")
                     load += 1
                 }
@@ -72,6 +76,17 @@ import UIKit
     private(set) var state = State.loading { didSet { if state != oldValue { onState?() } } }
     @ObservationIgnored var onState: (() -> Void)?
     @ObservationIgnored private var parakeet: Task<any Parakeet, any Error>?
+    @ObservationIgnored private var writes = 0
+    /// Whether iikb has its microphone on, which gets the Parakeet ready and keeps it for the next dictation.
+    @ObservationIgnored var micIsOn = false { didSet { if micIsOn { prepare() } else { letGoIfIdle() } } }
+
+    #if targetEnvironment(simulator)
+    /// The simulator has no Neural Engine, so a Parakeet would compile on the Mac's CPU, and its UI tests stand in for
+    /// the app's voice (`scripts/voiceapp.py`).
+    nonisolated static let hasNeuralEngine = false
+    #else
+    nonisolated static let hasNeuralEngine = true
+    #endif
 
     private init() {}
 
@@ -137,6 +152,7 @@ import UIKit
                 guard self.parakeet == parakeet else { return }
                 state = .ready
                 HostApp.log.notice("\(model.title, privacy: .public) ready after \(Date.now.timeIntervalSince(began), format: .fixed(precision: 1))s")
+                letGoIfIdle()
             } catch {
                 guard self.parakeet == parakeet else { return }
                 self.parakeet = nil
@@ -157,6 +173,11 @@ import UIKit
     /// A finished recording written down by the picked model, once it's ready: a dictation, Transcribe Again, and a
     /// recording an ended app left all go through here. Picking another model while it waits has that one write it.
     func write(_ recording: [Float]) async throws -> Written {
+        writes += 1
+        defer {
+            writes -= 1
+            letGoIfIdle()
+        }
         while true {
             prepare()
             let model = model
@@ -168,6 +189,15 @@ import UIKit
                 guard self.model != model else { throw error }
             }
         }
+    }
+}
+
+extension VoiceModel {
+    /// Lets go of a Parakeet that loads again in a moment while nothing needs it: the microphone is off and nothing is
+    /// being written, so it isn't held in memory between dictations.
+    private func letGoIfIdle() {
+        guard !micIsOn, writes == 0, model.reloadsQuickly, state == .ready, parakeet != nil else { return }
+        parakeet = nil
     }
 }
 
