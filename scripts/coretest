@@ -1,0 +1,20 @@
+#!/bin/bash
+# Runs here, on Linux, with no Mac: KeyboardCore's tests, in a package of KeyboardCore alone, since KeyboardUI needs
+# UIKit. Release, so the stress test takes seconds. Arguments go to swift test (--filter TouchModelTests).
+set -euo pipefail
+root=$(cd "$(dirname "$0")/.." && pwd)
+pkg=$root/build/core
+mkdir -p "$pkg"
+ln -sfn "$root/Packages/HexKeyboard/Sources" "$pkg/Sources"
+ln -sfn "$root/Packages/HexKeyboard/Tests" "$pkg/Tests"
+cat > "$pkg/Package.swift" <<'SWIFT'
+// swift-tools-version: 6.2
+import PackageDescription
+
+let package = Package(name: "Core", targets: [
+    .target(name: "KeyboardCore"),
+    .testTarget(name: "KeyboardCoreTests", dependencies: ["KeyboardCore"]),
+])
+SWIFT
+cd "$pkg"
+swift test -c release -Xswiftc -enable-testing "$@" 2>&1 | grep -E "error:|✘|Test run with"
