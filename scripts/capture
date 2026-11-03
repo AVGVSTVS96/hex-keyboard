@@ -2,8 +2,8 @@
 # Runs on the Mac. Holds keys through XCUITest while grabbing frames, to see pop-ups and the accent panel.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-NAME=${1:-iPhone 17}
-TYPE=${2:-iPhone-17}
+NAME=${1:-iPhone Duo}
+TYPE=${2:-iPhone-Duo}
 KEYBOARD=${3:-hex}
 ID=$(scripts/sim ensure "$NAME" "$TYPE")
 scripts/sim boot "$ID"

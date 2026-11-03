@@ -4,26 +4,32 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-RUNTIME=${RUNTIME:-$(xcrun simctl list runtimes -j | /usr/bin/python3 -c "
-import json, sys
-print([r['identifier'] for r in json.load(sys.stdin)['runtimes'] if r['platform'] == 'iOS' and r['isAvailable']
-       and any(d['name'] == 'iPhone 17' for d in r['supportedDeviceTypes'])][-1])")}
 APP=${APP:-build/Build/Products/Debug-iphonesimulator/Hex.app}
 BUNDLE=com.shahidy.hexkeyboard
 PREFIX=${SIMPREFIX:-hexkb}
 
+# A simulator's id by name, in RUNTIME if set.
 udid() {
   xcrun simctl list devices -j | /usr/bin/python3 -c "
 import json, sys
 name, runtime = sys.argv[1], sys.argv[2]
-for d in json.load(sys.stdin)['devices'].get(runtime, []):
-    if d['name'] == name and d['isAvailable']: print(d['udid']); break" "$1" "$RUNTIME"
+for r, ds in json.load(sys.stdin)['devices'].items():
+    for d in ds:
+        if d['name'] == name and d['isAvailable'] and runtime in ('', r): print(d['udid']); sys.exit()" "$1" "${RUNTIME:-}"
 }
 
+# The slot's simulator of a device type, made on RUNTIME or else the newest iOS that has the type (iOS 27.1 for the
+# iPhone Duo, the only one that has it), with the slot's other simulators shut down.
 ensure() {
-  local name="$PREFIX $1" type="com.apple.CoreSimulator.SimDeviceType.$2" id
+  local name="$PREFIX $1" type="com.apple.CoreSimulator.SimDeviceType.$2" id runtime
   id=$(udid "$name")
-  [ -n "$id" ] || id=$(xcrun simctl create "$name" "$type" "$RUNTIME")
+  if [ -z "$id" ]; then
+    runtime=${RUNTIME:-$(xcrun simctl list runtimes -j | /usr/bin/python3 -c "
+import json, sys
+print([r['identifier'] for r in json.load(sys.stdin)['runtimes'] if r['platform'] == 'iOS' and r['isAvailable']
+       and any(d['identifier'] == sys.argv[1] for d in r['supportedDeviceTypes'])][-1])" "$type")}
+    id=$(xcrun simctl create "$name" "$type" "$runtime")
+  fi
   for other in $(xcrun simctl list devices booted | sed -n "s/^ *$PREFIX .*(\([0-9A-F-]\{36\}\)) (Booted).*/\1/p"); do
     [ "$other" = "$id" ] || xcrun simctl shutdown "$other"
   done
@@ -145,7 +151,6 @@ unfold() {
 # 951 wide; on its side, 669. LISTENING=1 shows the bar while you talk, saved or waiting with dictations saved (scripts/voiceapp.py); DUO names the simulator.
 duo() {
   local tag=$1 id app=; shift
-  RUNTIME=com.apple.CoreSimulator.SimRuntime.iOS-27-1
   id=$(ensure "${DUO:-iPhone Duo}" iPhone-Duo)
   for keyboard in ${KEYBOARDS:-system hex}; do
     xcrun simctl shutdown "$id" 2>/dev/null || true
@@ -179,7 +184,6 @@ SCREENS
 # open-side) pick some; extra arguments go to the app (-HexReturnKey 1).
 themes() {
   local tag=$1 id; shift
-  RUNTIME=com.apple.CoreSimulator.SimRuntime.iOS-27-1
   id=$(ensure "iPhone Duo" iPhone-Duo)
   xcrun simctl shutdown "$id" 2>/dev/null || true
   boot "$id"
@@ -212,7 +216,6 @@ SCREENS
 # the simulator.
 duoapp() {
   local tag=$1 id data group; shift
-  RUNTIME=com.apple.CoreSimulator.SimRuntime.iOS-27-1
   id=$(ensure "${SIM:-iPhone Duo}" iPhone-Duo)
   boot "$id"
   allow "$id" paste

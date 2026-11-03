@@ -1,10 +1,10 @@
 #!/bin/bash
 # Runs on the Mac. A source through the real keyboard, with scripts/source.py standing in for it; prints what it was
-# sent: scripts/sourcetest ["iPhone 17"] [iPhone-17]
+# sent: scripts/sourcetest ["iPhone Duo"] [iPhone-Duo]
 set -euo pipefail
 cd "$(dirname "$0")/.."
-NAME=${1:-iPhone 17}
-TYPE=${2:-iPhone-17}
+NAME=${1:-iPhone Duo}
+TYPE=${2:-iPhone-Duo}
 PORT=${PORT:-2599}
 ID=$(scripts/sim ensure "$NAME" "$TYPE")
 scripts/sim boot "$ID"
@@ -23,7 +23,8 @@ source=$!
 trap 'kill $source 2>/dev/null || true' EXIT
 TEST_RUNNER_HEX_SOURCE="http://localhost:$PORT/hex" TEST_RUNNER_HEX_SHOTS="$PWD/shots/raw/source/$slug" \
   xcodebuild test-without-building -project HexKeyboard.xcodeproj -scheme Hex -destination "id=$ID" \
-  -derivedDataPath build/uitest -only-testing:HexUITests/SourceTests > build/uitest/source.log 2>&1 || true
+  -derivedDataPath build/uitest -only-testing:HexUITests/SourceTests > build/uitest/source.log 2>&1 || failed=1
 grep -E "error:|XCTAssert|Test Case .*(passed|failed)|Executed" build/uitest/source.log || true
 cat "$log"
 [ -n "${KEEP:-}" ] || xcrun simctl shutdown "$ID"
+exit "${failed:-0}"

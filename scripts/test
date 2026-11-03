@@ -1,8 +1,9 @@
-#!/bin/sh
-# Runs on the Mac. Runs the KeyboardCore tests on an iOS simulator.
-set -e
+#!/bin/bash
+# Runs on the Mac. KeyboardUI's package tests on the iPhone Duo simulator, without the slow autocorrect scorer
+# (scripts/eval); KeyboardCore's run here on Linux with scripts/coretest.
+set -euo pipefail
 cd "$(dirname "$0")/../Packages/HexKeyboard"
-ID=$(../../scripts/sim ensure "iPhone 17" iPhone-17)
+ID=$(../../scripts/sim ensure "iPhone Duo" iPhone-Duo)
 xcodebuild test -scheme HexKeyboard-Package -destination "id=$ID" -derivedDataPath ../../build/tests \
-  -skip-testing:KeyboardUITests/Evaluation 2>&1 \
-  | grep -E "error:|✘|Test run with" || true
+  -only-testing:KeyboardUITests -skip-testing:KeyboardUITests/Evaluation 2>&1 \
+  | grep -E "error:|✘|Test run with"

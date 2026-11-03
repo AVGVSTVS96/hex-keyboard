@@ -8,7 +8,6 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 NAME=${1:-iPhone Duo}
 TYPE=${2:-iPhone-Duo}
-export RUNTIME=${RUNTIME:-com.apple.CoreSimulator.SimRuntime.iOS-27-1}
 export APP=build/uitest/Build/Products/Debug-iphonesimulator/Hex.app
 ID=$(scripts/sim ensure "$NAME" "$TYPE")
 shots=$PWD/shots/raw/verify
@@ -35,7 +34,7 @@ uitest() {
   TEST_RUNNER_HEX_SHOTS=$prefix TEST_RUNNER_HEX_ORIENTATION=${ORIENTATION:-portrait} \
     xcodebuild test-without-building -project HexKeyboard.xcodeproj -scheme Hex -destination "id=$ID" \
     -derivedDataPath build/uitest -test-timeouts-enabled YES -default-test-execution-time-allowance 120 \
-    -retry-tests-on-failure -test-iterations 2 -collect-test-diagnostics never "$@" > "$log" 2>&1 || true
+    -retry-tests-on-failure -test-iterations 2 -collect-test-diagnostics never "$@" > "$log" 2>&1 || failed=1
   summary "$log"
 }
 
@@ -60,4 +59,5 @@ for appearance in light dark; do
   kill "$app" 2>/dev/null || true
   wait "$app" 2>/dev/null || true
 done
-step done
+step "done, $([ -z "${failed:-}" ] && echo passed || echo failed)"
+exit "${failed:-0}"
