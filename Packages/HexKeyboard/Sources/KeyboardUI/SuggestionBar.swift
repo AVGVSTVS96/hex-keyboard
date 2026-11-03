@@ -24,6 +24,7 @@ final class SuggestionBar: UIView {
     private var emoji: [EmojiPick] = []
     private let strip = ButtonScrollView()
     private var tools: [ToolButton] = []
+    private let more = UIButton(type: .system)
     private let mic = MicButton()
     private let waveform = Waveform()
     private let notice = UILabel()
@@ -42,6 +43,12 @@ final class SuggestionBar: UIView {
             addSubview(slot)
         }
         dividers.forEach(addSubview)
+        more.setImage(UIImage(systemName: "ellipsis"), for: .normal)
+        more.showsMenuAsPrimaryAction = true
+        more.isHidden = true
+        more.accessibilityIdentifier = "hex.more"
+        more.accessibilityLabel = "More"
+        addSubview(more)
         strip.alwaysBounceHorizontal = false
         strip.accessibilityIdentifier = "hex.suggestion.emoji"
         addSubview(strip)
@@ -83,6 +90,7 @@ final class SuggestionBar: UIView {
         }
         self.emoji.forEach { $0.theme = theme }
         dividers.forEach { $0.backgroundColor = theme.candidateDivider.ui }
+        more.tintColor = theme.label.ui
         refresh()
     }
 
@@ -110,6 +118,15 @@ final class SuggestionBar: UIView {
             setNeedsLayout()
         }
         tools.forEach { $0.theme = theme }
+    }
+
+    /// Apple's More button at the bar's far left, where the keys can split.
+    func update(more menu: UIMenu?) {
+        more.menu = menu
+        if more.isHidden != (menu == nil) {
+            more.isHidden = menu == nil
+            setNeedsLayout()
+        }
     }
 
     func hear(_ level: Float) {
@@ -154,10 +171,12 @@ final class SuggestionBar: UIView {
         let scale = traitCollection.displayScale
         let layout = BarLayout(
             toolbar, width: bounds.width, screenInset: screenInset, block: (block.minX, block.maxX), topInset: topInset,
-            tools: tools.count, emoji: emoji.count, maximumSlot: maximumSlotWidth
+            tools: tools.count + (more.isHidden ? 0 : 1), emoji: emoji.count, maximumSlot: maximumSlotWidth
         )
         mic.frame = CGRect(layout.mic)
-        for (tool, frame) in zip(tools, layout.tools) { tool.frame = CGRect(frame) }
+        let cells = layout.tools.map { CGRect($0) }
+        if !more.isHidden, let first = cells.first { more.frame = first }
+        for (tool, frame) in zip(tools, cells.dropFirst(more.isHidden ? 0 : 1)) { tool.frame = frame }
         for (slot, frame) in zip(slots, layout.slots) {
             let minX = CGFloat(frame.x).rounded(scale: scale), maxX = CGFloat(frame.x + frame.width).rounded(scale: scale)
             slot.frame = CGRect(x: minX, y: frame.y, width: maxX - minX, height: frame.height)

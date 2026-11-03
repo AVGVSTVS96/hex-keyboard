@@ -35,6 +35,7 @@ struct OneHandedTests {
         #expect(LayoutContext(device: .phone, layer: .letters, isLandscape: true, oneHanded: .left).oneHanded == .off)
         #expect(LayoutContext(device: .pad, layer: .letters, oneHanded: .right).oneHanded == .off)
         #expect(LayoutContext(device: .phone, layer: .numbers, oneHanded: .right).oneHanded == .right)
+        #expect(LayoutContext(device: .phone, layer: .letters, isOpen: true, oneHanded: .left).oneHanded == .off, "the open Duo never narrows, as Apple's doesn't")
     }
 
     @Test func eachHandLearnsItsOwnTaps() {

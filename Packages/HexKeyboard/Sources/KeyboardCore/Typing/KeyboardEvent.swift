@@ -10,6 +10,8 @@ public enum KeyboardEvent: Hashable, Sendable {
     case oneHanded(OneHanded)
     /// A hand picked from the layer key's menu. The key switched layers as it went down, so the letters come back.
     case pick(OneHanded)
+    /// The open Duo's keys in two halves, or back to one.
+    case split(Bool)
     /// Opens a panel over the bar, or closes it with nil. While one is open, the keys type into its search.
     case panel(Panel?)
     /// An emoji picked in the emoji panel, with its untoned version when it was picked among skin tones.

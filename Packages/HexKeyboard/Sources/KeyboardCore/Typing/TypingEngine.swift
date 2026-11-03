@@ -176,6 +176,8 @@ public struct TypingEngine {
         case .pick(let hand):
             settings.oneHanded = hand
             perform(.layer(.letters), in: document)
+        case .split(let split):
+            settings.split = split
         case .panel(let panel):
             show(panel)
         case .emoji(let emoji, let base):

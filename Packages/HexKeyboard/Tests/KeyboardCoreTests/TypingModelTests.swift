@@ -136,9 +136,9 @@ struct TouchModelTests {
 
     @Test func theOpenDuoLearnsApartFromItsCover() {
         let cover = LayoutContext(device: .phone, layer: .letters)
-        let open = LayoutContext(device: .phone, layer: .letters, isOpen: true, oneHanded: .left)
+        let open = LayoutContext(device: .phone, layer: .letters, isLandscape: true, isOpen: true, isSplit: true)
         #expect(cover.signature == "phone-portrait-letters")
-        #expect(open.signature == "phone-portrait-letters-open-left")
+        #expect(open.signature == "phone-landscape-letters-open-split")
         #expect(LayoutContext(signature: open.signature) == open)
         #expect(LayoutContext(device: .pad, layer: .letters, isOpen: true).signature == "pad-portrait-letters")
     }

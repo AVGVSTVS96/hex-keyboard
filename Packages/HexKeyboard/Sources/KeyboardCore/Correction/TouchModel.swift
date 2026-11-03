@@ -93,7 +93,7 @@ public struct TouchModel: Codable, Hashable, Sendable {
         /// Learns one tap, as `TouchModel.learn` would on this layout's grid, and returns its offset in key cells.
         @discardableResult
         mutating func learn(_ sample: TapSample) -> (Double, Double)? {
-            guard let frame = grid.frame(of: sample.intended) else { return nil }
+            guard let frame = grid.frame(of: sample.intended, nearX: sample.tap.x, y: sample.tap.y) else { return nil }
             let (u, v) = TouchModel.offset(x: sample.tap.x, y: sample.tap.y, in: grid.cell(of: frame))
             keys[sample.intended, default: KeyTouches()].add(u, v, spread: spread(sample.intended))
             pool(sample.intended)
@@ -103,7 +103,7 @@ public struct TouchModel: Codable, Hashable, Sendable {
         /// Counts a tap toward how steady you are and where the key centers over all its taps, leaving how you've
         /// aimed lately as it was: the decoder trying one reading of a word.
         mutating func suppose(_ sample: TapSample) {
-            guard let frame = grid.frame(of: sample.intended) else { return }
+            guard let frame = grid.frame(of: sample.intended, nearX: sample.tap.x, y: sample.tap.y) else { return }
             let (u, v) = TouchModel.offset(x: sample.tap.x, y: sample.tap.y, in: grid.cell(of: frame))
             keys[sample.intended, default: KeyTouches()].suppose(u, v)
             pool(sample.intended)
@@ -119,7 +119,7 @@ public struct TouchModel: Codable, Hashable, Sendable {
 
         /// Log density, per square point, of a tap at (x, y) when you meant the key labeled `label`.
         public func logLikelihood(x: Double, y: Double, for label: String) -> Double? {
-            guard let frame = grid.frame(of: label) else { return nil }
+            guard let frame = grid.frame(of: label, nearX: x, y: y) else { return nil }
             let cell = grid.cell(of: frame)
             let (u, v) = TouchModel.offset(x: x, y: y, in: cell)
             return posterior(label).logPredictive(u, v) - Math.log(cell.width * cell.height)

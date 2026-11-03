@@ -55,7 +55,7 @@ public struct KeyGrid: Sendable {
     public private(set) var width = 0.0
     private var bands: [ClosedRange<Double>] = []
     private var metrics = GridMetrics(columns: 1, sideInset: 0, keyGap: 0, rowGap: 0, keyHeight: 1, numberRowHeight: 1, topInset: 0)
-    private var labels: [String: (row: Int, key: Int)] = [:]
+    private var labels: [String: [(row: Int, key: Int)]] = [:]
 
     public init() {}
 
@@ -83,7 +83,7 @@ public struct KeyGrid: Sendable {
             let top = index == 0 ? -Double.infinity : y - metrics.rowGap / 2
             let bottom = index == layout.rows.count - 1 ? Double.infinity : y + height + metrics.rowGap / 2
             for (index, key) in keys.enumerated() {
-                if let label = key.key.label { labels[label] = labels[label] ?? (rows.count, index) }
+                if let label = key.key.label { labels[label, default: []].append((rows.count, index)) }
             }
             rows.append(keys)
             bands.append(top...bottom)
@@ -113,16 +113,22 @@ public struct KeyGrid: Sendable {
     }
 
     public func index(of label: String) -> (row: Int, key: Int)? {
-        labels[label]
+        labels[label]?.first
     }
 
     public func frame(of label: String) -> Rect? {
-        labels[label].map { rows[$0.row][$0.key].frame }
+        index(of: label).map { rows[$0.row][$0.key].frame }
+    }
+
+    /// The key with this label nearest a tap: the split keyboard has a G and a V on each half, and a tap means the
+    /// one under its thumb.
+    public func frame(of label: String, nearX x: Double, y: Double) -> Rect? {
+        labels[label]?.lazy.map { rows[$0.row][$0.key].frame }.min { $0.distanceSquared(toX: x, y: y) < $1.distanceSquared(toX: x, y: y) }
     }
 
     /// Whether a tap is close enough to a key to have been meant for it: within a quarter key of its cell.
     public func reaches(_ label: String, x: Double, y: Double) -> Bool {
-        guard let frame = frame(of: label) else { return false }
+        guard let frame = frame(of: label, nearX: x, y: y) else { return false }
         let cell = cell(of: frame)
         let dx = max(cell.x - x, 0, x - (cell.x + cell.width))
         let dy = max(cell.y - y, 0, y - (cell.y + cell.height))

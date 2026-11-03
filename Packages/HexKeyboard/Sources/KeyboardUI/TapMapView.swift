@@ -49,7 +49,7 @@ public final class TapMapView: UIView {
             (short, long) = (duo.width, duo.height)
         }
         let width = context.isLandscape ? long : short, height = context.isLandscape ? short : long
-        let metrics = KeyboardMetrics.for(context.device, width: width, height: height, style: .current, oneHanded: context.oneHanded)
+        let metrics = KeyboardMetrics.for(context.device, width: width, height: height, style: .current, oneHanded: context.oneHanded, split: context.isSplit)
         let layout = Layouts.layout(for: context)
         self.context = context
         grid = KeyGrid(layout, width: width, metrics: metrics.grid, signature: context.signature)

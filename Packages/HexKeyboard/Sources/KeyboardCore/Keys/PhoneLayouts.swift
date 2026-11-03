@@ -1,10 +1,61 @@
 enum PhoneLayouts {
     static func layout(for context: LayoutContext) -> KeyboardLayout {
-        switch context.layer {
-        case .letters: letters(context)
-        case .numbers: numbers(context)
-        case .symbols: symbols(context)
+        switch (context.layer, context.isSplit) {
+        case (.letters, false): letters(context)
+        case (.numbers, false): numbers(context)
+        case (.symbols, false): symbols(context)
+        case (.letters, true): splitLetters(context)
+        case (.numbers, true): split(context, "12345", "67890", "-/:;(", ")$&@\"", layerKey: .symbols)
+        case (.symbols, true): split(context, "[]{}#", "%^*+=", "_\\|~<", ">€£¥•", layerKey: .numbers)
         }
+    }
+
+    /// Apple's split keyboard on the open Duo: half of each row under each thumb, the middle a gap, and the keys
+    /// between the hands (G and V) on both halves.
+    private static func splitLetters(_ context: LayoutContext) -> KeyboardLayout {
+        let rows = [
+            RowItem.keys("qwert") + [.flexible] + RowItem.keys("yuiop"),
+            [.spacer(.pitch(0.5))] + RowItem.keys("asdfg") + [.flexible] + RowItem.keys("ghjkl") + [.spacer(.pitch(0.5))],
+            [.key(Key(.shift, width: .pitch(1.3))), .spacer(.pitch(0.2))] + RowItem.keys("zxcv") + [.flexible]
+                + RowItem.keys("vbnm") + [.spacer(.pitch(0.2)), .key(Key(.delete, width: .pitch(1.3)))],
+            splitBottomRow(context, layerKey: .numbers),
+        ]
+        guard context.showsNumberRow else { return KeyboardLayout(rows: rows) }
+        return KeyboardLayout(rows: [RowItem.keys("12345") + [.flexible] + RowItem.keys("67890")] + rows, hasNumberRow: true)
+    }
+
+    private static func split(_ context: LayoutContext, _ topLeft: String, _ topRight: String, _ middleLeft: String, _ middleRight: String, layerKey: KeyboardLayer) -> KeyboardLayout {
+        let marks = punctuation.map { item -> RowItem in
+            guard case .key(var key) = item else { return item }
+            key.width = .pitch(4.0 / 3)
+            return .key(key)
+        }
+        return KeyboardLayout(rows: [
+            RowItem.keys(topLeft) + [.flexible] + RowItem.keys(topRight),
+            RowItem.keys(middleLeft) + [.flexible] + RowItem.keys(middleRight),
+            [.key(Key(.layer(layerKey), width: .pitch(1.3))), .spacer(.pitch(0.2))] + marks.prefix(3) + [.flexible]
+                + marks.suffix(3) + [.spacer(.pitch(0.2)), .key(Key(.delete, width: .pitch(1.3)))],
+            splitBottomRow(context, layerKey: .letters),
+        ])
+    }
+
+    /// Each half five keys wide: the layer, globe and emoji keys and a space bar on the left, a space bar, the field's
+    /// own keys and return on the right.
+    private static func splitBottomRow(_ context: LayoutContext, layerKey: KeyboardLayer) -> [RowItem] {
+        let character = { (value: String) in RowItem.key(Key(.character(value))) }
+        let leading = [RowItem.key(Key(.layer(layerKey)))]
+            + (context.showsGlobe ? [.key(Key(.nextKeyboard))] : [])
+            + (context.showsEmoji ? [.key(Key(.emoji))] : [])
+        let trailing: [RowItem] = switch context.kind {
+        case .email: [character("@"), character(".")]
+        case .url: [character("/"), character(".com")]
+        case .twitter: [character("@"), character("#")]
+        case .webSearch: [character(".")]
+        default: []
+        }
+        let space = { (span: Double) in RowItem.key(Key(.space, width: .pitch(span))) }
+        return leading + [space(5 - Double(leading.count)), .flexible, space(3.5 - Double(trailing.count))] + trailing
+            + [.key(Key(.return, width: .pitch(1.5)))]
     }
 
     private static func letters(_ context: LayoutContext) -> KeyboardLayout {

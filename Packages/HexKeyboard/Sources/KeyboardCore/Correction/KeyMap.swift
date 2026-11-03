@@ -6,7 +6,6 @@ public struct KeyMap: Sendable {
     private let keys: [String: Entry]
 
     private struct Entry: Sendable {
-        let cell: Rect
         let posterior: Posterior
         let logOdds: Double
     }
@@ -18,7 +17,7 @@ public struct KeyMap: Sendable {
         for row in grid.rows {
             for item in row {
                 guard let label = item.key.label, keys[label] == nil else { continue }
-                keys[label] = Entry(cell: grid.cell(of: item.frame), posterior: touches.posterior(label),
+                keys[label] = Entry(posterior: touches.posterior(label),
                                     logOdds: next?[label.lowercased()].map(Math.log) ?? 0)
             }
         }
@@ -34,8 +33,9 @@ public struct KeyMap: Sendable {
         for (r, row) in grid.rows.enumerated() {
             for (k, item) in row.enumerated() {
                 guard let label = item.key.label, grid.reaches(label, x: x, y: y), let entry = keys[label] else { continue }
-                let (u, v) = TouchModel.offset(x: x, y: y, in: entry.cell)
-                let score = entry.posterior.logPredictive(u, v) - Math.log(entry.cell.width * entry.cell.height) + entry.logOdds
+                let cell = grid.cell(of: item.frame)
+                let (u, v) = TouchModel.offset(x: x, y: y, in: cell)
+                let score = entry.posterior.logPredictive(u, v) - Math.log(cell.width * cell.height) + entry.logOdds
                 if score > bestScore { (best, bestScore) = ((r, k), score) }
             }
         }

@@ -11,6 +11,8 @@ public struct KeyboardSettings: Hashable, Sendable {
     /// The emoji key in the bottom row; without it, the bar's emoji for a word are the way to emoji.
     public var emojiKey = true
     public var oneHanded = OneHanded.off
+    /// The open Duo's keys in two halves while it's wider than tall, as Apple's More button's Split picks.
+    public var split = false
     public var theme = ThemeName.standard
     public var themeAppearance = ThemeAppearance.automatic
     /// A row of digits above an iPhone's letters, which grows the keyboard upward.

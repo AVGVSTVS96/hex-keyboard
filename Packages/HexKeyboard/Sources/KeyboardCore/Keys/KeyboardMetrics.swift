@@ -43,10 +43,10 @@ public struct KeyboardMetrics: Hashable, Sendable {
 }
 
 extension KeyboardMetrics {
-    public static func `for`(_ device: DeviceClass, width: Double, height: Double, style: KeyboardStyle = .ios26, oneHanded: OneHanded = .off) -> KeyboardMetrics {
+    public static func `for`(_ device: DeviceClass, width: Double, height: Double, style: KeyboardStyle = .ios26, oneHanded: OneHanded = .off, split: Bool = false) -> KeyboardMetrics {
         let landscape = width > height
         var metrics = switch device {
-        case .phone where Duo.isDuo(short: min(width, height)): duo(width: width, height: height, style: style, oneHanded: oneHanded)
+        case .phone where Duo.isDuo(short: min(width, height)): duo(width: width, height: height, style: style, oneHanded: oneHanded, split: split)
         case .phone where landscape: phoneLandscape(width: width)
         case .phone: phone(width: width, style: style).oneHanded(oneHanded, width: width)
         case .compactPad: compactPad
@@ -107,7 +107,7 @@ extension KeyboardMetrics {
 
     /// The iPhone Duo, folded and open, upright and on its side: Apple's keys and letters measured on each screen in the
     /// iOS 27.1 simulator (docs/design.md), across the keyboard's whole width.
-    static func duo(width: Double, height: Double, style: KeyboardStyle, oneHanded: OneHanded) -> KeyboardMetrics {
+    static func duo(width: Double, height: Double, style: KeyboardStyle, oneHanded: OneHanded, split: Bool) -> KeyboardMetrics {
         var metrics = phone(width: width, style: style)
         let open = Duo.isOpen(short: min(width, height))
         switch (open, width > height) {
@@ -146,7 +146,17 @@ extension KeyboardMetrics {
             metrics.labelSize = 22
             metrics.symbolSize = 23
             metrics.toolbar = .compact(mic: 38)
+            if split { metrics = metrics.split(width: width) }
         }
+        return metrics
+    }
+
+    /// Apple's split keys on the open Duo: each half's keys 57pt apart, 85pt in from the screen's edge, and the rest
+    /// of the width the gap between the halves.
+    func split(width: Double) -> KeyboardMetrics {
+        var metrics = self
+        metrics.sideInset = 85
+        metrics.columns = (width - metrics.sideInset * 2 + keyGap) / 57
         return metrics
     }
 

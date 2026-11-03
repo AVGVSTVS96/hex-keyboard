@@ -14,12 +14,14 @@ public struct LayoutContext: Hashable, Sendable {
     /// The iPhone Duo unfolded, whose keys are half again as wide as on its cover.
     public var isOpen: Bool
     public var oneHanded: OneHanded
+    /// The open Duo, wider than tall, with its keys in two halves, one under each thumb.
+    public var isSplit: Bool
     /// The emoji key in an iPhone's bottom row, beside space.
     public var showsEmoji: Bool
     /// A row of digits above an iPhone's letters.
     public var showsNumberRow: Bool
 
-    public init(device: DeviceClass, layer: KeyboardLayer, kind: InputKind = .text, showsGlobe: Bool = false, isLandscape: Bool = false, isOpen: Bool = false, oneHanded: OneHanded = .off, showsEmoji: Bool = false, showsNumberRow: Bool = false) {
+    public init(device: DeviceClass, layer: KeyboardLayer, kind: InputKind = .text, showsGlobe: Bool = false, isLandscape: Bool = false, isOpen: Bool = false, oneHanded: OneHanded = .off, isSplit: Bool = false, showsEmoji: Bool = false, showsNumberRow: Bool = false) {
         self.device = device
         self.layer = layer
         self.kind = kind
@@ -27,13 +29,18 @@ public struct LayoutContext: Hashable, Sendable {
         self.isLandscape = isLandscape
         self.isOpen = isOpen && device == .phone
         self.oneHanded = oneHanded
+        self.isSplit = isSplit
         self.showsEmoji = showsEmoji && device == .phone
         self.showsNumberRow = showsNumberRow && device == .phone && layer == .letters
         if !allowsOneHanded { self.oneHanded = .off }
+        if !allowsSplit { self.isSplit = false }
     }
 
-    /// Like Apple's, only an upright iPhone narrows its keys for one hand.
-    public var allowsOneHanded: Bool { device == .phone && !isLandscape }
+    /// Like Apple's, only an upright iPhone narrows its keys for one hand, and on the Duo only its cover.
+    public var allowsOneHanded: Bool { device == .phone && !isLandscape && !isOpen }
+
+    /// Like Apple's, only the open Duo wider than tall splits its keys.
+    public var allowsSplit: Bool { isOpen && isLandscape }
 
     /// The key whose hold opens the layer menu, as Apple's globe opens its menu: the layer key in the bottom row, Hex's
     /// own key nearest where the system draws its globe.
@@ -53,7 +60,7 @@ extension LayoutContext {
     /// What a touch model is kept per: the same keys under the same hands, so the open Duo's wider keys learn apart
     /// from its cover's.
     public var signature: String {
-        "\(device)-\(isLandscape ? "landscape" : "portrait")-\(layer)" + (isOpen ? "-open" : "") + (oneHanded == .off ? "" : "-\(oneHanded)")
+        "\(device)-\(isLandscape ? "landscape" : "portrait")-\(layer)" + (isOpen ? "-open" : "") + (oneHanded == .off ? "" : "-\(oneHanded)") + (isSplit ? "-split" : "")
     }
 
     /// The layout a touch model's signature was kept for.
@@ -62,7 +69,9 @@ extension LayoutContext {
             KeyboardLayer.allCases.flatMap { layer in
                 [false, true].flatMap { landscape in
                     [false, true].flatMap { open in
-                        OneHanded.allCases.map { LayoutContext(device: device, layer: layer, isLandscape: landscape, isOpen: open, oneHanded: $0) }
+                        OneHanded.allCases.flatMap { hand in
+                            [false, true].map { LayoutContext(device: device, layer: layer, isLandscape: landscape, isOpen: open, oneHanded: hand, isSplit: $0) }
+                        }
                     }
                 }
             }

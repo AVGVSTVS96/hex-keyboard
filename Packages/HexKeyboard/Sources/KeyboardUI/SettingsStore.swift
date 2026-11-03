@@ -18,6 +18,7 @@ public enum SettingsStore {
         ("sound", \.sound),
         ("emojiKey", \.emojiKey),
         ("numberRow", \.numberRow),
+        ("split", \.split),
     ]
 
     /// The settings with a value picked from a list, each kept as its raw value. Character Preview and Haptic Feedback
@@ -61,9 +62,9 @@ public enum SettingsStore {
         set(settings.skinTone?.rawValue ?? "", forKey: skinToneKey)
     }
 
-    public static func set(_ value: Bool, for path: WritableKeyPath<KeyboardSettings, Bool>) {
+    public static func set(_ value: Bool, for path: WritableKeyPath<KeyboardSettings, Bool>, sharing: Bool = true) {
         guard let key = toggles.first(where: { $0.path == path })?.key else { return }
-        set(value, forKey: key)
+        set(value, forKey: key, sharing: sharing)
     }
 
     public static func set(_ oneHanded: OneHanded, sharing: Bool = true) {

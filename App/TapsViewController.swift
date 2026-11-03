@@ -249,7 +249,7 @@ final class TapsViewController: UIViewController {
         case .right: ", right hand"
         case .off: ""
         }
-        return screen + layer + hand
+        return screen + layer + hand + (context.isSplit ? ", split" : "")
     }
 
     private var screen: CGSize { view.window?.windowScene?.screen.bounds.size ?? view.bounds.size }

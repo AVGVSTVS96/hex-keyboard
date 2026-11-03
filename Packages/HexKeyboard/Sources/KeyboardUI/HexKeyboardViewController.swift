@@ -246,11 +246,12 @@ open class HexKeyboardViewController: UIInputViewController {
             isOpen: Duo.isOpen(short: min(screenSize.width, screenSize.height))
         )
         let layout = Layouts.layout(for: context)
-        var metrics = KeyboardMetrics.for(device, width: screenSize.width, height: screenSize.height, style: .current, oneHanded: context.oneHanded)
+        var metrics = KeyboardMetrics.for(device, width: screenSize.width, height: screenSize.height, style: .current, oneHanded: context.oneHanded, split: context.isSplit)
         if device == .phone, !context.isLandscape { metrics = metrics.fitted(screen: screenSize.width, window: view.bounds.width) }
         keyboardView.menu = (context.menuKey(in: layout), context.menu, context.oneHanded)
         keyboardView.update(layout: layout, signature: context.signature, metrics: metrics, faces: engine.faces(on: device), theme: theme)
         renderToolbar(metrics, device: device)
+        suggestionBar.update(more: context.allowsSplit ? layoutMenu(split: context.isSplit) : nil)
         renderSuggestions()
 
         let height = metrics.height(rows: layout.rows.count, hasNumberRow: layout.hasNumberRow)
@@ -282,6 +283,13 @@ open class HexKeyboardViewController: UIInputViewController {
         keyboardView.deadTop = panel != nil ? max(metrics.topInset - Toolbar.keysReach, 0) : 0
         let height = panel == nil ? toolbar.height : toolbar.panelHeight
         if toolbarHeightConstraint.constant != height { toolbarHeightConstraint.constant = height }
+    }
+
+    /// Apple's More menu on the open Duo wider than tall: the keys whole, or split under the thumbs.
+    private func layoutMenu(split: Bool) -> UIMenu {
+        UIMenu(children: [("Full", false), ("Split", true)].map { title, value in
+            UIAction(title: title, state: split == value ? .on : .off) { [unowned self] _ in handle(.split(value)) }
+        })
     }
 
     private func open(_ panel: Panel) {
@@ -330,6 +338,8 @@ open class HexKeyboardViewController: UIInputViewController {
             TouchTrace.shared.mark("typed")
         case .oneHanded(let hand), .pick(let hand):
             SettingsStore.set(hand, sharing: hasFullAccess)
+        case .split(let split):
+            SettingsStore.set(split, for: \.split, sharing: hasFullAccess)
         case .cursorLines:
             let margins = systemMinimumLayoutMargins
             engine.lineLayout = HostLayout(width: view.bounds.width - margins.leading - margins.trailing)
