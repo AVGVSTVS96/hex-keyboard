@@ -2,6 +2,7 @@ import AVFoundation
 import FluidAudio
 import Observation
 import Speech
+import UIKit
 
 /// The speech model voice typing writes with, picked in Settings: one of NVIDIA's Parakeets, run on the Neural Engine by
 /// FluidAudio and downloaded from Hugging Face once, or Apple's SpeechTranscriber. A dictation made while the picked
@@ -101,7 +102,8 @@ import Speech
 
     /// Downloads the picked Parakeet if it isn't on the iPhone yet, then loads it, unless it's loaded, on its way, or
     /// failed since it was picked. The first load after an install compiles it for the Neural Engine; later ones read
-    /// that from a cache.
+    /// that from a cache. It asks iOS for time in the background to finish, since iOS suspends Hex there within seconds
+    /// (after `scripts/phone` starts it, or once you're back in your app with the microphone off) and the compile with it.
     func prepare() {
         guard let load = model.loader else { return state = .ready }
         if case .failed = state { return }
@@ -121,7 +123,10 @@ import Speech
             }
         }
         self.parakeet = parakeet
+        nonisolated(unsafe) var background = UIBackgroundTaskIdentifier.invalid
+        background = UIApplication.shared.beginBackgroundTask { UIApplication.shared.endBackgroundTask(background) }
         Task {
+            defer { UIApplication.shared.endBackgroundTask(background) }
             do {
                 _ = try await parakeet.value
                 guard self.parakeet == parakeet else { return }
