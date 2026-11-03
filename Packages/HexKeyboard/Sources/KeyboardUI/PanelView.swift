@@ -96,6 +96,7 @@ private final class SearchField: UIView {
     private let clear = UIButton(type: .custom)
     private var query = ""
     private var notice: String?
+    private var clearTheme: KeyboardTheme?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -134,6 +135,8 @@ private final class SearchField: UIView {
         caret.backgroundColor = theme.prominent.ui
         backgroundColor = theme.searchField.ui
         clear.isHidden = query.isEmpty || notice != nil
+        guard theme != clearTheme else { return }
+        clearTheme = theme
         let mark = UIImage(systemName: "xmark", withConfiguration: UIImage.SymbolConfiguration(pointSize: 11, weight: .bold))
         clear.setImage(Self.clearImage(mark: mark, circle: theme.candidate.ui, field: theme.searchField.ui), for: .normal)
     }

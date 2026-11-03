@@ -274,7 +274,11 @@ open class HexKeyboardViewController: UIInputViewController {
         keyboardView.menu = (context.menuKey(in: layout), context.menu, context.menuPick)
         keyboardView.update(layout: layout, signature: context.signature, metrics: metrics, faces: engine.faces(on: device), theme: theme)
         renderToolbar(metrics, device: device)
-        suggestionBar.update(more: moreMenu(context))
+        let more = [context.menuPick] + context.layoutPicks + context.moreMenu
+        if more != shownMore {
+            shownMore = more
+            suggestionBar.update(more: moreMenu(context))
+        }
         renderSuggestions()
 
         if keyboardHeightConstraint.constant != height {
@@ -311,8 +315,8 @@ open class HexKeyboardViewController: UIInputViewController {
     /// The bar's More button, on every screen: the layouts holding 123 offers where there are any, then the next
     /// keyboard and Hex's settings.
     private func moreMenu(_ context: LayoutContext) -> UIMenu {
-        let action = { (item: KeyboardEvent) in
-            UIAction(title: item.title, image: UIImage(systemName: item.symbol), state: item == context.menuPick ? .on : .off) { [unowned self] _ in
+        let action = { [unowned self] (item: KeyboardEvent) in
+            UIAction(title: item.title, image: UIImage(systemName: item.symbol), state: item == context.menuPick ? .on : .off) { _ in
                 handle(item)
             }
         }
@@ -330,6 +334,8 @@ open class HexKeyboardViewController: UIInputViewController {
     }
 
     private var ranking = false
+    /// What the More menu was made from, so it's made again only when that changes.
+    private var shownMore: [KeyboardEvent] = []
 
     private func renderSuggestions() {
         guard engine.suggestionsAreStale else {

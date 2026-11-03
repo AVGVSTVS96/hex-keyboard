@@ -24,7 +24,7 @@ final class SuggestionBar: UIView {
     private var emoji: [EmojiPick] = []
     private let strip = ButtonScrollView()
     private var tools: [ToolButton] = []
-    private let more = UIButton(type: .system)
+    private let more = MoreButton(type: .system)
     private let mic = MicButton()
     private let waveform = Waveform()
     private let notice = UILabel()
@@ -575,4 +575,12 @@ private final class SuggestionSlot: UIControl {
 
 extension CGFloat {
     func rounded(scale: CGFloat) -> CGFloat { (self * scale).rounded() / scale }
+}
+
+/// The More button, its dots upright: turned a quarter, so its bounds' top faces the tools and its bottom the screen's
+/// edge. Its cell is half the mic's width; taps in the gap before the tools and toward the edge still reach it.
+private final class MoreButton: UIButton {
+    override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
+        bounds.inset(by: UIEdgeInsets(top: -BarLayout.gap / 2, left: -4, bottom: -12, right: -4)).contains(point)
+    }
 }
