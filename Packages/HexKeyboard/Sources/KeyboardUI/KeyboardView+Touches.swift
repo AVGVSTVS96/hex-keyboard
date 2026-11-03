@@ -231,6 +231,7 @@ extension KeyboardEvent {
         case .pick(.right): "keyboard.onehanded.right"
         case .split(true): "rectangle.split.2x1"
         case .settings: "gearshape"
+        case .nextKeyboard: "globe"
         default: "keyboard"
         }
     }
@@ -241,6 +242,7 @@ extension KeyboardEvent {
         case .pick(.right): "Right"
         case .split(true): "Split"
         case .settings: "Hex Settings"
+        case .nextKeyboard: "Next Keyboard"
         default: "Full"
         }
     }

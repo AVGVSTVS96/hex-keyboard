@@ -28,9 +28,17 @@ struct LayoutTests {
         #expect(KeyboardMetrics.for(.phone, width: 402, height: 874).fitted(screen: 402, window: 402) == KeyboardMetrics.for(.phone, width: 402, height: 874))
     }
 
-    @Test func globeAppearsOnlyWhenNeeded() {
-        let layout = Layouts.layout(for: LayoutContext(device: .phone, layer: .letters, showsGlobe: true))
-        #expect(layout.keys.contains { $0.action == .nextKeyboard })
+    /// An iPhone's keys carry no globe to hit by accident: its menus offer the next keyboard where iOS wants one.
+    @Test func theNextKeyboardIsInAPhonesMenusAndAPadsKeys() {
+        let phone = LayoutContext(device: .phone, layer: .letters, showsGlobe: true)
+        #expect(!Layouts.layout(for: phone).keys.contains { $0.action == .nextKeyboard })
+        #expect(phone.moreMenu == [.pick(.left), .pick(.off), .pick(.right), .nextKeyboard, .settings])
+        #expect(phone.menu == phone.moreMenu)
+        let open = LayoutContext(device: .phone, layer: .letters, showsGlobe: true, isOpen: true)
+        #expect(open.moreMenu == [.nextKeyboard, .settings] && open.menu.isEmpty)
+        #expect(LayoutContext(device: .phone, layer: .letters).moreMenu == [.pick(.left), .pick(.off), .pick(.right), .settings])
+        let pad = LayoutContext(device: .pad, layer: .letters, showsGlobe: true)
+        #expect(Layouts.layout(for: pad).keys.contains { $0.action == .nextKeyboard } && pad.moreMenu == [.settings])
     }
 
     @Test func emailAndURLBottomRows() {
@@ -78,7 +86,7 @@ struct LayoutTests {
         for isLandscape in [false, true] {
             let keys = Layouts.layout(for: LayoutContext(device: .phone, layer: .letters, showsGlobe: true, isLandscape: isLandscape, showsEmoji: true)).keys
             let width = { (action: KeyAction) in keys.first { $0.action == action }?.width.span ?? 0 }
-            #expect(width(.layer(.numbers)) == 0.93 && width(.nextKeyboard) == 0.93)
+            #expect(width(.layer(.numbers)) == 0.93)
             #expect(width(.emoji) == (isLandscape ? 1 : 1.25), "the emoji key keeps its width")
         }
     }

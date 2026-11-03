@@ -212,7 +212,7 @@ open class HexKeyboardViewController: UIInputViewController {
     }
 
     /// The iPhone Duo draws no globe under a third-party keyboard, yet its iOS 27.1 simulator says none is needed, so
-    /// on its screens (the only iPhones over 440pt on the short side) the keys always carry one.
+    /// on its screens (the only iPhones over 440pt on the short side) Hex always offers the next keyboard.
     private var showsGlobe: Bool {
         needsInputModeSwitchKey || (device == .phone && Duo.isDuo(short: min(screenSize.width, screenSize.height)))
     }
@@ -289,15 +289,16 @@ open class HexKeyboardViewController: UIInputViewController {
         keyboardView.deadTop = panel != nil ? max(metrics.topInset - Toolbar.keysReach, 0) : 0
     }
 
-    /// The bar's More button, on every screen: the layouts holding 123 offers where there are any, then Hex's settings.
+    /// The bar's More button, on every screen: the layouts holding 123 offers where there are any, then the next
+    /// keyboard and Hex's settings.
     private func moreMenu(_ context: LayoutContext) -> UIMenu {
         let action = { (item: KeyboardEvent) in
             UIAction(title: item.title, image: UIImage(systemName: item.symbol), state: item == context.menuPick ? .on : .off) { [unowned self] _ in
                 handle(item)
             }
         }
-        let layouts = context.menu.filter { $0 != .settings }.map(action)
-        return UIMenu(children: [UIMenu(options: .displayInline, children: layouts), action(.settings)])
+        let picks = context.layoutPicks
+        return UIMenu(children: [UIMenu(options: .displayInline, children: picks.map(action))] + context.moreMenu.dropFirst(picks.count).map(action))
     }
 
     private func open(_ panel: Panel) {
@@ -350,6 +351,8 @@ open class HexKeyboardViewController: UIInputViewController {
             SettingsStore.set(split, for: \.split, sharing: hasFullAccess)
         case .settings:
             open(HexLink.keyboard)
+        case .nextKeyboard:
+            advanceToNextInputMode()
         case .cursorLines:
             let margins = systemMinimumLayoutMargins
             engine.lineLayout = HostLayout(width: view.bounds.width - margins.leading - margins.trailing)

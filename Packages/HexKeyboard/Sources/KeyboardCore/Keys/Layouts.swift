@@ -9,6 +9,8 @@ public struct LayoutContext: Hashable, Sendable {
     public var device: DeviceClass
     public var layer: KeyboardLayer
     public var kind: InputKind
+    /// iOS wants a way to the next keyboard: an iPad's keys carry a globe, and an iPhone's menus offer Next Keyboard,
+    /// so a reach for the bottom row never leaves Hex.
     public var showsGlobe: Bool
     public var isLandscape: Bool
     /// The iPhone Duo unfolded, whose keys are half again as wide as on its cover.
@@ -50,14 +52,23 @@ public struct LayoutContext: Hashable, Sendable {
         }.first
     }
 
-    /// What holding the layer key offers, left to right, and the bar's More button where it shows: the layouts that
-    /// apply here (one hand or the other on an upright iPhone, Full and Split on the open Duo held wide), then Hex's
-    /// settings.
+    /// What the bar's More button offers, top to bottom: the layouts that apply here (one hand or the other on an
+    /// upright iPhone, Full and Split on the open Duo held wide), the next keyboard where an iPhone needs one, then
+    /// Hex's settings.
+    public var moreMenu: [KeyboardEvent] {
+        layoutPicks + (showsGlobe && device == .phone ? [.nextKeyboard] : []) + [.settings]
+    }
+
+    /// What holding the layer key offers, left to right, where there are layouts to pick: the More button's items.
     public var menu: [KeyboardEvent] {
-        let layouts: [KeyboardEvent] = if allowsSplit { [.split(false), .split(true)] }
-            else if allowsOneHanded { OneHanded.menuOrder.map(KeyboardEvent.pick) }
-            else { [] }
-        return layouts.isEmpty ? [] : layouts + [.settings]
+        layoutPicks.isEmpty ? [] : moreMenu
+    }
+
+    /// The layouts that apply here.
+    public var layoutPicks: [KeyboardEvent] {
+        if allowsSplit { [.split(false), .split(true)] }
+        else if allowsOneHanded { OneHanded.menuOrder.map(KeyboardEvent.pick) }
+        else { [] }
     }
 
     /// The layout in use, as the menu offers it.

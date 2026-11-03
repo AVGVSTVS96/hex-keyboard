@@ -179,7 +179,7 @@ public struct TypingEngine {
         case .split(let split):
             settings.split = split
             perform(.layer(.letters), in: document)
-        case .settings:
+        case .settings, .nextKeyboard:
             perform(.layer(.letters), in: document)
         case .panel(let panel):
             show(panel)
