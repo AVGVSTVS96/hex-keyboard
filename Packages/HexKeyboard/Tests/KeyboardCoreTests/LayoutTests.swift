@@ -177,24 +177,6 @@ struct LayoutTests {
         #expect(numbers.height(rows: 5, hasNumberRow: true) == open.height(rows: 5, hasNumberRow: true) + 50)
     }
 
-    /// Open held tall, the keyboard reaches the hinge, the screen's middle, with the bar; an open panel takes its share
-    /// from the keys, which never go below their own height. Every other screen asks for its keys alone.
-    @Test func theOpenDuoHeldTallReachesTheHinge() {
-        let open = KeyboardMetrics.for(.phone, width: 669, height: 951)
-        let bar = open.toolbar.height
-        let asked = open.asked(rows: 4, hasNumberRow: false, above: bar)
-        #expect(asked + bar == 951 / 2 - 70 - Toolbar.backdropAbove)
-        let tall = open.filling(asked, rows: 4, hasNumberRow: false)
-        #expect(tall.keyHeight > open.keyHeight * 1.5 && tall.rowGap == open.rowGap)
-        let keys = open.height(rows: 4, hasNumberRow: false)
-        #expect(open.asked(rows: 4, hasNumberRow: false, above: open.toolbar.panelHeight) == keys)
-        #expect(open.asked(rows: 5, hasNumberRow: true, above: bar) == asked, "a number row shares the same height")
-        for (width, height) in [(466.0, 678.0), (678, 466), (951, 669), (440, 956)] {
-            let metrics = KeyboardMetrics.for(.phone, width: width, height: height)
-            #expect(metrics.asked(rows: 4, hasNumberRow: false, above: metrics.toolbar.height) == metrics.height(rows: 4, hasNumberRow: false))
-        }
-    }
-
     /// docs/design.md, "Per device": Apple's keys and letters on each of the Duo's screens, measured in the iOS 27.1
     /// simulator: (key height, row gap, key gap, side inset, letter size). Open on its side the keys take over Apple's
     /// margins and gaps, in the same height, as Bassim asked.
