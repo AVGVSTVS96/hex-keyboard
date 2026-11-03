@@ -47,7 +47,9 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             UITab(title: "Clipboard", image: UIImage(systemName: "list.clipboard"), identifier: Router.Destination.clipboard.rawValue) { _ in
                 Self.hosting(ClipboardPage())
             },
-            UITab(title: "Your Taps", image: UIImage(systemName: "hand.tap"), identifier: Router.Destination.taps.rawValue) { _ in Self.navigation(TapsViewController()) },
+            UITab(title: "Your Taps", image: UIImage(systemName: "hand.tap"), identifier: Router.Destination.taps.rawValue) { _ in
+                Self.hosting(TapsPage())
+            },
             UITab(title: "Settings", image: UIImage(systemName: "gearshape"), identifier: Router.Destination.settings.rawValue) { _ in
                 Self.hosting(SettingsPage())
             },
@@ -58,12 +60,6 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         window.makeKeyAndVisible()
         self.window = window
         open(options.urlContexts)
-    }
-
-    private static func navigation(_ root: UIViewController) -> UINavigationController {
-        let navigation = UINavigationController(rootViewController: root)
-        navigation.view.backgroundColor = HexStyle.page
-        return navigation
     }
 
     private static func hosting(_ view: some View) -> UIViewController {

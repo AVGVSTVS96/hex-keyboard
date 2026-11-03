@@ -43,26 +43,21 @@ public final class TapMapView: UIView {
     /// Lays out the keys of `context` as the keyboard does on a `screen`-sized device and draws `touches` over them. On
     /// the iPhone Duo each screen draws at its own size, whichever one the app is on.
     public func show(_ touches: TouchModel, on context: LayoutContext, screen: CGSize) {
-        let short = min(screen.width, screen.height), long = max(screen.width, screen.height)
-        var held = context.isLandscape ? Size(width: long, height: short) : Size(width: short, height: long)
-        var width = held.width
-        if context.device == .phone, Duo.isDuo(short: short) {
-            let duo = Duo.Screen(open: context.isOpen, landscape: context.isLandscape)
-            (held, width) = (duo.size, duo.keyboardWidth)
-        }
-        let metrics = KeyboardMetrics.for(context, screen: held, window: width, style: .current)
-        let layout = Layouts.layout(for: context)
-        self.context = context
-        grid = KeyGrid(layout, width: width, metrics: metrics.grid, signature: context.signature)
-        size = CGSize(width: width, height: metrics.height(rows: layout.rows.count, hasNumberRow: layout.hasNumberRow))
-        aims = touches.aims(on: grid)
+        show(TapBoard(touches, on: context, screen: screen))
+    }
+
+    public func show(_ board: TapBoard) {
+        context = board.context
+        grid = board.grid
+        size = board.size
+        aims = board.aims
         selected = selected.flatMap { old in aims.first { $0.key == old.key } }
         let faces = KeyFaceContext(device: context.device, layer: .letters, kind: .text, shift: .off, returnKind: .default, returnEnabled: true)
         canvas.transform = .identity
         canvas.frame = CGRect(origin: .zero, size: size)
         keyboard.frame = canvas.bounds
         marks.frame = canvas.bounds
-        keyboard.update(layout: layout, signature: context.signature, metrics: metrics, faces: faces, theme: theme)
+        keyboard.update(layout: board.layout, signature: context.signature, metrics: board.metrics, faces: faces, theme: theme)
         keyboard.layoutIfNeeded()
         invalidateIntrinsicContentSize()
         setNeedsLayout()
@@ -70,9 +65,15 @@ public final class TapMapView: UIView {
     }
 
     public func select(_ aim: Aim?) {
-        selected = aim
+        highlight(aim?.key)
+        onSelect(selected)
+    }
+
+    /// Outlines `key` without telling `onSelect`, for a selection made elsewhere.
+    public func highlight(_ key: Key?) {
+        guard key != selected?.key else { return }
+        selected = key.flatMap { key in aims.first { $0.key == key } }
         refresh(animated: true)
-        onSelect(aim)
     }
 
     override public var intrinsicContentSize: CGSize {
@@ -265,6 +266,34 @@ final class TapMarksView: UIView {
         let radius = (((spread.xx - spread.yy) / 2) * ((spread.xx - spread.yy) / 2) + spread.xy * spread.xy).squareRoot()
         let angle = atan2(2 * spread.xy, spread.xx - spread.yy) / 2
         return (CGFloat((mid + radius).squareRoot()), CGFloat(max(mid - radius, 0).squareRoot()), CGFloat(angle))
+    }
+}
+
+/// A keyboard laid out as the keyboard does on one screen, with what the touch model learned for each of its keys.
+public struct TapBoard {
+    public let context: LayoutContext
+    public let grid: KeyGrid
+    public let layout: KeyboardLayout
+    public let metrics: KeyboardMetrics
+    public let size: CGSize
+    public let aims: [Aim]
+
+    public var keys: [(key: Key, frame: Rect)] { Array(grid.rows.joined()) }
+
+    public init(_ touches: TouchModel, on context: LayoutContext, screen: CGSize) {
+        let short = min(screen.width, screen.height), long = max(screen.width, screen.height)
+        var held = context.isLandscape ? Size(width: long, height: short) : Size(width: short, height: long)
+        var width = held.width
+        if context.device == .phone, Duo.isDuo(short: short) {
+            let duo = Duo.Screen(open: context.isOpen, landscape: context.isLandscape)
+            (held, width) = (duo.size, duo.keyboardWidth)
+        }
+        self.context = context
+        metrics = KeyboardMetrics.for(context, screen: held, window: width, style: .current)
+        layout = Layouts.layout(for: context)
+        grid = KeyGrid(layout, width: width, metrics: metrics.grid, signature: context.signature)
+        size = CGSize(width: width, height: metrics.height(rows: layout.rows.count, hasNumberRow: layout.hasNumberRow))
+        aims = touches.aims(on: grid)
     }
 }
 
