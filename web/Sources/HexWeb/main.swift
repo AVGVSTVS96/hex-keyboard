@@ -53,7 +53,7 @@ import KeyboardCore
             return Cap(
                 x: frame.x, y: frame.y, width: frame.width, height: frame.height,
                 face: face.content.kind, label: face.content.value,
-                secondary: face.secondary, secondaryDimmed: face.secondaryIsDimmed,
+                secondary: face.secondary, secondaryDimmed: face.secondaryIsDimmed, corner: face.corner,
                 align: face.alignment.name, prominent: face.isProminent,
                 action: key.action.name, isInput: key.isInput,
                 typed: typed, shown: typed.map { uppercase ? $0.uppercased() : $0 },

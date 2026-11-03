@@ -10,6 +10,7 @@ import KeyboardCore
     var label: String
     var secondary: String?
     var secondaryDimmed: Bool
+    var corner: String?
     var align: String
     var prominent: Bool
     var action: String
@@ -45,6 +46,7 @@ import KeyboardCore
     var keyPressed: String
     var label: String
     var secondaryLabel: String
+    var cornerLabel: String
     var prominent: String
     var prominentLabel: String
     var selection: String
@@ -75,6 +77,7 @@ extension Look {
             letterBaselineInset: m.letterBaselineInset, secondaryCapTop: m.secondaryCapTop, pairSize: m.pairSize,
             pairCapTop: m.pairCapTop, pairBaselineRatio: m.pairBaselineRatio, dimsKeyUnderAccents: style.dimsKeyUnderAccents,
             key: t.key.css, keyPressed: t.keyPressed.css, label: t.label.css, secondaryLabel: t.secondaryLabel.css,
+            cornerLabel: RGBA(red: t.label.red, green: t.label.green, blue: t.label.blue, alpha: t.label.alpha * t.secondaryLabel.alpha).css,
             prominent: t.prominent.css, prominentLabel: t.prominentLabel.css, selection: t.selection.css,
             selectionLabel: t.selectionLabel.css, shadow: t.shadow.css, candidate: t.candidate.css,
             candidateHighlighted: t.candidateHighlighted.css, candidatePill: t.candidatePill.css, candidateDivider: t.candidateDivider.css

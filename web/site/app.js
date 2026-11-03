@@ -159,6 +159,9 @@ function render() {
     "--label": look.label,
     "--prominent": look.prominent,
     "--prominent-label": look.prominentLabel,
+    "--corner-size": `${look.secondarySize + 3}px`,
+    "--corner-inset": `${look.cornerRadius}px`,
+    "--corner-label": look.cornerLabel,
     "--selection": look.selection,
     "--selection-label": look.selectionLabel,
     "--shadow": look.shadow,
@@ -187,7 +190,7 @@ function renderKeys() {
       keysView.append(view);
     }
     Object.assign(view.style, { left: `${cap.x}px`, top: `${cap.y}px`, width: `${cap.width}px`, height: `${cap.height}px` });
-    const content = `${cap.face}:${cap.label}`;
+    const content = `${cap.face}:${cap.label}:${cap.corner ?? ""}`;
     if (view.dataset.content !== content) {
       view.dataset.content = content;
       view.innerHTML = face(cap);
@@ -199,14 +202,17 @@ function renderKeys() {
   paintTouches();
 }
 
+const escape = (text) => text.replace(/[&<>]/g, (c) => `&#${c.charCodeAt(0)};`);
+
 function face(cap) {
-  const text = cap.label.replace(/[&<>]/g, (c) => `&#${c.charCodeAt(0)};`);
+  const corner = cap.corner ? `<span class="corner">${escape(cap.corner)}</span>` : "";
+  const text = escape(cap.label);
   switch (cap.face) {
-    case "letter": return `<span class="letter">${text}</span>`;
-    case "text": return `<span class="text">${text}</span>`;
-    case "smallText": return `<span class="small">${text}</span>`;
-    case "symbol": return symbols[cap.label] ?? "";
-    default: return "";
+    case "letter": return `<span class="letter">${text}</span>${corner}`;
+    case "text": return `<span class="text">${text}</span>${corner}`;
+    case "smallText": return `<span class="small">${text}</span>${corner}`;
+    case "symbol": return (symbols[cap.label] ?? "") + corner;
+    default: return corner;
   }
 }
 

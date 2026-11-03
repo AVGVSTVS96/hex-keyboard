@@ -216,6 +216,13 @@
 .key .letter { font: var(--letter-size) var(--compact); line-height: 1; transform: translateY(var(--letter-offset)); }
 .key .text { font: var(--label-size) var(--system); line-height: 1; }
 .key .small { font: calc(var(--label-size) * 0.75) var(--system); line-height: 1; }
+.key .corner {
+  position: absolute;
+  right: var(--corner-inset);
+  top: calc(var(--corner-inset) - 0.16 * var(--corner-size));
+  font: 700 var(--corner-size)/1 var(--display);
+  color: var(--corner-label);
+}
 .key svg { width: var(--symbol-box); height: var(--symbol-box); display: block; }
 
 .system {

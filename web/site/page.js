@@ -27,7 +27,7 @@ function draw() {
     .join("");
   const labels = iikbCurve
     .map((_, index) => index)
-    .filter((index) => !narrow || index % 3 === 0 || index === iikbCurve.length - 1)
+    .filter((index) => (narrow ? index % 4 === 1 : index % 2 === 1))
     .map((index) => `<text class="tick" x="${x(index)}" y="${height - 8}" text-anchor="${index === iikbCurve.length - 1 ? "end" : "middle"}">${((index + 1) * blockWords).toLocaleString("en-US")}${index === iikbCurve.length - 1 ? " words" : ""}</text>`)
     .join("");
   const dots = (curve, name) => curve.map((value, index) => `<circle class="fade dot-${name}" cx="${x(index)}" cy="${y(value)}" r="3.5"/>`).join("");

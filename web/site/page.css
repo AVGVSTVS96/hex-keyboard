@@ -45,7 +45,7 @@ body {
 a { color: inherit; text-decoration-thickness: 1px; text-underline-offset: 0.18em; }
 a:hover { color: var(--blue); }
 img, picture { display: block; max-width: 100%; height: auto; }
-figure { margin: 0; }
+figure { margin: 0; min-width: 0; }
 code, pre { font-family: ui-monospace, "SF Mono", Menlo, monospace; }
 
 .wrap { max-width: calc(1200px + 2 * var(--margin)); margin: 0 auto; padding: 0 var(--margin); }
@@ -57,7 +57,7 @@ code, pre { font-family: ui-monospace, "SF Mono", Menlo, monospace; }
   align-items: start;
 }
 
-.grid > * { grid-column: 1 / -1; }
+.grid > * { grid-column: 1 / -1; min-width: 0; }
 
 /* Type */
 
@@ -121,6 +121,7 @@ code, pre { font-family: ui-monospace, "SF Mono", Menlo, monospace; }
 .stage { position: relative; flex: none; padding: 10px; }
 
 @media (max-width: 860px) {
+  .number .line, .number .note, .looks .line, .looks .head { grid-column: 1 / -1; }
   .hero-text, .demo { grid-column: 1 / -1; }
   .demo { justify-content: flex-start; }
   .caption { margin-top: 24px; padding-top: 0; }
@@ -128,7 +129,7 @@ code, pre { font-family: ui-monospace, "SF Mono", Menlo, monospace; }
 
 @media (max-width: 500px), (max-height: 500px) and (pointer: coarse) {
   .hero { row-gap: 32px; }
-  .demo { margin: 0 calc(-1 * var(--margin)); width: auto; height: min(760px, 100svh); border-block: 1px solid var(--rule); }
+  .demo { justify-self: stretch; margin: 0 calc(-1 * var(--margin)); width: auto; height: min(760px, 100svh); border-block: 1px solid var(--rule); }
   .stage { width: 100%; height: 100%; padding: 0; }
 }
 
@@ -232,7 +233,7 @@ main > section:not(.hero) { padding-top: clamp(64px, 9vw, 120px); padding-bottom
   line-height: 1.55;
 }
 .exchange .label { font-weight: 500; color: var(--ink); }
-.exchange .hint { grid-column: 7 / -1; display: grid; gap: 12px; }
+.exchange .hint { grid-column: 7 / -1; display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
 .hint img { border-radius: 22px; box-shadow: 0 0 0 1px var(--edge); }
 .sources .note { grid-column: 1 / -1; }
 
