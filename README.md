@@ -2,19 +2,21 @@
 
 **A keyboard that feels like Apple's, and learns where you tap.**
 
-Every key matches Apple's keyboard, down to the pixel and the haptic. Hex learns where each of your taps really lands, so it fixes more typos and leaves the words you meant alone.
+Hex types like Apple's keyboard and looks like Raycast's. It learns where each of your taps really lands, so it fixes more typos and leaves the words you meant alone.
 
-Open source, for iPhone and iPad on iOS 26 and later. Type with its engine in your browser at [hex-keyboard.vercel.app](https://hex-keyboard.vercel.app).
-
-Apple's keyboard on the left, Hex on the right, in the same simulator:
-
-![Apple's keyboard and Hex on an iPhone 17, light and dark](docs/iphone.png)
+Open source and MIT, a foundation to build your own keyboard on. For iPhone and iPad on iOS 26 and later, and the iPhone Duo in every pose. Type with its engine in your browser at [hex-keyboard.vercel.app](https://hex-keyboard.vercel.app).
 
 ## It feels like Apple's
 
-Layouts, key sizes, pop-ups, accents, the space bar cursor and the suggestion bar are measured against Apple's keyboard in the same simulator, on every iPhone and iPad size, in light and dark. The haptics play at the strength Apple's keyboard uses, read off a real iPhone. Settings have Apple's names and defaults, and your Text Replacements still work.
+Layouts, pop-ups, accents, the space bar cursor and the suggestion bar work as Apple's do, measured against Apple's keyboard in the same simulator on every iPhone and iPad size and each of the Duo's screens, in light and dark. Keys sit where Apple's do, except where the look moves them on purpose: Raycast's bottom-row widths, and on the Duo keys that grow into the room each screen gives ([docs/design.md](docs/design.md) has every size). Haptics start at the strength Apple's keyboard uses, read off a real iPhone, with three steps softer and three stronger. Settings have Apple's names and defaults, except that auto-capitalization and auto-correction start off, and your Text Replacements still work.
 
-![Apple's keyboard and Hex on an iPad Pro 11-inch, light and dark](docs/ipad.png)
+## It looks like Raycast's
+
+Raycast's five themes (Default, Clear, Physical, Mechanical and iOS 5), its key shapes, and one bar with the tools at its left and the mic at its end.
+
+## Made for the iPhone Duo
+
+Hex fits each of the Duo's screens: the cover upright and on its side, open and held wide or tall, and half folded. Open and held wide, hold 123 to split the keys for two thumbs. The app lays out every page for the screen it's on, in two panes beside the hinge when there's room.
 
 ## It learns where you tap
 
@@ -42,7 +44,7 @@ Tap the mic beside the suggestions. iOS doesn't let keyboards use the microphone
 
 ## Emoji
 
-Type a word like "pizza" and its emoji shows up in the suggestion bar; tap it to swap the word for it. For every other emoji, the emoji pill under the bar opens a grid of them, the ones you pick first; the keys type into its search, which finds emoji by name and keyword. Hold one for its skin tones.
+Type a word like "pizza" and its emoji shows up in the suggestion bar; tap it to swap the word for it. For every other emoji, the emoji key beside the space bar opens a grid of them, the ones you pick first; the keys type into its search, which finds emoji by name and keyword. Hold one for its skin tones. Settings can take the key away, leaving the bar's emoji.
 
 ## Sources
 
@@ -50,10 +52,12 @@ A source is a web service you plug into the keyboard. Hex tells it the text of t
 
 ## Also
 
+- GIF search and your clipboard history, from the tools at the bar's left. The app's Clipboard tab shows the same history, pinned items first.
+- A number row, Character Preview and skin tones, as Raycast's keyboard offers.
 - One-handed keyboard: hold 123 and slide left or right.
 - Hold the space bar and slide to move the cursor, hold delete to erase whole words, flick down on iPad keys for their second character.
 - Return, email, URL and search fields get the keys Apple gives them.
-- Hex only goes online to download its voice model once, search GIFs and reach the sources you add. Without a source, nothing you type or say leaves your iPhone.
+- Hex only goes online to download its voice model once, search GIFs and reach the sources you add. Without a source, nothing you type, say or copy leaves your iPhone.
 
 Not built yet: swipe typing, and languages other than English.
 
@@ -68,9 +72,9 @@ xcodegen generate
 open HexKeyboard.xcodeproj
 ```
 
-Put your team in `Config/Team.xcconfig` (`DEVELOPMENT_TEAM = <your team ID>`) and run the `Hex` scheme. On Linux, `scripts/phone` builds and installs it with [xtool](https://github.com/xtool-org/xtool); [AGENTS.md](AGENTS.md) has the details. The app and App Group IDs are Hex's own (`com.shahidy.hexkeyboard`), so a different team may need to swap in its own.
+Put your team in `Config/Team.xcconfig` (`DEVELOPMENT_TEAM = <your team ID>`) and run the `Hex` scheme. On Linux, `scripts/phone` builds and installs it with [AVGVSTVS96/xtool](https://github.com/AVGVSTVS96/xtool), a fork that keeps Hex's app and App Group IDs (stock xtool installs a separate copy and drops the App Group); [AGENTS.md](AGENTS.md) has the details. The app and App Group IDs are Hex's own (`com.shahidy.hexkeyboard`), so a different team may need to swap in its own.
 
-Then on the phone: Settings › General › Keyboard › Keyboards › Add New Keyboard… › Hex, and turn on Allow Full Access. Hex needs it for haptics, voice, Your Taps and sources.
+Then on the phone: Settings › General › Keyboard › Keyboards › Add New Keyboard… › Hex, and turn on Allow Full Access. Hex needs it for haptics, voice, GIFs, the clipboard, Your Taps and sources. The clipboard also needs Settings › Apps › Hex › Paste from Other Apps set to Allow.
 
 ## How it's built
 
@@ -79,15 +83,16 @@ Then on the phone: Settings › General › Keyboard › Keyboards › Add New K
 | `Packages/HexKeyboard/Sources/KeyboardCore` | Everything the keyboard does: layouts, typing, autocorrect, the tap model, emoji search. Pure Swift with no Foundation or UIKit, so it also runs in the browser as WebAssembly. Unit tested. |
 | `Packages/HexKeyboard/Sources/KeyboardUI` | Draws the keys, handles touches and haptics, and talks to the app. |
 | `Keyboard/` | The keyboard extension. |
-| `App/` | The Hex app: setup and settings, voice typing, Transcripts and Your Taps. |
+| `App/` | The Hex app: setup and settings, voice typing, Transcripts, Clipboard and Your Taps. |
 | `web/` | The browser demo. |
 | `UITests/` | Types through the real keyboard in the simulator. |
 
 Tests:
 
 ```sh
-cd Packages/HexKeyboard
-xcodebuild test -scheme HexKeyboard-Package -destination 'platform=iOS Simulator,name=iPhone 17'
+scripts/coretest   # KeyboardCore's tests on Linux, no Mac needed (about 25 s)
+scripts/test       # on a Mac: KeyboardCore and KeyboardUI on an iPhone 17 simulator, without the slow autocorrect scorer
+scripts/uitest     # on a Mac: types through the real keyboard
 ```
 
 [AGENTS.md](AGENTS.md) explains the design and the scripts; [PROGRESS.md](PROGRESS.md) is the build log, with every measurement.
