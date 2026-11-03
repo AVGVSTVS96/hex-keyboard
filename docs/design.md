@@ -56,8 +56,7 @@ From top to bottom: 3 of padding (iOS draws its backdrop 4 above the keyboard, s
 Bassim reaches for the top row fast, so a reach must never pick a suggestion or open a panel.
 
 - The bar takes taps from its top.
-- The bar's bottom 10 goes nowhere, so with the 7 under it a reach of 17 above the top row (as before) never picks a suggestion.
-- The 7 between the bar and the keys belongs to the top key row (as `KeyGrid` gives the top row the space above it).
+- The 7 between the bar and the keys, and the bar's bottom 10 over it, belong to the top key row (as `KeyGrid` gives the top row the space above it), so a reach of 17 above the top row types the key reached for: it never picks a suggestion and never goes nowhere. With a panel open, the bottom 10 of its search row are the top row's the same way.
 - Gaps between keys still take taps (`KeyboardInputView`'s invisible fill).
 - Callouts of top-row keys draw over the bar.
 

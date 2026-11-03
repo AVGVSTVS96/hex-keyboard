@@ -17,12 +17,9 @@ public struct Toolbar: Hashable, Sendable {
     /// further on the open screen held wide.
     public static let backdropAbove = 4.0
     public static let openWideBackdropAbove = 7.0
-    /// How much of the bar's bottom goes nowhere, so a reach for the top row never picks a suggestion: with the gap
-    /// under the bar, 17 above the keys.
-    public static let deadEdge = 10.0
-    /// The part of the gap above the keys that belongs to the top row; the rest goes nowhere, so a reach for the top
-    /// row never opens a panel.
-    public static let keysReach = 5.0
+    /// How far over the bar's bottom, or a panel's search row, the top row takes taps: with the gap under the bar, a
+    /// reach of 17 above the keys types the key reached for, never a suggestion, a tool or a panel's button.
+    public static let topRowReach = 10.0
 
     public init(top: Double, bar: Double, mic: Double, results: Double, field: Double) {
         self.top = top

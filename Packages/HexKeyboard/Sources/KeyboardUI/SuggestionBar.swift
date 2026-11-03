@@ -163,11 +163,6 @@ final class SuggestionBar: UIView {
         }
     }
 
-    /// The bar's bottom edge goes nowhere, so a reach for the top row never picks a suggestion.
-    override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
-        point.y < bounds.height - Toolbar.deadEdge && super.point(inside: point, with: event)
-    }
-
     override func layoutSubviews() {
         super.layoutSubviews()
         let scale = traitCollection.displayScale

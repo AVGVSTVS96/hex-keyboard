@@ -309,7 +309,6 @@ open class HexKeyboardViewController: UIInputViewController {
         suggestionBar.update(tools: tools, theme: theme)
         suggestionBar.update(mic: mic, listeningSince: dictation.since, saved: dictation.writing, waitingFor: dictation.waiting, notice: dictation.failure ?? hint, theme: theme)
         if panel != nil { panelView.show(query: engine.query, theme: theme, metrics: metrics) }
-        keyboardView.deadTop = panel != nil ? max(metrics.topInset - Toolbar.keysReach, 0) : 0
     }
 
     /// The bar's More button, on every screen: the layouts holding 123 offers where there are any, then the next

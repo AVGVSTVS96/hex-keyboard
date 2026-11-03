@@ -134,11 +134,9 @@ final class KeyboardView: UIView {
         resolve(grid, point).map { rowKeys[$0.row][$0.key] }
     }
 
-    /// How much of the gap above the keys goes nowhere, so a reach for the top row never lands on a pill or a panel.
-    var deadTop: CGFloat = 0
-
+    /// The top row reaches over what's above the keyboard (`Toolbar.topRowReach`); this view is in front of it.
     override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
-        bounds.contains(point) && point.y >= deadTop
+        bounds.inset(by: UIEdgeInsets(top: -Toolbar.topRowReach, left: 0, bottom: 0, right: 0)).contains(point)
     }
 }
 
