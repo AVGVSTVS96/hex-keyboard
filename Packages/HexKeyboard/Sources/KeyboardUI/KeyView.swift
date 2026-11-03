@@ -103,7 +103,7 @@ final class KeyView: UIView {
         accessibilityIdentifier = if case .character(let value) = key.action { "hex.\(value)" } else { "hex.\(accessibilityName)" }
         secondaryLabel.text = shown.secondary
         cornerLabel.text = shown.corner
-        cornerLabel.font = .systemFont(ofSize: metrics.secondarySize, weight: .regular)
+        cornerLabel.font = .systemFont(ofSize: metrics.secondarySize * labelScale, weight: .regular)
         if shown.secondary != nil, !shown.secondaryIsDimmed {
             label.font = .systemFont(ofSize: metrics.pairSize, weight: .regular)
             secondaryLabel.font = label.font
@@ -257,16 +257,19 @@ final class KeyView: UIView {
         if let shadow = paint.labelShadow {
             label.shadowColor = shadow.color.ui
             label.shadowOffset = CGSize(width: 0, height: shadow.y)
+            cornerLabel.shadowColor = shadow.color.ui
+            cornerLabel.shadowOffset = CGSize(width: 0, height: shadow.y)
             icon.layer.shadowColor = shadow.color.ui.cgColor
             icon.layer.shadowOffset = CGSize(width: 0, height: shadow.y)
             icon.layer.shadowRadius = 0
             icon.layer.shadowOpacity = 1
         } else {
             label.shadowColor = nil
+            cornerLabel.shadowColor = nil
             icon.layer.shadowOpacity = 0
         }
         secondaryLabel.textColor = shown.secondaryIsDimmed ? theme.secondaryLabel.ui : foreground
-        cornerLabel.textColor = theme.secondaryLabel.ui
+        cornerLabel.textColor = foreground.withAlphaComponent(paint.label.alpha * theme.secondaryLabel.alpha)
         setNeedsLayout()
     }
 }
