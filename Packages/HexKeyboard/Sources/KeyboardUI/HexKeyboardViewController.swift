@@ -292,7 +292,7 @@ open class HexKeyboardViewController: UIInputViewController {
         suggestionBar.toolbar = toolbar
         suggestionBar.maximumSlotWidth = device == .phone ? .infinity : 154.5
         suggestionBar.update(tools: tools, theme: theme)
-        suggestionBar.update(mic: mic, listeningSince: dictation.since, notice: dictation.failure ?? hint, theme: theme)
+        suggestionBar.update(mic: mic, listeningSince: dictation.since, saved: dictation.writing, waitingFor: dictation.waitingFor, notice: dictation.failure ?? hint, theme: theme)
         if panel != nil { panelView.show(query: engine.query, theme: theme, metrics: metrics) }
         keyboardView.deadTop = panel != nil ? max(metrics.topInset - Toolbar.keysReach, 0) : 0
     }
@@ -407,7 +407,7 @@ open class HexKeyboardViewController: UIInputViewController {
             for text in heard { engine.handle(.dictated(text), in: document) }
         }
         micIsOn = Dictation.micIsOn
-        if !micIsOn { (status.listening, status.writing) = (false, 0) }
+        if !micIsOn { (status.listening, status.writing, status.waitingFor) = (false, 0, nil) }
         dictation = status
         render()
     }

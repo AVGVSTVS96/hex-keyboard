@@ -1,6 +1,6 @@
 """Stands in for the Hex app's Listener in the simulator, which can't record: holds the microphone lock, answers the
-keyboard's start with listening and a voice's worth of levels, and finish with writing it down. While the first is still
-being written the keyboard starts a second, and the first is typed as the second records. Stop ends the way a quit app
+keyboard's start with listening and a voice's worth of levels, and finish with writing it down. The first waits for the
+model to get ready, and meanwhile the keyboard starts a second; the first is typed as the second records. Stop ends the way a quit app
 does, mid-writing: the status stays, the lock goes. scripts/voiceapp.py <simulator id> <App Group container>
 [listening], which only listens, until it's killed, for screenshots of the bar while you talk."""
 import fcntl, json, math, os, struct, subprocess, sys, threading, time
@@ -17,11 +17,13 @@ def notify(*arguments):
 began = None
 
 
-def publish(listening=False, writing=0, heard=()):
+def publish(listening=False, writing=0, heard=(), waiting=False):
     global began
     if listening:
         began = time.time() - 978307200
     status = {"listening": listening, "writing": writing, "heard": list(heard)}
+    if waiting:
+        status["waitingFor"] = "Parakeet v3"
     if began and (listening or writing):
         status["since"] = began
     with open(f"{group}/Library/dictation.json", "w") as file:
@@ -61,10 +63,11 @@ finished = notify("-1", f"{prefix}.finish")
 publish(listening=True)
 listen(finished)
 started = notify("-1", f"{prefix}.start")
-publish(writing=1)
+publish(writing=1, waiting=True)
 started.wait()
 finished = notify("-1", f"{prefix}.finish")
-publish(listening=True, writing=1)
+publish(listening=True, writing=1, waiting=True)
+time.sleep(3)
 publish(listening=True, heard=["hello from the mic"])
 listen(finished)
 stopped = notify("-1", f"{prefix}.stop")

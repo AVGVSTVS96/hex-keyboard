@@ -96,10 +96,11 @@ final class SuggestionBar: UIView {
     }
 
     /// `notice` (why voice couldn't start, or a source's hint) stands in for the suggestions. Tapping it dismisses it.
-    /// `listeningSince` is when the app started listening, for the time beside the waveform.
-    func update(mic: MicButton.Phase, listeningSince: Date?, notice: String?, theme: KeyboardTheme) {
+    /// `listeningSince` is when the app started listening, for the time beside the waveform; `saved` dictations are
+    /// recorded and still to be written, by `waitingFor` once that model is ready.
+    func update(mic: MicButton.Phase, listeningSince: Date?, saved: Int, waitingFor: String?, notice: String?, theme: KeyboardTheme) {
         self.mic.show(mic, theme: theme)
-        waveform.show(mic, since: listeningSince, theme: theme)
+        waveform.show(mic, since: listeningSince, saved: saved, waitingFor: waitingFor, theme: theme)
         self.notice.text = notice
         self.notice.textColor = theme.candidate.ui
         noticed = notice != nil
@@ -298,33 +299,54 @@ final class MicButton: UIControl {
 }
 
 /// The suggestions' place while the app listens: the time so far, then bars that trace your voice, newest on the
-/// right. Both move only as the app publishes a level, never on a timer of the keyboard's own.
+/// right. Both move only as the app publishes a level, never on a timer of the keyboard's own. Dictations recorded
+/// while the model gets ready are said to be saved: beside the bars while you talk, in their place once you stop.
 private final class Waveform: UIView {
     private let time = UILabel()
+    private let saved = UILabel()
     private var bars: [UIView] = []
     private var levels: [CGFloat] = []
     private var since: Date?
     private var phase = MicButton.Phase.off
+    /// Stopped, with every dictation saved and waiting for the model: the saved count takes the bars' place.
+    private var waiting = false
     private var theme = KeyboardTheme.lightCurrent
 
     override init(frame: CGRect) {
         super.init(frame: frame)
         isUserInteractionEnabled = false
         time.font = .monospacedDigitSystemFont(ofSize: 15, weight: .regular)
+        saved.font = .systemFont(ofSize: 15)
+        saved.adjustsFontSizeToFitWidth = true
+        saved.minimumScaleFactor = 0.7
+        saved.lineBreakMode = .byTruncatingTail
+        saved.accessibilityIdentifier = "hex.saved"
         addSubview(time)
+        addSubview(saved)
     }
 
     required init?(coder: NSCoder) { fatalError() }
 
-    func show(_ phase: MicButton.Phase, since: Date?, theme: KeyboardTheme) {
+
+    func show(_ phase: MicButton.Phase, since: Date?, saved count: Int, waitingFor model: String?, theme: KeyboardTheme) {
         if phase != .listening, phase != .writing { levels = levels.map { _ in 0 } }
         self.phase = phase
         self.since = since
         self.theme = theme
+        let model = count > 0 ? model : nil
+        saved.isHidden = model == nil
+        waiting = phase == .writing && model != nil
+        if let model {
+            saved.text = !waiting ? "\(count) saved" : count == 1 ? "Saved · waiting for \(model)" : "\(count) saved · waiting for \(model)"
+        }
         time.textColor = theme.candidate.ui
-        alpha = phase == .writing ? 0.4 : 1
+        saved.textColor = theme.candidate.ui
+        time.isHidden = waiting
+        bars.forEach { $0.isHidden = waiting }
+        alpha = phase == .writing && !waiting ? 0.4 : 1
         bars.forEach { $0.backgroundColor = theme.label.ui }
         tick()
+        setNeedsLayout()
     }
 
     func hear(_ level: Float) {
@@ -341,21 +363,29 @@ private final class Waveform: UIView {
         time.sizeToFit()
     }
 
+    /// Room the saved count takes at the right while you talk.
+    private var savedWidth: CGFloat {
+        saved.isHidden || waiting ? 0 : (saved.intrinsicContentSize.width + 12).rounded(.up)
+    }
+
     override func layoutSubviews() {
         super.layoutSubviews()
-        let count = max(Int((bounds.width - 48) / 6), 0)
+        let count = max(Int((bounds.width - 48 - savedWidth) / 6), 0)
         if count != bars.count {
             bars.forEach { $0.removeFromSuperview() }
             bars = (0..<count).map { _ in
                 let bar = UIView()
                 bar.backgroundColor = theme.label.ui
                 bar.layer.cornerRadius = 1.5
+                bar.isHidden = waiting
                 addSubview(bar)
                 return bar
             }
             levels = Array(repeating: 0, count: max(count - levels.count, 0)) + levels.suffix(count)
         }
         time.frame = CGRect(x: 0, y: 0, width: 44, height: bounds.height)
+        saved.textAlignment = waiting ? .center : .right
+        saved.frame = waiting ? bounds : CGRect(x: bounds.width - savedWidth, y: 0, width: savedWidth, height: bounds.height)
         layoutBars()
     }
 

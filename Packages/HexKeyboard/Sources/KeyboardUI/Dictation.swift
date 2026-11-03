@@ -13,14 +13,17 @@ public enum Dictation {
         public var since: Date?
         /// How many dictations the app has recorded and is still writing down.
         public var writing = 0
+        /// The model those dictations wait for while it gets ready, nil once it's ready to write them.
+        public var waitingFor: String?
         /// What the app wrote down, oldest first, until the keyboard types it.
         public var heard: [String] = []
         public var failure: String?
 
-        public init(listening: Bool = false, since: Date? = nil, writing: Int = 0, heard: [String] = [], failure: String? = nil) {
+        public init(listening: Bool = false, since: Date? = nil, writing: Int = 0, waitingFor: String? = nil, heard: [String] = [], failure: String? = nil) {
             self.listening = listening
             self.since = since
             self.writing = writing
+            self.waitingFor = waitingFor
             self.heard = heard
             self.failure = failure
         }

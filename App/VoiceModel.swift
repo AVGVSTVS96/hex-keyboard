@@ -69,7 +69,8 @@ import UIKit
     private static let modelKey = "voiceModel"
 
     private(set) var model = UserDefaults.standard.string(forKey: modelKey).flatMap(Model.init) ?? .v3
-    private(set) var state = State.loading
+    private(set) var state = State.loading { didSet { if state != oldValue { onState?() } } }
+    @ObservationIgnored var onState: (() -> Void)?
     @ObservationIgnored private var parakeet: Task<any Parakeet, any Error>?
 
     private init() {}
