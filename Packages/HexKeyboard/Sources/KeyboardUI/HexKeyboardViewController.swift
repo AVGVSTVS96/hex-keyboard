@@ -317,7 +317,7 @@ open class HexKeyboardViewController: UIInputViewController {
     private func moreMenu(_ context: LayoutContext) -> UIMenu {
         let action = { [unowned self] (item: KeyboardEvent) in
             UIAction(title: item.title, image: UIImage(systemName: item.symbol), state: item == context.menuPick ? .on : .off) { _ in
-                handle(item)
+                self.handle(item)
             }
         }
         let picks = context.layoutPicks
