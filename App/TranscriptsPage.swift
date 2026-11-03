@@ -4,7 +4,7 @@ import Charts
 import SwiftUI
 
 /// Every dictation, newest first by day, under how much and how fast you talk. Wide, the picked transcript takes the
-/// pane past the hinge; elsewhere it opens on its own.
+/// second pane; elsewhere it opens on its own.
 struct TranscriptsPage: View {
     private let store = Transcripts.shared
     @State private var query = ""

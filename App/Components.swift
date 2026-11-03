@@ -50,33 +50,21 @@ private struct WindowReader: ViewModifier {
     }
 }
 
-/// Two columns, each its own page scrolling on its own, with no line between them in any pose: open flat they meet at
-/// the fold's middle, each keeping its own margin; partly open, each keeps to its side of the fold's frame, which iOS
-/// reports as an active division with its margins in it, so the fold itself is the gap. In one column they follow
-/// each other.
+/// Two columns, each its own page scrolling on its own, splitting the width they're given in half, each with its own
+/// margin, so no line marks where they meet. They follow the viewport's size alone, never the fold, so folding the Duo
+/// a little changes nothing on screen. In one column they follow each other.
 struct Panes<First: View, Second: View>: View {
     @ViewBuilder var first: First
     @ViewBuilder var second: Second
     @Environment(\.arrangement) private var arrangement
 
-    /// Where the first column ends and the second starts.
-    private static func fold(in proxy: GeometryProxy) -> (start: CGFloat, end: CGFloat) {
-        let middle = proxy.size.width / 2
-        guard #available(iOS 27.1, *), let fold = proxy.reservedRegions(kind: .division, options: .includeInactive).first else {
-            return (middle, middle)
-        }
-        return fold.isActive ? (fold.frame.minX, fold.frame.maxX) : (fold.frame.midX, fold.frame.midX)
-    }
-
     var body: some View {
         switch arrangement {
         case .side:
             GeometryReader { proxy in
-                let (start, end) = Self.fold(in: proxy)
                 HStack(spacing: 0) {
-                    first.frame(width: max(start, 0))
-                    Color.clear.frame(width: max(end - start, 0))
-                    second.frame(maxWidth: .infinity)
+                    first.frame(width: proxy.size.width / 2)
+                    second.frame(width: proxy.size.width / 2)
                 }
             }
         case .single:

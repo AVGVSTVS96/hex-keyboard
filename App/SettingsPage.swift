@@ -3,7 +3,7 @@ import KeyboardUI
 import SwiftUI
 
 /// Every setting in the app, in one list: the keyboard's, voice typing's, and Hex's own, a page each. Wide, the list
-/// takes the pane before the hinge and the picked page the one after; elsewhere a page opens on its own.
+/// takes the first pane and the picked page the second; elsewhere a page opens on its own.
 struct SettingsPage: View {
     enum Page: String, CaseIterable, Hashable {
         case theme, layout, typing, feedback, model, writing, dictionary, mic, sources, access, privacy, about
@@ -147,7 +147,7 @@ private struct SettingsList: View {
     }
 }
 
-/// One settings page, on its own or in the pane after the hinge.
+/// One settings page, on its own or in the second pane.
 struct SettingsContent: View {
     let page: SettingsPage.Page
     var top: CGFloat = 8

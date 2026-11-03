@@ -103,7 +103,14 @@ public final class ClipboardStore {
     /// A small image for an image item's row, decoded at the size it shows, so a big screenshot never fills the
     /// keyboard's memory.
     public func thumbnail(_ name: String, side: CGFloat) -> UIImage? {
-        guard let source = CGImageSourceCreateWithURL(folder.appending(path: name) as CFURL, nil),
+        Self.thumbnail(of: file(name), side: side)
+    }
+
+    /// An image item's file.
+    public func file(_ name: String) -> URL { folder.appending(path: name) }
+
+    public nonisolated static func thumbnail(of file: URL, side: CGFloat) -> UIImage? {
+        guard let source = CGImageSourceCreateWithURL(file as CFURL, nil),
               let image = CGImageSourceCreateThumbnailAtIndex(source, 0, [kCGImageSourceCreateThumbnailFromImageAlways: true, kCGImageSourceThumbnailMaxPixelSize: side, kCGImageSourceCreateThumbnailWithTransform: true] as CFDictionary)
         else { return nil }
         return UIImage(cgImage: image)

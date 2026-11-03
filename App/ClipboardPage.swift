@@ -3,14 +3,17 @@ import KeyboardUI
 import SwiftUI
 
 /// What you copied, as the keyboard's clipboard panel keeps it (`ClipboardStore`, in the App Group): pinned first, then
-/// by day, newest first. A tap copies an item again; holding it pins, shares or deletes it.
+/// by day, newest first. A tap copies an item again; holding it pins, shares or deletes it. Wide, the item last tapped
+/// shows in full in the second pane, as Transcripts' picked one does.
 struct ClipboardPage: View {
     @State private var store = ClipboardStore()
     @State private var items: [ClipboardHistory.Item] = []
     @State private var query = ""
     @State private var copied: ClipboardHistory.Item.Content?
+    @State private var picked: ClipboardHistory.Item.Content?
     @State private var confirmsClear = false
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.arrangement) private var arrangement
     private let status = HexStatus.shared
 
     private var shown: [ClipboardHistory.Item] {
@@ -28,31 +31,30 @@ struct ClipboardPage: View {
         return groups.map { ($0.day.map(TranscriptsPage.title) ?? "Pinned", $0.items) }
     }
 
+    private var beside: Bool { arrangement == .side }
+
+    /// The item shown in the second pane: the one last tapped, or the newest.
+    private var shownInFull: ClipboardHistory.Item? {
+        items.first { $0.content == picked } ?? items.first { !$0.pinned } ?? items.first
+    }
+
     var body: some View {
         NavigationStack {
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 24) {
-                    if let missing { setup(missing) }
-                    if items.isEmpty {
-                        empty.frame(minHeight: 360)
-                    } else {
-                        SearchField(text: $query)
-                        if shown.isEmpty { ContentUnavailableView.search(text: query) }
-                        ForEach(groups, id: \.title) { group in
-                            Box(header: group.title) {
-                                ForEach(group.items) { row($0) }
-                            }
+            Group {
+                if beside {
+                    Panes {
+                        list
+                    } second: {
+                        if let item = shownInFull {
+                            ClipDetail(item: item, copied: item.content == copied, store: store, copy: { copy(item) }, changed: refresh)
+                        } else {
+                            empty
                         }
                     }
+                } else {
+                    list
                 }
-                .padding(.horizontal, 16)
-                .padding(.top, 4)
-                .padding(.bottom, 40)
-                .frame(maxWidth: 640)
-                .frame(maxWidth: .infinity)
             }
-            .scrollDismissesKeyboard(.interactively)
-            .defaultScrollAnchor(LaunchOptions.scrollAnchor)
             .hexPage()
             .navigationTitle("Clipboard")
             .toolbarTitleDisplayMode(.inlineLarge)
@@ -77,6 +79,32 @@ struct ClipboardPage: View {
         .onAppear(perform: catchUp)
         .onChange(of: scenePhase) { _, phase in if phase == .active { catchUp() } }
         .sensoryFeedback(.success, trigger: copied) { _, new in new != nil }
+    }
+
+    private var list: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 24) {
+                if let missing { setup(missing) }
+                if items.isEmpty {
+                    empty.frame(minHeight: 360)
+                } else {
+                    SearchField(text: $query)
+                    if shown.isEmpty { ContentUnavailableView.search(text: query) }
+                    ForEach(groups, id: \.title) { group in
+                        Box(header: group.title) {
+                            ForEach(group.items) { row($0) }
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 4)
+            .padding(.bottom, 40)
+            .frame(maxWidth: 640)
+            .frame(maxWidth: .infinity)
+        }
+        .scrollDismissesKeyboard(.interactively)
+        .defaultScrollAnchor(LaunchOptions.scrollAnchor)
     }
 
     private var clearTitle: String {
@@ -121,6 +149,7 @@ struct ClipboardPage: View {
     private func row(_ item: ClipboardHistory.Item) -> some View {
         Button { copy(item) } label: { ClipRow(item: item, copied: item.content == copied, thumbnail: { store.thumbnail($0, side: 128) }) }
             .buttonStyle(.plain)
+            .background(beside && item.content == shownInFull?.content ? Color.hexPressed : .clear)
             .contextMenu {
                 Button("Copy", systemImage: "doc.on.doc") { copy(item) }
                 if case .text(let text) = item.content { ShareLink(item: text) }
@@ -145,6 +174,7 @@ struct ClipboardPage: View {
             store.copy(image: name)
         }
         copied = item.content
+        picked = item.content
     }
 
     private var empty: some View {
@@ -154,6 +184,86 @@ struct ClipboardPage: View {
             Text(store.started
                 ? "Everything you copy shows up here and in the keyboard’s clipboard, kept on this iPhone."
                 : "Open Hex keyboard in any app, and what it has kept of what you copy shows up here.")
+        }
+    }
+}
+
+/// One item in full, in the second pane: all its text, or its image as big as the pane, and what holding its row offers.
+private struct ClipDetail: View {
+    let item: ClipboardHistory.Item
+    let copied: Bool
+    let store: ClipboardStore
+    let copy: () -> Void
+    let changed: () -> Void
+
+    var body: some View {
+        Column(top: 12) {
+            Text(Date(timeIntervalSince1970: item.found).formatted(.dateTime.weekday(.wide).month(.abbreviated).day().hour().minute()))
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(Color.hexSecondary)
+                .padding(.horizontal, 4)
+            Group {
+                switch item.content {
+                case .text(let text):
+                    Text(text.trimmingCharacters(in: .whitespacesAndNewlines))
+                        .font(.title3)
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(20)
+                case .image(let name):
+                    FullImage(file: store.file(name))
+                }
+            }
+            .background(Color.hexCard, in: .rect(cornerRadius: HexStyle.cardRadius, style: .continuous))
+            .clipShape(.rect(cornerRadius: HexStyle.cardRadius, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: HexStyle.cardRadius, style: .continuous).strokeBorder(Color.hexEdge))
+            Box {
+                ActionRow(title: copied ? "Copied" : "Copy", symbol: copied ? "checkmark" : "doc.on.doc", action: copy)
+                if case .text(let text) = item.content {
+                    ShareLink(item: text) {
+                        HStack {
+                            Text("Share")
+                            Spacer()
+                            Image(systemName: "square.and.arrow.up").font(.subheadline.weight(.semibold))
+                        }
+                        .foregroundStyle(Color.blue)
+                        .row()
+                    }
+                    .buttonStyle(.plain)
+                }
+                ActionRow(title: item.pinned ? "Unpin" : "Pin", symbol: item.pinned ? "pin.slash" : "pin") {
+                    store.setPinned(!item.pinned, item.content)
+                    changed()
+                }
+            }
+            Box {
+                ActionRow(title: "Delete", role: .destructive) {
+                    store.remove(item.content)
+                    changed()
+                }
+            }
+        }
+    }
+}
+
+/// An image as big as the pane, decoded off the main thread.
+private struct FullImage: View {
+    let file: URL
+    @State private var image: UIImage?
+
+    var body: some View {
+        Group {
+            if let image {
+                Image(uiImage: image).resizable().scaledToFit()
+            } else {
+                Color.clear.aspectRatio(4 / 3, contentMode: .fit)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .accessibilityLabel("Image")
+        .task(id: file) {
+            let file = file
+            image = await Task.detached { ClipboardStore.thumbnail(of: file, side: 1600) }.value
         }
     }
 }
