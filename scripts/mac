@@ -54,8 +54,6 @@ case " $* " in
     flock 8
     [ -d "$main" ] || git worktree add -q --detach "$main"
     git -C "$main" checkout -q -f --detach main
-    key=Packages/HexKeyboard/Sources/KeyboardUI/Resources/Keys/klipy.key
-    [ ! -f "$key" ] || cp "$key" "$main/$key"
     echo "verify tests main $(git rev-parse --short main)" >&2
     "$main/scripts/sync" "$dir" >/dev/null
     exec 8>&-

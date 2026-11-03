@@ -1,9 +1,12 @@
 #!/bin/sh
 # Syncs the tree to a folder on the Mac (scripts/sync Developer/hex-keyboard-slot1) and prints it. Files are compared by
 # content and only changed ones are written, so a folder that trees from several checkouts take turns in keeps its
-# builds incremental.
+# builds incremental. A worktree without the KLIPY key, which git leaves out, gets the main checkout's.
 set -e
 cd "$(dirname "$0")/.."
 dir=${1:-Developer/hex-keyboard}
 rsync -rlpz --checksum --delete --exclude .git --exclude /build --exclude .build --exclude /xtool --exclude /shots --exclude '*.xcodeproj' --exclude /reference --exclude /.scratch --exclude node_modules --exclude /App/Info.plist --exclude /Keyboard/Info.plist --exclude /Config/Team.xcconfig ./ "mac:$dir/"
+key=Packages/HexKeyboard/Sources/KeyboardUI/Resources/Keys/klipy.key
+main=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
+[ -f "$key" ] || [ ! -f "$main/$key" ] || rsync -z --checksum "$main/$key" "mac:$dir/$key"
 echo "$dir"
