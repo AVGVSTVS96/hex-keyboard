@@ -104,10 +104,7 @@ struct TryPreview: View {
 
     var oneHanded: OneHanded {
         get { settings.oneHanded }
-        set {
-            settings.oneHanded = newValue
-            SettingsStore.set(newValue)
-        }
+        set { update { $0.oneHanded = newValue } }
     }
 
     func keepMicOn(_ seconds: Int) {

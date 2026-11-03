@@ -1,10 +1,12 @@
 import Foundation
 import KeyboardCore
+import notify
 
 /// Settings travel from the app to the keyboard through the App Group, but iOS deletes the group's container whenever
 /// an install leaves no app claiming the group, and the keyboard can write it only with Full Access. So each side also
 /// keeps its own copy of every value and takes the group's only when the group holds one it hasn't seen: a missing
-/// value changes nothing, and a side that may write the group puts its copy back.
+/// value changes nothing, and a side that may write the group puts its copy back. The app tells a keyboard that's up
+/// with a Darwin notification each time it keeps them, as on the open iPhone Duo, where the app sits beside the keys.
 public enum SettingsStore {
     public static let appGroup = "group.com.shahidy.hexkeyboard"
 
@@ -57,6 +59,7 @@ public enum SettingsStore {
 
     /// Keeps every value of `settings`, for the app, which changes them one page at a time.
     public static func save(_ settings: KeyboardSettings) {
+        defer { notify_post(changed) }
         for (key, path) in toggles { set(settings[keyPath: path], forKey: key) }
         set(settings.oneHanded)
         theme.save(settings)
@@ -66,6 +69,18 @@ public enum SettingsStore {
         dictationStyle.save(settings)
         dictationEditing.save(settings)
         set(settings.skinTone?.rawValue ?? "", forKey: skinToneKey)
+    }
+
+    private static let changed = "com.shahidy.hexkeyboard.settings"
+
+    /// Calls `handler` on the main queue each time the app keeps the settings, until the token is cancelled with
+    /// `Dictation.stopObserving`.
+    public static func observe(_ handler: @escaping @MainActor @Sendable () -> Void) -> Int32 {
+        var token: Int32 = 0
+        notify_register_dispatch(changed, &token, .main) { _ in
+            MainActor.assumeIsolated { handler() }
+        }
+        return token
     }
 
     public static func set(_ value: Bool, for path: WritableKeyPath<KeyboardSettings, Bool>, sharing: Bool = true) {

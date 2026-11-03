@@ -7,7 +7,7 @@ open class HexKeyboardViewController: UIInputViewController {
     private let keyboardView = KeyboardView()
     private var dictation = Dictation.Status()
     private var micIsOn = false
-    private var dictationTokens: [Int32] = []
+    private var observers: [Int32] = []
     private let suggestionBar = SuggestionBar()
     private let panelView = PanelView()
     private let toolbarView = UIView()
@@ -138,21 +138,20 @@ open class HexKeyboardViewController: UIInputViewController {
     override open func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         KeyboardHost.appeared()
-        engine.settings = SettingsStore.load(sharing: hasFullAccess)
         engine.corrector?.memory = MemoryStore.load()
         engine.emojiHistory = MemoryStore.loadEmoji()
-        engine.emojiHistory.skinTone = engine.settings.skinTone
-        haptics.strength = Float(engine.settings.haptics.strength)
+        loadSettings()
         if hasFullAccess { clipboard.catchUp() }
-        if hasFullAccess, dictationTokens.isEmpty {
-            dictationTokens = [
-                Dictation.observe(.changed) { [weak self] in self?.dictationChanged() },
-                Dictation.observeLevel { [weak self] in self?.suggestionBar.hear($0) },
-            ]
-            dictationChanged()
+        if observers.isEmpty {
+            observers = [SettingsStore.observe { [weak self] in self?.settingsChanged() }]
+            if hasFullAccess {
+                observers += [
+                    Dictation.observe(.changed) { [weak self] in self?.dictationChanged() },
+                    Dictation.observeLevel { [weak self] in self?.suggestionBar.hear($0) },
+                ]
+                dictationChanged()
+            }
         }
-        engine.suggestionsChanged()
-        keyboardView.characterPreview = engine.settings.characterPreview
         if hasFullAccess { sources.reload() }
         syncWithDocument()
     }
@@ -178,8 +177,23 @@ open class HexKeyboardViewController: UIInputViewController {
         TouchTrace.shared.flush()
         if let memory = engine.corrector?.memory { MemoryStore.save(memory, sharing: hasFullAccess) }
         MemoryStore.save(engine.emojiHistory)
-        dictationTokens.forEach(Dictation.stopObserving)
-        dictationTokens = []
+        observers.forEach(Dictation.stopObserving)
+        observers = []
+    }
+
+    private func loadSettings() {
+        engine.settings = SettingsStore.load(sharing: hasFullAccess)
+        engine.emojiHistory.skinTone = engine.settings.skinTone
+        haptics.strength = Float(engine.settings.haptics.strength)
+        keyboardView.characterPreview = engine.settings.characterPreview
+        engine.suggestionsChanged()
+    }
+
+    /// The app kept new settings while the keyboard is up, as beside it on the open iPhone Duo.
+    private func settingsChanged() {
+        loadSettings()
+        if hapticsEnabled { haptics.start() }
+        render()
     }
 
     override open func selectionDidChange(_ textInput: UITextInput?) {
