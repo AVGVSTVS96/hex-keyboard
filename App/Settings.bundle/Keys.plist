@@ -90,6 +90,22 @@
 		</dict>
 		<dict>
 			<key>FooterText</key>
+			<string>On the open iPhone Duo held wide, half the keys sit under each thumb. You can also hold 123 and slide, or tap … above the keys.</string>
+			<key>Type</key>
+			<string>PSGroupSpecifier</string>
+		</dict>
+		<dict>
+			<key>DefaultValue</key>
+			<false/>
+			<key>Key</key>
+			<string>split</string>
+			<key>Title</key>
+			<string>Split Keyboard</string>
+			<key>Type</key>
+			<string>PSToggleSwitchSpecifier</string>
+		</dict>
+		<dict>
+			<key>FooterText</key>
 			<string>Moves the keys toward one thumb while the iPhone is upright. You can also hold 123 and slide.</string>
 			<key>Type</key>
 			<string>PSGroupSpecifier</string>

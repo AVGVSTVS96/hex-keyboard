@@ -8,7 +8,7 @@
 	<array>
 		<dict>
 			<key>FooterText</key>
-			<string>A style sets capitals and punctuation. As Said types every word you say, um and uh too; Light leaves those out, and Clean also leaves out words said twice and what you take back with “scratch that”.</string>
+			<string>A style sets punctuation, and capitals follow Auto-Capitalization in Typing, with none in very casual. As Said types every word you say, um and uh too; Light leaves those out, and Clean also leaves out words said twice and what you take back with “scratch that”.</string>
 			<key>Title</key>
 			<string>Writing</string>
 			<key>Type</key>

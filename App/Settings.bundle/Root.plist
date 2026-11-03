@@ -8,7 +8,7 @@
 	<array>
 		<dict>
 			<key>FooterText</key>
-			<string>The same settings are in the Hex app, which also picks the voice model and adds sources.</string>
+			<string>The same settings are in the Hex app, which also picks the voice model, keeps your dictionary and adds sources.</string>
 			<key>Type</key>
 			<string>PSGroupSpecifier</string>
 		</dict>
@@ -40,7 +40,7 @@
 			<key>File</key>
 			<string>Feedback</string>
 			<key>Title</key>
-			<string>Feedback</string>
+			<string>Sound &amp; Haptics</string>
 			<key>Type</key>
 			<string>PSChildPaneSpecifier</string>
 		</dict>
