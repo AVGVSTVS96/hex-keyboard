@@ -94,7 +94,7 @@ The key, pressed and label colors are the iOS 27 theme (`KeyboardTheme`), which 
 
 Raycast's five, picked in the app (Keyboard › Theme) or Settings › Apps › Hex › Theme (`ThemeName`, `KeyboardTheme.named`), each read pixel by pixel off Raycast's keyboard and its app's preview on the iPhone Duo (full-resolution screenshots, Nov 2 2026). A theme paints the keys (`KeyPaint`: a face shading top to bottom, a pressed face, the label and its letterpress, a lit rim, a keycap's sides and glow, the shadow below); the bar, panels and mic stay on iOS's card and follow the app's light or dark. Callouts and accents take the letter keys' face.
 
-Every theme has Raycast's keys (`KeyShape`): continuous corners, 3.9 + 0.143 × a letter key's width (13.75 on the open Duo held wide, 11.75 on its side, 7.8 in Raycast's preview), and letters in SF Pro, rounder than Apple's SF Compact, 1.07 times Apple's size, with `123` at 0.67 of Apple's and symbols at 0.86. Labels are lowercase, as Raycast's are, and sit where they do on the plain keys whatever the theme.
+Every theme has Raycast's keys (`KeyShape`): continuous corners, 3.9 + 0.143 × a letter key's width (13.75 on the open Duo held wide, 11.75 on its side, 7.8 in Raycast's preview), and Apple's SF Compact letters 1.08 times Apple's size, with `123` at 0.67 of Apple's, 1.6 above the middle, and symbols at 0.86. Labels are lowercase, as Raycast's are, and sit where they do on the plain keys whatever the theme.
 
 | Theme | Letter keys | Function keys | Notes |
 |---|---|---|---|
@@ -103,7 +103,7 @@ Every theme has Raycast's keys (`KeyShape`): continuous corners, 3.9 + 0.143 × 
 | Clear | no fill; label in the label color; pressed: the label color at 16% | the same | glyphs only |
 | Physical, dark | `#0B0B0B`→`#050505`, white label; a ⅓ pt rim, white 15% at the top, gone a quarter of the way down | the same | |
 | Physical, light | `#F8F8F8`, label `#2C2C2C`; a ⅓ pt rim, white 60%, gone a tenth of the way down | the same | |
-| Mechanical, dark | face `#171717`→`#202020` inside sides `#171717`→`#0E0E0E` (80%)→`#0D0D0D`, lit by a glow of white 10.8% from the middle of the top edge, 0.93 of the key's height across | the same | the face sits 10.5% of the key's height below its top, 9.7% in from its sides and 15% above its bottom, with corners 37% of the key's |
+| Mechanical, dark | face `#171717`→`#202020` inside sides `#171717`→`#0E0E0E` (80%)→`#0D0D0D`, lit by a glow of white 12% from the middle of the top edge, 0.93 of the key's height across | the same | the face sits 9.3% of the key's height below its top, 9.7% in from its sides and 15% above its bottom, with corners 65% of the key's |
 | Mechanical, light | face `#FAFAFA`→`#E5E5E5` inside sides `#E0E0E0`→`#DBDBDB`, glow white 23%; label `#2A2A29` | the same | |
 | iOS 5 | `#F4F4F4`→`#C6C7CB`, black label over a white line 1 pt below it | `#9DA3AB`→`#70757D`, white label under a black 55% line 1 pt above it; a ⅔ pt rim, white 14%, gone a fifth of the way down | every key casts black 30%, 1 pt down, 1.5 blurred; a prominent return stays blue (`#609CF5`→`#2462D8`), which Raycast's screenshots don't show |
 

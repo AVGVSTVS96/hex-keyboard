@@ -107,7 +107,7 @@ public struct Keycap: Hashable, Sendable {
 
     /// The face's inset from the key's edges and how far the glow reaches, as shares of the key's height, and its corners
     /// as a share of the key's.
-    public static let faceTop = 0.105, faceSide = 0.097, faceBottom = 0.15, glowReach = 0.93, faceCorner = 0.37
+    public static let faceTop = 0.093, faceSide = 0.097, faceBottom = 0.15, glowReach = 0.93, faceCorner = 0.65
 }
 
 /// A shadow below a key, `y` down and `blur` wide.
@@ -123,12 +123,12 @@ public struct Drop: Hashable, Sendable {
 }
 
 /// Raycast's keys, on every theme: continuous corners as round as `cornerBase` plus `cornerPerWidth` of a letter key's
-/// width (measured on the open Duo upright and on its side, and in its app's preview), letters in SF Pro, rounder than
-/// Apple's SF Compact, and letters, labels (`123`) and symbols at these shares of Apple's sizes.
+/// width (measured on the open Duo upright and on its side, and in its app's preview), letters, labels (`123`) and
+/// symbols at these shares of Apple's sizes, and labels `labelLift` points above the middle.
 public struct KeyShape: Hashable, Sendable {
-    public static let raycast = KeyShape(cornerBase: 3.9, cornerPerWidth: 0.143, letterScale: 1.07, labelScale: 0.67, symbolScale: 0.86)
+    public static let raycast = KeyShape(cornerBase: 3.9, cornerPerWidth: 0.143, letterScale: 1.08, labelScale: 0.67, symbolScale: 0.86, labelLift: 1.6)
 
-    public var cornerBase, cornerPerWidth, letterScale, labelScale, symbolScale: Double
+    public var cornerBase, cornerPerWidth, letterScale, labelScale, symbolScale, labelLift: Double
 
     public func cornerRadius(letterWidth: Double) -> Double { cornerBase + cornerPerWidth * letterWidth }
 }
@@ -170,7 +170,7 @@ extension KeyboardTheme {
             theme.letterKey = darkKeys
                 ? KeyPaint(
                     top: .rgb(23, 23, 23), bottom: .rgb(32, 32, 32), pressedTop: .rgb(17, 17, 17), pressedBottom: .rgb(24, 24, 24), label: .white,
-                    keycap: Keycap(sides: [Stop(.rgb(23, 23, 23), at: 0), Stop(.rgb(14, 14, 14), at: 0.8), Stop(.rgb(13, 13, 13), at: 1)], glow: RGBA(white: 1, alpha: 0.108))
+                    keycap: Keycap(sides: [Stop(.rgb(23, 23, 23), at: 0), Stop(.rgb(14, 14, 14), at: 0.8), Stop(.rgb(13, 13, 13), at: 1)], glow: RGBA(white: 1, alpha: 0.12))
                 )
                 : KeyPaint(
                     top: .rgb(250, 250, 250), bottom: .rgb(229, 229, 229), pressedTop: .rgb(232, 232, 232), pressedBottom: .rgb(214, 214, 214),
