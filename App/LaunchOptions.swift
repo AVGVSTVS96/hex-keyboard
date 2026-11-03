@@ -55,8 +55,8 @@ enum LaunchOptions {
         if defaults.object(forKey: "HexCompactPanels") != nil { SettingsStore.set(defaults.bool(forKey: "HexCompactPanels"), for: \.compactPanels) }
     }
 
-    /// `-HexTheme mechanical -HexThemeAppearance dark -HexCharacterPreview detached -HexNumberRow YES -HexSkinTone medium`
-    /// set the keyboard's look for screenshots.
+    /// `-HexTheme mechanical -HexThemeAppearance dark -HexCharacterPreview detached -HexNumberRow YES -HexSkinTone medium
+    /// -HexKeySpacing tightest` set the keyboard's look for screenshots.
     static func applyLook() {
         var settings = SettingsStore.load()
         if let theme = defaults.string(forKey: "HexTheme").flatMap(ThemeName.init) { settings.theme = theme }
@@ -64,6 +64,7 @@ enum LaunchOptions {
         if let preview = defaults.string(forKey: "HexCharacterPreview").flatMap(CharacterPreview.init) { settings.characterPreview = preview }
         if defaults.object(forKey: "HexNumberRow") != nil { settings.numberRow = defaults.bool(forKey: "HexNumberRow") }
         if let tone = defaults.string(forKey: "HexSkinTone") { settings.skinTone = SkinTone(rawValue: tone) }
+        if let spacing = defaults.string(forKey: "HexKeySpacing").flatMap(KeySpacing.init) { settings.keySpacing = spacing }
         if settings != SettingsStore.load() { SettingsStore.save(settings) }
     }
 
