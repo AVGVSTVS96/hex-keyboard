@@ -1,16 +1,16 @@
 #!/bin/bash
 # Runs a command on the Mac with Xcode 27.1 (the SDK the phone build uses, which gives the iPhone Duo its vertical bar)
 # in the first free of the Mac's slots, so up to three runs go at once and the rest wait for one to free up. The Mac
-# runs at most three simulators, so one something else has booted (another project's) takes a slot away. Each slot
+# runs at most three simulators, so one another project has booted takes a slot away. Each slot
 # has its own folder (~/Developer/hex-keyboard-slot<n>, where this tree is synced) and its own simulators (hexkb<n> …),
 # shut down when the run ends. Screenshots the command takes are copied back to shots/raw/. scripts/verify tests what
 # landed: for it, main's last commit is synced from its own worktree (../hex-keyboard-main), not this checkout's tree.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 slot='
-import fcntl, json, re, subprocess, sys, threading
+import fcntl, json, subprocess, sys, threading
 booted = json.loads(subprocess.run(["xcrun", "simctl", "list", "devices", "booted", "-j"], capture_output=True).stdout or "{}")
-others = sum(not re.match(r"hexkb[123] ", d["name"]) for ds in booted.get("devices", {}).values() for d in ds)
+others = sum(not d["name"].startswith("hexkb") for ds in booted.get("devices", {}).values() for d in ds)
 slots = [open(f"/tmp/hexkb-slot{n}.lock", "a") for n in range(1, max(1, 3 - others) + 1)]
 def take(f, block):
     try:
