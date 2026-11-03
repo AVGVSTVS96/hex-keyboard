@@ -45,7 +45,6 @@ public final class KeyHaptics {
 
     private var engine: CHHapticEngine?
     private var players: [Kind: CHHapticPatternPlayer] = [:]
-    private var running = false
     /// A share of Apple's intensity (`HapticFeedback.strength`).
     public var strength: Float = 1 {
         didSet {
@@ -54,19 +53,24 @@ public final class KeyHaptics {
         }
     }
 
+    /// Starts the engine without waiting for it, so the keyboard appears and the first tap finds it running.
     public func start() {
         if engine == nil { engine = makeEngine() }
-        guard let engine, !running else { return }
-        running = (try? engine.start()) != nil
+        engine?.start(completionHandler: nil)
     }
 
     public func stop() {
-        engine?.stop()
-        running = false
+        engine?.stop(completionHandler: nil)
     }
 
+    /// Whether the engine runs is known only by playing: iOS stops it for reasons of its own, resets it, or finishes a
+    /// stop after the next start, so a tap that fails restarts the engine with new players and plays again.
     public func play(_ kind: Kind) {
-        start()
+        if engine == nil { engine = makeEngine() }
+        guard let engine, (try? players[kind]?.start(atTime: CHHapticTimeImmediate)) == nil else { return }
+        TouchTrace.shared.mark("haptics restarted")
+        try? engine.start()
+        players = Self.players(on: engine, strength: strength)
         try? players[kind]?.start(atTime: CHHapticTimeImmediate)
     }
 
@@ -74,20 +78,11 @@ public final class KeyHaptics {
         guard CHHapticEngine.capabilitiesForHardware().supportsHaptics, let engine = try? CHHapticEngine() else { return nil }
         engine.playsHapticsOnly = true
         engine.isAutoShutdownEnabled = false
-        engine.stoppedHandler = { @Sendable [weak self] reason in
-            Task { @MainActor in
-                self?.running = false
-                TouchTrace.shared.mark("haptics stopped \(reason.rawValue)")
-            }
+        engine.stoppedHandler = { @Sendable reason in
+            Task { @MainActor in TouchTrace.shared.mark("haptics stopped \(reason.rawValue)") }
         }
-        engine.resetHandler = { @Sendable [weak self] in
-            Task { @MainActor in
-                guard let self, let engine = self.engine else { return }
-                TouchTrace.shared.mark("haptics reset")
-                self.running = false
-                self.players = Self.players(on: engine, strength: self.strength)
-                self.start()
-            }
+        engine.resetHandler = { @Sendable in
+            Task { @MainActor in TouchTrace.shared.mark("haptics reset") }
         }
         players = Self.players(on: engine, strength: strength)
         return engine
