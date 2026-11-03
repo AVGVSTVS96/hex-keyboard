@@ -163,7 +163,7 @@ public struct TypingEngine {
             perform(.character(text), in: document)
             if self.layer == layer { perform(.layer(.letters), in: document) }
         case .trigger(let key) where key.action == .emoji:
-            show(.emoji)
+            show(panel == .emoji ? nil : .emoji)
         case .trigger(let key):
             guard key.action == .return || key.action == .tab else { return false }
             perform(key.action, in: document)

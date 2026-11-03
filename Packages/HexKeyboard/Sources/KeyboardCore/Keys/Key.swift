@@ -13,7 +13,7 @@ public enum KeyAction: Hashable, Sendable {
     case layer(KeyboardLayer)
     case nextKeyboard
     case dismiss
-    /// Opens the emoji panel.
+    /// Opens the emoji panel, or closes it when it's open.
     case emoji
 }
 

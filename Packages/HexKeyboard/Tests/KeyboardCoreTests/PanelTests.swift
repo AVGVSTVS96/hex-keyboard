@@ -12,6 +12,15 @@ struct PanelTests {
     🍔\t310\thamburger|burger
     """)
 
+    @Test func theEmojiKeyOpensThePickerAndClosesIt() {
+        var engine = TypingEngine()
+        let document = TestDocument("hi ")
+        engine.handle(.trigger(Key(.emoji)), in: document)
+        #expect(engine.panel == .emoji)
+        engine.handle(.trigger(Key(.emoji)), in: document)
+        #expect(engine.panel == nil)
+    }
+
     @Test func theKeysTypeIntoTheSearchWhileAPanelIsOpenAndReturnClosesIt() {
         var engine = TypingEngine()
         let document = TestDocument("hi ")
