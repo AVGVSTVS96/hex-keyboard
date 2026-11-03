@@ -119,6 +119,7 @@ open class HexKeyboardViewController: UIInputViewController {
         }
         keyboardView.resolve = { [unowned self] grid, point in engine.key(atX: point.x, y: point.y, in: grid) }
         keyboardView.onGrid = { [unowned self] in engine.use($0) }
+        keyboardView.advance = { [unowned self] step in HostLayout.width(of: engine.character(crossedBy: step)) }
         keyboardView.globeTarget = { [unowned self] control in
             control.addTarget(self, action: #selector(handleInputModeList(from:with:)), for: .allTouchEvents)
         }

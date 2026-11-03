@@ -6,6 +6,9 @@ final class KeyboardView: UIView {
     var onGrid: (KeyGrid) -> Void = { _ in }
     var resolve: (KeyGrid, CGPoint) -> (row: Int, key: Int)? = { grid, point in grid.index(atX: point.x, y: point.y) }
     var globeTarget: ((UIControl) -> Void)?
+    /// How far the space bar trackpad's finger travels to move the caret one character, -1 left or 1 right: the width
+    /// of the character it crosses.
+    var advance: (Int) -> CGFloat = { _ in HostLayout.width(of: nil) }
 
     private(set) var layout = KeyboardLayout(rows: [])
     private(set) var signature = ""

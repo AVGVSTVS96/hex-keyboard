@@ -12,6 +12,14 @@ struct HostLayout: LineLayout {
     /// How far a finger on the space bar moves for the caret to move a line, as far as a line is tall.
     static var lineHeight: CGFloat { font.lineHeight }
 
+    /// How far it moves for the caret to cross a character, as wide as the character is, as Apple's trackpad keeps the
+    /// caret under the finger. A line break is as wide as a space, and so is a character the keyboard can't see (nil):
+    /// hosts show only the caret's paragraph, so that is most often the line break at its edge.
+    static func width(of character: Character?) -> CGFloat {
+        let shown = character.map { $0.isNewline ? " " : String($0) } ?? " "
+        return (shown as NSString).size(withAttributes: [.font: font]).width
+    }
+
     func carets(in paragraph: String) -> [Caret] {
         let storage = NSTextStorage(string: paragraph, attributes: [.font: font])
         let manager = NSLayoutManager()

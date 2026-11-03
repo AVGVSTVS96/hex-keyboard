@@ -52,12 +52,13 @@ extension KeyboardView {
             case .alternates, .menu:
                 alternates.track(point)
             case .trackpad:
-                let column: CGFloat = 9, line = HostLayout.lineHeight
-                let offset = Int((point.x - tracked.lastCursor.x) / column)
-                if offset != 0 {
-                    tracked.lastCursor.x += CGFloat(offset) * column
-                    onEvent(.cursor(offset: offset))
+                while true {
+                    let step = point.x > tracked.lastCursor.x ? 1 : -1, width = advance(step)
+                    guard abs(point.x - tracked.lastCursor.x) >= width else { break }
+                    tracked.lastCursor.x += CGFloat(step) * width
+                    onEvent(.cursor(offset: step))
                 }
+                let line = HostLayout.lineHeight
                 let lines = Int((point.y - tracked.lastCursor.y) / line)
                 if lines != 0 {
                     tracked.lastCursor.y += CGFloat(lines) * line

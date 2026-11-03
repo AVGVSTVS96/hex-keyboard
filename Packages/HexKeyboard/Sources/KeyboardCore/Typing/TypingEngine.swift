@@ -256,6 +256,12 @@ public struct TypingEngine {
         suggestionsChanged()
     }
 
+    /// The character the caret would cross moving one step, -1 left or 1 right, when the engine knows the text there.
+    public func character(crossedBy step: Int) -> Character? {
+        guard panel == nil, text.isKnown else { return nil }
+        return step < 0 ? text.before.last : text.after?.first
+    }
+
     mutating func moveCaret(by offset: Int, in document: some TextDocument) {
         document.moveCursor(by: offset)
         text.moveCursor(by: offset)
