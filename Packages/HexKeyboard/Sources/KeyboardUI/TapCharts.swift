@@ -2,7 +2,8 @@ import UIKit
 import KeyboardCore
 
 /// How densely taps land across the keyboard: each key's learned Gaussian, weighted by its taps, summed, drawn on one
-/// blue ramp that darkens (light) or brightens (dark) with density, on a square-root scale so rare keys still show.
+/// blue ramp that darkens (light) or brightens (dark) with density, on a square-root scale so rare keys still show, and
+/// full at the densest 0.5%, so the space bar's narrow, crowded spot doesn't leave every letter faint.
 public enum TapHeat {
     static let pixelsPerPoint = 2.0
 
@@ -41,10 +42,12 @@ public enum TapHeat {
                 }
             }
         }
-        guard let peak = density.max(), peak > 0 else { return nil }
+        let lit = density.filter { $0 > 0 }.sorted()
+        guard let top = lit.last, top > 0 else { return nil }
+        let peak = lit[Int(Double(lit.count - 1) * 0.995)]
         var pixels = [UInt8](repeating: 0, count: width * height * 4)
         for index in density.indices where density[index] > 0 {
-            let (r, g, b, a) = rgba(at: (density[index] / peak).squareRoot(), isDark: isDark)
+            let (r, g, b, a) = rgba(at: min(density[index] / peak, 1).squareRoot(), isDark: isDark)
             pixels[index * 4] = UInt8(r * a * 255)
             pixels[index * 4 + 1] = UInt8(g * a * 255)
             pixels[index * 4 + 2] = UInt8(b * a * 255)
@@ -119,7 +122,7 @@ public final class TapCloseUpView: UIView {
                 .font: UIFont.systemFont(ofSize: isTarget ? 17 : 15, weight: isTarget ? .semibold : .regular),
                 .foregroundColor: isTarget ? UIColor.label : UIColor.secondaryLabel,
             ])
-            name.draw(at: CGPoint(x: rect.minX + 9, y: rect.minY + 6))
+            name.draw(at: CGPoint(x: max(rect.minX, bounds.minX) + 9, y: max(rect.minY, bounds.minY) + 6))
         }
 
         let target = keyRect(aim.frame)

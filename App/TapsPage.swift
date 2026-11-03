@@ -76,7 +76,7 @@ struct TapsPage: View {
             MapView(board: board, revision: model.revision, mode: mode, selected: model.selected) { key in
                 withAnimation(.snappy(duration: 0.25)) { model.selected = key }
             }
-            .frame(maxWidth: .infinity)
+            .frame(maxWidth: .infinity, alignment: .leading)
             Legend(mode: mode, hasSelection: model.selected != nil)
                 .padding(.horizontal, 4)
         }
@@ -359,7 +359,7 @@ private struct Numbers: View {
         let figures = [
             Figure(value: summary.taps.formatted(), label: "taps"),
             Figure(value: TapMapPalette.percent(summary.onTarget), label: "on target"),
-            Figure(value: summary.lately.map { TapMapPalette.percent($0.share) } ?? "–", label: summary.lately.map { "last \($0.count.formatted())" } ?? "lately"),
+            Figure(value: summary.lately.map { TapMapPalette.percent($0.share) } ?? "–", label: summary.lately.map { "last \($0.count.formatted()) taps" } ?? "lately"),
             Figure(value: String(format: "%.1f pt", summary.offCenter), label: "off center"),
         ]
         Card {
@@ -508,10 +508,11 @@ private struct KeyDetail: View {
 
     var body: some View {
         Card {
-            HStack(alignment: .top, spacing: 16) {
+            HStack(alignment: .top, spacing: 24) {
                 Keycap(key: aim.key, size: 56)
-                Figure(value: TapMapPalette.percent(aim.onTarget), label: "on target")
-                Figure(value: aim.taps.formatted(), label: aim.taps == 1 ? "tap" : "taps")
+                Figure(value: TapMapPalette.percent(aim.onTarget), label: "on target").fixedSize()
+                Figure(value: aim.taps.formatted(), label: aim.taps == 1 ? "tap" : "taps").fixedSize()
+                Spacer(minLength: 0)
                 Button(action: close) {
                     Image(systemName: "xmark")
                         .font(.footnote.weight(.bold))
@@ -661,7 +662,7 @@ private struct MemoryBar: View {
             HStack(spacing: 14) {
                 ForEach(weights.indices, id: \.self) { index in
                     HStack(spacing: 5) {
-                        Image(uiImage: TapGlyph.memory(index).image(color: .label, surface: HexStyle.card))
+                        MemoryMark(index: index)
                         Text("\(Self.names[index]) \(TapMapPalette.percent(weights[index]))").monospacedDigit()
                     }
                 }
@@ -671,6 +672,22 @@ private struct MemoryBar: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(weights.indices.map { "\(Self.names[$0]) \(TapMapPalette.percent(weights[$0]))" }.joined(separator: ", "))
+    }
+}
+
+/// The close-up's mark for one of a key's three memories, drawn as it draws them.
+private struct MemoryMark: View {
+    let index: Int
+
+    var body: some View {
+        Group {
+            if index < 2 {
+                Circle().strokeBorder(Color.primary, lineWidth: 1.75).frame(width: index == 0 ? 13.5 : 9.5)
+            } else {
+                Circle().fill(Color.primary).frame(width: 5)
+            }
+        }
+        .frame(width: 14, height: 14)
     }
 }
 
@@ -718,7 +735,7 @@ private struct Target: View {
             let center = CGPoint(x: radius, y: size.height / 2)
             let scale = (radius - 7) / reach
             context.fill(Path(ellipseIn: CGRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2)), with: .color(Color(TapMapPalette.backdrop)))
-            for ring in stride(from: 1.0, through: reach, by: 1) {
+            for ring in [reach / 2, reach] {
                 let r = ring * scale
                 context.stroke(Path(ellipseIn: CGRect(x: center.x - r, y: center.y - r, width: r * 2, height: r * 2)), with: .color(Color.hexSecondary.opacity(0.22)), lineWidth: 1)
             }
