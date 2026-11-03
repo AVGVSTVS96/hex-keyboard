@@ -166,11 +166,13 @@ import UIKit
         onChange?()
     }
 
-    /// Mixes with whatever else is playing, so music keeps going while you talk.
+    /// Mixes with whatever else is playing, so music keeps going while you talk. While any app records, iOS mutes every
+    /// app's haptics, the keyboard's included, unless the recording session allows them.
     private func openMic() throws {
         guard micLock == nil else { return }
         let session = AVAudioSession.sharedInstance()
         try session.setCategory(.playAndRecord, options: [.mixWithOthers, .allowBluetoothHFP, .defaultToSpeaker])
+        try? session.setAllowHapticsAndSystemSoundsDuringRecording(true)
         try session.setActive(true)
         let node = engine.inputNode
         node.installTap(onBus: 0, bufferSize: 4096, format: node.outputFormat(forBus: 0), block: Self.tap(feed) { level in
