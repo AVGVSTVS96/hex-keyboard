@@ -1,14 +1,13 @@
 import SwiftUI
 
-/// How a page uses the screen it's on. The iPhone Duo open and upright (951 × 669) and the cover on its side
-/// (678 × 466) are wider than tall: two panes side by side, split at the window's middle, which on the open screen is
-/// the hinge. Open on its side (669 × 951) the hinge runs across: one pane above it, one below. The cover held upright
-/// is a phone: one column.
+/// How a page uses the screen it's on. Wider than tall (the iPhone Duo open and wide, 951 × 669, or the cover on its
+/// side, 678 × 466), a page has two columns, as an iPad's split view does. Taller than wide (the cover, or the open
+/// screen held tall, 669 × 951), it is one column that scrolls as one, across the fold, as every iOS app's does there.
 enum Arrangement {
-    case side, stacked, single
+    case side, single
 
     init(window: CGSize) {
-        self = if window.width > window.height { .side } else if window.height >= 900 { .stacked } else { .single }
+        self = window.width > window.height ? .side : .single
     }
 }
 
@@ -49,11 +48,10 @@ private struct WindowReader: ViewModifier {
     }
 }
 
-/// Two panes: side by side when the window is wide, one above the other when the open Duo is on its side. On the open
-/// screen they meet at the window's middle, so neither runs across the hinge; on the cover on its side, which has no
-/// hinge, `first` takes `share` of the width. On a phone-shaped window they stack in one column.
+/// Two columns with a hairline between, each its own page with its own header, scrolling on its own. On the open Duo
+/// the line sits on the hinge; on the cover, which has none, `first` takes `share` of the width. In one column they
+/// follow each other.
 struct Panes<First: View, Second: View>: View {
-    var gutter: CGFloat = 36
     var share: CGFloat = 0.5
     @ViewBuilder var first: First
     @ViewBuilder var second: Second
@@ -61,27 +59,20 @@ struct Panes<First: View, Second: View>: View {
     @Environment(\.arrangement) private var arrangement
 
     var body: some View {
-        GeometryReader { proxy in
-            let frame = proxy.frame(in: .global)
-            switch arrangement {
-            case .side:
-                let hinge = window.width >= 900 ? window.width / 2 - frame.minX : proxy.size.width * share
-                let split = max(hinge - gutter / 2, 0)
-                HStack(spacing: gutter) {
-                    first.frame(width: split)
+        switch arrangement {
+        case .side:
+            GeometryReader { proxy in
+                let hinge = window.width >= 900 ? window.width / 2 - proxy.frame(in: .global).minX : proxy.size.width * share
+                HStack(spacing: 0) {
+                    first.frame(width: max(hinge - 0.5, 0))
+                    Rectangle().fill(Color.hexDivider).frame(width: 1).ignoresSafeArea(edges: .vertical)
                     second.frame(maxWidth: .infinity)
                 }
-            case .stacked:
-                let split = max(window.height / 2 - frame.minY - gutter / 2, 0)
-                VStack(spacing: gutter) {
-                    first.frame(height: split)
-                    second.frame(maxHeight: .infinity)
-                }
-            case .single:
-                VStack(spacing: gutter) {
-                    first
-                    second
-                }
+            }
+        case .single:
+            VStack(spacing: 28) {
+                first
+                second
             }
         }
     }

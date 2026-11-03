@@ -77,17 +77,17 @@ struct HomeView: View {
     var body: some View {
         Group {
             switch arrangement {
-            case .side, .stacked:
+            case .side:
                 Panes(share: 0.44) {
                     VStack(alignment: .leading, spacing: 20) {
                         header
-                        tryIt.frame(maxHeight: arrangement == .side ? 300 : .infinity)
+                        tryIt.frame(maxHeight: 300)
                         Spacer(minLength: 0)
                     }
                     .padding(.horizontal, 16)
                     .padding(.top, 12)
                 } second: {
-                    Column(top: arrangement == .side ? 12 : 0) {
+                    Column(top: 12) {
                         if !status.isSetUp { setUp }
                         tiles
                     }

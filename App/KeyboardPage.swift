@@ -26,7 +26,7 @@ struct KeyboardPage: View {
     var body: some View {
         Group {
             switch arrangement {
-            case .side, .stacked:
+            case .side:
                 Panes(share: 0.42) {
                     VStack(alignment: .leading, spacing: 0) {
                         PageTitle(title: "Keyboard")
@@ -37,12 +37,13 @@ struct KeyboardPage: View {
                     }
                     .padding(.horizontal, 16)
                 } second: {
-                    VStack(alignment: .leading, spacing: 14) {
-                        Pills(items: Tab.allCases, selection: $router.keyboardPage, title: \.title)
-                            .padding(.top, arrangement == .side ? 12 : 0)
-                            .padding(.horizontal, 12)
-                        Column(top: 4) { content }
-                    }
+                    Column(top: 4) { content }
+                        .safeAreaBar(edge: .top) {
+                            Pills(items: Tab.allCases, selection: $router.keyboardPage, title: \.title)
+                                .padding(.top, 12)
+                                .padding(.horizontal, 12)
+                                .padding(.bottom, 10)
+                        }
                 }
             case .single:
                 ScrollView {

@@ -216,7 +216,7 @@ Hex links against the iOS 27.1 SDK, so on the iPhone Duo iOS puts the status bar
 Every page knows which of the Duo's screens it's on (`Arrangement`):
 
 ```
-open, upright 951 × 669         open, on its side 669 × 951     cover 466 × 678
+open, upright 951 × 669         open, held tall 669 × 951     cover 466 × 678
 ┌───────────┬────────────┬─┐    ┌──────────────────────┐        ┌───────────┬─┐
 │ Keyboard  │ (Theme)Typ │ │    │ Keyboard             │        │ Keyboard  │ │
 │ ┌───────┐ │ ┌────────┐ │⌂│    │ ┌──────────────────┐ │        │ ┌───────┐ │⌂│
@@ -228,9 +228,8 @@ open, upright 951 × 669         open, on its side 669 × 951     cover 466 × 6
                                 └──────────────────────┘        └───────────┴─┘
 ```
 
-- Wider than tall (the open screen upright, the cover on its side): two panes side by side (`Panes`). On the open screen they meet at the window's middle, the hinge, 36 apart; on the cover, which has no hinge, the first takes the share its page asks for (0.42 for Keyboard, 0.44 for Hex).
-- The open screen on its side: one pane above the hinge, one below.
-- The cover upright: one column.
+- Wider than tall (the open screen held wide, the cover on its side): two columns, as an iPad's split view, with a hairline between them and each with its own header, each scrolling on its own (`Panes`). On the open screen the line sits on the hinge; on the cover, which has no hinge, the first column takes the share its page asks for (0.42 for Keyboard, 0.44 for Hex). A header over scrolling content is a `safeAreaBar`, so content fades under it as under a navigation bar instead of being cut.
+- Taller than wide (the cover upright, the open screen held tall): one column that scrolls as one, across the fold, as every iOS app's does on that screen; a list's item opens on its own page. Halves that scroll apart, split at the fold, read as one page cut in two.
 
 - **Hex**: the mark, "Hex" and whether the keyboard is on (green "On, with Full Access", yellow without it, orange "Not added yet" with Turn On); a field to try it (a `UITextView`, which the UI tests type into); Set Up, the three switches iOS keeps (Add Hex, Allow Full Access, Paste from Other Apps), each checked once the keyboard has seen it on, until all three are; and four tiles: words dictated today (opens Voice's transcripts), taps learned (opens Your Taps), Theme (opens Keyboard's) and Voice Model (opens Voice's settings). Wide, the header and field take the first pane, Set Up and the tiles the second, so the field stays above the keys.
 - **Keyboard**: Raycast's Keyboard page. Hex drawn as it will look with these settings (`KeyboardPreviewView`) over "Tap to try", which swaps the drawing for a field so the real keyboard comes up; and four pills, each one question:

@@ -40,20 +40,20 @@ struct VoicePage: View {
         return days
     }
 
-    private var beside: Bool { arrangement != .single }
+    private var beside: Bool { arrangement == .side }
 
     var body: some View {
         NavigationStack {
             Group {
                 if beside {
                     Panes {
-                        VStack(alignment: .leading, spacing: 10) {
-                            header
+                        Group {
                             if router.voicePage == .transcripts { list } else { usage }
                         }
+                        .safeAreaBar(edge: .top) { header }
                     } second: {
                         if router.voicePage == .settings {
-                            Column(top: arrangement == .side ? 12 : 0) { VoiceSettings() }
+                            Column(top: 12) { VoiceSettings() }
                         } else if let transcript = store.all.first(where: { $0.id == (selected ?? store.all.first?.id) }) {
                             TranscriptDetail(transcript: transcript, beside: true)
                         } else {
@@ -61,10 +61,10 @@ struct VoicePage: View {
                         }
                     }
                 } else {
-                    VStack(alignment: .leading, spacing: 10) {
-                        header
+                    Group {
                         if router.voicePage == .transcripts { list } else { Column(top: 4) { VoiceSettings() } }
                     }
+                    .safeAreaBar(edge: .top) { header }
                 }
             }
             .hexPage()
@@ -97,6 +97,7 @@ struct VoicePage: View {
         }
         .padding(.horizontal, 16)
         .padding(.top, 8)
+        .padding(.bottom, 10)
     }
 
     /// Beside the settings: how much you've dictated, and which model writes it.
