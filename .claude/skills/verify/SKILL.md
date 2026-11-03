@@ -46,3 +46,4 @@ Quote the summary lines each command prints: the test counts, the `EVAL` diff or
 - The simulator merges overlapping synthesized fingers into one sliding finger, so overlap at speed is covered by `TouchReplayTests` (package tests), not by `FastTypingTests`.
 - `scripts/eval` runs a Release build; the decoder is too slow in Debug for the numbers to finish in reasonable time.
 - Run one xcodebuild test at a time per simulator; two runs on the same `hexkb` device collide.
+- Taps from outside the simulator (axe, simctl) never reach a keyboard, Apple's or Hex's, and on the iPhone Duo screenshots taken inside a UI test come out black in landscape and on the open screen. Drive keyboards from a UI test and read key frames from `app.debugDescription`, as `AppleSplitShots` does for Apple's split (`TEST_RUNNER_HEX_SPLIT_SHOTS=<prefix>`, `-only-testing:HexUITests/AppleSplitShots`).
