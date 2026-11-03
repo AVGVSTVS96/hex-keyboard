@@ -44,6 +44,7 @@ final class SuggestionBar: UIView {
         }
         dividers.forEach(addSubview)
         more.setImage(UIImage(systemName: "ellipsis"), for: .normal)
+        more.transform = CGAffineTransform(rotationAngle: .pi / 2)
         more.showsMenuAsPrimaryAction = true
         more.isHidden = true
         more.accessibilityIdentifier = "hex.more"
@@ -120,7 +121,7 @@ final class SuggestionBar: UIView {
         tools.forEach { $0.theme = theme }
     }
 
-    /// Apple's More button at the bar's far left, where the keys can split.
+    /// The More button after the tools, its dots upright.
     func update(more menu: UIMenu?) {
         more.menu = menu
         if more.isHidden != (menu == nil) {
@@ -171,12 +172,14 @@ final class SuggestionBar: UIView {
         let scale = traitCollection.displayScale
         let layout = BarLayout(
             toolbar, width: bounds.width, screenInset: screenInset, block: (block.minX, block.maxX), topInset: topInset,
-            tools: tools.count + (more.isHidden ? 0 : 1), emoji: emoji.count, maximumSlot: maximumSlotWidth
+            tools: tools.count, more: !more.isHidden, emoji: emoji.count, maximumSlot: maximumSlotWidth
         )
         mic.frame = CGRect(layout.mic)
-        let cells = layout.tools.map { CGRect($0) }
-        if !more.isHidden, let first = cells.first { more.frame = first }
-        for (tool, frame) in zip(tools, cells.dropFirst(more.isHidden ? 0 : 1)) { tool.frame = frame }
+        for (tool, frame) in zip(tools, layout.tools) { tool.frame = CGRect(frame) }
+        if let cell = layout.more.map({ CGRect($0) }) {
+            more.bounds = CGRect(x: 0, y: 0, width: cell.height, height: cell.width)
+            more.center = CGPoint(x: cell.midX, y: cell.midY)
+        }
         for (slot, frame) in zip(slots, layout.slots) {
             let minX = CGFloat(frame.x).rounded(scale: scale), maxX = CGFloat(frame.x + frame.width).rounded(scale: scale)
             slot.frame = CGRect(x: minX, y: frame.y, width: maxX - minX, height: frame.height)

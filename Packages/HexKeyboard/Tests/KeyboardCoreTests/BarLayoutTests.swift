@@ -34,12 +34,14 @@ struct BarLayoutTests {
         let block = (minX: metrics.margin.leading + metrics.sideInset, maxX: screen.window - metrics.margin.trailing - metrics.sideInset)
         // An iPhone's emoji open from the key beside space, so its bar has two tools at most.
         return Array(0...(screen.device == .phone ? 2 : 3)).flatMap { tools in
-            [0, 1, 4, 40].map { emoji in
-                let layout = BarLayout(
-                    metrics.toolbar, width: screen.window, screenInset: (screen.width - screen.window) / 2, block: block,
-                    topInset: metrics.topInset, tools: tools, emoji: emoji, maximumSlot: screen.device == .phone ? .infinity : 154.5
-                )
-                return (metrics, layout, "\(screen.name), \(tools) tools, \(emoji) emoji")
+            [false, true].flatMap { more in
+                [0, 1, 4, 40].map { emoji in
+                    let layout = BarLayout(
+                        metrics.toolbar, width: screen.window, screenInset: (screen.width - screen.window) / 2, block: block,
+                        topInset: metrics.topInset, tools: tools, more: more, emoji: emoji, maximumSlot: screen.device == .phone ? .infinity : 154.5
+                    )
+                    return (metrics, layout, "\(screen.name), \(tools) tools\(more ? " and More" : ""), \(emoji) emoji")
+                }
             }
         }
     }
@@ -69,16 +71,20 @@ struct BarLayoutTests {
     @Test func nothingOverlaps() {
         for screen in Self.screens {
             for (_, layout, label) in layouts(screen) {
-                var edge = layout.tools.first?.x ?? layout.minX
+                var edge = layout.tools.first?.x ?? layout.more?.x ?? layout.minX
                 #expect(edge >= 0, "\(label)")
                 for tool in layout.tools {
                     #expect(tool.x >= edge, "\(label)")
                     edge = tool.x + tool.width + BarLayout.gap
                 }
+                if let more = layout.more {
+                    #expect(near(more.x, edge) && near(more.width, layout.mic.width / 2) && more.y == layout.mic.y, "\(label): More is half a tool, after the tools")
+                    edge = more.x + more.width + BarLayout.gap
+                }
                 #expect(layout.minX >= edge - 0.001, "\(label)")
                 for slot in layout.slots {
                     #expect(slot.x >= layout.minX - 0.001 && slot.x + slot.width <= layout.maxX + 0.001, "\(label)")
-                    #expect(slot.width >= (screen.oneHanded == .off ? 85 : 59), "\(label): a suggestion has room (\(slot.width))")
+                    #expect(slot.width >= (screen.oneHanded == .off ? 79 : 53), "\(label): a suggestion has room (\(slot.width))")
                 }
                 #expect(layout.emoji.x >= layout.minX - 0.001 && layout.emoji.x + layout.emoji.width <= layout.maxX + 0.001, "\(label)")
                 if layout.emojiBeside {

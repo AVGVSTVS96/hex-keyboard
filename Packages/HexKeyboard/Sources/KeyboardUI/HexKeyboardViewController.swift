@@ -252,7 +252,7 @@ open class HexKeyboardViewController: UIInputViewController {
         keyboardView.menu = (context.menuKey(in: layout), context.menu, context.menuPick)
         keyboardView.update(layout: layout, signature: context.signature, metrics: metrics, faces: engine.faces(on: device), theme: theme)
         renderToolbar(metrics, device: device)
-        suggestionBar.update(more: context.allowsSplit ? moreMenu(context) : nil)
+        suggestionBar.update(more: moreMenu(context))
         renderSuggestions()
 
         let height = metrics.height(rows: layout.rows.count, hasNumberRow: layout.hasNumberRow)
@@ -286,7 +286,7 @@ open class HexKeyboardViewController: UIInputViewController {
         if toolbarHeightConstraint.constant != height { toolbarHeightConstraint.constant = height }
     }
 
-    /// Apple's More button on the open Duo held wide, offering what holding 123 does: the layouts, then Hex's settings.
+    /// The bar's More button, on every screen: the layouts holding 123 offers where there are any, then Hex's settings.
     private func moreMenu(_ context: LayoutContext) -> UIMenu {
         let action = { (item: KeyboardEvent) in
             UIAction(title: item.title, image: UIImage(systemName: item.symbol), state: item == context.menuPick ? .on : .off) { [unowned self] _ in
