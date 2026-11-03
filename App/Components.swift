@@ -88,58 +88,6 @@ struct Panes<First: View, Second: View>: View {
     }
 }
 
-extension View {
-    /// A page's header pinned over its scrolling content, as a navigation bar is: the content fades under it, and never
-    /// runs under the status bar.
-    func pinnedHeader(@ViewBuilder _ header: () -> some View) -> some View {
-        safeAreaBar(edge: .top) {
-            header()
-                .padding(.horizontal, 16)
-                .padding(.top, 8)
-                .padding(.bottom, 10)
-        }
-    }
-}
-
-/// A row of pills, the picked one filled: Raycast's tabs inside a page.
-struct Pills<Item: Hashable>: View {
-    let items: [Item]
-    @Binding var selection: Item
-    let title: (Item) -> String
-    @Namespace private var pill
-
-    var body: some View {
-        ScrollViewReader { reader in
-            ScrollView(.horizontal) {
-                HStack(spacing: 2) {
-                    ForEach(items, id: \.self) { item in
-                        let picked = item == selection
-                        Button {
-                            withAnimation(.snappy(duration: 0.28)) { selection = item }
-                        } label: {
-                            Text(title(item))
-                                .font(.body.weight(.medium))
-                                .foregroundStyle(picked ? Color.hexPillLabel : Color.hexSecondary)
-                                .padding(.horizontal, 13)
-                                .padding(.vertical, 8)
-                                .background {
-                                    if picked { Capsule().fill(Color.hexPill).matchedGeometryEffect(id: "pill", in: pill) }
-                                }
-                                .contentShape(.capsule)
-                        }
-                        .buttonStyle(.plain)
-                        .id(item)
-                        .accessibilityAddTraits(picked ? [.isSelected, .isButton] : .isButton)
-                    }
-                }
-                .padding(.horizontal, 2)
-            }
-            .scrollIndicators(.hidden)
-            .onChange(of: selection) { _, item in withAnimation { reader.scrollTo(item, anchor: .center) } }
-        }
-    }
-}
-
 /// A card of rows under a gray header and over a gray footer, rows split by inset hairlines.
 struct Box<Content: View>: View {
     var header: String? = nil
@@ -275,35 +223,6 @@ struct ChoiceRow<Extra: View>: View {
 extension ChoiceRow where Extra == EmptyView {
     init(title: String, detail: String? = nil, picked: Bool, pick: @escaping () -> Void) {
         self.init(title: title, detail: detail, picked: picked, pick: pick) { EmptyView() }
-    }
-}
-
-/// A row that opens a page, with what it holds in gray before the chevron.
-struct LinkRow<Destination: View>: View {
-    let title: String
-    var value: String? = nil
-    var symbol: (String, Color)? = nil
-    @ViewBuilder var destination: Destination
-
-    var body: some View {
-        NavigationLink {
-            destination
-        } label: {
-            HStack(spacing: 14) {
-                if let symbol { Glyph(symbol: symbol.0, color: symbol.1) }
-                Text(title).foregroundStyle(.primary)
-                Spacer()
-                if let value {
-                    Text(value).foregroundStyle(Color.hexSecondary)
-                }
-                Image(systemName: "chevron.right")
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(Color.hexSecondary)
-                    .accessibilityHidden(true)
-            }
-            .row()
-        }
-        .buttonStyle(.plain)
     }
 }
 

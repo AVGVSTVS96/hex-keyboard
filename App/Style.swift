@@ -37,13 +37,6 @@ private extension UITraitCollection {
     var isDark: Bool { userInterfaceStyle == .dark }
 }
 
-extension NSLayoutConstraint {
-    func withPriority(_ priority: UILayoutPriority) -> NSLayoutConstraint {
-        self.priority = priority
-        return self
-    }
-}
-
 extension Color {
     static let hexPage = Color(HexStyle.page)
     static let hexCard = Color(HexStyle.card)

@@ -19,13 +19,8 @@ enum LaunchOptions {
     static func route() {
         let router = Router.shared
         if defaults.bool(forKey: "HexTaps") { return router.show(.taps) }
-        if let page = defaults.string(forKey: "HexSettings") {
-            let aliases = ["keys": "layout", "sound": "feedback", "voice": "model", "setup": "access"]
-            return router.show(.settings, settings: SettingsPage.Page(rawValue: aliases[page] ?? page))
-        }
-        let aliases = ["voice": "transcripts", "keyboard": "settings", "more": "settings"]
-        let tab = defaults.string(forKey: "HexTab").map { aliases[$0] ?? $0 }
-        router.show(tab.flatMap(Router.Destination.init) ?? .home)
+        if let page = defaults.string(forKey: "HexSettings") { return router.show(.settings, settings: SettingsPage.Page(rawValue: page)) }
+        router.show(defaults.string(forKey: "HexTab").flatMap(Router.Destination.init) ?? .home)
     }
 
     static var tapsMode: TapMapView.Mode? {

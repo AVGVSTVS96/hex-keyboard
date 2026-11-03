@@ -3,7 +3,7 @@ import XCTest
 final class SettingsAppTests: XCTestCase {
     func testSettingsAppSharesSwitchesWithHex() throws {
         let hex = XCUIApplication()
-        hex.launchArguments = ["-HexResetSettings", "YES", "-HexSettings", "keys"]
+        hex.launchArguments = ["-HexResetSettings", "YES", "-HexSettings", "layout"]
         hex.launch()
         let inHex = hex.switches["Emoji Key"]
         XCTAssertTrue(inHex.waitForExistence(timeout: 5))
@@ -30,7 +30,7 @@ final class SettingsAppTests: XCTestCase {
         XCTAssertEqual(inSettings.value as? String, "0")
         settings.terminate()
 
-        hex.launchArguments = ["-HexSettings", "keys"]
+        hex.launchArguments = ["-HexSettings", "layout"]
         hex.launch()
         XCTAssertTrue(inHex.waitForExistence(timeout: 5))
         XCTAssertEqual(inHex.value as? String, "0")
