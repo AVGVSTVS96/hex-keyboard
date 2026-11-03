@@ -20,6 +20,7 @@ public enum SettingsStore {
         ("numberRow", \.numberRow),
         ("split", \.split),
         ("compactPanels", \.compactPanels),
+        ("dictationLists", \.dictationLists),
     ]
 
     /// The settings with a value picked from a list, each kept as its raw value. Character Preview and Haptic Feedback
@@ -28,12 +29,12 @@ public enum SettingsStore {
     private static let themeAppearance = Choice(key: "themeAppearance", path: \.themeAppearance)
     private static let characterPreview = Choice(key: "characterPreviewStyle", path: \.characterPreview, switchKey: "characterPreview", on: .attached, off: CharacterPreview.none)
     private static let haptics = Choice(key: "hapticFeedback", path: \.haptics, switchKey: "haptics", on: .standard, off: .off)
+    private static let dictationStyle = Choice(key: "dictationStyle", path: \.dictationStyle)
+    private static let dictationEditing = Choice(key: "dictationEditing", path: \.dictationEditing, switchKey: "keepsUmAndUh", on: .asSaid, off: .light)
     private static let skinToneKey = "skinTone"
 
     private static let oneHandedKey = "oneHanded"
     private static let keepMicOnKey = "keepMicOn"
-    private static let dictationStyleKey = "dictationStyle"
-    private static let keepsUmAndUhKey = "keepsUmAndUh"
 
     private static var group: UserDefaults { UserDefaults(suiteName: appGroup) ?? .standard }
     private static var own: UserDefaults { .standard }
@@ -48,6 +49,8 @@ public enum SettingsStore {
         themeAppearance.load(into: &settings, sharing: sharing)
         characterPreview.load(into: &settings, sharing: sharing)
         haptics.load(into: &settings, sharing: sharing)
+        dictationStyle.load(into: &settings, sharing: sharing)
+        dictationEditing.load(into: &settings, sharing: sharing)
         settings.skinTone = (value(forKey: skinToneKey, sharing: sharing) as? String).flatMap(SkinTone.init)
         return settings
     }
@@ -60,6 +63,8 @@ public enum SettingsStore {
         themeAppearance.save(settings)
         characterPreview.save(settings)
         haptics.save(settings)
+        dictationStyle.save(settings)
+        dictationEditing.save(settings)
         set(settings.skinTone?.rawValue ?? "", forKey: skinToneKey)
     }
 
@@ -76,18 +81,6 @@ public enum SettingsStore {
     public static var keepMicOn: Int {
         get { value(forKey: keepMicOnKey, sharing: true) as? Int ?? Dictation.micDefault }
         set { set(newValue, forKey: keepMicOnKey) }
-    }
-
-    /// How the app ends what you dictate. Only the app reads it.
-    public static var dictationStyle: DictationStyle {
-        get { (value(forKey: dictationStyleKey, sharing: true) as? String).flatMap(DictationStyle.init) ?? .standard }
-        set { set(newValue.rawValue, forKey: dictationStyleKey) }
-    }
-
-    /// Whether the app types the um and uh you say. Only the app reads it.
-    public static var keepsUmAndUh: Bool {
-        get { value(forKey: keepsUmAndUhKey, sharing: true) as? Bool ?? true }
-        set { set(newValue, forKey: keepsUmAndUhKey) }
     }
 
     /// Set by the keyboard whenever it opens with Allow Full Access, the only time it can write to the App Group, so the
@@ -107,8 +100,6 @@ public enum SettingsStore {
     public static func reset(to settings: KeyboardSettings = .initial) {
         save(settings)
         keepMicOn = Dictation.micDefault
-        dictationStyle = .standard
-        keepsUmAndUh = true
     }
 
     static func value(forKey key: String, sharing: Bool) -> Any? {

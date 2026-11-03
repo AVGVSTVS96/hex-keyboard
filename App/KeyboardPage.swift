@@ -161,8 +161,6 @@ private struct TryPreview: View {
     private(set) var settings = SettingsStore.load()
     private(set) var sources = SourceStore.load()
     private(set) var keepMicOn = SettingsStore.keepMicOn
-    private(set) var dictationStyle = SettingsStore.dictationStyle
-    private(set) var keepsUmAndUh = SettingsStore.keepsUmAndUh
 
     private init() {
         NotificationCenter.default.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: .main) { _ in
@@ -174,8 +172,6 @@ private struct TryPreview: View {
         settings = SettingsStore.load()
         sources = SourceStore.load()
         keepMicOn = SettingsStore.keepMicOn
-        dictationStyle = SettingsStore.dictationStyle
-        keepsUmAndUh = SettingsStore.keepsUmAndUh
     }
 
     func update(_ change: (inout KeyboardSettings) -> Void) {
@@ -201,17 +197,6 @@ private struct TryPreview: View {
         Listener.shared.keepMicOn()
     }
 
-    func dictationStyle(_ style: DictationStyle) {
-        dictationStyle = style
-        SettingsStore.dictationStyle = style
-    }
-
-    var umAndUh: Binding<Bool> {
-        Binding { self.keepsUmAndUh } set: {
-            self.keepsUmAndUh = $0
-            SettingsStore.keepsUmAndUh = $0
-        }
-    }
 
     /// Adds a source, or puts `replacing` back with its new values.
     func save(_ source: Source, replacing old: Source?) {

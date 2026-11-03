@@ -8,21 +8,11 @@
 	<array>
 		<dict>
 			<key>FooterText</key>
-			<string>Hex types every word you say, um and uh too while that’s on. Capitals follow Auto-Capitalization in Typing, as your typing’s do.</string>
+			<string>A style sets capitals and punctuation. As Said types every word you say, um and uh too; Light leaves those out, and Clean also leaves out words said twice and what you take back with “scratch that”.</string>
 			<key>Title</key>
-			<string>Style</string>
+			<string>Writing</string>
 			<key>Type</key>
 			<string>PSGroupSpecifier</string>
-		</dict>
-		<dict>
-			<key>DefaultValue</key>
-			<true/>
-			<key>Key</key>
-			<string>keepsUmAndUh</string>
-			<key>Title</key>
-			<string>Um and Uh</string>
-			<key>Type</key>
-			<string>PSToggleSwitchSpecifier</string>
 		</dict>
 		<dict>
 			<key>DefaultValue</key>
@@ -35,6 +25,8 @@
 			<array>
 				<string>Formal.</string>
 				<string>Casual</string>
+				<string>very casual</string>
+				<string>Excited!</string>
 			</array>
 			<key>Type</key>
 			<string>PSMultiValueSpecifier</string>
@@ -42,7 +34,41 @@
 			<array>
 				<string>formal</string>
 				<string>casual</string>
+				<string>veryCasual</string>
+				<string>excited</string>
 			</array>
+		</dict>
+		<dict>
+			<key>DefaultValue</key>
+			<string>asSaid</string>
+			<key>Key</key>
+			<string>dictationEditing</string>
+			<key>Title</key>
+			<string>Editing</string>
+			<key>Titles</key>
+			<array>
+				<string>As Said</string>
+				<string>Light</string>
+				<string>Clean</string>
+			</array>
+			<key>Type</key>
+			<string>PSMultiValueSpecifier</string>
+			<key>Values</key>
+			<array>
+				<string>asSaid</string>
+				<string>light</string>
+				<string>clean</string>
+			</array>
+		</dict>
+		<dict>
+			<key>DefaultValue</key>
+			<true/>
+			<key>Key</key>
+			<string>dictationLists</string>
+			<key>Title</key>
+			<string>Lists</string>
+			<key>Type</key>
+			<string>PSToggleSwitchSpecifier</string>
 		</dict>
 		<dict>
 			<key>FooterText</key>

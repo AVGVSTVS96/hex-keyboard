@@ -12,7 +12,7 @@ extension VoiceModel {
             transcription.hear(heard)
         }
         let heard = try await transcription.text(of: recording)
-        return (DictationStyle.typed(heard), heard, transcription.model)
+        return (DictationWriting.typed(heard), heard, transcription.model)
     }
 
     private static func converted(_ recording: [Float], to format: AVAudioFormat) -> AVAudioPCMBuffer? {

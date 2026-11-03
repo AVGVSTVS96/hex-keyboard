@@ -386,11 +386,16 @@ struct VoiceSettings: View {
                 }
             }
         }
-        Box(header: "Writing", footer: "Capitals follow Auto-Capitalization in Keyboard › Typing, as your typing’s do. Transcripts keep what the model wrote.") {
-            ToggleRow(title: "Um and Uh", detail: "Types them as you say them.", isOn: model.umAndUh)
+        Box(header: "Style", footer: "A style sets capitals and punctuation, as Wispr Flow’s do. Fields that want no capitals, like web addresses, get none.") {
             ForEach(DictationStyle.allCases, id: \.self) { style in
-                ChoiceRow(title: style.title, detail: style.detail, picked: model.dictationStyle == style) { model.dictationStyle(style) }
+                ChoiceRow(title: style.title, detail: style.detail, picked: model.settings.dictationStyle == style) { model.update { $0.dictationStyle = style } }
             }
+        }
+        Box(header: "Editing", footer: "Transcripts keep what the model wrote.") {
+            ForEach(DictationEditing.allCases, id: \.self) { editing in
+                ChoiceRow(title: editing.title, detail: editing.detail, picked: model.settings.dictationEditing == editing) { model.update { $0.dictationEditing = editing } }
+            }
+            ToggleRow(title: "Lists", detail: "“One, eggs, two, milk” is typed as a numbered list. First, second works too.", isOn: model.binding(\.dictationLists))
         }
         Box(header: "Vocabulary", footer: "The words the voice model gets wrong, each with what it writes instead.") {
             LinkRow(title: "Your Words", value: VoiceVocabulary.shared.vocabulary.terms.count.formatted(), symbol: ("character.book.closed.fill", .orange)) {

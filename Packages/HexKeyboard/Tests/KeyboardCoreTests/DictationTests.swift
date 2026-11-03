@@ -2,10 +2,10 @@ import Testing
 @testable import KeyboardCore
 
 struct DictationTests {
-    private func dictate(_ heard: String, into text: String, cursor: Int? = nil, autoCapitalization: Bool = true, field: Autocapitalization = .sentences) -> String {
+    private func dictate(_ heard: String, into text: String, cursor: Int? = nil, style: DictationStyle = .formal, field: Autocapitalization = .sentences) -> String {
         var engine = TypingEngine(traits: InputTraits(autocapitalization: field))
         engine.corrector = Corrector(source: testLexicon)
-        engine.settings.autoCapitalization = autoCapitalization
+        engine.settings.dictationStyle = style
         let document = TestDocument(text)
         if let cursor { document.cursor = cursor }
         engine.handle(.dictated(heard), in: document)
@@ -33,8 +33,8 @@ struct DictationTests {
         #expect(dictate("In the house.", into: "I was , and done", cursor: 6) == "I was in the house, and done")
     }
 
-    @Test func withAutoCapitalizationOffSentencesStartLowercaseAndNamesKeepTheirCapitals() {
-        let off = { (heard: String, text: String) in dictate(heard, into: text, autoCapitalization: false) }
+    @Test func veryCasualStartsSentencesLowercaseAndNamesKeepTheirCapitals() {
+        let off = { (heard: String, text: String) in dictate(heard, into: text, style: .veryCasual) }
         #expect(off("Hello. I think it's done. Cheryl liked it.", "") == "hello. i think it's done. Cheryl liked it.")
         #expect(off("Hello. I'm home and I left.", "Done. ") == "Done. hello. i'm home and i left.")
         #expect(off("The job is done! OK, go.", "") == "the job is done! OK, go.")
@@ -42,10 +42,12 @@ struct DictationTests {
         #expect(dictate("Hello there.", into: "", field: .none) == "hello there.")
     }
 
-    @Test func withAutoCapitalizationOnEverySentenceStartsWithACapital() {
+    @Test func theOtherStylesStartEverySentenceWithACapital() {
         #expect(dictate("go home. then work.", into: "") == "Go home. Then work.")
         #expect(dictate("go home. then work.", into: "and ") == "and go home. Then work.")
         #expect(dictate("iPhone is here.", into: "") == "iPhone is here.")
         #expect(dictate("go home.", into: "", field: .words) == "go home.")
+        #expect(dictate("My goals are:\n1. finish the report\n2. send it", into: "") == "My goals are:\n1. Finish the report\n2. Send it")
+        #expect(dictate("The job:\n1. The job is done", into: "", style: .veryCasual) == "the job:\n1. the job is done")
     }
 }
