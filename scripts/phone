@@ -7,6 +7,8 @@
 # and one run at a time, so agents installing at once queue instead of sharing that worktree. The build number is main's
 # commit count, which Settings › About shows as "Version 0.1.0 (<build>)"; when the iPhone already has that build,
 # nothing is built or installed, sparing it the Neural Engine compile, unless --reinstall (which renews the signing).
+# Its build doesn't wait for a turn (~/.local/bin/turn): installs go out the moment main is ready, one at a time by
+# this script's own lock, and a build that waited for a turn while holding it could wait on runs queued behind it.
 set -e
 cd "$(dirname "$0")/.."
 build=../hex-keyboard-build
@@ -37,7 +39,7 @@ done
 key=Packages/HexKeyboard/Sources/KeyboardUI/Resources/Keys/klipy.key
 [ ! -f "$key" ] || cp "$key" "$build/$key"
 cd "$build"
-xtool dev build -c release --sign
+TURN=phone xtool dev build -c release --sign
 for binary in xtool/Hex.app/Hex xtool/Hex.app/PlugIns/Keyboard.appex/Keyboard; do
   sdk=$(llvm-otool -l "$binary" | awk '/LC_BUILD_VERSION/ {b=1} b && $1 == "sdk" {print $2; exit}')
   [ "$(printf '%s\n27.1\n' "$sdk" | sort -V | head -1)" = 27.1 ] || {
