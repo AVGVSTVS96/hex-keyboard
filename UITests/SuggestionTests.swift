@@ -72,9 +72,9 @@ final class SuggestionTests: XCTestCase {
         settings.launch()
         let back = settings.buttons.matching(identifier: "BackButton").firstMatch
         while back.waitForExistence(timeout: 2) { tapCenter(back) }
-        tapCenter(settings.buttons["General"].firstMatch)
-        tapCenter(settings.buttons["Keyboard"].firstMatch)
-        tapCenter(settings.descendants(matching: .any).matching(identifier: "USER_DICTIONARY").firstMatch)
+        tapCenter(settings.buttons["General"].firstMatch, in: settings)
+        tapCenter(settings.buttons["Keyboard"].firstMatch, in: settings)
+        tapCenter(settings.descendants(matching: .any).matching(NSPredicate(format: "identifier == 'USER_DICTIONARY' OR label == 'Text Replacement'")).firstMatch, in: settings)
         if settings.staticTexts[shortcut].waitForExistence(timeout: 2) { return settings.terminate() }
         settings.buttons["Add"].firstMatch.tap()
         let fields = settings.textFields
@@ -88,7 +88,13 @@ final class SuggestionTests: XCTestCase {
         settings.terminate()
     }
 
-    private func tapCenter(_ element: XCUIElement) {
+    /// Settings lists only the rows on screen, so a row further down shows once it's scrolled to.
+    private func tapCenter(_ element: XCUIElement, in settings: XCUIApplication? = nil) {
+        var swipes = 0
+        while let settings, !element.waitForExistence(timeout: 2) || !element.isHittable, swipes < 8 {
+            settings.swipeUp()
+            swipes += 1
+        }
         XCTAssertTrue(element.waitForExistence(timeout: 5))
         element.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
     }
