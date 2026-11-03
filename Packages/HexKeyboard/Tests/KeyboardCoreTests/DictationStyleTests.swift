@@ -28,7 +28,8 @@ struct DictationStyleTests {
     @Test func cleanAlsoLeavesOutWordsSaidTwiceAndWhatYouScratch() {
         let clean = { write($0, .formal, .clean) }
         #expect(clean("Um, so I I think the the job is done.") == "So I think the job is done.")
-        #expect(clean("I, I think so.") == "I think so.")
+        #expect(clean("I I I think so, it it works.") == "I think so, it works.")
+        #expect(clean("When you press it, it opens.") == "When you press it, it opens.")
         #expect(clean("I know that that works and I had had enough. It's very very good.") == "I know that that works and I had had enough. It's very very good.")
         #expect(clean("Meet at two. Scratch that, meet at three.") == "Meet at three.")
         #expect(clean("Done. Meet at two, scratch that. Meet at three.") == "Done. Meet at three.")

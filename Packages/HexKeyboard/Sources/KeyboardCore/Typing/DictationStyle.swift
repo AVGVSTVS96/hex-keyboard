@@ -110,15 +110,14 @@ public enum DictationEditing: String, CaseIterable, Hashable, Sendable {
         return ["um", "uh", "uhm", "erm", "hm"].contains(String(drawn))
     }
 
-    /// The second of a short word said twice, "the the" or "I, I": only words nobody says twice on purpose, so "that
-    /// that", "had had" and "very very" stay.
+    /// The second of a short word said twice, "the the" or "I I": only words nobody says twice on purpose, so "that
+    /// that", "had had" and "very very" stay, and so does one a comma parts, as in "when you press it, it opens".
     static func withoutRepeats(_ text: [Character]) -> [Character] {
         var text = text
         for (first, second) in zip(Words.ranges(in: text), Words.ranges(in: text).dropFirst()).reversed() {
             let word = String(text[first]).lowercased()
             guard repeatable.contains(word), word == String(text[second]).lowercased() else { continue }
-            let between = text[first.upperBound ..< second.lowerBound]
-            guard between.allSatisfy({ $0 == " " || $0 == "," }), between.contains(" ") else { continue }
+            guard text[first.upperBound ..< second.lowerBound].allSatisfy({ $0 == " " }) else { continue }
             text.removeSubrange(first.upperBound ..< second.upperBound)
         }
         return text
