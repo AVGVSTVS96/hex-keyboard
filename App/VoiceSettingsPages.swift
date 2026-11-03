@@ -51,19 +51,18 @@ struct ModelSettings: View {
     }
 }
 
-/// The words and punctuation Hex types for what you say, over an example written as they're set.
+/// The words and punctuation Hex types for what you say, each style shown by how it types the same words.
 struct WritingSettings: View {
-    private static let said = "So, um, I think the the second draft reads better. Let's send it to Sam tonight."
+    private static let said = "So, let's send it to Sam tonight."
     private let model = SettingsModel.shared
 
     var body: some View {
-        Box(header: "Example") {
-            ExampleRow(label: "You say", text: Self.said)
-            ExampleRow(label: "Hex types", text: model.settings.dictation.typed(Self.said, lexicon: .english))
-        }
         Box(header: "Style", footer: "A style sets capitals and punctuation, as Wispr Flow’s do. Fields that want no capitals, like web addresses, get none.") {
             ForEach(DictationStyle.allCases, id: \.self) { style in
-                ChoiceRow(title: style.title, detail: style.detail, picked: model.settings.dictationStyle == style) { model.update { $0.dictationStyle = style } }
+                let writing = DictationWriting(style: style, editing: model.settings.dictationEditing, lists: model.settings.dictationLists)
+                ChoiceRow(title: style.title, detail: "“\(writing.typed(Self.said, lexicon: .english))”", picked: model.settings.dictationStyle == style) {
+                    model.update { $0.dictationStyle = style }
+                }
             }
         }
         Box(header: "Editing", footer: "Transcripts keep what the model wrote.") {
@@ -72,26 +71,6 @@ struct WritingSettings: View {
             }
             ToggleRow(title: "Lists", detail: "“One, eggs, two, milk” is typed as a numbered list. First, second works too.", isOn: model.binding(\.dictationLists))
         }
-    }
-}
-
-private struct ExampleRow: View {
-    let label: String
-    let text: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(label)
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(Color.hexSecondary)
-            Text(text)
-                .fixedSize(horizontal: false, vertical: true)
-                .contentTransition(.opacity)
-                .animation(.snappy(duration: 0.2), value: text)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .row()
-        .accessibilityElement(children: .combine)
     }
 }
 

@@ -66,8 +66,8 @@ final class HomeViewController: UIHostingController<AnyView> {
     }
 }
 
-/// Wide, the field takes the half before the hinge and the tiles the half after it, so the field stays above the keys
-/// while you try them; on the cover, one column.
+/// Wide, the field and what Hex has gathered take the half before the hinge and the settings' cards the half after
+/// it, so the field stays above the keys while you try them; on the cover, one column.
 struct HomeView: View {
     let state: HomeState
     let field: UITextView
@@ -79,8 +79,9 @@ struct HomeView: View {
             switch arrangement {
             case .side:
                 Panes {
-                    VStack(alignment: .leading, spacing: 20) {
+                    VStack(alignment: .leading, spacing: 12) {
                         tryIt.frame(maxHeight: 300)
+                        stats
                         Spacer(minLength: 0)
                     }
                     .padding(.horizontal, 16)
@@ -88,14 +89,17 @@ struct HomeView: View {
                 } second: {
                     Column(top: 12) {
                         if !status.isSetUp { setUp }
-                        tiles
+                        shortcutCards
                     }
                 }
             case .single:
                 Column(top: 4) {
                     tryIt.frame(height: 150)
                     if !status.isSetUp { setUp }
-                    tiles
+                    VStack(spacing: 12) {
+                        stats
+                        shortcutCards
+                    }
                 }
             }
         }
@@ -137,14 +141,21 @@ struct HomeView: View {
     /// The settings pages Home links straight to, each showing what it's set to.
     private static let shortcuts: [SettingsPage.Page] = [.words, .theme, .model, .writing, .feedback, .mic]
 
-    private var tiles: some View {
-        LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
+    private static let columns = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
+
+    private var stats: some View {
+        LazyVGrid(columns: Self.columns, spacing: 12) {
             Button { Router.shared.show(.transcripts) } label: { VoiceTile() }
                 .buttonStyle(CardPress())
             Button { Router.shared.show(.taps) } label: {
                 Tile(symbol: "hand.tap.fill", color: .blue, title: state.taps == 1 ? "tap learned" : "taps learned", value: state.taps.formatted())
             }
             .buttonStyle(CardPress())
+        }
+    }
+
+    private var shortcutCards: some View {
+        LazyVGrid(columns: Self.columns, spacing: 12) {
             ForEach(Self.shortcuts, id: \.self) { page in
                 Button { Router.shared.show(.settings, settings: page) } label: {
                     Tile(symbol: page.glyph.0, color: page.glyph.1, title: page.title, detail: page.value)

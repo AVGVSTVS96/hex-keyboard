@@ -19,15 +19,6 @@ extension DictationStyle {
         case .excited: "Excited!"
         }
     }
-
-    var detail: String {
-        switch self {
-        case .formal: "Capitals, every comma, and a period at the end."
-        case .casual: "Capitals, no comma after “so” or “also”, no last period."
-        case .veryCasual: "casual in lowercase. names keep their capitals"
-        case .excited: "Capitals, and an exclamation mark at the end!"
-        }
-    }
 }
 
 extension DictationEditing {
