@@ -16,6 +16,8 @@ public struct TextState: Hashable, Sendable {
     /// How many characters at the end of `before` the keyboard typed itself: all that automatic edits may replace.
     public private(set) var owned = 0
     public private(set) var isKnown = false
+    /// The field holds nothing, as after a message is sent.
+    public var isEmpty: Bool { before.isEmpty && (after ?? "").isEmpty }
     /// How long the host's view was where `before` starts. iOS cuts that view at the start of the text, of a line, or at
     /// a length; once the keyboard deletes, a view cut at a length slides back over text the keyboard never saw, but it
     /// never grows. So the host can show text in front of `before` only in a view no longer than this.

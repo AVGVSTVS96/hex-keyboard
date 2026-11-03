@@ -138,7 +138,11 @@ open class HexKeyboardViewController: UIInputViewController {
     override open func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         KeyboardHost.appeared()
-        engine.corrector?.memory = MemoryStore.load()
+        MemoryStore.refresh { [weak self] memory in
+            self?.engine.corrector?.memory = memory
+            self?.engine.suggestionsChanged()
+            self?.render()
+        }
         engine.emojiHistory = MemoryStore.loadEmoji()
         loadSettings()
         if hasFullAccess { clipboard.catchUp() }
@@ -175,7 +179,7 @@ open class HexKeyboardViewController: UIInputViewController {
         engine.handle(.panel(nil), in: document)
         haptics.stop()
         TouchTrace.shared.flush()
-        if let memory = engine.corrector?.memory { MemoryStore.save(memory, sharing: hasFullAccess) }
+        saveMemory()
         MemoryStore.save(engine.emojiHistory)
         observers.forEach(Dictation.stopObserving)
         observers = []
@@ -211,8 +215,14 @@ open class HexKeyboardViewController: UIInputViewController {
         let known = engine.text.before.count
         let report = engine.documentChanged(document)
         if report == .changed { tellSources(.app) }
+        if report == .changed, engine.text.isEmpty { saveMemory() }
         TouchTrace.shared.record(report, host: textDocumentProxy.documentContextBeforeInput?.count ?? 0, known: known)
         render()
+    }
+
+    /// When the keyboard goes away and when a message is sent, so what was learned outlives the keyboard being ended.
+    private func saveMemory() {
+        if let memory = engine.corrector?.memory { MemoryStore.save(memory, sharing: hasFullAccess) }
     }
 
     private var screenSize: CGSize {

@@ -327,7 +327,7 @@ public struct TypingEngine {
         let known = text
         let report = text.reconcile(before: document.textBeforeInput, after: document.textAfterInput)
         if report == .changed {
-            if text.before.isEmpty, (text.after ?? "").isEmpty { keepWord(in: known) }
+            if text.isEmpty { keepWord(in: known) }
             forgetWord()
         }
         if report == .changed || text.before != known.before {

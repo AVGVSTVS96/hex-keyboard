@@ -7,15 +7,15 @@ import notify
 /// token it sees differs from the one its memory was saved under.
 /// With Full Access the keyboard also shares its touch model through the group, for the app to show.
 public enum MemoryStore {
-    private struct Saved: Codable {
+    nonisolated private struct Saved: Codable {
         var resets: Int
         var memory: TypingMemory
     }
 
     private static let resetsKey = "memoryResets"
-    private static let touchesChanged = "com.shahidy.hexkeyboard.touches"
+    nonisolated private static let touchesChanged = "com.shahidy.hexkeyboard.touches"
 
-    private static var url: URL {
+    nonisolated private static var url: URL {
         URL.applicationSupportDirectory.appending(path: "typing-memory.json")
     }
 
@@ -25,16 +25,45 @@ public enum MemoryStore {
 
     private static var resets: Int? { SettingsStore.value(forKey: resetsKey, sharing: false) as? Int }
 
-    static func load() -> TypingMemory {
-        guard let saved = try? JSONDecoder().decode(Saved.self, from: Data(contentsOf: url)), saved.resets == resets ?? saved.resets else { return TypingMemory() }
-        return saved.memory
+    /// The saved file's date and the reset token, as this process last read or wrote them. Each app gets a keyboard of
+    /// its own, so another one may have saved since.
+    @MainActor private static var known: Version?
+    nonisolated private struct Version: Equatable {
+        var modified: Date?
+        var resets: Int?
     }
 
-    static func save(_ memory: TypingMemory, sharing: Bool) {
-        try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-        try? JSONEncoder().encode(Saved(resets: resets ?? 0, memory: memory)).write(to: url, options: .atomic)
-        guard sharing, let sharedTouchesURL, (try? JSONEncoder().encode(memory.touches).write(to: sharedTouchesURL, options: .atomic)) != nil else { return }
-        notify_post(touchesChanged)
+    /// Reads and writes the file in turn, off the main thread: at 20,000 words each takes a tenth of a second.
+    nonisolated private static let queue = DispatchQueue(label: "com.shahidy.hexkeyboard.memory", qos: .userInitiated)
+
+    nonisolated private static var modified: Date? {
+        try? url.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate
+    }
+
+    /// Hands `use` the saved memory when it isn't the one this process has: on the first appearance, after another
+    /// app's keyboard saved, or after the app reset it.
+    @MainActor static func refresh(_ use: @escaping @MainActor (TypingMemory) -> Void) {
+        let version = Version(modified: modified, resets: resets)
+        guard version != known else { return }
+        known = version
+        let resets = version.resets
+        queue.async {
+            let saved = try? JSONDecoder().decode(Saved.self, from: Data(contentsOf: url))
+            let memory = saved.flatMap { $0.resets == resets ?? $0.resets ? $0.memory : nil } ?? TypingMemory()
+            Task { @MainActor in use(memory) }
+        }
+    }
+
+    @MainActor static func save(_ memory: TypingMemory, sharing: Bool) {
+        let resets = resets, sharedTouchesURL = sharing ? sharedTouchesURL : nil
+        queue.async {
+            try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try? JSONEncoder().encode(Saved(resets: resets ?? 0, memory: memory)).write(to: url, options: .atomic)
+            let version = Version(modified: modified, resets: resets)
+            Task { @MainActor in known = version }
+            guard let sharedTouchesURL, (try? JSONEncoder().encode(memory.touches).write(to: sharedTouchesURL, options: .atomic)) != nil else { return }
+            notify_post(touchesChanged)
+        }
     }
 
     private static var emojiURL: URL {
