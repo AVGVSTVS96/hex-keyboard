@@ -20,6 +20,16 @@ struct ClipboardHistoryTests {
         #expect(history.items.count == 1, "a long message still is")
     }
 
+    @Test func clearingKeepsWhatsPinned() {
+        var history = ClipboardHistory()
+        history.keep(.text("address"), at: 1)
+        history.keep(.image("a.png"), at: 2)
+        history.keep(.text("code"), at: 3)
+        history.setPinned(true, .text("address"))
+        #expect(Set(history.removeUnpinned()) == [.image("a.png"), .text("code")])
+        #expect(history.items.map(\.content) == [.text("address")])
+    }
+
     @Test func nothingAgesOutAndPinnedItemsStayOnTop() {
         var history = ClipboardHistory()
         history.keep(.text("keep me"), at: 0)

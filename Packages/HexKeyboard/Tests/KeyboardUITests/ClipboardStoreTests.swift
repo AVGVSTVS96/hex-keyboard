@@ -67,4 +67,37 @@ struct ClipboardStoreTests {
         store.remove(.image(name))
         #expect(!FileManager.default.fileExists(atPath: folder.appending(path: name).path()))
     }
+
+    @Test func theAppSeesWhatTheKeyboardKeptBeforeTheGroupHeldIt() throws {
+        let own = URL.temporaryDirectory.appending(path: "clipboard-own-\(UUID().uuidString)")
+        let old = ClipboardStore(folder: own)
+        pasteboard.string = "kept before"
+        old.catchUp(pasteboard)
+        #expect(!ClipboardStore(folder: folder).started, "the app keeps nothing until the keyboard brings its history over")
+
+        let keyboard = ClipboardStore(folder: folder, backup: own)
+        #expect(keyboard.history.items.map(\.content) == [.text("kept before")])
+        pasteboard.string = "kept after"
+        keyboard.catchUp(pasteboard)
+        let app = ClipboardStore(folder: folder)
+        #expect(app.started)
+        #expect(app.history.items.map(\.content) == [.text("kept after"), .text("kept before")])
+
+        app.remove(.text("kept before"))
+        keyboard.setPinned(true, .text("kept after"))
+        #expect(ClipboardStore(folder: own).history.items.map(\.content) == [.text("kept after")], "the keyboard's copy follows what the app deleted")
+    }
+
+    @Test func aWipedGroupGetsTheKeyboardsCopyBackImagesIncluded() throws {
+        let own = URL.temporaryDirectory.appending(path: "clipboard-own-\(UUID().uuidString)")
+        let keyboard = ClipboardStore(folder: folder, backup: own)
+        pasteboard.setData(Data([0x89, 0x50, 0x4E, 0x47]), forPasteboardType: UTType.png.identifier)
+        keyboard.catchUp(pasteboard)
+        guard case .image(let name) = try #require(keyboard.history.items.first).content else { Issue.record("not an image"); return }
+        #expect(FileManager.default.fileExists(atPath: own.appending(path: name).path()))
+
+        try FileManager.default.removeItem(at: folder)
+        #expect(ClipboardStore(folder: folder, backup: own).history.items.map(\.content) == [.image(name)])
+        #expect(FileManager.default.fileExists(atPath: folder.appending(path: name).path()))
+    }
 }

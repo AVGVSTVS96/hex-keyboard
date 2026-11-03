@@ -44,6 +44,13 @@ public struct ClipboardHistory: Codable, Hashable, Sendable {
         saved.removeAll { $0.content == content }
     }
 
+    /// Deletes everything but what's pinned, and says what went.
+    public mutating func removeUnpinned() -> [Item.Content] {
+        let gone = saved.filter { !$0.pinned }.map(\.content)
+        saved.removeAll { !$0.pinned }
+        return gone
+    }
+
     /// The items whose text holds the search, ignoring case. An empty search shows everything; images match none.
     public func matching(_ search: String) -> [Item] {
         let search = search.lowercased()

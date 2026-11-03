@@ -50,7 +50,7 @@ open class HexKeyboardViewController: UIInputViewController {
     private lazy var keysMinimumConstraint = keyboardView.heightAnchor.constraint(greaterThanOrEqualToConstant: 0)
     private var deleteRepeat: DeleteRepeat?
     private let haptics = KeyHaptics()
-    private let clipboard = ClipboardStore()
+    private let clipboard = ClipboardStore(backup: ClipboardStore.own)
     private let sources = Sources()
 
     override open func loadView() {

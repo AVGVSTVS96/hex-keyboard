@@ -123,7 +123,7 @@ struct TranscriptsPage: View {
         }
     }
 
-    private static func title(of day: Date) -> String {
+    static func title(of day: Date) -> String {
         let calendar = Calendar.current
         if calendar.isDateInToday(day) { return "Today" }
         if calendar.isDateInYesterday(day) { return "Yesterday" }

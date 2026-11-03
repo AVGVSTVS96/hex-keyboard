@@ -14,7 +14,7 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
 @Observable final class Router {
     static let shared = Router()
 
-    enum Destination: String { case home, transcripts, taps, settings }
+    enum Destination: String { case home, transcripts, clipboard, taps, settings }
 
     /// The settings page open on its own, or, wide, the one beside the list.
     var settingsPath: [SettingsPage.Page] = []
@@ -40,6 +40,9 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             UITab(title: "Hex", image: UIImage(systemName: "house"), identifier: Router.Destination.home.rawValue) { _ in HomeViewController() },
             UITab(title: "Transcripts", image: UIImage(systemName: "waveform"), identifier: Router.Destination.transcripts.rawValue) { _ in
                 Self.hosting(TranscriptsPage())
+            },
+            UITab(title: "Clipboard", image: UIImage(systemName: "list.clipboard"), identifier: Router.Destination.clipboard.rawValue) { _ in
+                Self.hosting(ClipboardPage())
             },
             UITab(title: "Your Taps", image: UIImage(systemName: "hand.tap"), identifier: Router.Destination.taps.rawValue) { _ in Self.navigation(TapsViewController()) },
             UITab(title: "Settings", image: UIImage(systemName: "gearshape"), identifier: Router.Destination.settings.rawValue) { _ in

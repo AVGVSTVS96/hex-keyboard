@@ -200,7 +200,8 @@ SCREENS
 
 # Screenshots each of the app's screens on the iPhone Duo's four screens, as duo does for the keyboard:
 # shots/raw/duo/app/<tag>-<screen>-<page>-<appearance>.png. TOUCHES (a touch model, as the keyboard shares it) and
-# TRANSCRIPTS (JSON lines, as the app keeps them) fill Your Taps and Transcripts; PAGES picks the pages; ARGS adds launch arguments to each (-HexScrollToEnd YES shows each page's end); SIM names
+# TRANSCRIPTS (JSON lines, as the app keeps them) fill Your Taps and Transcripts, and CLIPBOARD (a history.json, as
+# ClipboardStore keeps it) Clipboard; PAGES picks the pages; ARGS adds launch arguments to each (-HexScrollToEnd YES shows each page's end); SIM names
 # the simulator (hexkb <SIM>), so checkouts side by side don't share one.
 duoapp() {
   local tag=$1 id data group; shift
@@ -213,6 +214,7 @@ duoapp() {
   data=$(xcrun simctl get_app_container "$id" "$BUNDLE" data)
   [ -n "${TOUCHES:-}" ] && cp "$TOUCHES" "$group/touches.json"
   [ -n "${TRANSCRIPTS:-}" ] && mkdir -p "$data/Library/Application Support" && cp "$TRANSCRIPTS" "$data/Library/Application Support/transcripts.jsonl"
+  [ -n "${CLIPBOARD:-}" ] && mkdir -p "$group/Library/clipboard" && cp "$CLIPBOARD" "$group/Library/clipboard/history.json"
   mkdir -p "$group/Library/Preferences"
   /usr/bin/python3 -c "
 import plistlib, sys, os
@@ -246,6 +248,7 @@ writing -HexSettings writing
 words -HexSettings words
 mic -HexSettings mic
 transcripts -HexTab transcripts
+clipboard -HexTab clipboard
 taps -HexTaps YES
 sources -HexSettings sources
 access -HexSettings access
