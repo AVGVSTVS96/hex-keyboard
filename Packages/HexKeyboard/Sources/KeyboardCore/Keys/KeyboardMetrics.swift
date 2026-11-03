@@ -151,10 +151,9 @@ extension KeyboardMetrics {
         return metrics
     }
 
-    /// The split keyboard's width in keys: each half five and a half keys, from the keyboard's edge, where the full
-    /// keyboard's keys start, toward the hinge, and a key and a half between the two G keys. iOS gives a keyboard about 800
-    /// of the open Duo's 951 points held wide, so a key is about 53 wide, where the full keyboard's are 69.
-    static let splitColumns = 12.5
+    /// The split keyboard's width in keys, from Apple's split on the open Duo held wide (iOS 27.1 simulator): iOS gives a
+    /// keyboard 801 of the screen's 951 points there, and Apple's split keys repeat every 57 points.
+    static let splitColumns = (801 - 2 * 9 + 10) / 57.0
 
     static let compactPad = KeyboardMetrics(
         columns: 11.2, sideInset: 6, keyGap: 12, rowGap: 9,

@@ -27,7 +27,7 @@ enum PhoneLayouts {
     private static func split(_ context: LayoutContext, _ topLeft: String, _ topRight: String, _ middleLeft: String, _ middleRight: String, layerKey: KeyboardLayer) -> KeyboardLayout {
         let marks = punctuation.map { item -> RowItem in
             guard case .key(var key) = item else { return item }
-            key.width = .pitch(4.0 / 3)
+            key.width = .pitch(1.4)
             return .key(key)
         }
         return KeyboardLayout(rows: [

@@ -42,11 +42,13 @@ struct SplitTests {
         }
     }
 
-    @Test func splitKeysStayBig() {
+    @Test func splitKeysAreApplesSize() {
         let full = KeyboardMetrics.for(.phone, width: Duo.open.height, height: height)
         let letters = KeyGrid(Layouts.layout(for: LayoutContext(device: .phone, layer: .letters, isLandscape: true, isOpen: true)), width: width, metrics: full.grid, signature: "")
-        let fullKey = letters.frame(of: "q")!.width, splitKey = grid().frame(of: "q")!.width
-        #expect(splitKey > 50 && splitKey > fullKey * 0.75, "\(splitKey) against the full keyboard's \(fullKey)")
+        let split = grid()
+        let pitch = split.frame(of: "w")!.x - split.frame(of: "q")!.x
+        #expect(abs(pitch - 57) < 0.01, "Apple's split keys repeat every 57 points, not \(pitch)")
+        #expect(split.frame(of: "q")!.width < letters.frame(of: "q")!.width)
         let keys = grid().rows.joined()
         #expect(keys.map(\.frame.x).min()! < 10 && keys.map { $0.frame.x + $0.frame.width }.max()! > width - 10,
                 "the halves start at the keyboard's edges, where the full keyboard's keys do")
