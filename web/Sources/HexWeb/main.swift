@@ -141,7 +141,7 @@ import KeyboardCore
     }
 
     private func render() {
-        let context = engine.layout(on: .phone, isLandscape: width > height)
+        let context = engine.layout(on: .phone, screen: Size(width: width, height: height))
         layout = Layouts.layout(for: context)
         grid = KeyGrid(layout, width: width, metrics: metrics.grid, signature: context.signature)
         offsets = grid.rows.reduce(into: [0]) { $0.append($0.last! + $1.count) }

@@ -239,9 +239,7 @@ open class HexKeyboardViewController: UIInputViewController {
     }
 
     private var device: DeviceClass {
-        let shortSide = min(screenSize.width, screenSize.height)
-        guard traitCollection.userInterfaceIdiom == .pad else { return .phone }
-        return shortSide >= 1000 ? .largePad : shortSide < 800 ? .compactPad : .pad
+        DeviceClass(isPad: traitCollection.userInterfaceIdiom == .pad, shortSide: min(screenSize.width, screenSize.height))
     }
 
     /// The iPhone Duo draws no globe under a third-party keyboard, yet its iOS 27.1 simulator says none is needed, so
@@ -273,13 +271,10 @@ open class HexKeyboardViewController: UIInputViewController {
     private func render() {
         tellSources(.keyboard)
         let device = device
-        let context = engine.layout(
-            on: device, showsGlobe: showsGlobe, isLandscape: screenSize.width > screenSize.height,
-            isOpen: Duo.isOpen(short: min(screenSize.width, screenSize.height))
-        )
+        let screen = Size(width: screenSize.width, height: screenSize.height)
+        let context = engine.layout(on: device, screen: screen, showsGlobe: showsGlobe)
         let layout = Layouts.layout(for: context)
-        var metrics = KeyboardMetrics.for(device, width: screenSize.width, height: screenSize.height, style: .current, oneHanded: context.oneHanded, split: context.isSplit)
-        if device == .phone, !context.isLandscape { metrics = metrics.fitted(screen: screenSize.width, window: view.bounds.width) }
+        var metrics = KeyboardMetrics.for(context, screen: screen, window: view.bounds.width, style: .current)
         let wanted = metrics.toolbar.showing(engine.panel, compact: engine.settings.compactPanels)
         let height = metrics.height(rows: layout.rows.count, hasNumberRow: layout.hasNumberRow)
         let ask = engine.panel == nil ? wanted.height : wanted.panelHeight

@@ -95,10 +95,10 @@ struct SplitTests {
         var engine = TypingEngine()
         let document = TestDocument()
         engine.handle(.split(true), in: document)
-        #expect(engine.layout(on: .phone, isLandscape: true, isOpen: true).isSplit)
-        #expect(engine.layout(on: .phone, isLandscape: true, isOpen: true).menuPick == .split(true))
-        #expect(!engine.layout(on: .phone, isOpen: true).isSplit, "in portrait, the same setting keeps one keyboard")
+        #expect(engine.layout(on: .phone, screen: Duo.Screen.openLandscape.size).isSplit)
+        #expect(engine.layout(on: .phone, screen: Duo.Screen.openLandscape.size).menuPick == .split(true))
+        #expect(!engine.layout(on: .phone, screen: Duo.Screen.openPortrait.size).isSplit, "in portrait, the same setting keeps one keyboard")
         engine.handle(.split(false), in: document)
-        #expect(!engine.layout(on: .phone, isLandscape: true, isOpen: true).isSplit)
+        #expect(!engine.layout(on: .phone, screen: Duo.Screen.openLandscape.size).isSplit)
     }
 }

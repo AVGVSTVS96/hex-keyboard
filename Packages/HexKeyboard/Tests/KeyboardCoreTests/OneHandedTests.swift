@@ -79,7 +79,7 @@ struct OneHandedTests {
         #expect(engine.layer == .numbers)
         engine.handle(.pick(.right), in: document)
         #expect(engine.layer == .letters && engine.settings.oneHanded == .right)
-        #expect(engine.layout(on: .phone).oneHanded == .right)
+        #expect(engine.layout(on: .phone, screen: Size(width: 402, height: 874)).oneHanded == .right)
         engine.handle(.oneHanded(.off), in: document)
         #expect(engine.settings.oneHanded == .off && engine.layer == .letters)
     }

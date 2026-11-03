@@ -1,17 +1,17 @@
 import UIKit
 import KeyboardCore
 
-/// Hex as it looks with some settings, for the app's "Tap to try": the bar and the letter keys of an iPhone, drawn by
-/// the keyboard's own views at the width of a phone and scaled to fit. Nothing in it takes a touch.
+/// Hex as it looks with some settings, for the app's "Tap to try": the bar and the letter keys the keyboard lays out
+/// on the device and screen the app is on (the Duo's folded or open screen, split or one-handed as set), drawn by the keyboard's
+/// own views at the width iOS gives the keyboard there and scaled to fit. Nothing in it takes a touch.
 public final class KeyboardPreviewView: UIView {
-    private static let width = 390.0
     private static let bottom = 10.0
-    private static let faces = KeyFaceContext(device: .phone, layer: .letters, kind: .text, shift: .off, returnKind: .default, returnEnabled: true)
 
     private let content = UIView()
     private let bar = SuggestionBar()
     private let keyboard = KeyboardView()
     private var settings = KeyboardSettings.initial
+    private var screen = Size(width: 390, height: 844)
     private var dark = false
 
     /// The card behind the keys: Raycast's preview in a dark app (its photos, Nov 3), iOS's card behind a third-party
@@ -28,21 +28,25 @@ public final class KeyboardPreviewView: UIView {
         addSubview(content)
         isAccessibilityElement = true
         accessibilityLabel = "Keyboard preview"
-        show(settings, dark: traitCollection.userInterfaceStyle == .dark)
+        show(settings, dark: traitCollection.userInterfaceStyle == .dark, screen: CGSize(width: screen.width, height: screen.height))
     }
 
     required init?(coder: NSCoder) { fatalError() }
 
-    /// Draws the keyboard as `settings` make it, in a dark or light app.
-    public func show(_ settings: KeyboardSettings, dark: Bool) {
+    /// Draws the keyboard as `settings` make it on a `screen`-sized device, in a dark or light app.
+    public func show(_ settings: KeyboardSettings, dark: Bool, screen: CGSize) {
         self.settings = settings
         self.dark = dark
+        self.screen = Size(width: screen.width, height: screen.height)
         let theme = KeyboardTheme.named(settings.theme, appearance: settings.themeAppearance, dark: dark, style: .current)
-        let (layout, metrics) = Self.layout(settings)
+        let keys = Self.keys(settings, on: self.screen)
         keyboard.characterPreview = .none
-        keyboard.update(layout: layout, signature: "preview", metrics: metrics, faces: Self.faces, theme: theme)
+        keyboard.update(layout: keys.layout, signature: "preview", metrics: keys.metrics, faces: keys.faces, theme: theme)
+        let metrics = keys.metrics
         bar.toolbar = metrics.toolbar
-        bar.block = (CGFloat(metrics.sideInset), CGFloat(Self.width - metrics.sideInset))
+        bar.topInset = CGFloat(metrics.topInset)
+        bar.screenInset = CGFloat(max((self.screen.width - keys.width) / 2, 0))
+        bar.block = (CGFloat(metrics.margin.leading + metrics.sideInset), CGFloat(keys.width - metrics.margin.trailing - metrics.sideInset))
         bar.update(tools: [.gif, .clipboard], theme: theme)
         bar.update(more: UIMenu(children: []))
         bar.update(mic: .off, recorded: 0, saved: [], waitingFor: nil, notice: nil, theme: theme)
@@ -52,33 +56,34 @@ public final class KeyboardPreviewView: UIView {
         setNeedsLayout()
     }
 
-    /// How tall the preview is at `width`, keeping a phone keyboard's shape.
-    public static func height(forWidth width: CGFloat, settings: KeyboardSettings) -> CGFloat {
-        width * naturalHeight(settings) / Self.width
+    /// How tall the preview is at `width`, keeping the keyboard's shape on a `screen`-sized device.
+    public static func height(forWidth width: CGFloat, settings: KeyboardSettings, screen: CGSize) -> CGFloat {
+        let keys = keys(settings, on: Size(width: screen.width, height: screen.height))
+        return width * keys.height / keys.width
     }
 
     override public func layoutSubviews() {
         super.layoutSubviews()
-        let height = Self.naturalHeight(settings)
-        let (layout, metrics) = Self.layout(settings)
+        let keys = Self.keys(settings, on: screen)
         content.transform = .identity
-        content.frame = CGRect(x: 0, y: 0, width: Self.width, height: height)
-        bar.frame = CGRect(x: 0, y: 0, width: Self.width, height: metrics.toolbar.height)
-        keyboard.frame = CGRect(x: 0, y: metrics.toolbar.height, width: Self.width, height: metrics.height(rows: layout.rows.count, hasNumberRow: layout.hasNumberRow))
-        let scale = bounds.width / Self.width
+        content.frame = CGRect(x: 0, y: 0, width: keys.width, height: keys.height)
+        bar.frame = CGRect(x: 0, y: 0, width: keys.width, height: keys.metrics.toolbar.height)
+        keyboard.frame = CGRect(x: 0, y: keys.metrics.toolbar.height, width: keys.width, height: keys.height - keys.metrics.toolbar.height)
+        let scale = bounds.width / keys.width
         content.transform = CGAffineTransform(scaleX: scale, y: scale)
         content.center = CGPoint(x: bounds.midX, y: bounds.midY)
     }
 
-    private static func layout(_ settings: KeyboardSettings) -> (KeyboardLayout, KeyboardMetrics) {
-        let context = LayoutContext(device: .phone, layer: .letters, showsGlobe: true, showsEmoji: settings.emojiKey, showsNumberRow: settings.numberRow)
-        var metrics = KeyboardMetrics.for(.phone, width: width, height: 844, style: .current)
+    /// The keyboard's own layout and metrics on `screen`, at the width iOS gives it there.
+    private static func keys(_ settings: KeyboardSettings, on screen: Size) -> (layout: KeyboardLayout, metrics: KeyboardMetrics, faces: KeyFaceContext, width: Double, height: Double) {
+        let device = DeviceClass(isPad: UIDevice.current.userInterfaceIdiom == .pad, shortSide: min(screen.width, screen.height))
+        let context = LayoutContext(device: device, layer: .letters, showsGlobe: true, screen: screen, settings: settings)
+        let duo = device == .phone ? Duo.Screen(width: screen.width, height: screen.height) : nil
+        let width = duo?.keyboardWidth ?? screen.width
+        var metrics = KeyboardMetrics.for(context, screen: screen, window: width, style: .current)
         metrics.bottomInset = bottom
-        return (Layouts.layout(for: context), metrics)
-    }
-
-    private static func naturalHeight(_ settings: KeyboardSettings) -> Double {
-        let (layout, metrics) = layout(settings)
-        return metrics.toolbar.height + metrics.height(rows: layout.rows.count, hasNumberRow: layout.hasNumberRow)
+        let layout = Layouts.layout(for: context)
+        let faces = KeyFaceContext(device: device, layer: .letters, kind: .text, shift: .off, returnKind: .default, returnEnabled: true)
+        return (layout, metrics, faces, width, metrics.toolbar.height + metrics.height(rows: layout.rows.count, hasNumberRow: layout.hasNumberRow))
     }
 }

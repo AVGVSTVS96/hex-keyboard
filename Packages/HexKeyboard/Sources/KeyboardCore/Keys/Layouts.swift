@@ -3,6 +3,11 @@ public enum DeviceClass: Hashable, Sendable, CaseIterable {
     case compactPad
     case pad
     case largePad
+
+    /// An iPad by its short side, or an iPhone.
+    public init(isPad: Bool, shortSide: Double) {
+        self = !isPad ? .phone : shortSide >= 1000 ? .largePad : shortSide < 800 ? .compactPad : .pad
+    }
 }
 
 public struct LayoutContext: Hashable, Sendable {
@@ -37,6 +42,15 @@ public struct LayoutContext: Hashable, Sendable {
         self.showsNumberRow = showsNumberRow && device == .phone && layer == .letters
         if !allowsOneHanded { self.oneHanded = .off }
         if !allowsSplit { self.isSplit = false }
+    }
+
+    /// The layout on a `screen`-sized device as `settings` set it up: the keyboard's, and the app's preview of it.
+    public init(device: DeviceClass, layer: KeyboardLayer, kind: InputKind = .text, showsGlobe: Bool = false, screen: Size, settings: KeyboardSettings) {
+        self.init(
+            device: device, layer: layer, kind: kind, showsGlobe: showsGlobe, isLandscape: screen.width > screen.height,
+            isOpen: Duo.isOpen(short: min(screen.width, screen.height)), oneHanded: settings.oneHanded, isSplit: settings.split,
+            showsEmoji: settings.emojiKey, showsNumberRow: settings.numberRow
+        )
     }
 
     /// Like Apple's, only an iPhone in portrait narrows its keys for one hand, and on the Duo only folded.

@@ -73,10 +73,10 @@ struct PanelTests {
         let document = TestDocument()
         engine.handle(.panel(.emoji), in: document)
         #expect(engine.shift == .off)
-        #expect(engine.layout(on: .phone).kind == .text)
+        #expect(engine.layout(on: .phone, screen: Size(width: 402, height: 874)).kind == .text)
         #expect(engine.faces(on: .phone).returnKind == .default)
         engine.handle(.panel(nil), in: document)
-        #expect(engine.layout(on: .phone).kind == .url)
+        #expect(engine.layout(on: .phone, screen: Size(width: 402, height: 874)).kind == .url)
     }
 
     @Test func anEmojiFromThePanelEndsTheWordAndIsRemembered() {

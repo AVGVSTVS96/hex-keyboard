@@ -69,6 +69,14 @@ extension KeyboardMetrics {
         return metrics
     }
 
+    /// The keys of `context` on a `screen`-sized device, in a keyboard `window` wide: what the keyboard draws, and the
+    /// app's preview and Your Taps with it.
+    public static func `for`(_ context: LayoutContext, screen: Size, window: Double, style: KeyboardStyle) -> KeyboardMetrics {
+        let metrics = Self.for(context.device, width: screen.width, height: screen.height, style: style, oneHanded: context.oneHanded, split: context.isSplit)
+        guard context.device == .phone, !context.isLandscape else { return metrics }
+        return metrics.fitted(screen: screen.width, window: window)
+    }
+
     public static func phone(width: Double, style: KeyboardStyle = .ios26) -> KeyboardMetrics {
         let large = width >= 415
         // iOS 27 draws its rows 7pt lower on 6.1" phones, but a third-party keyboard's area ends where iOS 26's did: it

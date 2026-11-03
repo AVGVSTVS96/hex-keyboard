@@ -2,7 +2,7 @@ import KeyboardCore
 import KeyboardUI
 import SwiftUI
 
-/// Hex drawn as these settings make it, at the width it's offered.
+/// Hex drawn as these settings make it on the screen the app is on, at the width it's offered.
 struct KeyboardPreview: UIViewRepresentable {
     let settings: KeyboardSettings
 
@@ -14,13 +14,13 @@ struct KeyboardPreview: UIViewRepresentable {
     }
 
     func updateUIView(_ view: KeyboardPreviewView, context: Context) {
-        view.show(settings, dark: context.environment.colorScheme == .dark)
+        view.show(settings, dark: context.environment.colorScheme == .dark, screen: context.environment.window)
         view.layer.borderColor = HexStyle.edge.resolvedColor(with: view.traitCollection).cgColor
     }
 
     func sizeThatFits(_ proposal: ProposedViewSize, uiView: KeyboardPreviewView, context: Context) -> CGSize? {
         let width = min(proposal.width ?? 390, 520)
-        return CGSize(width: width, height: KeyboardPreviewView.height(forWidth: width, settings: settings))
+        return CGSize(width: width, height: KeyboardPreviewView.height(forWidth: width, settings: settings, screen: context.environment.window))
     }
 }
 
@@ -68,7 +68,7 @@ struct TryPreview: View {
 
     /// Wide enough to read, short enough to leave the settings in view: at most two fifths of the window's height.
     private var maxWidth: CGFloat {
-        min(520, window.height * 0.4 / (KeyboardPreviewView.height(forWidth: 100, settings: model.settings) / 100))
+        min(520, window.height * 0.4 / (KeyboardPreviewView.height(forWidth: 100, settings: model.settings, screen: window) / 100))
     }
 }
 
