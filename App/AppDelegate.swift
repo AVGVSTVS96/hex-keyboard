@@ -3,7 +3,12 @@ import SwiftUI
 import UIKit
 
 @main
-final class AppDelegate: UIResponder, UIApplicationDelegate {}
+final class AppDelegate: UIResponder, UIApplicationDelegate {
+    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+        if !VoiceProbe.asked { VoiceModel.shared.prepare() }
+        return true
+    }
+}
 
 /// Which tab shows, and which page inside the Keyboard and More tabs, so a tile on one tab can open a page on another.
 @Observable final class Router {
@@ -65,11 +70,6 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         let controller = UIHostingController(rootView: view.readsWindow())
         controller.view.backgroundColor = HexStyle.page
         return controller
-    }
-
-    func sceneDidBecomeActive(_ scene: UIScene) {
-        guard !VoiceProbe.asked else { return }
-        VoiceModel.shared.prepare()
     }
 
     func scene(_ scene: UIScene, openURLContexts contexts: Set<UIOpenURLContext>) {

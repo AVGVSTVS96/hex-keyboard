@@ -3,8 +3,8 @@ import KeyboardCore
 import SwiftUI
 
 extension VoiceModel {
-    /// Writes a kept `Recording` down again, with the model picked now, or Apple's while it gets ready, in your style
-    /// and with your vocabulary.
+    /// Writes a kept `Recording` down again, with the model picked now, once it's ready, in your style and with your
+    /// vocabulary.
     func again(_ recording: [Float]) async throws -> (text: String, heard: String, model: String) {
         let transcription = try await transcription()
         if let format = transcription.format {
@@ -50,7 +50,7 @@ struct RecordingSection: View {
             Box(footer: kept ? "Hex keeps the sound of each dictation on this iPhone, so it can be written again with \(VoiceModel.shared.model.title)." : nil) {
                 if let mic = transcript.mic { Fact(title: "Microphone", value: mic) }
                 if kept {
-                    ActionRow(title: writing ? "Transcribing Again…" : "Transcribe Again", symbol: "arrow.clockwise") { Task { await write() } }
+                    ActionRow(title: writing ? VoiceModel.shared.state == .ready ? "Transcribing Again…" : "Transcribing Again once \(VoiceModel.shared.model.title) is ready…" : "Transcribe Again", symbol: "arrow.clockwise") { Task { await write() } }
                         .disabled(writing)
                 }
                 if let again {

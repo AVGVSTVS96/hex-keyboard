@@ -100,11 +100,9 @@ import UIKit
             keepMicOn()
             UIApplication.shared.endBackgroundTask(background)
         }
-        let writer = writer(for: transcription)
-        if writer !== transcription { await transcription.cancel() }
         let heard: String
         do {
-            heard = try await writer.text(of: recording)
+            heard = try await transcription.text(of: recording)
         } catch {
             guard transcription === self.transcription else { return }
             self.transcription = nil
@@ -114,14 +112,8 @@ import UIKit
         self.transcription = nil
         let text = DictationWriting.typed(heard)
         set(.idle, heard: text)
-        Transcripts.shared.add(text, heard: heard, id: id, at: started, seconds: listened, typed: true, model: writer.model, mic: mic)
-        HostApp.log.notice("\(writer.model, privacy: .public) wrote \(self.listened, format: .fixed(precision: 1))s down in \(Date.now.timeIntervalSince(self.started) - self.listened, format: .fixed(precision: 2))s")
-    }
-
-    /// Apple's model stands in while the picked Parakeet loads; if it loaded while you talked, it writes the recording.
-    private func writer(for transcription: any Transcription) -> any Transcription {
-        guard transcription is SpeechTranscription, let loaded = VoiceModel.shared.loaded else { return transcription }
-        return loaded
+        Transcripts.shared.add(text, heard: heard, id: id, at: started, seconds: listened, typed: true, model: transcription.model, mic: mic)
+        HostApp.log.notice("\(transcription.model, privacy: .public) wrote \(self.listened, format: .fixed(precision: 1))s down in \(Date.now.timeIntervalSince(self.started) - self.listened, format: .fixed(precision: 2))s")
     }
 
     /// Types nothing. What was said while listening is still written down, for Transcripts.

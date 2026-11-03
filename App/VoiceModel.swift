@@ -4,8 +4,8 @@ import Observation
 import Speech
 
 /// The speech model voice typing writes with, picked in Settings: one of NVIDIA's Parakeets, run on the Neural Engine by
-/// FluidAudio and downloaded from Hugging Face once, or Apple's SpeechTranscriber. Until the Parakeet you picked is
-/// loaded, Apple's writes, and the transcript says so. Either way the sound never leaves the iPhone.
+/// FluidAudio and downloaded from Hugging Face once, or Apple's SpeechTranscriber. A dictation made while the picked
+/// Parakeet gets ready is written by it once it's ready. Either way the sound never leaves the iPhone.
 @Observable final class VoiceModel {
     static let shared = VoiceModel()
 
@@ -68,7 +68,6 @@ import Speech
     private(set) var model = UserDefaults.standard.string(forKey: modelKey).flatMap(Model.init) ?? .v3
     private(set) var state = State.loading
     @ObservationIgnored private var parakeet: Task<any Parakeet, any Error>?
-    @ObservationIgnored private var preparing: Task<Void, Never>?
 
     private init() {}
 
@@ -77,8 +76,6 @@ import Speech
         guard model != self.model else { return }
         UserDefaults.standard.set(model.rawValue, forKey: Self.modelKey)
         self.model = model
-        preparing?.cancel()
-        preparing = nil
         parakeet?.cancel()
         parakeet = nil
         state = .loading
@@ -103,55 +100,48 @@ import Speech
     }
 
     /// Downloads the picked Parakeet if it isn't on the iPhone yet, then loads it, unless it's loaded, on its way, or
-    /// failed since it was picked. The first load compiles it for the Neural Engine; later ones read that from a cache.
+    /// failed since it was picked. The first load after an install compiles it for the Neural Engine; later ones read
+    /// that from a cache.
     func prepare() {
         guard let load = model.loader else { return state = .ready }
         if case .failed = state { return }
-        guard parakeet == nil, preparing == nil else { return }
+        guard parakeet == nil else { return }
         let model = model
-        preparing = Task {
-            let began = Date.now
-            let parakeet = Task.detached {
-                try await load { progress in
-                    Task { @MainActor in
-                        guard VoiceModel.shared.model == model else { return }
-                        if case .downloading = progress.phase {
-                            VoiceModel.shared.state = .downloading(progress.fractionCompleted)
-                        } else {
-                            VoiceModel.shared.state = .loading
-                        }
+        let began = Date.now
+        let parakeet = Task.detached {
+            try await load { progress in
+                Task { @MainActor in
+                    guard VoiceModel.shared.model == model else { return }
+                    if case .downloading = progress.phase {
+                        VoiceModel.shared.state = .downloading(progress.fractionCompleted)
+                    } else {
+                        VoiceModel.shared.state = .loading
                     }
                 }
             }
-            self.parakeet = parakeet
+        }
+        self.parakeet = parakeet
+        Task {
             do {
                 _ = try await parakeet.value
-                guard self.model == model else { return }
+                guard self.parakeet == parakeet else { return }
                 state = .ready
                 HostApp.log.notice("\(model.title, privacy: .public) ready after \(Date.now.timeIntervalSince(began), format: .fixed(precision: 1))s")
             } catch {
-                guard self.model == model else { return }
+                guard self.parakeet == parakeet else { return }
                 self.parakeet = nil
                 state = .failed(error.localizedDescription)
                 HostApp.log.error("\(model.title, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
             }
-            preparing = nil
         }
     }
 
-    /// A new dictation's transcription: the picked model's once it's loaded, else Apple's, named for the transcript as
-    /// standing in.
+    /// A new dictation's transcription, by the picked model. A Parakeet still getting ready writes the recording once
+    /// it's ready; one that failed to load is tried again.
     func transcription() async throws -> any Transcription {
+        retry()
         prepare()
-        if let loaded { return loaded }
-        let apple = try await SpeechTranscription.make()
-        if model != .apple { apple.model = "Apple, while \(model.title) got ready" }
-        return apple
-    }
-
-    /// The picked Parakeet's transcription, once it's loaded.
-    var loaded: ParakeetTranscription? {
-        guard state == .ready, let parakeet else { return nil }
+        guard let parakeet else { return try await SpeechTranscription.make() }
         return ParakeetTranscription(parakeet, model: model.title)
     }
 }
