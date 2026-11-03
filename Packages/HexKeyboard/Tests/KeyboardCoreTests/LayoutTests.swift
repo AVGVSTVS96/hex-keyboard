@@ -130,6 +130,18 @@ struct LayoutTests {
         #expect(cover.showing(nil, compact: true) == cover)
     }
 
+    /// His Duo open on its side, half folded: iOS gave the keyboard about 322 of the 420 the GIF panel asked for.
+    @Test func aPanelFitsTheRoomIOSGives() {
+        let open = KeyboardMetrics.for(.phone, width: 669, height: 951)
+        let toolbar = open.toolbar
+        let keys = open.height(rows: 4, hasNumberRow: false)
+        #expect(toolbar.fitting(toolbar.panelHeight) == toolbar, "a panel that fits keeps its size")
+        let folded = toolbar.fitting(322 - keys)
+        #expect(folded.isCompact && folded.panelHeight <= 322 - keys && folded.results > 40, "one row, still a full one")
+        #expect(folded.height == toolbar.height, "the bar stays as it is")
+        #expect(toolbar.fitting(0).results == 0)
+    }
+
     /// docs/design.md, "Per device": Apple's keys and letters on each of the Duo's screens, measured in the iOS 27.1
     /// simulator: (key height, row gap, key gap, side inset, letter size).
     @Test func theDuoMatchesApplesKeysOnEachScreen() {

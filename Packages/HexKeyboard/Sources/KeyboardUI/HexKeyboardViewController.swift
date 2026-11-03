@@ -64,6 +64,7 @@ open class HexKeyboardViewController: UIInputViewController {
         }
         [suggestionBar, panelView].forEach(toolbarView.addSubview)
         keyboardHeightConstraint.priority = .required - 1
+        toolbarHeightConstraint.priority = .required - 2
         NSLayoutConstraint.activate([
             toolbarView.topAnchor.constraint(equalTo: view.topAnchor),
             toolbarView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -248,14 +249,18 @@ open class HexKeyboardViewController: UIInputViewController {
         let layout = Layouts.layout(for: context)
         var metrics = KeyboardMetrics.for(device, width: screenSize.width, height: screenSize.height, style: .current, oneHanded: context.oneHanded, split: context.isSplit)
         if device == .phone, !context.isLandscape { metrics = metrics.fitted(screen: screenSize.width, window: view.bounds.width) }
-        metrics.toolbar = metrics.toolbar.showing(engine.panel, compact: engine.settings.compactPanels)
+        let wanted = metrics.toolbar.showing(engine.panel, compact: engine.settings.compactPanels)
+        let height = metrics.height(rows: layout.rows.count, hasNumberRow: layout.hasNumberRow)
+        let ask = engine.panel == nil ? wanted.height : wanted.panelHeight
+        let settled = ask == toolbarHeightConstraint.constant && height == keyboardHeightConstraint.constant
+        metrics.toolbar = engine.panel != nil && settled && view.bounds.height > 0 ? wanted.fitting(view.bounds.height - height) : wanted
+        if toolbarHeightConstraint.constant != ask { toolbarHeightConstraint.constant = ask }
         keyboardView.menu = (context.menuKey(in: layout), context.menu, context.menuPick)
         keyboardView.update(layout: layout, signature: context.signature, metrics: metrics, faces: engine.faces(on: device), theme: theme)
         renderToolbar(metrics, device: device)
         suggestionBar.update(more: moreMenu(context))
         renderSuggestions()
 
-        let height = metrics.height(rows: layout.rows.count, hasNumberRow: layout.hasNumberRow)
         if keyboardHeightConstraint.constant != height { keyboardHeightConstraint.constant = height }
     }
 
@@ -282,8 +287,6 @@ open class HexKeyboardViewController: UIInputViewController {
         suggestionBar.update(mic: mic, listeningSince: dictation.since, notice: dictation.failure ?? hint, theme: theme)
         if panel != nil { panelView.show(query: engine.query, theme: theme, metrics: metrics) }
         keyboardView.deadTop = panel != nil ? max(metrics.topInset - Toolbar.keysReach, 0) : 0
-        let height = panel == nil ? toolbar.height : toolbar.panelHeight
-        if toolbarHeightConstraint.constant != height { toolbarHeightConstraint.constant = height }
     }
 
     /// The bar's More button, on every screen: the layouts holding 123 offers where there are any, then Hex's settings.

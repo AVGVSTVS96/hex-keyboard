@@ -135,6 +135,8 @@ Physical and Mechanical come Automatic (following the app), Dark or Light. iOS 5
 
 Where height is short (any landscape, and iPad), the bar and the mic are 34 (32 on the folded landscape, 38 on the open Duo on its side; iPad: a 36 bar and a 34 mic), and a panel's results are one row (`Toolbar.isCompact`). Settings › Keyboard › Layout › Compact Emoji & GIFs makes the emoji and GIF panels that one row on every screen (`Toolbar.showing`); it's off, so upright screens keep the large panels.
 
+Half folded on its side, the open Duo gives a keyboard only the screen below the hinge: about 322 of the 420 Hex asks for with a panel open. Hex keeps asking for its full height and lays out in what it gets: the keys keep theirs at the bottom, and a panel that doesn't fit goes to its one row (`Toolbar.fitting`), back to its size once the Duo opens flat.
+
 ### Cut from Raycast
 
 - The 2×2 grid button at the bar's left (Raycast's commands): Hex has no commands, so the suggestions get its width.

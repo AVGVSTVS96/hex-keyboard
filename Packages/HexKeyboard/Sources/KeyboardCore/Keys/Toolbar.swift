@@ -39,6 +39,19 @@ public struct Toolbar: Hashable, Sendable {
     /// every screen.
     public func showing(_ panel: Panel?, compact: Bool) -> Toolbar {
         guard compact, panel == .emoji || panel == .gif else { return self }
+        return compacted
+    }
+
+    /// A panel in `room`, where iOS gives the keyboard less height than it asks for (the open Duo half folded on its
+    /// side): results that don't fit go to one row, which gives up whatever is still missing.
+    public func fitting(_ room: Double) -> Toolbar {
+        guard panelHeight > room else { return self }
+        var toolbar = compacted
+        toolbar.results = max(min(toolbar.results, room - top - Self.fieldGap - toolbar.field), 0)
+        return toolbar
+    }
+
+    private var compacted: Toolbar {
         var toolbar = self
         toolbar.results = min(results, Self.compactResults)
         toolbar.field = min(field, Self.compactField)
