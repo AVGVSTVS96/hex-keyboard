@@ -9,7 +9,7 @@ public enum DictationStyle: String, CaseIterable, Hashable, Sendable {
     /// Capitals, ending with an exclamation mark.
     case excited
 
-    public static let standard = DictationStyle.formal
+    public static let standard = DictationStyle.casual
 
     /// The capitals the keyboard gives a dictation in a field that asks for `field`'s (`TypingEngine.fitted`).
     public func capitals(in field: Autocapitalization) -> Autocapitalization {

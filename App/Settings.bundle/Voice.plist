@@ -16,9 +16,9 @@
 		</dict>
 		<dict>
 			<key>DefaultValue</key>
-			<string>formal</string>
+			<string>casual</string>
 			<key>Key</key>
-			<string>dictationStyle</string>
+			<string>writingStyle</string>
 			<key>Title</key>
 			<string>Style</string>
 			<key>Titles</key>

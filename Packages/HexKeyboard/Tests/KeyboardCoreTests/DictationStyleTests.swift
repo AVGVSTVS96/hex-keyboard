@@ -9,7 +9,7 @@ struct DictationStyleTests {
     @Test func asSaidKeepsEveryWordUmAndUhIncluded() {
         let heard = "Um, so I think, uh, the the job is done."
         #expect(write(heard) == heard)
-        #expect(KeyboardSettings.initial.dictation == DictationWriting(style: .formal, editing: .asSaid, lists: true))
+        #expect(KeyboardSettings.initial.dictation == DictationWriting(style: .casual, editing: .asSaid, lists: true))
     }
 
     @Test func lightLeavesOutUmAndUh() {

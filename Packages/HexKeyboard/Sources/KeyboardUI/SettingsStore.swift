@@ -29,7 +29,7 @@ public enum SettingsStore {
     private static let themeAppearance = Choice(key: "themeAppearance", path: \.themeAppearance)
     private static let characterPreview = Choice(key: "characterPreviewStyle", path: \.characterPreview, switchKey: "characterPreview", on: .attached, off: CharacterPreview.none)
     private static let haptics = Choice(key: "hapticFeedback", path: \.haptics, switchKey: "haptics", on: .standard, off: .off)
-    private static let dictationStyle = Choice(key: "dictationStyle", path: \.dictationStyle)
+    private static let dictationStyle = Choice(key: "writingStyle", path: \.dictationStyle)
     private static let dictationEditing = Choice(key: "dictationEditing", path: \.dictationEditing, switchKey: "keepsUmAndUh", on: .asSaid, off: .light)
     private static let skinToneKey = "skinTone"
 
