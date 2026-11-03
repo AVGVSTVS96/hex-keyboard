@@ -233,12 +233,12 @@ struct LayoutSettings: View {
             MenuRow(title: "Skin Tone", selection: model.binding(\.skinTone), choices: [nil] + SkinTone.allCases.map(Optional.some)) { tone in
                 "✋\(tone.map { String($0.modifier) } ?? "") \(tone?.title ?? "Default")"
             }
-            ToggleRow(title: "Compact Emoji & GIFs", detail: "One row that scrolls sideways, as in landscape, so the keyboard stays short when you hold the iPhone upright.", isOn: model.binding(\.compactPanels))
+            ToggleRow(title: "Compact Emoji & GIFs", detail: "One row that scrolls sideways, as in landscape, so the keyboard stays short in portrait too.", isOn: model.binding(\.compactPanels))
         }
-        Box(footer: "On the open iPhone Duo held wide, half the keys sit under each thumb. You can also hold 123 and slide, or tap … above the keys.") {
+        Box(footer: "On the open iPhone Duo in landscape, half the keys sit under each thumb. You can also hold 123 and slide, or tap … above the keys.") {
             ToggleRow(title: "Split Keyboard", isOn: model.binding(\.split))
         }
-        Box(header: "One-Handed Keyboard", footer: "Moves the keys toward one thumb while the iPhone is upright. You can also hold 123 and slide.") {
+        Box(header: "One-Handed Keyboard", footer: "Moves the keys toward one thumb on an iPhone in portrait, on the Duo only folded. You can also hold 123 and slide.") {
             ForEach(OneHanded.allCases, id: \.self) { hand in
                 ChoiceRow(title: Self.title(of: hand), picked: model.oneHanded == hand) { model.oneHanded = hand }
             }

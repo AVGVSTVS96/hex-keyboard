@@ -1,7 +1,7 @@
 import Testing
 @testable import KeyboardCore
 
-/// The bar on every screen Hex knows, folded and open, upright and on its side, one-handed, and with each number of
+/// The bar on every screen Hex knows, on the Duo's four screens, one-handed, and with each number of
 /// tools and emoji.
 struct BarLayoutTests {
     private struct Screen {
@@ -14,13 +14,13 @@ struct BarLayoutTests {
     }
 
     private static let screens: [Screen] = [
-        Screen(name: "Duo folded upright", device: .phone, width: 466, height: 678, window: 452),
-        Screen(name: "Duo folded on its side", device: .phone, width: 678, height: 466, window: 678),
-        Screen(name: "Duo open upright", device: .phone, width: 669, height: 951, window: 669),
-        Screen(name: "Duo open on its side", device: .phone, width: 951, height: 669, window: 951),
+        Screen(name: "Duo folded, portrait", device: .phone, width: 466, height: 678, window: 452),
+        Screen(name: "Duo folded, landscape", device: .phone, width: 678, height: 466, window: 678),
+        Screen(name: "Duo open, portrait", device: .phone, width: 669, height: 951, window: 669),
+        Screen(name: "Duo open, landscape", device: .phone, width: 951, height: 669, window: 801),
         Screen(name: "iPhone 17", device: .phone, width: 402, height: 874, window: 402),
         Screen(name: "iPhone 17 Pro Max", device: .phone, width: 440, height: 956, window: 440),
-        Screen(name: "iPhone 17 on its side", device: .phone, width: 874, height: 402, window: 874),
+        Screen(name: "iPhone 17 landscape", device: .phone, width: 874, height: 402, window: 874),
         Screen(name: "iPhone 17 left hand", device: .phone, width: 402, height: 874, window: 402, oneHanded: .left),
         Screen(name: "iPhone 17 right hand", device: .phone, width: 402, height: 874, window: 402, oneHanded: .right),
         Screen(name: "iPad mini", device: .compactPad, width: 744, height: 1133, window: 744),
@@ -98,8 +98,8 @@ struct BarLayoutTests {
     }
 
     /// On an iPhone the mic has the same space above it (to the backdrop iOS draws), below it (to the keys) and beside
-    /// it where the keys reach the side: on the Duo folded upright, 7 all round, where it had 14 above, 12 below and 7
-    /// beside; open and held wide, where iOS draws the backdrop 7 above the keyboard, 7 all round, where it had 10 above.
+    /// it where the keys reach the side: on the Duo folded in portrait, 7 all round, where it had 14 above, 12 below and 7
+    /// beside; open in landscape, where iOS draws the backdrop 7 above the keyboard, 7 all round, where it had 10 above.
     @Test func theMicHasTheSameSpaceAllRound() {
         for screen in Self.screens where screen.device == .phone {
             let backdrop = screen.width == 951 ? Toolbar.openWideBackdropAbove : Toolbar.backdropAbove
@@ -113,8 +113,8 @@ struct BarLayoutTests {
         #expect(near(452 + 7 - (cover.mic.x + cover.mic.width), Toolbar.gap))
     }
 
-    /// Where the bar has room for three suggestions and more, the word's emoji sit beside them; folded upright they
-    /// take the third suggestion's place.
+    /// Where the bar has room for three suggestions and more, the word's emoji sit beside them; folded in portrait
+    /// they take the third suggestion's place.
     @Test func wideBarsKeepTheThirdSuggestion() {
         func beside(_ index: Int) -> Bool { layouts(Self.screens[index]).first { $0.label.hasSuffix("2 tools, 4 emoji") }!.layout.emojiBeside }
         #expect(!beside(0) && beside(2) && beside(3))

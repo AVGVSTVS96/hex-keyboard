@@ -14,7 +14,7 @@ public struct Toolbar: Hashable, Sendable {
     /// where the keys reach it. With it, the keyboard is as tall as Apple's with its suggestions (iPhone Duo, iOS 27.1).
     public static let gap = 7.0
     /// iOS draws the keyboard's backdrop this far above the keyboard's own top (iPhone Duo, iOS 27.1 simulator), and
-    /// further on the open screen held wide.
+    /// further on the open Duo in landscape.
     public static let backdropAbove = 4.0
     public static let openWideBackdropAbove = 7.0
     /// How far over the bar's bottom, or a panel's search row, the top row takes taps: with the gap under the bar, a
@@ -41,10 +41,10 @@ public struct Toolbar: Hashable, Sendable {
         return compacted
     }
 
-    /// A panel in `room`, where iOS gives the keyboard less height than it asks for (the open Duo half folded on its
-    /// side): results that don't fit go to one row, which gives up whatever is still missing. iOS rounds the keyboard's
-    /// height to the screen's pixels (419.68 asked on the open Duo held tall is 419.67 given), so less than a point short
-    /// still fits.
+    /// A panel in `room`, where iOS gives the keyboard less height than it asks for (the open Duo in portrait, slightly
+    /// folded): results that don't fit go to one row, which gives up whatever is still missing. iOS rounds the
+    /// keyboard's height to the screen's pixels (419.68 asked on the open Duo in portrait is 419.67 given), so less than
+    /// a point short still fits.
     public func fitting(_ room: Double) -> Toolbar {
         guard panelHeight > room + 1 else { return self }
         var toolbar = compacted

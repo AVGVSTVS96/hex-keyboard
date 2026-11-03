@@ -74,7 +74,7 @@
 		</dict>
 		<dict>
 			<key>FooterText</key>
-			<string>Shows emoji and GIFs in one row that scrolls sideways, as in landscape, so the keyboard stays short when you hold the iPhone upright.</string>
+			<string>Shows emoji and GIFs in one row that scrolls sideways, as in landscape, so the keyboard stays short in portrait too.</string>
 			<key>Type</key>
 			<string>PSGroupSpecifier</string>
 		</dict>
@@ -106,7 +106,7 @@
 		</dict>
 		<dict>
 			<key>FooterText</key>
-			<string>Moves the keys toward one thumb while the iPhone is upright. You can also hold 123 and slide.</string>
+			<string>Moves the keys toward one thumb on an iPhone in portrait, on the Duo only folded. You can also hold 123 and slide.</string>
 			<key>Type</key>
 			<string>PSGroupSpecifier</string>
 		</dict>

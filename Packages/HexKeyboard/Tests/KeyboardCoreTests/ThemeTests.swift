@@ -32,8 +32,8 @@ struct ThemeTests {
     }
 
     @Test func raycastsCornersFollowTheLetterKeysWidth() {
-        #expect(abs(KeyShape.raycast.cornerRadius(letterWidth: 69) - 13.75) < 0.2, "the open Duo held wide")
-        #expect(abs(KeyShape.raycast.cornerRadius(letterWidth: 55) - 11.75) < 0.2, "the open Duo on its side")
+        #expect(abs(KeyShape.raycast.cornerRadius(letterWidth: 69) - 13.75) < 0.2, "the open Duo in landscape")
+        #expect(abs(KeyShape.raycast.cornerRadius(letterWidth: 55) - 11.75) < 0.2, "the open Duo in portrait")
         #expect(abs(KeyShape.raycast.cornerRadius(letterWidth: 28) - 7.8) < 0.2, "Raycast's app preview")
     }
 

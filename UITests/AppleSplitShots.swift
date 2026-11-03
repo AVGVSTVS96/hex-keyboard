@@ -1,6 +1,6 @@
 import XCTest
 
-/// Apple's keyboard on the open iPhone Duo held wide, split from its … menu, in letters, 123 and #+=: the reference Hex's
+/// Apple's keyboard on the open iPhone Duo in landscape, split from its … menu, in letters, 123 and #+=: the reference Hex's
 /// split is matched against. HEX_SPLIT_SHOTS names the files; the simulator types with Apple's keyboard (scripts/sim use).
 final class AppleSplitShots: XCTestCase {
     func testApplesSplitKeyboard() throws {

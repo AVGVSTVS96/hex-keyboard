@@ -6,6 +6,14 @@ cd "$(dirname "$0")/.."
 
 APP=${APP:-build/Build/Products/Debug-iphonesimulator/Hex.app}
 BUNDLE=com.shahidy.hexkeyboard
+# The iPhone Duo's screens, as Bassim names them: name, hinge angle, Device Hub orientation, display. Slightly folded is
+# the small fold his reports are about.
+DUO_SCREENS="folded-portrait 0 portrait 1
+folded-landscape 0 landscape-right 1
+open-landscape 180 portrait 3
+open-portrait 180 landscape-right 3
+open-landscape-slightly-folded 160 portrait 3
+open-portrait-slightly-folded 160 landscape-right 3"
 PREFIX=${SIMPREFIX:-hexkb}
 
 # A simulator's id by name, in RUNTIME if set.
@@ -145,10 +153,11 @@ unfold() {
   sleep 3
 }
 
-# Screenshots each keyboard on the iPhone Duo's four screens (cover and open, upright and on its side) in the iOS 27.1
-# simulator, the only one with the Duo: shots/raw/duo/<tag>-<screen>-<keyboard>-<appearance>.png. The open screen
-# comes from unfolding the simulator (scripts/devicehub.c); a reboot folds it again. Open and upright, the screen is
-# 951 wide; on its side, 669. LISTENING=1 shows the bar while you talk, saved or waiting with dictations saved (scripts/voiceapp.py); DUO names the simulator.
+# Screenshots each keyboard on the iPhone Duo's four screens (folded and open, portrait and landscape, as Bassim names
+# them) and the open ones slightly folded, in the iOS 27.1 simulator, the only one with the Duo:
+# shots/raw/duo/<tag>-<screen>-<keyboard>-<appearance>.png. The open screen comes from unfolding the simulator
+# (scripts/devicehub.c); a reboot folds it again. The open screen's own upright is landscape, 951 wide, so Device Hub's
+# portrait shows it in landscape. LISTENING=1 shows the bar while you talk, saved or waiting with dictations saved (scripts/voiceapp.py); DUO names the simulator.
 duo() {
   local tag=$1 id app=; shift
   id=$(ensure "${DUO:-iPhone Duo}" iPhone-Duo)
@@ -161,27 +170,21 @@ duo() {
       app=$!
     fi
     while read -r screen hinge orientation display; do
-      case $screen in open-upright|open-book) unfold "$id" "$hinge" ;; esac
+      case $screen in open-*) unfold "$id" "$hinge" ;; esac
       hub "$id" orientation "$orientation"
       for appearance in ${APPEARANCES:-light dark}; do
         DISPLAY_ID=$display shoot "$id" "$keyboard" "$appearance" "shots/raw/duo/$tag-$screen-$keyboard-$appearance.png" \
           -HexOrientation "$([ "$orientation" = portrait ] && echo portrait || echo landscape)" "$@"
       done
-    done <<SCREENS
-cover-upright 0 portrait 1
-cover-side 0 landscape-right 1
-open-upright 180 portrait 3
-open-side 180 landscape-right 3
-open-book 110 portrait 3
-SCREENS
+    done <<<"$DUO_SCREENS"
     [ -z "$app" ] || { kill "$app"; wait "$app" 2>/dev/null || true; app=; }
   done
   [ -n "${KEEP:-}" ] || xcrun simctl shutdown "$id"
 }
 
 # Screenshots the keyboard in every theme on the iPhone Duo, folded and open, light and dark:
-# shots/raw/themes/<tag>-<theme>-<screen>-<appearance>.png. THEMES and SCREENS (cover-upright cover-side open-upright
-# open-side) pick some; extra arguments go to the app (-HexReturnKey 1).
+# shots/raw/themes/<tag>-<theme>-<screen>-<appearance>.png. THEMES and SCREENS (folded-portrait folded-landscape
+# open-landscape open-portrait) pick some; extra arguments go to the app (-HexReturnKey 1).
 themes() {
   local tag=$1 id; shift
   id=$(ensure "iPhone Duo" iPhone-Duo)
@@ -189,7 +192,7 @@ themes() {
   boot "$id"
   while read -r screen hinge orientation display; do
     [ -n "${SCREENS:-}" ] && [[ " $SCREENS " != *" $screen "* ]] && continue
-    case $screen in open-upright|open-book) unfold "$id" "$hinge" ;; esac
+    case $screen in open-*) unfold "$id" "$hinge" ;; esac
     hub "$id" orientation "$orientation"
     for theme in ${THEMES:-standard clear physical physical-dark physical-light mechanical mechanical-dark mechanical-light classic}; do
       local name=${theme%%-*} look=automatic
@@ -199,13 +202,7 @@ themes() {
           -HexOrientation "$([ "$orientation" = portrait ] && echo portrait || echo landscape)" -HexTheme "$name" -HexThemeAppearance "$look" "$@"
       done
     done
-  done <<SCREENS
-cover-upright 0 portrait 1
-cover-side 0 landscape-right 1
-open-upright 180 portrait 3
-open-side 180 landscape-right 3
-open-book 110 portrait 3
-SCREENS
+  done <<<"$DUO_SCREENS"
   [ -n "${KEEP:-}" ] || xcrun simctl shutdown "$id"
 }
 
@@ -227,7 +224,7 @@ duoapp() {
   [ -n "${TRANSCRIPTS:-}" ] && mkdir -p "$data/Library/Application Support" && cp "$TRANSCRIPTS" "$data/Library/Application Support/transcripts.jsonl"
   [ -n "${CLIPBOARD:-}" ] && mkdir -p "$group/Library/clipboard" && cp "$CLIPBOARD" "$group/Library/clipboard/history.json"
   while read -r screen hinge orientation display; do
-    case $screen in open-upright|open-book) unfold "$id" "$hinge" ;; esac
+    case $screen in open-*) unfold "$id" "$hinge" ;; esac
     hub "$id" orientation "$orientation"
     for appearance in ${APPEARANCES:-dark light}; do
       xcrun simctl ui "$id" appearance "$appearance"
@@ -258,13 +255,7 @@ sources -HexSettings sources
 access -HexSettings access
 PAGES
     done
-  done <<SCREENS
-cover-upright 0 portrait 1
-cover-side 0 landscape-right 1
-open-upright 180 portrait 3
-open-side 180 landscape-right 3
-open-book 110 portrait 3
-SCREENS
+  done <<<"$DUO_SCREENS"
   [ -n "${KEEP:-}" ] || xcrun simctl shutdown "$id"
 }
 

@@ -12,11 +12,12 @@ public struct LayoutContext: Hashable, Sendable {
     /// iOS wants a way to the next keyboard: an iPad's keys carry a globe, and an iPhone's menus offer Next Keyboard,
     /// so a reach for the bottom row never leaves Hex.
     public var showsGlobe: Bool
+    /// Wider than tall.
     public var isLandscape: Bool
-    /// The iPhone Duo unfolded, whose keys are half again as wide as on its cover.
+    /// The iPhone Duo open, on its inner screen, whose keys are half again as wide as folded, on its cover.
     public var isOpen: Bool
     public var oneHanded: OneHanded
-    /// The open Duo, wider than tall, with its keys in two halves, one under each thumb.
+    /// The open Duo in landscape with its keys in two halves, one under each thumb.
     public var isSplit: Bool
     /// The emoji key in an iPhone's bottom row, beside space.
     public var showsEmoji: Bool
@@ -38,10 +39,10 @@ public struct LayoutContext: Hashable, Sendable {
         if !allowsSplit { self.isSplit = false }
     }
 
-    /// Like Apple's, only an upright iPhone narrows its keys for one hand, and on the Duo only its cover.
+    /// Like Apple's, only an iPhone in portrait narrows its keys for one hand, and on the Duo only folded.
     public var allowsOneHanded: Bool { device == .phone && !isLandscape && !isOpen }
 
-    /// Like Apple's, only the open Duo wider than tall splits its keys.
+    /// Like Apple's, only the open Duo in landscape splits its keys.
     public var allowsSplit: Bool { isOpen && isLandscape }
 
     /// The key whose hold opens the layer menu, as Apple's globe opens its menu: the layer key in the bottom row, Hex's
@@ -53,8 +54,8 @@ public struct LayoutContext: Hashable, Sendable {
     }
 
     /// What the bar's More button offers, top to bottom: the layouts that apply here (one hand or the other on an
-    /// upright iPhone, Full and Split on the open Duo held wide), the next keyboard where an iPhone needs one, then
-    /// Hex's settings.
+    /// iPhone in portrait, Full and Split on the open Duo in landscape), the next keyboard where an iPhone needs one,
+    /// then Hex's settings.
     public var moreMenu: [KeyboardEvent] {
         layoutPicks + (showsGlobe && device == .phone ? [.nextKeyboard] : []) + [.settings]
     }
@@ -102,11 +103,60 @@ extension LayoutContext {
     }
 }
 
-/// The iPhone Duo's screens in points, upright: the cover, and the inner screen unfolded. They are the only iPhones over
-/// 440 points on the short side.
+/// The iPhone Duo, the only iPhone over 440 points on the short side.
 public enum Duo {
-    public static let cover = (width: 466.0, height: 678.0)
-    public static let open = (width: 669.0, height: 951.0)
+    /// Its four screens, in Bassim's words: folded (the cover) or open (the inner screen), each in portrait (taller
+    /// than wide) or landscape (wider than tall). Slightly folding the open screen keeps its screen: iOS only gives the
+    /// keyboard a different height (`KeyboardMetrics.filling`).
+    public enum Screen: CaseIterable, Sendable {
+        case foldedPortrait, foldedLandscape, openPortrait, openLandscape
+
+        public init(open: Bool, landscape: Bool) {
+            self = switch (open, landscape) {
+            case (false, false): .foldedPortrait
+            case (false, true): .foldedLandscape
+            case (true, false): .openPortrait
+            case (true, true): .openLandscape
+            }
+        }
+
+        /// The Duo's screen of that size, or nil on any other device.
+        public init?(width: Double, height: Double) {
+            let short = min(width, height)
+            guard Duo.isDuo(short: short) else { return nil }
+            self.init(open: Duo.isOpen(short: short), landscape: width > height)
+        }
+
+        public var isOpen: Bool { self == .openPortrait || self == .openLandscape }
+        public var isLandscape: Bool { self == .foldedLandscape || self == .openLandscape }
+
+        public var size: Size {
+            switch self {
+            case .foldedPortrait: Size(width: 466, height: 678)
+            case .foldedLandscape: Size(width: 678, height: 466)
+            case .openPortrait: Size(width: 669, height: 951)
+            case .openLandscape: Size(width: 951, height: 669)
+            }
+        }
+
+        /// What iOS gives a third-party keyboard of the screen's width, centered on it (iOS 27.1 simulator).
+        public var keyboardWidth: Double {
+            switch self {
+            case .foldedPortrait: 452
+            case .openLandscape: 801
+            case .foldedLandscape, .openPortrait: size.width
+            }
+        }
+
+        public var name: String {
+            switch self {
+            case .foldedPortrait: "Folded, portrait"
+            case .foldedLandscape: "Folded, landscape"
+            case .openPortrait: "Open, portrait"
+            case .openLandscape: "Open, landscape"
+            }
+        }
+    }
 
     public static func isDuo(short side: Double) -> Bool { side > 440 }
     public static func isOpen(short side: Double) -> Bool { side >= 600 }

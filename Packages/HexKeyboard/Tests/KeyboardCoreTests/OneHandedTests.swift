@@ -31,7 +31,7 @@ struct OneHandedTests {
         #expect(grid(.off, width: 402).expander == nil)
     }
 
-    @Test func onlyUprightPhonesNarrow() {
+    @Test func onlyPhonesInPortraitNarrow() {
         #expect(LayoutContext(device: .phone, layer: .letters, isLandscape: true, oneHanded: .left).oneHanded == .off)
         #expect(LayoutContext(device: .pad, layer: .letters, oneHanded: .right).oneHanded == .off)
         #expect(LayoutContext(device: .phone, layer: .numbers, oneHanded: .right).oneHanded == .right)
@@ -45,13 +45,13 @@ struct OneHandedTests {
         #expect(LayoutContext(device: .phone, layer: .letters).signature == "phone-portrait-letters")
     }
 
-    @Test func holdingTheLayerKeyOffersTheHandsOnAnUprightPhoneOnly() {
+    @Test func holdingTheLayerKeyOffersTheHandsOnAPhoneInPortraitOnly() {
         let context = LayoutContext(device: .phone, layer: .letters)
         #expect(context.menuKey(in: Layouts.layout(for: context))?.action == .layer(.numbers))
         #expect(context.menu == [.pick(.left), .pick(.off), .pick(.right), .settings])
         let numbers = LayoutContext(device: .phone, layer: .numbers)
         #expect(numbers.menuKey(in: Layouts.layout(for: numbers))?.action == .layer(.letters))
-        #expect(LayoutContext(device: .pad, layer: .letters).menu.isEmpty, "only an upright phone narrows for one hand")
+        #expect(LayoutContext(device: .pad, layer: .letters).menu.isEmpty, "only a phone in portrait narrows for one hand")
         #expect(LayoutContext(device: .phone, layer: .letters, isLandscape: true).menu.isEmpty)
     }
 

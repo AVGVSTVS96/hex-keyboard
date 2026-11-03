@@ -91,7 +91,7 @@ enum PhoneLayouts {
         [".", ",", "?", "!", "'"].map { .key(Key(.character($0), width: .pitch(1.4), alternates: Alternates.for($0))) }
     }
 
-    /// Return beside the emoji key, as wide as Raycast's on the open Duo, upright and on its side.
+    /// Return beside the emoji key, as wide as Raycast's on the open Duo in portrait and landscape.
     private static let raycastReturn = KeyWidth.pitch(1.4)
 
     private static func bottomRow(_ context: LayoutContext, layerKey: KeyboardLayer) -> [RowItem] {

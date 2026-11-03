@@ -13,7 +13,7 @@ public struct KeyboardSettings: Hashable, Sendable {
     /// The emoji and GIF panels as one row that scrolls sideways on every screen, as they are in landscape.
     public var compactPanels = false
     public var oneHanded = OneHanded.off
-    /// The open Duo's keys in two halves while it's wider than tall, as Apple's More button's Split picks.
+    /// The open Duo's keys in two halves in landscape, as Apple's More button's Split picks.
     public var split = false
     public var theme = ThemeName.standard
     public var themeAppearance = ThemeAppearance.automatic

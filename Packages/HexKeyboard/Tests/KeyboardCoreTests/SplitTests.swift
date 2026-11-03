@@ -2,8 +2,7 @@ import Testing
 @testable import KeyboardCore
 
 struct SplitTests {
-    /// The width iOS gives a keyboard on the open Duo held wide (shots/raw/duo, open-upright), narrower than its screen.
-    private let width = 801.0, height = Duo.open.width
+    private let width = Duo.Screen.openLandscape.keyboardWidth, height = Duo.Screen.openLandscape.size.height
 
     private func grid(_ layer: KeyboardLayer = .letters, kind: InputKind = .text) -> KeyGrid {
         let context = LayoutContext(device: .phone, layer: layer, kind: kind, showsGlobe: true, isLandscape: true, isOpen: true, isSplit: true, showsEmoji: true)
@@ -43,7 +42,7 @@ struct SplitTests {
     }
 
     @Test func splitKeysAreApplesSize() {
-        let full = KeyboardMetrics.for(.phone, width: Duo.open.height, height: height)
+        let full = KeyboardMetrics.for(.phone, width: Duo.Screen.openLandscape.size.width, height: height)
         let letters = KeyGrid(Layouts.layout(for: LayoutContext(device: .phone, layer: .letters, isLandscape: true, isOpen: true)), width: width, metrics: full.grid, signature: "")
         let split = grid()
         let pitch = split.frame(of: "w")!.x - split.frame(of: "q")!.x
@@ -93,7 +92,7 @@ struct SplitTests {
         engine.handle(.split(true), in: document)
         #expect(engine.layout(on: .phone, isLandscape: true, isOpen: true).isSplit)
         #expect(engine.layout(on: .phone, isLandscape: true, isOpen: true).menuPick == .split(true))
-        #expect(!engine.layout(on: .phone, isOpen: true).isSplit, "upright, the same setting keeps one keyboard")
+        #expect(!engine.layout(on: .phone, isOpen: true).isSplit, "in portrait, the same setting keeps one keyboard")
         engine.handle(.split(false), in: document)
         #expect(!engine.layout(on: .phone, isLandscape: true, isOpen: true).isSplit)
     }

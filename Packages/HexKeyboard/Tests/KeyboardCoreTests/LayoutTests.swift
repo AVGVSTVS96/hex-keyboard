@@ -148,7 +148,7 @@ struct LayoutTests {
         #expect(cover.showing(nil, compact: true) == cover)
     }
 
-    /// His Duo open on its side, half folded: iOS gave the keyboard about 322 of the 420 the GIF panel asked for.
+    /// His Duo open in portrait, slightly folded: iOS gave the keyboard about 322 of the 420 the GIF panel asked for.
     @Test func aPanelFitsTheRoomIOSGives() {
         let open = KeyboardMetrics.for(.phone, width: 669, height: 951)
         let toolbar = open.toolbar
@@ -162,7 +162,7 @@ struct LayoutTests {
         #expect(toolbar.fitting(0).results == 0)
     }
 
-    /// His Duo open held tall, partly folded: iOS gave Apple's keyboard and Hex the same height, about 50pt more than
+    /// His Duo open in portrait, slightly folded: iOS gave Apple's keyboard and Hex the same height, about 50pt more than
     /// Hex asked for flat (his photos, Nov 3 1:51am and 1:53am), and Apple's rows took it.
     @Test func theKeysFillTheExtraHeightIOSGives() {
         let open = KeyboardMetrics.for(.phone, width: 669, height: 951)
@@ -178,8 +178,8 @@ struct LayoutTests {
     }
 
     /// docs/design.md, "Per device": Apple's keys and letters on each of the Duo's screens, measured in the iOS 27.1
-    /// simulator: (key height, row gap, key gap, side inset, letter size). Open on its side the keys take over Apple's
-    /// margins and gaps, in the same height, as Bassim asked.
+    /// simulator: (key height, row gap, key gap, side inset, letter size). Open, the keys take over Apple's margins and
+    /// gaps, in the same height, as Bassim asked.
     @Test func theDuoMatchesApplesKeysOnEachScreen() {
         let screens: [(width: Double, height: Double, keys: [Double])] = [
             (466, 678, [45, 11, 6, 6.5, 25.5]),
@@ -194,9 +194,10 @@ struct LayoutTests {
         #expect(KeyboardMetrics.for(.phone, width: 440, height: 956).letterSize == 23, "regular iPhones keep their letters")
     }
 
-    /// The Duo's keys span the keyboard's whole width, folded and open, upright and on its side.
+    /// The Duo's keys span the keyboard's whole width on its four screens.
     @Test func theDuosKeysSpanTheWholeWidth() {
-        for (width, height) in [(466.0, 678.0), (669, 951), (678, 466), (951, 669)] {
+        for screen in Duo.Screen.allCases {
+            let (width, height) = (screen.size.width, screen.size.height)
             let context = LayoutContext(device: .phone, layer: .letters, showsGlobe: true, isLandscape: width > height)
             let metrics = KeyboardMetrics.for(.phone, width: width, height: height)
             let grid = KeyGrid(Layouts.layout(for: context), width: width, metrics: metrics.grid)

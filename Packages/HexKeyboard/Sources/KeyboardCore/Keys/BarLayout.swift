@@ -15,7 +15,7 @@ public struct BarLayout: Hashable, Sendable {
 
     /// The gap between neighboring tools, and between the end cells and the suggestions.
     public static let gap = 4.0
-    /// A suggestion never needs more width than a third of an upright iPhone's bar.
+    /// A suggestion never needs more width than a third of an iPhone's bar in portrait.
     public static let slotWidth = 130.0
     public static let emojiPitch = 36.0
 

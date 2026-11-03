@@ -123,7 +123,7 @@ public struct Drop: Hashable, Sendable {
 }
 
 /// Raycast's keys, on every theme: continuous corners as round as `cornerBase` plus `cornerPerWidth` of a letter key's
-/// width (measured on the open Duo upright and on its side, and in its app's preview), letters, labels (`123`) and
+/// width (measured on the open Duo in portrait and landscape, and in its app's preview), letters, labels (`123`) and
 /// symbols at these shares of Apple's sizes, and labels `labelLift` points above the middle.
 public struct KeyShape: Hashable, Sendable {
     public static let raycast = KeyShape(cornerBase: 3.9, cornerPerWidth: 0.143, letterScale: 1.08, labelScale: 0.67, symbolScale: 0.86, labelLift: 1.6)

@@ -41,9 +41,9 @@ public struct KeyboardMetrics: Hashable, Sendable {
         return topInset + keys + Double(rows - 1) * rowGap + bottomInset
     }
 
-    /// The keys in `room`, where iOS gives the keyboard more height than it asks for (the open Duo partly folded held
-    /// tall gives Apple's keyboard and Hex the same taller height): each row takes its share of the extra, as Apple's
-    /// do, and the gaps and insets stay as they are.
+    /// The keys in `room`, where iOS gives the keyboard more height than it asks for (the open Duo in portrait,
+    /// slightly folded, gives Apple's keyboard and Hex the same taller height): each row takes its share of the extra,
+    /// as Apple's do, and the gaps and insets stay as they are.
     public func filling(_ room: Double, rows: Int, hasNumberRow: Bool) -> KeyboardMetrics {
         let extra = room - height(rows: rows, hasNumberRow: hasNumberRow)
         guard extra > 0, rows > 0 else { return self }
@@ -57,13 +57,13 @@ public struct KeyboardMetrics: Hashable, Sendable {
 extension KeyboardMetrics {
     public static func `for`(_ device: DeviceClass, width: Double, height: Double, style: KeyboardStyle = .ios26, oneHanded: OneHanded = .off, split: Bool = false) -> KeyboardMetrics {
         let landscape = width > height
-        var metrics = switch device {
-        case .phone where Duo.isDuo(short: min(width, height)): duo(width: width, height: height, style: style, oneHanded: oneHanded, split: split)
-        case .phone where landscape: phoneLandscape(width: width)
-        case .phone: phone(width: width, style: style).oneHanded(oneHanded, width: width)
-        case .compactPad: compactPad
-        case .pad: pad(shortSide: min(width, height))
-        case .largePad: largePad
+        var metrics = switch (device, Duo.Screen(width: width, height: height)) {
+        case (.phone, let duo?): Self.duo(duo, style: style, oneHanded: oneHanded, split: split)
+        case (.phone, nil) where landscape: phoneLandscape(width: width)
+        case (.phone, nil): phone(width: width, style: style).oneHanded(oneHanded, width: width)
+        case (.compactPad, _): compactPad
+        case (.pad, _): pad(shortSide: min(width, height))
+        case (.largePad, _): largePad
         }
         if device == .phone { metrics.numberRowHeight = (metrics.keyHeight * 0.8).rounded() }
         return metrics
@@ -117,18 +117,18 @@ extension KeyboardMetrics {
         )
     }
 
-    /// The iPhone Duo, folded and open, upright and on its side: Apple's keys and letters measured on each screen in the
-    /// iOS 27.1 simulator (docs/design.md), across the keyboard's whole width.
-    static func duo(width: Double, height: Double, style: KeyboardStyle, oneHanded: OneHanded, split: Bool) -> KeyboardMetrics {
+    /// The iPhone Duo's four screens: Apple's keys and letters measured on each in the iOS 27.1 simulator
+    /// (docs/design.md), across the keyboard's whole width.
+    static func duo(_ screen: Duo.Screen, style: KeyboardStyle, oneHanded: OneHanded, split: Bool) -> KeyboardMetrics {
+        let width = screen.size.width
         var metrics = phone(width: width, style: style)
-        let open = Duo.isOpen(short: min(width, height))
-        switch (open, width > height) {
-        case (false, false):
+        switch screen {
+        case .foldedPortrait:
             metrics.letterSize = 25.5
             metrics.labelSize = 20
             metrics.symbolSize = 21
             return metrics.oneHanded(oneHanded, width: width)
-        case (true, false):
+        case .openPortrait:
             metrics.sideInset = 4.5
             metrics.keyGap = 6
             metrics.keyHeight = 49.42
@@ -137,8 +137,7 @@ extension KeyboardMetrics {
             metrics.letterSize = 28
             metrics.labelSize = 22
             metrics.symbolSize = 23
-            return metrics.oneHanded(oneHanded, width: width)
-        case (false, true):
+        case .foldedLandscape:
             metrics.sideInset = 4.5
             metrics.keyGap = 7
             metrics.keyHeight = 33.33
@@ -148,7 +147,7 @@ extension KeyboardMetrics {
             metrics.labelSize = 18.5
             metrics.symbolSize = 19.5
             metrics.toolbar = .compact(mic: 32)
-        case (true, true):
+        case .openLandscape:
             metrics.sideInset = 9
             metrics.keyGap = 10
             metrics.keyHeight = 38.67

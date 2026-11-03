@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// How a page uses the screen it's on. Only the iPhone Duo open and held wide (951 × 669) has room for two columns,
-/// as an iPad's split view does; everywhere else, the cover either way up and the open screen held tall, a page is one
-/// column that scrolls as one, as iOS lays out a compact width.
+/// How a page uses the screen it's on. Only the iPhone Duo open in landscape (951 × 669) has room for two columns,
+/// as an iPad's split view does; everywhere else, folded either way and open in portrait, a page is one column that
+/// scrolls as one, as iOS lays out a compact width.
 enum Arrangement {
     case side, single
 

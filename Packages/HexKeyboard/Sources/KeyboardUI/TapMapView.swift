@@ -43,12 +43,12 @@ public final class TapMapView: UIView {
     /// Lays out the keys of `context` as they are on a `screen`-sized device and draws `touches` over them. On the
     /// iPhone Duo each screen draws at its own size, whichever one the app is on.
     public func show(_ touches: TouchModel, on context: LayoutContext, screen: CGSize) {
-        var short = min(screen.width, screen.height), long = max(screen.width, screen.height)
+        let short = min(screen.width, screen.height), long = max(screen.width, screen.height)
+        var width = context.isLandscape ? long : short, height = context.isLandscape ? short : long
         if context.device == .phone, Duo.isDuo(short: short) {
-            let duo = context.isOpen ? Duo.open : Duo.cover
-            (short, long) = (duo.width, duo.height)
+            let duo = Duo.Screen(open: context.isOpen, landscape: context.isLandscape).size
+            (width, height) = (duo.width, duo.height)
         }
-        let width = context.isLandscape ? long : short, height = context.isLandscape ? short : long
         let metrics = KeyboardMetrics.for(context.device, width: width, height: height, style: .current, oneHanded: context.oneHanded, split: context.isSplit)
         let layout = Layouts.layout(for: context)
         self.context = context
