@@ -10,10 +10,10 @@
   body { position: relative; }
   .mark { position: absolute; left: 64px; top: 64px; height: 76px; }
   .line { position: absolute; left: 64px; top: 172px; font-size: 26px; line-height: 1.25; color: var(--ink-2); letter-spacing: -0.005em; }
-  .typed { position: absolute; left: 64px; bottom: 58px; font-size: 52px; font-weight: 700; letter-spacing: -0.03em; line-height: 1; white-space: nowrap; }
+  .typed { position: absolute; left: 64px; bottom: 150px; font-size: 50px; font-weight: 700; letter-spacing: -0.03em; line-height: 1; white-space: nowrap; }
   .caret { display: inline-block; width: 4px; height: 50px; margin-left: 3px; vertical-align: -6px; background: var(--blue); border-radius: 2px; }
-  .keys { position: absolute; right: 0; bottom: 0; width: 560px; }
-  .keys img { position: absolute; right: 0; bottom: 0; width: 560px; display: none; }
+  .keys { position: absolute; right: 0; bottom: 0; width: 566px; height: 387px; }
+  .keys img { position: absolute; right: 0; bottom: 0; width: 566px; display: none; }
   .keys img.on { display: block; }
 </style>
 </head>
@@ -23,7 +23,7 @@
 <p class="typed"><span id="text"></span><span class="caret"></span></p>
 <div class="keys" id="keys"></div>
 <script>
-  const phrase = "on my way with pizza"
+  const phrase = "On my way with pizza"
   const start = 0.8, perKey = 0.14, hold = 2.4
   window.END = start + phrase.length * perKey + hold
   const keys = document.getElementById("keys")

@@ -17,3 +17,5 @@ xcuserdata/
 /Packages/HexKeyboard/Sources/KeyboardUI/Resources/Keys/*.key
 /.scratch/
 node_modules/
+/brand/og/out/parts-*
+/brand/og/out/og-1200x630*
