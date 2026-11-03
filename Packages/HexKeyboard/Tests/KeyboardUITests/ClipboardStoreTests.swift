@@ -8,7 +8,7 @@ import UniformTypeIdentifiers
 @MainActor
 struct ClipboardStoreTests {
     let pasteboard = UIPasteboard.withUniqueName()
-    let folder = URL.temporaryDirectory.appending(path: "clipboard-\(UUID().uuidString)")
+    let folder = URL.temporaryDirectory.appending(path: "App Group \(UUID().uuidString)/clipboard")
 
     @Test func keepsWhatYouCopyOnceAndOutlivesTheKeyboard() {
         let store = ClipboardStore(folder: folder)
@@ -65,11 +65,11 @@ struct ClipboardStoreTests {
         #expect(store.history.items.count == 1, "putting it back doesn't keep it again")
 
         store.remove(.image(name))
-        #expect(!FileManager.default.fileExists(atPath: folder.appending(path: name).path()))
+        #expect(!FileManager.default.fileExists(atPath: folder.appending(path: name).path(percentEncoded: false)))
     }
 
     @Test func theAppSeesWhatTheKeyboardKeptBeforeTheGroupHeldIt() throws {
-        let own = URL.temporaryDirectory.appending(path: "clipboard-own-\(UUID().uuidString)")
+        let own = URL.temporaryDirectory.appending(path: "Application Support \(UUID().uuidString)/clipboard")
         let old = ClipboardStore(folder: own)
         pasteboard.string = "kept before"
         old.catchUp(pasteboard)
@@ -89,28 +89,31 @@ struct ClipboardStoreTests {
     }
 
     @Test func whatTheKeyboardKeptJoinsAGroupThatAlreadyHasAHistory() {
-        let own = URL.temporaryDirectory.appending(path: "clipboard-own-\(UUID().uuidString)")
+        let own = URL.temporaryDirectory.appending(path: "Application Support \(UUID().uuidString)/clipboard")
         pasteboard.string = "kept before"
         ClipboardStore(folder: own).catchUp(pasteboard)
         pasteboard.string = "kept in the group"
         ClipboardStore(folder: folder).catchUp(pasteboard)
+        FileManager.default.createFile(atPath: own.appending(path: "lost.gif").path(percentEncoded: false), contents: Data("GIF89a".utf8))
 
         let keyboard = ClipboardStore(folder: folder, backup: own)
-        #expect(Set(keyboard.history.items.map(\.content)) == [.text("kept before"), .text("kept in the group")])
+        #expect(Set(keyboard.history.items.map(\.content)) == [.text("kept before"), .text("kept in the group"), .image("lost.gif")], "an image whose row was lost gets it back")
+        #expect(FileManager.default.fileExists(atPath: folder.appending(path: "lost.gif").path(percentEncoded: false)))
         keyboard.remove(.text("kept before"))
-        #expect(ClipboardStore(folder: folder, backup: own).history.items.map(\.content) == [.text("kept in the group")], "it joins once, so what you delete stays deleted")
+        #expect(Set(ClipboardStore(folder: folder, backup: own).history.items.map(\.content)) == [.text("kept in the group"), .image("lost.gif")], "it joins once, so what you delete stays deleted")
+        #expect(FileManager.default.fileExists(atPath: own.appending(path: "lost.gif").path(percentEncoded: false)), "the keyboard's copy keeps its images")
     }
 
     @Test func aWipedGroupGetsTheKeyboardsCopyBackImagesIncluded() throws {
-        let own = URL.temporaryDirectory.appending(path: "clipboard-own-\(UUID().uuidString)")
+        let own = URL.temporaryDirectory.appending(path: "Application Support \(UUID().uuidString)/clipboard")
         let keyboard = ClipboardStore(folder: folder, backup: own)
         pasteboard.setData(Data([0x89, 0x50, 0x4E, 0x47]), forPasteboardType: UTType.png.identifier)
         keyboard.catchUp(pasteboard)
         guard case .image(let name) = try #require(keyboard.history.items.first).content else { Issue.record("not an image"); return }
-        #expect(FileManager.default.fileExists(atPath: own.appending(path: name).path()))
+        #expect(FileManager.default.fileExists(atPath: own.appending(path: name).path(percentEncoded: false)))
 
         try FileManager.default.removeItem(at: folder)
         #expect(ClipboardStore(folder: folder, backup: own).history.items.map(\.content) == [.image(name)])
-        #expect(FileManager.default.fileExists(atPath: folder.appending(path: name).path()))
+        #expect(FileManager.default.fileExists(atPath: folder.appending(path: name).path(percentEncoded: false)))
     }
 }

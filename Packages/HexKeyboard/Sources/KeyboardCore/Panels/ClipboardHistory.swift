@@ -15,6 +15,12 @@ public struct ClipboardHistory: Codable, Hashable, Sendable {
         public var pinned = false
 
         public var id: Content { content }
+
+        public init(content: Content, found: Double, pinned: Bool = false) {
+            self.content = content
+            self.found = found
+            self.pinned = pinned
+        }
     }
 
     /// Pinned items first, then the rest, each newest first.

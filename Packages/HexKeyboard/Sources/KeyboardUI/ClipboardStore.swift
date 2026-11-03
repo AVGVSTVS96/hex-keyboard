@@ -19,7 +19,7 @@ public final class ClipboardStore {
     private let folder: URL
     /// The keyboard's own copy of everything, since iOS deletes the group's container whenever an install leaves no app
     /// claiming the group: a group without a history takes this one. The history the keyboard kept before the group held
-    /// it joins the group's once (`moved`), whatever the group had by then.
+    /// it joins the group's once (`moved`), whatever the group had by then, with any image file whose row was lost.
     private let backup: URL?
 
     /// Password managers mark what they copy with these, so it's never kept.
@@ -39,7 +39,7 @@ public final class ClipboardStore {
 
     /// Whether the history is in the folder yet. The keyboard starts it, from its own copy when it has one, so the app
     /// keeps nothing before then: what it kept would stand in for everything the keyboard had.
-    public var started: Bool { FileManager.default.fileExists(atPath: folder.appending(path: "history.json").path()) }
+    public var started: Bool { FileManager.default.fileExists(atPath: folder.appending(path: "history.json").path(percentEncoded: false)) }
 
     /// Whether iOS refused the keyboard's last look at the clipboard. iOS counts a keyboard's reads as its app's, even
     /// inside another app, and without asking refuses them unless Settings › Apps › Hex › Paste from Other Apps is Allow.
@@ -126,13 +126,18 @@ public final class ClipboardStore {
     /// writes over what another kept.
     public func reload() {
         if let saved = Self.read(folder) ?? restore() { self.saved = saved }
-        if let backup, !FileManager.default.fileExists(atPath: backup.appending(path: Self.moved).path()), let kept = Self.read(backup) {
-            for case .image(let name) in kept.history.items.map(\.content) {
+        if let backup, !FileManager.default.fileExists(atPath: backup.appending(path: Self.moved).path(percentEncoded: false)), let kept = Self.read(backup) {
+            let files = (try? FileManager.default.contentsOfDirectory(atPath: backup.path(percentEncoded: false))) ?? []
+            for name in files where name != "history.json" {
                 try? FileManager.default.copyItem(at: backup.appending(path: name), to: folder.appending(path: name))
             }
             saved.history.add(kept.history.items)
+            saved.history.add(files.filter { UTType(filenameExtension: ($0 as NSString).pathExtension)?.conforms(to: .image) == true }.map { name in
+                let found = (try? FileManager.default.attributesOfItem(atPath: backup.appending(path: name).path(percentEncoded: false))[.modificationDate] as? Date) ?? .now
+                return ClipboardHistory.Item(content: .image(name), found: found.timeIntervalSince1970)
+            })
             guard save() else { return }
-            FileManager.default.createFile(atPath: backup.appending(path: Self.moved).path(), contents: nil)
+            FileManager.default.createFile(atPath: backup.appending(path: Self.moved).path(percentEncoded: false), contents: nil)
         }
     }
 
@@ -141,7 +146,7 @@ public final class ClipboardStore {
     private func restore() -> Saved? {
         guard let backup, let saved = Self.read(backup) else { return nil }
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        for name in (try? FileManager.default.contentsOfDirectory(atPath: backup.path())) ?? [] {
+        for name in (try? FileManager.default.contentsOfDirectory(atPath: backup.path(percentEncoded: false))) ?? [] {
             try? FileManager.default.copyItem(at: backup.appending(path: name), to: folder.appending(path: name))
         }
         return saved
@@ -157,7 +162,7 @@ public final class ClipboardStore {
         guard let backup else { return kept }
         write(to: backup)
         let images = Set(saved.history.items.compactMap { if case .image(let name) = $0.content { name } else { nil } })
-        let backedUp = Set((try? FileManager.default.contentsOfDirectory(atPath: backup.path())) ?? []).subtracting(["history.json", Self.moved])
+        let backedUp = Set((try? FileManager.default.contentsOfDirectory(atPath: backup.path(percentEncoded: false))) ?? []).subtracting(["history.json", Self.moved])
         for name in images.subtracting(backedUp) { try? FileManager.default.copyItem(at: folder.appending(path: name), to: backup.appending(path: name)) }
         for name in backedUp.subtracting(images) { try? FileManager.default.removeItem(at: backup.appending(path: name)) }
         return kept
