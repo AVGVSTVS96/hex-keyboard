@@ -11,9 +11,9 @@ iikb types like Apple's keyboard and looks like Raycast's. It learns where each 
 
 It's open source under MIT, a base to build your own keyboard on. For iPhone and iPad on iOS 26 and later, and the iPhone Duo in every pose. Type with its engine in your browser at [iikb.vercel.app](https://iikb.vercel.app).
 
-Apple's keyboard on the left, Hex on the right, on the iPhone Duo's cover:
+Apple's keyboard on the left, iikb on the right, on the iPhone Duo's cover:
 
-![Apple's keyboard and Hex on the iPhone Duo's cover](docs/apple-and-hex.png)
+![Apple's keyboard and iikb on the iPhone Duo's cover](docs/apple-and-hex.png)
 
 ## It feels like Apple's
 
