@@ -72,9 +72,22 @@ extension KeyboardMetrics {
     /// The keys of `context` on a `screen`-sized device, in a keyboard `window` wide: what the keyboard draws, and the
     /// app's preview and Your Taps with it.
     public static func `for`(_ context: LayoutContext, screen: Size, window: Double, style: KeyboardStyle) -> KeyboardMetrics {
-        let metrics = Self.for(context.device, width: screen.width, height: screen.height, style: style, oneHanded: context.oneHanded, split: context.isSplit)
-        guard context.device == .phone, !context.isLandscape else { return metrics }
-        return metrics.fitted(screen: screen.width, window: window)
+        var metrics = Self.for(context.device, width: screen.width, height: screen.height, style: style, oneHanded: context.oneHanded, split: context.isSplit)
+        if context.device == .phone, !context.isLandscape { metrics = metrics.fitted(screen: screen.width, window: window) }
+        return metrics.spaced(context.keySpacing, rows: Layouts.layout(for: context).rows.count)
+    }
+
+    /// The keys `spacing` apart: the outermost keys' edges and the keyboard's height stay put, and the keycaps take
+    /// what the gaps give up, or give up what they take.
+    public func spaced(_ spacing: KeySpacing, rows: Int) -> KeyboardMetrics {
+        guard spacing != .standard, rows > 0 else { return self }
+        var metrics = self
+        let down = rowGap * (spacing.share - 1)
+        metrics.keyGap *= spacing.share
+        metrics.rowGap += down
+        metrics.keyHeight -= down * Double(rows - 1) / Double(rows)
+        metrics.numberRowHeight -= down * Double(rows - 1) / Double(rows)
+        return metrics
     }
 
     public static func phone(width: Double, style: KeyboardStyle = .ios26) -> KeyboardMetrics {

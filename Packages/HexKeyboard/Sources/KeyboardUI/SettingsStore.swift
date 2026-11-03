@@ -31,6 +31,7 @@ public enum SettingsStore {
     private static let themeAppearance = Choice(key: "themeAppearance", path: \.themeAppearance)
     private static let characterPreview = Choice(key: "characterPreviewStyle", path: \.characterPreview, switchKey: "characterPreview", on: .attached, off: CharacterPreview.none)
     private static let haptics = Choice(key: "hapticFeedback", path: \.haptics, switchKey: "haptics", on: .standard, off: .off)
+    private static let keySpacing = Choice(key: "keySpacing", path: \.keySpacing)
     private static let dictationStyle = Choice(key: "writingStyle", path: \.dictationStyle)
     private static let dictationEditing = Choice(key: "dictationEditing", path: \.dictationEditing, switchKey: "keepsUmAndUh", on: .asSaid, off: .light)
     private static let skinToneKey = "skinTone"
@@ -51,6 +52,7 @@ public enum SettingsStore {
         themeAppearance.load(into: &settings, sharing: sharing)
         characterPreview.load(into: &settings, sharing: sharing)
         haptics.load(into: &settings, sharing: sharing)
+        keySpacing.load(into: &settings, sharing: sharing)
         dictationStyle.load(into: &settings, sharing: sharing)
         dictationEditing.load(into: &settings, sharing: sharing)
         settings.skinTone = (value(forKey: skinToneKey, sharing: sharing) as? String).flatMap(SkinTone.init)
@@ -66,6 +68,7 @@ public enum SettingsStore {
         themeAppearance.save(settings)
         characterPreview.save(settings)
         haptics.save(settings)
+        keySpacing.save(settings)
         dictationStyle.save(settings)
         dictationEditing.save(settings)
         set(settings.skinTone?.rawValue ?? "", forKey: skinToneKey)

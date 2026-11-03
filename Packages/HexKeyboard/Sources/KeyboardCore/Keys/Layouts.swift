@@ -28,6 +28,7 @@ public struct LayoutContext: Hashable, Sendable {
     public var showsEmoji: Bool
     /// A row of digits above an iPhone's letters.
     public var showsNumberRow: Bool
+    public var keySpacing = KeySpacing.standard
 
     public init(device: DeviceClass, layer: KeyboardLayer, kind: InputKind = .text, showsGlobe: Bool = false, isLandscape: Bool = false, isOpen: Bool = false, oneHanded: OneHanded = .off, isSplit: Bool = false, showsEmoji: Bool = false, showsNumberRow: Bool = false) {
         self.device = device
@@ -51,6 +52,7 @@ public struct LayoutContext: Hashable, Sendable {
             isOpen: Duo.isOpen(short: min(screen.width, screen.height)), oneHanded: settings.oneHanded, isSplit: settings.split,
             showsEmoji: settings.emojiKey, showsNumberRow: settings.numberRow
         )
+        keySpacing = settings.keySpacing
     }
 
     /// Like Apple's, only an iPhone in portrait narrows its keys for one hand, and on the Duo only folded.

@@ -225,6 +225,9 @@ struct LayoutSettings: View {
     private let model = SettingsModel.shared
 
     var body: some View {
+        Box(header: "Key Spacing", footer: "Less space between the keys makes them bigger. The keyboard stays the same size.") {
+            StopSlider(title: "Space Between Keys", label: "Key Spacing", level: model.binding(\.keySpacing), levels: KeySpacing.allCases, name: \.title, ends: ("Bigger Keys", "More Space"))
+        }
         Box(header: "Rows") {
             ToggleRow(title: "Number Row", detail: "1 to 0 above the letters. The keyboard grows upward.", isOn: model.binding(\.numberRow))
         }
@@ -289,12 +292,15 @@ private struct PreviewDrawing: View {
     private var letter: some View { Text("q").foregroundStyle(.primary) }
 }
 
-/// The key haptics' strengths as stops on one track, Standard in the middle; each stop taps at its strength as it's
-/// picked, so the levels can be felt apart.
-struct HapticSlider: View {
-    @Binding var level: HapticFeedback
-    @State private var haptics = KeyHaptics()
-    private let levels = HapticFeedback.levels
+/// Levels as stops on one track, Standard in the middle, named at its ends.
+struct StopSlider<Level: Hashable>: View {
+    let title: String
+    let label: String
+    @Binding var level: Level
+    let levels: [Level]
+    let name: (Level) -> String
+    let ends: (low: String, high: String)
+    var picked: (Level) -> Void = { _ in }
     private let thumb: CGFloat = 28
 
     private var index: Int { levels.firstIndex(of: level) ?? levels.count / 2 }
@@ -302,9 +308,9 @@ struct HapticSlider: View {
     var body: some View {
         VStack(spacing: 10) {
             HStack {
-                Text("Strength").foregroundStyle(.primary)
+                Text(title).foregroundStyle(.primary)
                 Spacer()
-                Text(level.title).foregroundStyle(Color.hexSecondary)
+                Text(name(level)).foregroundStyle(Color.hexSecondary)
             }
             GeometryReader { geometry in
                 let step = (geometry.size.width - thumb) / CGFloat(levels.count - 1)
@@ -333,9 +339,9 @@ struct HapticSlider: View {
             }
             .frame(height: thumb)
             HStack {
-                Text("Lighter")
+                Text(ends.low)
                 Spacer()
-                Text("Stronger")
+                Text(ends.high)
             }
             .overlay { Text("Standard") }
             .font(.footnote)
@@ -343,8 +349,8 @@ struct HapticSlider: View {
         }
         .row()
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Haptic Strength")
-        .accessibilityValue(level.title)
+        .accessibilityLabel(label)
+        .accessibilityValue(name(level))
         .accessibilityAdjustableAction { direction in
             switch direction {
             case .increment: pick(index + 1)
@@ -355,11 +361,23 @@ struct HapticSlider: View {
     }
 
     private func pick(_ stop: Int) {
-        let picked = levels[min(max(stop, 0), levels.count - 1)]
-        guard picked != level else { return }
-        level = picked
-        haptics.strength = Float(picked.strength)
-        haptics.play(.input)
+        let next = levels[min(max(stop, 0), levels.count - 1)]
+        guard next != level else { return }
+        level = next
+        picked(next)
+    }
+}
+
+/// The key haptics' strengths, each stop tapping at its strength as it's picked, so the levels can be felt apart.
+struct HapticSlider: View {
+    @Binding var level: HapticFeedback
+    @State private var haptics = KeyHaptics()
+
+    var body: some View {
+        StopSlider(title: "Strength", label: "Haptic Strength", level: $level, levels: HapticFeedback.levels, name: \.title, ends: ("Lighter", "Stronger")) { picked in
+            haptics.strength = Float(picked.strength)
+            haptics.play(.input)
+        }
     }
 }
 

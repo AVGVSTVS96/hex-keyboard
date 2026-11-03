@@ -15,6 +15,7 @@ public struct KeyboardSettings: Hashable, Sendable {
     public var oneHanded = OneHanded.off
     /// The open Duo's keys in two halves in landscape, as Apple's More button's Split picks.
     public var split = false
+    public var keySpacing = KeySpacing.standard
     public var theme = ThemeName.standard
     public var themeAppearance = ThemeAppearance.automatic
     /// A row of digits above an iPhone's letters, which grows the keyboard upward.
@@ -83,6 +84,30 @@ public enum HapticFeedback: String, CaseIterable, Hashable, Sendable {
         case .stronger: 1.6
         case .strongest: 2
         }
+    }
+}
+
+/// The space between the keys, which sets the keycaps' size: the keyboard and each key's place stay as they are, and
+/// the keycaps take what the gaps give up. Standard, in the middle, is iikb's own, with three steps tighter and three
+/// roomier.
+public enum KeySpacing: String, CaseIterable, Hashable, Sendable {
+    case tightest, tighter, tight, standard, roomy, roomier, roomiest
+
+    public var title: String {
+        switch self {
+        case .tightest: "Tightest"
+        case .tighter: "Tighter"
+        case .tight: "Tight"
+        case .standard: "Standard"
+        case .roomy: "Roomy"
+        case .roomier: "Roomier"
+        case .roomiest: "Roomiest"
+        }
+    }
+
+    /// A share of the standard gaps: a quarter of them at Tightest, seven quarters at Roomiest.
+    public var share: Double {
+        Double(Self.allCases.firstIndex(of: self)! + 1) / 4
     }
 }
 

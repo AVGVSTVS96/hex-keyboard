@@ -189,7 +189,8 @@ final class TapsViewController: UIViewController {
         [stats, modes, map, pullCard, missedCard].forEach { $0.isHidden = !hasTaps }
         contentUnavailableConfiguration = hasTaps ? nil : empty
         detail.isHidden = true
-        guard let signature, let context = LayoutContext(signature: signature) else { return updateLegend() }
+        guard let signature, var context = LayoutContext(signature: signature) else { return updateLegend() }
+        context.keySpacing = SettingsModel.shared.settings.keySpacing
         map.show(touches, on: context, screen: screen)
         showStats()
         showPull()
