@@ -13,7 +13,7 @@ slug=$(echo "$NAME" | tr 'A-Z ' 'a-z-')
 mkdir -p shots/raw/source build/uitest
 xcodegen generate -q
 xcodebuild build-for-testing -project HexKeyboard.xcodeproj -scheme Hex -destination "id=$ID" \
-  -derivedDataPath build/uitest -quiet 2>&1 | grep -E "error" || true
+  -derivedDataPath build/uitest -quiet
 xcrun simctl install "$ID" build/uitest/Build/Products/Debug-iphonesimulator/Hex.app
 log=build/uitest/source.jsonl
 : > "$log"

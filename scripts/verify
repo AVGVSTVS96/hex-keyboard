@@ -21,7 +21,7 @@ summary() { grep -E "error:|✘|XCTAssert|Test [Cc]ase .*failed|Test run with|Ex
 step build
 xcodegen generate -q
 xcodebuild build-for-testing -project HexKeyboard.xcodeproj -scheme Hex -destination "id=$ID" \
-  -derivedDataPath build/uitest -quiet 2>&1 | grep -E "error" || true
+  -derivedDataPath build/uitest -quiet
 
 
 scripts/sim boot "$ID"

@@ -11,7 +11,7 @@ slug=$(echo "$NAME" | tr 'A-Z ' 'a-z-')
 mkdir -p shots/raw/panels
 xcodegen generate -q
 xcodebuild build-for-testing -project HexKeyboard.xcodeproj -scheme Hex -destination "id=$ID" \
-  -derivedDataPath build/uitest -quiet 2>&1 | grep -E "error" || true
+  -derivedDataPath build/uitest -quiet
 scripts/sim boot "$ID"
 scripts/sim use "$ID" hex
 [ -n "${OPEN:-}" ] && scripts/sim unfold "$ID"
