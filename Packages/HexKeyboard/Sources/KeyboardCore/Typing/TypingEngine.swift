@@ -176,8 +176,8 @@ public struct TypingEngine {
         case .paste(let text):
             insertWhole(text, in: document)
         case .dictated(let heard):
-            let joins = text.before.last.map { !$0.isWhitespace && !Words.openers.contains($0) } ?? false
-            insertWhole((joins ? " " : "") + heard, in: document)
+            let lexicon = corrector?.lexicon
+            insertWhole(in: document) { Self.fitted(heard, between: $0.before, and: $0.after, lexicon: lexicon) }
         }
         return true
     }
@@ -200,11 +200,16 @@ public struct TypingEngine {
 
     /// Text that arrives whole, an emoji or what dictation heard: it ends the word in progress, then goes in as it is.
     mutating func insertWhole(_ string: String, in document: some TextDocument) {
+        insertWhole(in: document) { _ in string }
+    }
+
+    /// Text that arrives whole, made from the text as it is once the word in progress has ended.
+    mutating func insertWhole(in document: some TextDocument, _ string: (TextState) -> String) {
         attach(document)
         spaceJustTyped = false
         revert = nil
         commitWord(in: document)
-        write(string, in: document)
+        write(string(text), in: document)
         refreshShift()
         suggestionsChanged()
     }
@@ -351,6 +356,30 @@ extension TypingEngine {
         case "\"": return opens ? "“" : "”"
         default: return text
         }
+    }
+
+    /// What dictation heard, fitted between the text around the caret. The speech model writes every dictation as
+    /// sentences of their own, so one that goes into the middle of a sentence starts lowercase (unless the lexicon
+    /// spells its first word capitalized, as a name or "I"), and loses its final period when the sentence goes on after
+    /// it. It's spaced from the words on either side.
+    static func fitted(_ heard: String, between before: String, and after: String?, lexicon: Lexicon?) -> String {
+        var heard = heard
+        let last = before.last { $0 != " " && $0 != "\t" && !closers.contains($0) }
+        if let last, !last.isNewline, !sentenceEnders.contains(last), let lexicon {
+            let word = heard.prefix(while: Words.isWordCharacter)
+            let lower = word.lowercased()
+            if word != lower, word.dropFirst() == lower.dropFirst(), lexicon.canonical(word) == lower {
+                heard = lower + heard.dropFirst(word.count)
+            }
+        }
+        if let next = after?.first, !next.isWhitespace {
+            if next.isLowercase || wordEnders.contains(String(next)), heard.hasSuffix("."), !heard.hasSuffix("..") {
+                heard.removeLast()
+            }
+            if !wordEnders.contains(String(next)), !closers.contains(next) { heard += " " }
+        }
+        let joins = before.last.map { !$0.isWhitespace && !Words.openers.contains($0) } ?? false
+        return (joins ? " " : "") + heard
     }
 
     static func endsSentenceable(_ text: String?) -> Bool {
