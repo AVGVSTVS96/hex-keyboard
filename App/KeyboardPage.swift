@@ -5,16 +5,16 @@ import SwiftUI
 /// The keyboard's settings, after Raycast's Keyboard page: Hex drawn as it will look, with a field to try it, and the
 /// settings in pills beside it, a page per subject.
 struct KeyboardPage: View {
+    /// How the keys look, which keys there are and where, what typing does to your text, and how a press feels.
     enum Tab: String, CaseIterable, Hashable {
-        case theme, typing, keys, voice, sound
+        case theme, layout, typing, feedback
 
         var title: String {
             switch self {
             case .theme: "Theme"
+            case .layout: "Layout"
             case .typing: "Typing"
-            case .keys: "Keys"
-            case .voice: "Voice"
-            case .sound: "Sound & Haptics"
+            case .feedback: "Feedback"
             }
         }
     }
@@ -78,27 +78,74 @@ struct KeyboardPage: View {
     @ViewBuilder private var content: some View {
         switch router.keyboardPage {
         case .theme: ThemeSettings()
+        case .layout: LayoutSettings()
         case .typing: TypingSettings()
-        case .keys: KeysSettings()
-        case .voice: VoiceSettings()
-        case .sound: SoundSettings()
+        case .feedback: FeedbackSettings()
         }
     }
 }
 
-/// A field to try the keyboard in, so a change can be felt at once.
+/// Hex drawn as these settings make it, at the width it's offered.
+struct KeyboardPreview: UIViewRepresentable {
+    let settings: KeyboardSettings
+
+    func makeUIView(context: Context) -> KeyboardPreviewView {
+        let view = KeyboardPreviewView()
+        view.layer.cornerRadius = 26
+        view.layer.borderWidth = 1
+        return view
+    }
+
+    func updateUIView(_ view: KeyboardPreviewView, context: Context) {
+        view.show(settings, dark: context.environment.colorScheme == .dark)
+        view.layer.borderColor = HexStyle.edge.resolvedColor(with: view.traitCollection).cgColor
+    }
+
+    func sizeThatFits(_ proposal: ProposedViewSize, uiView: KeyboardPreviewView, context: Context) -> CGSize? {
+        let width = min(proposal.width ?? 390, 520)
+        return CGSize(width: width, height: KeyboardPreviewView.height(forWidth: width, settings: settings))
+    }
+}
+
+/// Hex as it will look, over a pill that brings up the real keyboard in a field, so a change can be tried at once.
 private struct TryPreview: View {
+    @State private var trying = false
     @State private var text = ""
+    @FocusState private var focused: Bool
+    private let model = SettingsModel.shared
 
     var body: some View {
-        TextField("Type to try Hex", text: $text, axis: .vertical)
-            .font(.title3)
-            .lineLimit(4 ... 8)
-            .padding(18)
-            .background(Color.hexCard, in: .rect(cornerRadius: HexStyle.cardRadius, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: HexStyle.cardRadius, style: .continuous).strokeBorder(Color.hexEdge))
-            .frame(maxWidth: 520)
-            .frame(maxWidth: .infinity)
+        VStack(spacing: 14) {
+            if trying {
+                TextField("Type to try Hex", text: $text, axis: .vertical)
+                    .font(.title3)
+                    .focused($focused)
+                    .lineLimit(3 ... 6)
+                    .padding(18)
+                    .background(Color.hexCard, in: .rect(cornerRadius: HexStyle.cardRadius, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: HexStyle.cardRadius, style: .continuous).strokeBorder(Color.hexEdge))
+                    .onAppear { focused = true }
+                    .onChange(of: focused) { _, focused in if !focused { withAnimation(.snappy) { trying = false } } }
+                    .transition(.opacity.combined(with: .scale(scale: 0.97)))
+            } else {
+                KeyboardPreview(settings: model.settings)
+                    .transition(.opacity)
+                Button {
+                    withAnimation(.snappy) { trying = true }
+                } label: {
+                    Text("Tap to try")
+                        .font(.subheadline.weight(.medium))
+                        .padding(.horizontal, 18)
+                        .padding(.vertical, 9)
+                        .background(Color.hexCard, in: .capsule)
+                        .overlay(Capsule().strokeBorder(Color.hexEdge))
+                }
+                .buttonStyle(CardPress())
+                .foregroundStyle(.primary)
+            }
+        }
+        .frame(maxWidth: 520)
+        .frame(maxWidth: .infinity)
     }
 }
 
@@ -127,19 +174,13 @@ private struct TryPreview: View {
         keepsUmAndUh = SettingsStore.keepsUmAndUh
     }
 
-    func binding(_ path: WritableKeyPath<KeyboardSettings, Bool>) -> Binding<Bool> {
-        Binding { self.settings[keyPath: path] } set: {
-            self.settings[keyPath: path] = $0
-            SettingsStore.set($0, for: path)
-        }
+    func update(_ change: (inout KeyboardSettings) -> Void) {
+        change(&settings)
+        SettingsStore.save(settings)
     }
 
-    /// A setting with more values than on and off, shown as a switch.
-    func onOff<Value: Equatable>(_ path: WritableKeyPath<KeyboardSettings, Value>, on: Value, off: Value) -> Binding<Bool> {
-        Binding { self.settings[keyPath: path] != off } set: {
-            self.settings[keyPath: path] = $0 ? on : off
-            SettingsStore.save(self.settings)
-        }
+    func binding<Value>(_ path: WritableKeyPath<KeyboardSettings, Value>) -> Binding<Value> {
+        Binding { self.settings[keyPath: path] } set: { value in self.update { $0[keyPath: path] = value } }
     }
 
     var oneHanded: OneHanded {
@@ -188,10 +229,61 @@ private struct TryPreview: View {
 }
 
 private struct ThemeSettings: View {
+    private let model = SettingsModel.shared
+
     var body: some View {
-        Box(footer: "More themes are on their way.") {
-            ChoiceRow(title: "Default", picked: true) {}
+        Box(footer: "Automatic follows the app you’re typing in, light or dark.") {
+            ForEach(ThemeName.allCases, id: \.self) { theme in
+                let picked = model.settings.theme == theme
+                ChoiceRow(title: theme.title, detail: Self.detail(of: theme), picked: picked) {
+                    withAnimation(.snappy) { model.update { $0.theme = theme } }
+                }
+                if picked, theme.hasAppearance {
+                    HStack(spacing: 0) {
+                        ForEach(ThemeAppearance.allCases, id: \.self) { appearance in
+                            Button {
+                                model.update { $0.themeAppearance = appearance }
+                            } label: {
+                                VStack(spacing: 8) {
+                                    Swatch(theme: theme, appearance: appearance)
+                                    Text(appearance.title).font(.subheadline)
+                                    Radio(picked: model.settings.themeAppearance == appearance)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .contentShape(.rect)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel(appearance.title)
+                            .accessibilityAddTraits(model.settings.themeAppearance == appearance ? [.isSelected, .isButton] : .isButton)
+                        }
+                    }
+                    .padding(.vertical, 16)
+                    .padding(.horizontal, 8)
+                }
+            }
         }
+    }
+
+    static func detail(of theme: ThemeName) -> String {
+        switch theme {
+        case .standard: "Hex’s own keys, flat, as iOS 27 draws them."
+        case .clear: "Only the letters, no keys around them."
+        case .physical: "Solid keys, dark or light."
+        case .mechanical: "Raised keycaps you can almost press."
+        case .classic: "The glossy keyboard of 2011."
+        }
+    }
+}
+
+/// Raycast's A and B keycaps, as a theme draws them in light, dark, or (for Automatic) one of each.
+private struct Swatch: UIViewRepresentable {
+    let theme: ThemeName
+    let appearance: ThemeAppearance
+
+    func makeUIView(context: Context) -> KeycapSwatchView { KeycapSwatchView() }
+
+    func updateUIView(_ view: KeycapSwatchView, context: Context) {
+        view.show(theme, appearance: appearance, dark: context.environment.colorScheme == .dark)
     }
 }
 
@@ -224,15 +316,18 @@ private struct TypingSettings: View {
     }
 }
 
-private struct KeysSettings: View {
+private struct LayoutSettings: View {
     private let model = SettingsModel.shared
 
     var body: some View {
-        Box(header: "Bottom Row") {
-            ToggleRow(title: "Emoji Key", detail: "Every emoji, from beside the space bar. Without it, a word’s emoji still show in the suggestions.", isOn: model.binding(\.emojiKey))
+        Box(header: "Rows") {
+            ToggleRow(title: "Number Row", detail: "1 to 0 above the letters. The keyboard grows upward.", isOn: model.binding(\.numberRow))
         }
-        Box(header: "Pressing a Key") {
-            ToggleRow(title: "Character Preview", detail: "The letter shows bigger above your thumb.", isOn: model.onOff(\.characterPreview, on: .attached, off: .none))
+        Box(header: "Emoji") {
+            ToggleRow(title: "Emoji Key", detail: "Every emoji, from beside the space bar. Without it, a word’s emoji still show in the suggestions.", isOn: model.binding(\.emojiKey))
+            MenuRow(title: "Skin Tone", selection: model.binding(\.skinTone), choices: [nil] + SkinTone.allCases.map(Optional.some)) { tone in
+                "✋\(tone.map { String($0.modifier) } ?? "") \(tone?.title ?? "Default")"
+            }
         }
         Box(header: "One-Handed Keyboard", footer: "Moves the keys toward one thumb while the iPhone is upright. You can also hold 123 and slide.") {
             ForEach(OneHanded.allCases, id: \.self) { hand in
@@ -250,82 +345,101 @@ private struct KeysSettings: View {
     }
 }
 
-private struct SoundSettings: View {
+/// A key and what pressing it shows above it, drawn small, as Raycast's picker draws them.
+private struct PreviewDrawing: View {
+    let preview: CharacterPreview
+
+    var body: some View {
+        let key = Color.hexSecondary.opacity(0.45), bubble = Color.hexSecondary.opacity(0.7)
+        ZStack(alignment: .bottom) {
+            switch preview {
+            case .none:
+                letter.frame(width: 38, height: 40).background(key, in: .rect(cornerRadius: 7))
+            case .detached:
+                VStack(spacing: 5) {
+                    letter.font(.title3).frame(width: 52, height: 42).background(bubble, in: .rect(cornerRadius: 9))
+                    letter.frame(width: 38, height: 40).background(key, in: .rect(cornerRadius: 7))
+                }
+            case .attached:
+                UnevenRoundedRectangle(topLeadingRadius: 9, bottomLeadingRadius: 7, bottomTrailingRadius: 7, topTrailingRadius: 9)
+                    .fill(bubble)
+                    .frame(width: 52, height: 88)
+                    .mask {
+                        VStack(spacing: 0) {
+                            Rectangle().frame(width: 52, height: 48)
+                            Rectangle().frame(width: 38, height: 40)
+                        }
+                    }
+                    .overlay(alignment: .top) { letter.font(.title3).padding(.top, 10) }
+            }
+        }
+        .frame(height: 90, alignment: .bottom)
+        .accessibilityHidden(true)
+    }
+
+    private var letter: some View { Text("q").foregroundStyle(.primary) }
+}
+
+/// A row whose value opens a menu of the others, as Raycast's pop-up rows do.
+struct MenuRow<Value: Hashable>: View {
+    let title: String
+    @Binding var selection: Value
+    let choices: [Value]
+    let label: (Value) -> String
+
+    var body: some View {
+        Menu {
+            Picker(title, selection: $selection) {
+                ForEach(choices, id: \.self) { Text(label($0)).tag($0) }
+            }
+        } label: {
+            HStack {
+                Text(title).foregroundStyle(.primary)
+                Spacer()
+                Text(label(selection)).foregroundStyle(Color.hexSecondary)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Color.hexSecondary)
+            }
+            .row()
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct FeedbackSettings: View {
     private let model = SettingsModel.shared
     private let status = HexStatus.shared
 
     var body: some View {
-        Box(footer: status.fullAccess ? nil : "Haptics need Allow Full Access.") {
-            ToggleRow(title: "Haptic Feedback", detail: "Each key taps back, as Apple’s keyboard does.", isOn: model.onOff(\.haptics, on: .standard, off: .off))
+        Box(header: "Character Preview") {
+            HStack(alignment: .bottom, spacing: 0) {
+                ForEach(CharacterPreview.allCases, id: \.self) { preview in
+                    Button {
+                        model.update { $0.characterPreview = preview }
+                    } label: {
+                        VStack(spacing: 10) {
+                            PreviewDrawing(preview: preview)
+                            Text(preview.title).font(.subheadline)
+                            Radio(picked: model.settings.characterPreview == preview)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .contentShape(.rect)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(preview.title)
+                    .accessibilityAddTraits(model.settings.characterPreview == preview ? [.isSelected, .isButton] : .isButton)
+                }
+            }
+            .padding(.vertical, 18)
+            .padding(.horizontal, 8)
+        }
+        Box(header: "Touch and Sound", footer: status.fullAccess ? "Standard is Apple’s keyboard’s own tap; Soft is about half as strong." : "Haptics need Allow Full Access.") {
+            MenuRow(title: "Key Haptic Feedback", selection: model.binding(\.haptics), choices: HapticFeedback.allCases) { $0.title }
             ToggleRow(title: "Sound", detail: "The key click, while Keyboard Clicks is on in iOS Settings › Sounds & Haptics.", isOn: model.binding(\.sound))
             if !status.fullAccess {
                 ActionRow(title: "Allow Full Access", symbol: "arrow.up.forward") { HexStatus.openSettings() }
             }
-        }
-    }
-}
-
-struct VoiceSettings: View {
-    private let model = SettingsModel.shared
-    private let voice = VoiceModel.shared
-
-    var body: some View {
-        Box(header: "Voice Model", footer: "What you say is written on this iPhone and never leaves it. Until the model you pick is ready, Apple’s writes.") {
-            ForEach(VoiceModel.Model.allCases, id: \.self) { choice in
-                ChoiceRow(title: choice.title, detail: choice.detail, picked: choice == voice.model) {
-                    voice.pick(choice)
-                } extra: {
-                    if choice == voice.model, voice.state != .ready { progress }
-                }
-            }
-        }
-        Box(header: "Style", footer: "Capitals follow Auto-Capitalization in Typing, as your typing’s do. Transcripts keeps what the model wrote.") {
-            ToggleRow(title: "Um and Uh", detail: "Types them as you say them.", isOn: model.umAndUh)
-            ForEach(DictationStyle.allCases, id: \.self) { style in
-                ChoiceRow(title: style.title, detail: style.detail, picked: model.dictationStyle == style) { model.dictationStyle(style) }
-            }
-        }
-        Box(header: "Keep Mic On", footer: "After you dictate, Hex keeps the mic on this long, so the mic beside the suggestions starts and stops without leaving your app. Hold it to turn the mic off.") {
-            ForEach(Dictation.micChoices, id: \.self) { seconds in
-                ChoiceRow(title: Dictation.title(keepingMicOn: seconds), picked: model.keepMicOn == seconds) { model.keepMicOn(seconds) }
-            }
-        }
-        Box(footer: "The words the voice model gets wrong, each with what it writes instead.") {
-            LinkRow(title: "Vocabulary", value: VoiceVocabulary.shared.vocabulary.terms.count.formatted(), symbol: ("character.book.closed.fill", .orange)) {
-                VocabularyView()
-            }
-        }
-    }
-
-    @ViewBuilder private var progress: some View {
-        switch voice.state {
-        case .downloading(let done):
-            ProgressView(value: done) {
-                Text("Downloading, \(done.formatted(.percent.precision(.fractionLength(0))))")
-            }
-            .font(.footnote)
-            .foregroundStyle(Color.hexSecondary)
-            .padding(.top, 8)
-        case .loading:
-            HStack(spacing: 6) {
-                ProgressView().controlSize(.mini)
-                Text("Getting ready")
-            }
-            .font(.footnote)
-            .foregroundStyle(Color.hexSecondary)
-            .padding(.top, 8)
-        case .failed(let reason):
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Couldn’t get it ready: \(reason)")
-                    .font(.footnote)
-                    .foregroundStyle(.red)
-                Button("Try Again") { voice.retry() }
-                    .font(.footnote.weight(.semibold))
-                    .buttonStyle(.borderless)
-            }
-            .padding(.top, 8)
-        case .ready:
-            EmptyView()
         }
     }
 }

@@ -225,6 +225,8 @@ struct ToggleRow: View {
         Toggle(isOn: $isOn) { RowText(title: title, detail: detail) }
             .tint(.blue)
             .row()
+            .accessibilityLabel(title)
+            .accessibilityHint(detail ?? "")
     }
 }
 

@@ -152,7 +152,7 @@ struct HomeView: View {
     private var tiles: some View {
         VStack(alignment: .leading, spacing: 8) {
             LazyVGrid(columns: [GridItem(.flexible(), spacing: 14), GridItem(.flexible(), spacing: 14)], spacing: 14) {
-                Button { Router.shared.show(.transcripts) } label: { VoiceTile() }
+                Button { Router.shared.show(.voice, voice: .transcripts) } label: { VoiceTile() }
                     .buttonStyle(CardPress())
                 Button { Router.shared.show(.taps) } label: {
                     Tile(
@@ -163,10 +163,10 @@ struct HomeView: View {
                 }
                 .buttonStyle(CardPress())
                 Button { Router.shared.show(.keyboard, page: .theme) } label: {
-                    Tile(symbol: "paintpalette.fill", color: .purple, title: "Theme", detail: "How the keys look")
+                    Tile(symbol: "paintpalette.fill", color: .purple, title: "Theme", detail: SettingsModel.shared.settings.theme.title)
                 }
                 .buttonStyle(CardPress())
-                Button { Router.shared.show(.keyboard, page: .voice) } label: {
+                Button { Router.shared.show(.voice, voice: .settings) } label: {
                     Tile(symbol: "waveform", color: .red, title: "Voice Model", detail: VoiceModel.shared.status)
                 }
                 .buttonStyle(CardPress())

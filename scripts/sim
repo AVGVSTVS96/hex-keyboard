@@ -221,10 +221,10 @@ home -HexTab home
 typing -HexFocus YES
 keyboard -HexSettings theme
 typing-settings -HexSettings typing
-keys -HexSettings keys
+layout -HexSettings layout
+feedback -HexSettings feedback
 voice -HexSettings voice
-sound -HexSettings sound
-transcripts -HexTab transcripts
+transcripts -HexTab voice
 taps -HexTaps YES
 more -HexTab more
 sources -HexSettings sources

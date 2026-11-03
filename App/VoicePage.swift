@@ -1,10 +1,25 @@
+import KeyboardCore
+import KeyboardUI
 import Charts
 import SwiftUI
 
-/// Everything you've dictated with Hex, newest first, grouped by day, with how much and how fast you talk. Wide, the
-/// transcript you pick shows past the hinge; on the cover a transcript opens on its own.
-struct TranscriptsView: View {
+/// Everything about voice typing in one tab: every dictation, newest first by day, with how much and how fast you
+/// talk, and the settings for how Hex writes what you say. Wide, the picked transcript, or the settings, take the pane
+/// past the hinge.
+struct VoicePage: View {
+    enum Tab: String, CaseIterable, Hashable {
+        case transcripts, settings
+
+        var title: String {
+            switch self {
+            case .transcripts: "Transcripts"
+            case .settings: "Settings"
+            }
+        }
+    }
+
     private let store = Transcripts.shared
+    @Bindable private var router = Router.shared
     @State private var query = ""
     @State private var confirmsDeleteAll = false
     @State private var selected: Transcript.ID?
@@ -25,23 +40,31 @@ struct TranscriptsView: View {
         return days
     }
 
-    private var beside: Bool { arrangement == .side }
+    private var beside: Bool { arrangement != .single }
 
     var body: some View {
         NavigationStack {
             Group {
                 if beside {
                     Panes {
-                        list
+                        VStack(alignment: .leading, spacing: 10) {
+                            header
+                            if router.voicePage == .transcripts { list } else { usage }
+                        }
                     } second: {
-                        if let transcript = store.all.first(where: { $0.id == (selected ?? store.all.first?.id) }) {
+                        if router.voicePage == .settings {
+                            Column(top: arrangement == .side ? 12 : 0) { VoiceSettings() }
+                        } else if let transcript = store.all.first(where: { $0.id == (selected ?? store.all.first?.id) }) {
                             TranscriptDetail(transcript: transcript, beside: true)
                         } else {
                             empty
                         }
                     }
                 } else {
-                    list
+                    VStack(alignment: .leading, spacing: 10) {
+                        header
+                        if router.voicePage == .transcripts { list } else { Column(top: 4) { VoiceSettings() } }
+                    }
                 }
             }
             .hexPage()
@@ -55,20 +78,40 @@ struct TranscriptsView: View {
         }
     }
 
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            PageTitle(title: "Voice", trailing: store.all.isEmpty ? nil : AnyView(
+                Menu {
+                    Button("Delete All Transcripts", systemImage: "trash", role: .destructive) { confirmsDeleteAll = true }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.body.weight(.semibold))
+                        .frame(width: 36, height: 36)
+                        .background(Color.hexCard, in: .circle)
+                }
+                .foregroundStyle(.primary)
+                .accessibilityLabel("More")
+            ))
+            Pills(items: Tab.allCases, selection: $router.voicePage, title: \.title)
+                .padding(.horizontal, -4)
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
+    }
+
+    /// Beside the settings: how much you've dictated, and which model writes it.
+    private var usage: some View {
+        Column(top: 4) {
+            if !store.all.isEmpty { Summary(transcripts: store.all) }
+            Box(header: "Writing Now") {
+                Fact(title: VoiceModel.shared.model.title, value: VoiceModel.shared.status)
+            }
+        }
+    }
+
     private var list: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 24) {
-                PageTitle(title: "Transcripts", trailing: store.all.isEmpty ? nil : AnyView(
-                    Menu {
-                        Button("Delete All", systemImage: "trash", role: .destructive) { confirmsDeleteAll = true }
-                    } label: {
-                        Image(systemName: "ellipsis")
-                            .font(.body.weight(.semibold))
-                            .frame(width: 36, height: 36)
-                            .background(Color.hexCard, in: .circle)
-                    }
-                    .foregroundStyle(.primary)
-                ))
                 if store.all.isEmpty {
                     empty.frame(minHeight: 360)
                 } else {
@@ -85,7 +128,7 @@ struct TranscriptsView: View {
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.top, 8)
+            .padding(.top, 4)
             .padding(.bottom, 40)
             .frame(maxWidth: 640)
             .frame(maxWidth: .infinity)
@@ -325,5 +368,72 @@ struct Fact: View {
         }
         .row()
         .accessibilityElement(children: .combine)
+    }
+}
+
+/// How Hex writes what you say: the model, the words and punctuation it types, your vocabulary, and how long the mic
+/// stays on.
+struct VoiceSettings: View {
+    private let model = SettingsModel.shared
+    private let voice = VoiceModel.shared
+
+    var body: some View {
+        Box(header: "Model", footer: "What you say is written on this iPhone and never leaves it. Until the model you pick is ready, Apple’s writes.") {
+            ForEach(VoiceModel.Model.allCases, id: \.self) { choice in
+                ChoiceRow(title: choice.title, detail: choice.detail, picked: choice == voice.model) {
+                    voice.pick(choice)
+                } extra: {
+                    if choice == voice.model, voice.state != .ready { progress }
+                }
+            }
+        }
+        Box(header: "Writing", footer: "Capitals follow Auto-Capitalization in Keyboard › Typing, as your typing’s do. Transcripts keep what the model wrote.") {
+            ToggleRow(title: "Um and Uh", detail: "Types them as you say them.", isOn: model.umAndUh)
+            ForEach(DictationStyle.allCases, id: \.self) { style in
+                ChoiceRow(title: style.title, detail: style.detail, picked: model.dictationStyle == style) { model.dictationStyle(style) }
+            }
+        }
+        Box(header: "Vocabulary", footer: "The words the voice model gets wrong, each with what it writes instead.") {
+            LinkRow(title: "Your Words", value: VoiceVocabulary.shared.vocabulary.terms.count.formatted(), symbol: ("character.book.closed.fill", .orange)) {
+                VocabularyView()
+            }
+        }
+        Box(header: "Keep Mic On", footer: "After you dictate, Hex keeps the mic on this long, so the mic beside the suggestions starts and stops without leaving your app. Hold it to turn the mic off.") {
+            ForEach(Dictation.micChoices, id: \.self) { seconds in
+                ChoiceRow(title: Dictation.title(keepingMicOn: seconds), picked: model.keepMicOn == seconds) { model.keepMicOn(seconds) }
+            }
+        }
+    }
+
+    @ViewBuilder private var progress: some View {
+        switch voice.state {
+        case .downloading(let done):
+            ProgressView(value: done) {
+                Text("Downloading, \(done.formatted(.percent.precision(.fractionLength(0))))")
+            }
+            .font(.footnote)
+            .foregroundStyle(Color.hexSecondary)
+            .padding(.top, 8)
+        case .loading:
+            HStack(spacing: 6) {
+                ProgressView().controlSize(.mini)
+                Text("Getting ready")
+            }
+            .font(.footnote)
+            .foregroundStyle(Color.hexSecondary)
+            .padding(.top, 8)
+        case .failed(let reason):
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Couldn’t get it ready: \(reason)")
+                    .font(.footnote)
+                    .foregroundStyle(.red)
+                Button("Try Again") { voice.retry() }
+                    .font(.footnote.weight(.semibold))
+                    .buttonStyle(.borderless)
+            }
+            .padding(.top, 8)
+        case .ready:
+            EmptyView()
+        }
     }
 }

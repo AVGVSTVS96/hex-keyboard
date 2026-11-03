@@ -11,19 +11,23 @@ enum LaunchOptions {
 
     static var focus: Bool { defaults.bool(forKey: "HexFocus") }
     /// The tab and page the app opens on: `-HexTab keyboard`, `-HexTaps YES` for Your Taps, `-HexSettings typing` for a
-    /// Keyboard page (`YES` for its first), or `-HexSettings sources` for a page under More.
+    /// Keyboard page (`YES` for its first), `-HexSettings voice` for Voice's settings, or `-HexSettings sources` for a
+    /// page under More.
     static func route() {
         let router = Router.shared
         if defaults.bool(forKey: "HexTaps") { return router.show(.taps) }
         if let page = defaults.string(forKey: "HexSettings") {
-            if let keyboard = KeyboardPage.Tab(rawValue: page == "feedback" ? "sound" : page) { return router.show(.keyboard, page: keyboard) }
+            let aliases = ["keys": "layout", "sound": "feedback"]
+            if let keyboard = KeyboardPage.Tab(rawValue: aliases[page] ?? page) { return router.show(.keyboard, page: keyboard) }
+            if page == "voice" { return router.show(.voice, voice: .settings) }
             if let more = MorePage.Page(rawValue: page) {
                 router.morePath = [more]
                 return router.show(.more)
             }
             return router.show(.keyboard)
         }
-        router.show(defaults.string(forKey: "HexTab").flatMap(Router.Destination.init) ?? .home)
+        let tab = defaults.string(forKey: "HexTab")
+        router.show(tab == "transcripts" ? .voice : tab.flatMap(Router.Destination.init) ?? .home)
     }
 
     static var tapsMode: TapMapView.Mode? {

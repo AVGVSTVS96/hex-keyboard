@@ -9,14 +9,16 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {}
 @Observable final class Router {
     static let shared = Router()
 
-    enum Destination: String { case home, keyboard, transcripts, taps, more }
+    enum Destination: String { case home, keyboard, voice, taps, more }
 
     var keyboardPage = KeyboardPage.Tab.theme
+    var voicePage = VoicePage.Tab.transcripts
     var morePath: [MorePage.Page] = []
     @ObservationIgnored weak var tabs: UITabBarController?
 
-    func show(_ destination: Destination, page: KeyboardPage.Tab? = nil) {
+    func show(_ destination: Destination, page: KeyboardPage.Tab? = nil, voice: VoicePage.Tab? = nil) {
         if let page { keyboardPage = page }
+        if let voice { voicePage = voice }
         tabs?.selectedTab = tabs?.tab(forIdentifier: destination.rawValue)
     }
 }
@@ -36,8 +38,8 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             UITab(title: "Keyboard", image: UIImage(systemName: "keyboard"), identifier: Router.Destination.keyboard.rawValue) { _ in
                 Self.hosting(NavigationStack { KeyboardPage() })
             },
-            UITab(title: "Transcripts", image: UIImage(systemName: "waveform"), identifier: Router.Destination.transcripts.rawValue) { _ in
-                Self.hosting(TranscriptsView())
+            UITab(title: "Voice", image: UIImage(systemName: "waveform"), identifier: Router.Destination.voice.rawValue) { _ in
+                Self.hosting(VoicePage())
             },
             UITab(title: "Your Taps", image: UIImage(systemName: "hand.tap"), identifier: Router.Destination.taps.rawValue) { _ in TapsViewController() },
             UITab(title: "More", image: UIImage(systemName: "square.grid.2x2"), identifier: Router.Destination.more.rawValue) { _ in

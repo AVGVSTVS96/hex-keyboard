@@ -20,7 +20,7 @@ final class SettingsAppTests: XCTestCase {
         let entry = settings.buttons["Hex"].firstMatch
         while !entry.isHittable { settings.swipeUp() }
         entry.tap()
-        open("Keys", in: settings)
+        open("Layout", in: settings)
         let inSettings = settings.switches["Emoji Key"]
         XCTAssertTrue(inSettings.waitForExistence(timeout: 5))
         if let path = ProcessInfo.processInfo.environment["HEX_SETTINGS_SHOT"] {
@@ -41,7 +41,7 @@ final class SettingsAppTests: XCTestCase {
         hex.launchArguments = ["-HexResetSettings", "YES", "-HexSettings", "voice"]
         hex.launch()
         let picked = hex.buttons["5 Minutes"]
-        XCTAssertTrue(hex.navigationBars["Voice Typing"].waitForExistence(timeout: 5))
+        XCTAssertTrue(hex.buttons["Voice"].waitForExistence(timeout: 5))
         for _ in 0 ..< 6 where !picked.isHittable { hex.swipeUp() }
         XCTAssertTrue(picked.isSelected)
         try shot(hex, "keep-mic-on-choices")

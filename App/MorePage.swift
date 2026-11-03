@@ -5,12 +5,11 @@ import SwiftUI
 /// Everything that isn't the keyboard's look and feel, as Raycast's More page: a grid of tiles, each opening its page.
 struct MorePage: View {
     enum Page: String, CaseIterable, Hashable {
-        case sources, vocabulary, setup, privacy, about
+        case sources, setup, privacy, about
 
         var title: String {
             switch self {
             case .sources: "Sources"
-            case .vocabulary: "Vocabulary"
             case .setup: "Keyboard Access"
             case .privacy: "Privacy & Data"
             case .about: "About Hex"
@@ -20,7 +19,6 @@ struct MorePage: View {
         var glyph: (String, Color) {
             switch self {
             case .sources: ("antenna.radiowaves.left.and.right", .teal)
-            case .vocabulary: ("character.book.closed.fill", .orange)
             case .setup: ("switch.2", .green)
             case .privacy: ("hand.raised.fill", .indigo)
             case .about: ("info", .gray)
@@ -59,7 +57,6 @@ struct MorePage: View {
             .navigationDestination(for: Page.self) { page in
                 switch page {
                 case .sources: SourcesPage()
-                case .vocabulary: VocabularyView()
                 case .setup: SetupPage()
                 case .privacy: PrivacyPage()
                 case .about: AboutPage()
@@ -74,7 +71,6 @@ struct MorePage: View {
     private func detail(of page: Page) -> String {
         switch page {
         case .sources: model.sources.isEmpty ? "None yet" : "\(model.sources.count) on"
-        case .vocabulary: "\(VoiceVocabulary.shared.vocabulary.terms.count) words"
         case .setup: status.isSetUp ? "All set" : status.summary
         case .privacy: "Stays on this iPhone"
         case .about: AboutPage.version

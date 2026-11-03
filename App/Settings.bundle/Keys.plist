@@ -8,31 +8,19 @@
 	<array>
 		<dict>
 			<key>FooterText</key>
-			<string>What shows above your thumb as you press a key: the letter in a bubble of its own, or the key grown up into it, as on Apple’s keyboard.</string>
+			<string>A row of digits above the letters. The keyboard grows taller to fit it.</string>
 			<key>Type</key>
 			<string>PSGroupSpecifier</string>
 		</dict>
 		<dict>
 			<key>DefaultValue</key>
-			<string>attached</string>
+			<false/>
 			<key>Key</key>
-			<string>characterPreviewStyle</string>
+			<string>numberRow</string>
 			<key>Title</key>
-			<string>Character Preview</string>
-			<key>Titles</key>
-			<array>
-				<string>None</string>
-				<string>Detached</string>
-				<string>Attached</string>
-			</array>
+			<string>Number Row</string>
 			<key>Type</key>
-			<string>PSMultiValueSpecifier</string>
-			<key>Values</key>
-			<array>
-				<string>none</string>
-				<string>detached</string>
-				<string>attached</string>
-			</array>
+			<string>PSToggleSwitchSpecifier</string>
 		</dict>
 		<dict>
 			<key>FooterText</key>
@@ -47,22 +35,6 @@
 			<string>emojiKey</string>
 			<key>Title</key>
 			<string>Emoji Key</string>
-			<key>Type</key>
-			<string>PSToggleSwitchSpecifier</string>
-		</dict>
-		<dict>
-			<key>FooterText</key>
-			<string>A row of digits above the letters. The keyboard grows taller to fit it.</string>
-			<key>Type</key>
-			<string>PSGroupSpecifier</string>
-		</dict>
-		<dict>
-			<key>DefaultValue</key>
-			<false/>
-			<key>Key</key>
-			<string>numberRow</string>
-			<key>Title</key>
-			<string>Number Row</string>
 			<key>Type</key>
 			<string>PSToggleSwitchSpecifier</string>
 		</dict>
@@ -130,6 +102,6 @@
 		</dict>
 	</array>
 	<key>Title</key>
-	<string>Keys</string>
+	<string>Layout</string>
 </dict>
 </plist>
