@@ -48,6 +48,19 @@ struct LayoutTests {
         #expect(characters(url, row: 3) == "./.com")
     }
 
+    /// The emoji key is the one Bassim taps most: every field has it, beside 123.
+    @Test func everyFieldHasTheEmojiKey() {
+        for kind in [InputKind.text, .email, .url, .twitter, .webSearch] {
+            for landscape in [false, true] {
+                let context = LayoutContext(device: .phone, layer: .letters, kind: kind, isLandscape: landscape, showsEmoji: true)
+                let row = Layouts.layout(for: context).rows.last!.compactMap { item -> Key? in if case .key(let key) = item { key } else { nil } }
+                #expect(row.prefix(2).map(\.action) == [.layer(.numbers), .emoji], "\(kind)")
+                let grid = KeyGrid(Layouts.layout(for: context), width: landscape ? 874 : 402, metrics: KeyboardMetrics.for(.phone, width: landscape ? 874 : 402, height: landscape ? 402 : 874).grid)
+                #expect(grid.rows.last!.allSatisfy { $0.frame.width > 30 }, "\(kind): every key has room")
+            }
+        }
+    }
+
     @Test func everyLayoutHasDeleteAndReturnOrLayerKeys() {
         for device in [DeviceClass.phone, .compactPad, .pad, .largePad] {
             for layer in [KeyboardLayer.letters, .numbers, .symbols] {

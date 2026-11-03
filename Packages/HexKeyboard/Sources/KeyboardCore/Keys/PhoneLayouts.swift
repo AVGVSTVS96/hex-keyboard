@@ -94,12 +94,14 @@ enum PhoneLayouts {
     /// Return beside the emoji key, as wide as Raycast's on the open Duo in portrait and landscape.
     private static let raycastReturn = KeyWidth.pitch(1.4)
 
+    /// The layer key, the emoji key in every field (it's the one Bassim taps most), space, the field's own keys and
+    /// return.
     private static func bottomRow(_ context: LayoutContext, layerKey: KeyboardLayer) -> [RowItem] {
         let side = context.isLandscape ? 2.0 : 2.5
         let leading: [RowItem] = [.key(Key(.layer(layerKey), width: .pitch(side / 2)))]
+            + (context.showsEmoji ? [.key(Key(.emoji, width: .pitch(side / 2)))] : [])
         let space = RowItem.key(Key(.space, width: .fill))
-        let returnKey = RowItem.key(Key(.return, width: .pitch(side)))
-        let emoji: [RowItem] = context.showsEmoji ? [.key(Key(.emoji, width: .pitch(side / 2)))] : []
+        let returnKey = RowItem.key(Key(.return, width: context.showsEmoji ? raycastReturn : .pitch(side)))
         let character = { (value: String, width: KeyWidth) in RowItem.key(Key(.character(value), width: width)) }
         switch context.kind {
         case .email:
@@ -111,8 +113,7 @@ enum PhoneLayouts {
         case .webSearch:
             return leading + [space, character(".", .input), .key(Key(.return, width: .pitch(1.75)))]
         default:
-            guard context.showsEmoji else { return leading + [space, returnKey] }
-            return leading + emoji + [space, .key(Key(.return, width: raycastReturn))]
+            return leading + [space, returnKey]
         }
     }
 }
