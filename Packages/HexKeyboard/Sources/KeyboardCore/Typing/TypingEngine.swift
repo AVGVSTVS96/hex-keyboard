@@ -34,7 +34,9 @@ public struct TypingEngine {
     /// host's reports through `documentChanged`.
     public private(set) var text = TextState()
 
-    private var spaceJustTyped = false
+    /// The space just before the caret, if the keyboard just put it there: one you typed, or one a pick from the bar
+    /// added after its word, which punctuation typed next goes before, as on Apple's keyboard.
+    var lastSpace: LastSpace?
     private var shiftHold: ShiftHold?
     /// Delete went down with text in the panel's search, so holding it empties the search and stops there.
     private var deleteHeldInSearch = false
@@ -44,6 +46,7 @@ public struct TypingEngine {
     var revert: Revert?
 
     private enum ShiftHold { case pressed, typedWhileHeld }
+    enum LastSpace { case typed, picked }
 
     public init(traits: InputTraits = InputTraits()) {
         self.traits = traits
@@ -79,9 +82,9 @@ public struct TypingEngine {
         if panel != nil, action != .delete || !query.isEmpty { return search(action) }
         if panel != nil, deleteHeldInSearch { return }
 
-        let wasSpace = spaceJustTyped
+        let wasSpace = lastSpace == .typed, picked = lastSpace == .picked
         let revert = self.revert
-        spaceJustTyped = false
+        lastSpace = nil
         self.revert = nil
         if wasSpace, action != .delete { corrector?.memory.recordAfterSpace(isSpace: action == .space) }
 
@@ -98,6 +101,10 @@ public struct TypingEngine {
             }
             if Self.wordEnders.contains(typed) {
                 commitWord(in: document)
+                if picked, text.before.last == " ", text.owned >= 1 {
+                    write("", replacing: 1, in: document)
+                    typed += " "
+                }
             } else if let tap, typed.allSatisfy(Words.isWordCharacter) {
                 recordTap(tap, for: typed.lowercased())
             }
@@ -107,7 +114,7 @@ public struct TypingEngine {
             if shiftHold != nil { shiftHold = .typedWhileHeld }
         case .space:
             if wasSpace, let tap, joinBack(space: tap, in: document) {
-                spaceJustTyped = true
+                lastSpace = .typed
             } else if wasSpace, settings.periodShortcut, traits.smartPunctuation, text.owned >= 1, Self.endsSentenceable(text.before) {
                 write(". ", replacing: 1, in: document)
                 stray = tap.map { StraySpace(tap: $0, swallowed: ". ", restored: " ", counted: true) }
@@ -116,7 +123,7 @@ public struct TypingEngine {
                 commitWord(in: document, ending: tap)
                 write(" ", in: document)
                 self.revert?.trailing = " "
-                spaceJustTyped = true
+                lastSpace = .typed
                 if blank, let tap { stray = StraySpace(tap: tap, swallowed: " ", restored: "", counted: wasSpace) }
             }
             if layer != .letters { layer = .letters }
@@ -207,7 +214,7 @@ public struct TypingEngine {
         }
         if panel != nil, deleteHeldInSearch { return }
         attach(document)
-        spaceJustTyped = false
+        lastSpace = nil
         revert = nil
         if typing.letters.isEmpty, let pending {
             let head = Substring(text.before).dropLast(while: { !Words.isWordCharacter($0) })
@@ -230,7 +237,7 @@ public struct TypingEngine {
     /// Text that arrives whole, made from the text as it is once the word in progress has ended.
     mutating func insertWhole(in document: some TextDocument, _ string: (TextState) -> String) {
         attach(document)
-        spaceJustTyped = false
+        lastSpace = nil
         revert = nil
         commitWord(in: document)
         write(string(text), in: document)
@@ -314,16 +321,16 @@ public struct TypingEngine {
 
     /// The host's `textDidChange` or `selectionDidChange`. A report showing the keyboard's own edits, even late, changes
     /// nothing; anything else replaces what the engine knows and forgets the word in progress. An emptied field was
-    /// sent, so its last word was kept.
+    /// sent, so its last words were kept, the one in progress too.
     @discardableResult
     public mutating func documentChanged(_ document: some TextDocument) -> TextState.Report {
-        let before = text.before
+        let known = text
         let report = text.reconcile(before: document.textBeforeInput, after: document.textAfterInput)
         if report == .changed {
-            if text.before.isEmpty, (text.after ?? "").isEmpty { learnPending() }
+            if text.before.isEmpty, (text.after ?? "").isEmpty { keepWord(in: known) }
             forgetWord()
         }
-        if report == .changed || text.before != before {
+        if report == .changed || text.before != known.before {
             refreshShift()
             suggestionsChanged()
         }
@@ -360,7 +367,7 @@ public struct TypingEngine {
     }
 
     private mutating func forgetWord() {
-        spaceJustTyped = false
+        lastSpace = nil
         pending = nil
         typing = WordTaps()
         stray = nil

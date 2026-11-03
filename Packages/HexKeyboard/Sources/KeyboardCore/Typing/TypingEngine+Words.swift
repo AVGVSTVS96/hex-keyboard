@@ -80,10 +80,14 @@ extension TypingEngine {
         return keyMap.key(atX: x, y: y, in: grid)
     }
 
-    /// The keys as they're laid out now. Taps are learned per layout, so a new layout ends the session first.
+    /// The keys as they're laid out now. Taps are learned per layout, so a new layout first learns the last word you
+    /// kept and drops the taps of the word in progress.
     public mutating func use(_ grid: KeyGrid) {
         guard let corrector, layer == .letters else { return }
-        if grid.signature != corrector.grid.signature { endSession() }
+        if grid.signature != corrector.grid.signature {
+            learnPending()
+            typing = WordTaps()
+        }
         corrector.grid = grid
     }
 
@@ -100,9 +104,9 @@ extension TypingEngine {
         return KeyFaceContext(device: device, layer: layer, kind: traits.kind, shift: shift, returnKind: traits.returnKind, returnEnabled: returnEnabled)
     }
 
-    /// Learns from the last word you kept. Call when typing pauses for good, like when the keyboard goes away.
+    /// Learns from the last words you kept, the one in progress too. Call when the keyboard goes away.
     public mutating func endSession() {
-        learnPending()
+        keepWord(in: text)
         typing = WordTaps()
     }
 
@@ -132,7 +136,13 @@ extension TypingEngine {
         if !suggestion.text.contains(" ") { corrector?.memory.record(pending?.word ?? suggestion.text, after: previous) }
         revert = nil
         typing = WordTaps()
-        if self.text.after?.first == " " { moveCaret(by: 1, in: document) } else { write(" ", in: document) }
+        if self.text.after?.first == " " {
+            moveCaret(by: 1, in: document)
+            lastSpace = nil
+        } else {
+            write(" ", in: document)
+            lastSpace = .picked
+        }
         refreshShift()
         suggestionsChanged()
     }
@@ -147,6 +157,7 @@ extension TypingEngine {
         revert = nil
         typing = WordTaps()
         write(emoji + " ", replacing: word.count, in: document)
+        lastSpace = .picked
         refreshShift()
         suggestionsChanged()
     }
@@ -219,6 +230,15 @@ extension TypingEngine {
             final = correction
         }
         settle(final, typed: typedText, after: previous, ending: ending)
+    }
+
+    /// You left the word in progress as it stands, by sending it or putting the keyboard away, so it's kept as typed.
+    mutating func keepWord(in text: TextState) {
+        let word = Words.current(in: text.before)
+        if !word.isEmpty, text.owned >= word.count {
+            settle(String(word), typed: String(word), after: Words.previous(before: word, in: text.before), ending: nil)
+        }
+        learnPending()
     }
 
     private mutating func settle(_ word: String, typed: String, after previous: String?, ending: Tap?) {

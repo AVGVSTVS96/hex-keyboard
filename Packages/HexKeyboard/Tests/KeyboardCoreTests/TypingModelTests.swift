@@ -235,6 +235,29 @@ struct LabelTests {
         #expect(count("t", engine) == 1)
     }
 
+    @Test func aMessageTheAppSendsTeachesTheWordInProgress() {
+        var engine = engine()
+        let document = TestDocument()
+        engine.documentChanged(document)
+        type("see you tomorrow", into: &engine, document)
+        document.text = ""
+        document.cursor = 0
+        engine.documentChanged(document)
+        #expect(engine.corrector!.memory.count(of: "tomorrow") == 1)
+        #expect(engine.corrector!.memory.count(of: "tomorrow", after: "you").count == 1)
+        #expect(count("r", engine) == 2)
+        #expect(count("w", engine) == 1)
+    }
+
+    @Test func theWordLeftWhenTheKeyboardGoesAwayTeaches() {
+        var engine = engine()
+        let document = TestDocument()
+        type("work", into: &engine, document)
+        engine.endSession()
+        #expect(engine.corrector!.memory.count(of: "work") == 1)
+        #expect(count("k", engine) == 1)
+    }
+
     @Test func revertingTeachesWhatYouTyped() throws {
         var engine = engine()
         let document = TestDocument()

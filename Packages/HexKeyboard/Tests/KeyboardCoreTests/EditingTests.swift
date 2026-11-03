@@ -44,6 +44,28 @@ struct EditingTests {
         #expect(document.cursor == 8)
     }
 
+    @Test func punctuationAfterAPickTakesThePlaceOfItsSpace() throws {
+        var engine = engine()
+        let document = TestDocument()
+        engine.documentChanged(document)
+        type("go hom", into: &engine, document)
+        engine.accept(try #require(engine.suggestions.first { $0.text == "home" }), in: document)
+        #expect(document.text == "Go home ")
+        type(".", into: &engine, document)
+        #expect(document.text == "Go home. ")
+        #expect(engine.shift == .on)
+        type("ok", into: &engine, document)
+        #expect(document.text == "Go home. Ok")
+    }
+
+    @Test func punctuationAfterATypedSpaceKeepsIt() {
+        var engine = engine()
+        let document = TestDocument()
+        engine.documentChanged(document)
+        type("go :", into: &engine, document)
+        #expect(document.text == "Go :")
+    }
+
     @Test func theLiteralKeepsTheWordAsItStandsNow() throws {
         var engine = engine()
         engine.defersSuggestions = true
