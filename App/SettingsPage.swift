@@ -140,7 +140,7 @@ private struct SettingsList: View {
         case .typing: nil
         case .feedback: settings.haptics.title
         case .model: voice.model.title
-        case .writing: "\(settings.dictationEditing.title), \(settings.dictationStyle.title)"
+        case .writing: settings.dictationStyle.title
         case .words: VoiceVocabulary.shared.vocabulary.terms.count.formatted()
         case .mic: Dictation.title(keepingMicOn: model.keepMicOn)
         case .sources: model.sources.isEmpty ? "None" : model.sources.count.formatted()

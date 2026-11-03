@@ -140,11 +140,7 @@ struct HomeView: View {
                 Button { Router.shared.show(.transcripts) } label: { VoiceTile() }
                     .buttonStyle(CardPress())
                 Button { Router.shared.show(.taps) } label: {
-                    Tile(
-                        symbol: "hand.tap.fill", color: .blue, title: "taps learned",
-                        value: state.taps.formatted(),
-                        detail: state.taps > 0 ? nil : status.fullAccess ? "Type with Hex and they show up here." : "Needs Allow Full Access."
-                    )
+                    Tile(symbol: "hand.tap.fill", color: .blue, title: "taps learned", value: state.taps.formatted())
                 }
                 .buttonStyle(CardPress())
                 Button { Router.shared.show(.settings, settings: .words) } label: { VocabularyTile() }
