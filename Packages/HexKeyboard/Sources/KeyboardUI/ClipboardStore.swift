@@ -18,8 +18,8 @@ public final class ClipboardStore {
     private var saved: Saved
     private let folder: URL
     /// The keyboard's own copy of everything, since iOS deletes the group's container whenever an install leaves no app
-    /// claiming the group. A group without a history takes this one, which is also how the history the keyboard kept
-    /// before the group held it got there.
+    /// claiming the group: a group without a history takes this one. The history the keyboard kept before the group held
+    /// it joins the group's once (`moved`), whatever the group had by then.
     private let backup: URL?
 
     /// Password managers mark what they copy with these, so it's never kept.
@@ -126,7 +126,17 @@ public final class ClipboardStore {
     /// writes over what another kept.
     public func reload() {
         if let saved = Self.read(folder) ?? restore() { self.saved = saved }
+        if let backup, !FileManager.default.fileExists(atPath: backup.appending(path: Self.moved).path()), let kept = Self.read(backup) {
+            for case .image(let name) in kept.history.items.map(\.content) {
+                try? FileManager.default.copyItem(at: backup.appending(path: name), to: folder.appending(path: name))
+            }
+            saved.history.add(kept.history.items)
+            guard save() else { return }
+            FileManager.default.createFile(atPath: backup.appending(path: Self.moved).path(), contents: nil)
+        }
     }
+
+    private static let moved = "moved"
 
     private func restore() -> Saved? {
         guard let backup, let saved = Self.read(backup) else { return nil }
@@ -141,19 +151,21 @@ public final class ClipboardStore {
         try? JSONDecoder().decode(Saved.self, from: Data(contentsOf: folder.appending(path: "history.json")))
     }
 
-    private func save() {
-        write(to: folder)
-        guard let backup else { return }
+    /// Whether the group took it: the keyboard can write there only with Full Access.
+    @discardableResult private func save() -> Bool {
+        let kept = write(to: folder)
+        guard let backup else { return kept }
         write(to: backup)
         let images = Set(saved.history.items.compactMap { if case .image(let name) = $0.content { name } else { nil } })
-        let backedUp = Set((try? FileManager.default.contentsOfDirectory(atPath: backup.path())) ?? []).subtracting(["history.json"])
+        let backedUp = Set((try? FileManager.default.contentsOfDirectory(atPath: backup.path())) ?? []).subtracting(["history.json", Self.moved])
         for name in images.subtracting(backedUp) { try? FileManager.default.copyItem(at: folder.appending(path: name), to: backup.appending(path: name)) }
         for name in backedUp.subtracting(images) { try? FileManager.default.removeItem(at: backup.appending(path: name)) }
+        return kept
     }
 
-    private func write(to folder: URL) {
+    @discardableResult private func write(to folder: URL) -> Bool {
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        try? JSONEncoder().encode(saved).write(to: folder.appending(path: "history.json"), options: .atomic)
+        return (try? JSONEncoder().encode(saved).write(to: folder.appending(path: "history.json"), options: .atomic)) != nil
     }
 
     /// The image as the app copied it, without decoding it.

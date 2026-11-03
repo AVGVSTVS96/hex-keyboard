@@ -35,6 +35,12 @@ public struct ClipboardHistory: Codable, Hashable, Sendable {
         saved.append(Item(content: content, found: time, pinned: pinned))
     }
 
+    /// Takes in items kept elsewhere, each one this history doesn't have yet.
+    public mutating func add(_ items: [Item]) {
+        let have = Set(saved.map(\.content))
+        saved += items.filter { !have.contains($0.content) }
+    }
+
     public mutating func setPinned(_ pinned: Bool, _ content: Item.Content) {
         guard let index = saved.firstIndex(where: { $0.content == content }) else { return }
         saved[index].pinned = pinned

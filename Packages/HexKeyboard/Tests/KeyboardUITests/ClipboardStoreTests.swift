@@ -88,6 +88,19 @@ struct ClipboardStoreTests {
         #expect(ClipboardStore(folder: own).history.items.map(\.content) == [.text("kept after")], "the keyboard's copy follows what the app deleted")
     }
 
+    @Test func whatTheKeyboardKeptJoinsAGroupThatAlreadyHasAHistory() {
+        let own = URL.temporaryDirectory.appending(path: "clipboard-own-\(UUID().uuidString)")
+        pasteboard.string = "kept before"
+        ClipboardStore(folder: own).catchUp(pasteboard)
+        pasteboard.string = "kept in the group"
+        ClipboardStore(folder: folder).catchUp(pasteboard)
+
+        let keyboard = ClipboardStore(folder: folder, backup: own)
+        #expect(Set(keyboard.history.items.map(\.content)) == [.text("kept before"), .text("kept in the group")])
+        keyboard.remove(.text("kept before"))
+        #expect(ClipboardStore(folder: folder, backup: own).history.items.map(\.content) == [.text("kept in the group")], "it joins once, so what you delete stays deleted")
+    }
+
     @Test func aWipedGroupGetsTheKeyboardsCopyBackImagesIncluded() throws {
         let own = URL.temporaryDirectory.appending(path: "clipboard-own-\(UUID().uuidString)")
         let keyboard = ClipboardStore(folder: folder, backup: own)

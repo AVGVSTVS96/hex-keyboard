@@ -30,6 +30,14 @@ struct ClipboardHistoryTests {
         #expect(history.items.map(\.content) == [.text("address")])
     }
 
+    @Test func itemsKeptElsewhereJoinWithoutRepeating() {
+        var history = ClipboardHistory()
+        history.keep(.text("new"), at: 5)
+        history.add([.init(content: .text("old"), found: 1, pinned: true), .init(content: .text("new"), found: 2)])
+        #expect(history.items.map(\.content) == [.text("old"), .text("new")])
+        #expect(history.items.last?.found == 5)
+    }
+
     @Test func nothingAgesOutAndPinnedItemsStayOnTop() {
         var history = ClipboardHistory()
         history.keep(.text("keep me"), at: 0)
