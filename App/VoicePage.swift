@@ -50,7 +50,7 @@ struct VoicePage: View {
                         Group {
                             if router.voicePage == .transcripts { list } else { usage }
                         }
-                        .safeAreaBar(edge: .top) { header }
+                        .pinnedHeader { header }
                     } second: {
                         if router.voicePage == .settings {
                             Column(top: 12) { VoiceSettings() }
@@ -64,7 +64,7 @@ struct VoicePage: View {
                     Group {
                         if router.voicePage == .transcripts { list } else { Column(top: 4) { VoiceSettings() } }
                     }
-                    .safeAreaBar(edge: .top) { header }
+                    .pinnedHeader { header }
                 }
             }
             .hexPage()
@@ -95,9 +95,6 @@ struct VoicePage: View {
             Pills(items: Tab.allCases, selection: $router.voicePage, title: \.title)
                 .padding(.horizontal, -4)
         }
-        .padding(.horizontal, 16)
-        .padding(.top, 8)
-        .padding(.bottom, 10)
     }
 
     /// Beside the settings: how much you've dictated, and which model writes it.

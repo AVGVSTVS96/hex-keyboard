@@ -48,9 +48,6 @@ struct KeyboardPage: View {
             case .single:
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
-                        PageTitle(title: "Keyboard")
-                            .padding(.horizontal, 16)
-                            .padding(.top, 8)
                         TryPreview()
                             .padding(16)
                         Section {
@@ -70,6 +67,7 @@ struct KeyboardPage: View {
                 }
                 .scrollDismissesKeyboard(.interactively)
                 .defaultScrollAnchor(LaunchOptions.scrollAnchor)
+                .pinnedHeader { PageTitle(title: "Keyboard") }
             }
         }
         .hexPage()

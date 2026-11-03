@@ -101,11 +101,16 @@ final class TapsViewController: UIViewController {
         scroll.alwaysBounceVertical = true
         scroll.addSubview(columns)
         view.addSubview(scroll)
+        titleRow.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(titleRow)
         let readable = columns.widthAnchor.constraint(equalTo: scroll.frameLayoutGuide.widthAnchor, constant: -32)
         readable.priority = .required - 1
 
         NSLayoutConstraint.activate([
-            scroll.topAnchor.constraint(equalTo: view.topAnchor),
+            titleRow.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
+            titleRow.leadingAnchor.constraint(equalTo: columns.leadingAnchor, constant: 4),
+            titleRow.trailingAnchor.constraint(equalTo: columns.trailingAnchor),
+            scroll.topAnchor.constraint(equalTo: titleRow.bottomAnchor, constant: 10),
             scroll.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             scroll.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor),
             scroll.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor),
@@ -172,13 +177,13 @@ final class TapsViewController: UIViewController {
         for stack in [columns, primary, secondary] { stack.arrangedSubviews.forEach { $0.removeFromSuperview() } }
         split?.isActive = false
         if wide {
-            [titleRow, modes, map, pullCard].forEach(primary.addArrangedSubview)
+            [modes, map, pullCard].forEach(primary.addArrangedSubview)
             [stats, detail, missedCard].forEach(secondary.addArrangedSubview)
             [primary, secondary].forEach(columns.addArrangedSubview)
             split = primary.widthAnchor.constraint(equalToConstant: 400)
             split?.isActive = true
         } else {
-            [titleRow, stats, modes, map, detail, pullCard, missedCard].forEach(primary.addArrangedSubview)
+            [stats, modes, map, detail, pullCard, missedCard].forEach(primary.addArrangedSubview)
             columns.addArrangedSubview(primary)
         }
         primary.setCustomSpacing(12, after: modes)

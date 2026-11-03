@@ -35,7 +35,6 @@ struct MorePage: View {
         NavigationStack(path: $router.morePath) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    PageTitle(title: "More")
                     LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 14), count: columns), spacing: 14) {
                         ForEach(Page.allCases, id: \.self) { page in
                             NavigationLink(value: page) {
@@ -47,12 +46,13 @@ struct MorePage: View {
                     }
                 }
                 .padding(.horizontal, 16)
-                .padding(.top, 8)
+                .padding(.top, 4)
                 .padding(.bottom, 40)
                 .frame(maxWidth: 1000)
                 .frame(maxWidth: .infinity)
             }
             .defaultScrollAnchor(LaunchOptions.scrollAnchor)
+            .pinnedHeader { PageTitle(title: "More") }
             .hexPage()
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: Page.self) { page in

@@ -78,6 +78,19 @@ struct Panes<First: View, Second: View>: View {
     }
 }
 
+extension View {
+    /// A page's header pinned over its scrolling content, as a navigation bar is: the content fades under it, and never
+    /// runs under the status bar.
+    func pinnedHeader(@ViewBuilder _ header: () -> some View) -> some View {
+        safeAreaBar(edge: .top) {
+            header()
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+                .padding(.bottom, 10)
+        }
+    }
+}
+
 /// A page's name, small and at its top left, as Raycast's are.
 struct PageTitle: View {
     let title: String

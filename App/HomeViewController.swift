@@ -93,12 +93,12 @@ struct HomeView: View {
                     }
                 }
             case .single:
-                Column(top: 8) {
-                    header
+                Column(top: 4) {
                     tryIt.frame(height: 150)
                     if !status.isSetUp { setUp }
                     tiles
                 }
+                .pinnedHeader { header }
             }
         }
         .hexPage()
