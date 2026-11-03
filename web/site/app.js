@@ -57,6 +57,15 @@ const graphemeAfter = (index) => {
   return next.done ? index : index + next.value.segment.length;
 };
 
+const measure = document.createElement("canvas").getContext("2d");
+let spacing = 0;
+const advance = (step) => {
+  const at = field.selectionEnd;
+  const crossed = step < 0 ? field.value.slice(graphemeBefore(at), at) : field.value.slice(at, graphemeAfter(at));
+  const shown = !crossed || /[\n\r\u2028\u2029]/.test(crossed) ? " " : crossed;
+  return Math.max(0, measure.measureText(shown).width + spacing);
+};
+
 const textDocument = {
   before: () => field.value.slice(0, field.selectionStart),
   after: () => field.value.slice(field.selectionEnd),
@@ -250,7 +259,7 @@ keyboard.addEventListener("pointerdown", (event) => {
   const now = performance.now();
   const tapCount = lastDown.index === index && now - lastDown.time < 350 ? 2 : 1;
   lastDown = { index, time: tapCount === 2 ? 0 : now };
-  const touch = { index, mode: capAt(index).action === "layer" ? "slide" : "typing", start: p, point: p, cursorX: p.x, hold: 0 };
+  const touch = { index, mode: capAt(index).action === "layer" ? "slide" : "typing", start: p, point: p, hold: 0 };
   touches.set(event.pointerId, touch);
   kb.down(index, tapCount);
   if (capAt(index).action === "delete") startDeleteRepeat();
@@ -264,11 +273,16 @@ keyboard.addEventListener("pointermove", (event) => {
   const p = (touch.point = point(event));
   if (touch.mode === "alternates") return trackAccents(p.x);
   if (touch.mode === "trackpad") {
-    const step = 9;
-    const offset = Math.trunc((p.x - touch.cursorX) / step);
-    if (offset) {
-      touch.cursorX += offset * step;
-      kb.cursor(offset);
+    for (;;) {
+      const step = p.x > touch.cursorX ? 1 : -1, width = advance(step);
+      if (Math.abs(p.x - touch.cursorX) < width) break;
+      const at = field.selectionEnd;
+      touch.cursorX += step * width;
+      kb.cursor(step);
+      if (field.selectionEnd === at) {
+        touch.cursorX = p.x;
+        break;
+      }
     }
     return;
   }
@@ -402,6 +416,10 @@ function scheduleHold(touch) {
     if (touch.mode !== "typing" || ![...touches.values()].includes(touch)) return;
     if (isSpace) {
       touch.mode = "trackpad";
+      touch.cursorX = touch.point.x;
+      const style = getComputedStyle(field);
+      measure.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+      spacing = parseFloat(style.letterSpacing) || 0;
       caps.forEach((view) => view.classList.add("hidden-label"));
     } else {
       touch.mode = "alternates";
