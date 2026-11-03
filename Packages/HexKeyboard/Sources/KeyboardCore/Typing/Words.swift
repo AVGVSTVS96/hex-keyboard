@@ -21,6 +21,11 @@ enum Words {
         return words
     }
 
+    /// The word with straight apostrophes, as the lexicon and what you've typed are kept.
+    static func plain(_ word: String) -> String {
+        word.contains("’") ? String(word.map { $0 == "’" ? "'" : $0 }) : word
+    }
+
     static func current(in text: String) -> Substring {
         let start = text.lastIndex { !isWordCharacter($0) }.map(text.index(after:)) ?? text.startIndex
         return text[start...].drop { apostrophes.contains($0) }
@@ -40,7 +45,7 @@ enum Words {
         guard let character = trimmed.last else { return "" }
         if TypingEngine.sentenceEnders.contains(character) || character.isNewline { return "" }
         let previous = current(in: String(trimmed))
-        return previous.isEmpty ? nil : previous.lowercased()
+        return previous.isEmpty ? nil : plain(previous.lowercased())
     }
 
     /// The two words before a word, each read like `previous`.

@@ -26,8 +26,8 @@ public struct TypedWord: Hashable, Sendable {
     public var previous: String?
 
     public init(_ text: String, taps: [Tap] = [], previous: String? = nil) {
-        self.text = text
+        self.text = Words.plain(text)
         self.taps = taps
-        self.previous = previous
+        self.previous = previous.map(Words.plain)
     }
 }

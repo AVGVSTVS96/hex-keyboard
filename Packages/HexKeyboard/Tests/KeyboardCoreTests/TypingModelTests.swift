@@ -269,6 +269,56 @@ struct LabelTests {
         #expect(count("h", engine) == 0)
     }
 
+    @Test func aWordChangedAfterGoingBackTeachesNothing() {
+        var engine = engine()
+        let document = TestDocument()
+        type("go of ", into: &engine, document)
+        document.cursor = 5
+        engine.documentChanged(document)
+        for _ in 0..<2 { engine.perform(.delete, in: document) }
+        type("if", into: &engine, document)
+        document.cursor = document.text.count
+        engine.documentChanged(document)
+        type("go ", into: &engine, document)
+        engine.endSession()
+        #expect(document.text == "go if go ")
+        #expect(count("f", engine) == 0)
+    }
+
+    @Test func aDeletedCorrectionTeachesNothingAndIsForgotten() {
+        var engine = engine()
+        let document = TestDocument("ok ")
+        type("teh ", into: &engine, document)
+        #expect(document.text == "ok the ")
+        for _ in 0..<4 { engine.perform(.delete, in: document) }
+        type("to ", into: &engine, document)
+        engine.endSession()
+        #expect(document.text == "ok to ")
+        #expect(count("h", engine) == 0)
+        #expect(engine.corrector!.memory.count(of: "the") == 0)
+    }
+
+    @Test func aTypoDeletedAndRetypedIsNeverRemembered() {
+        var engine = engine()
+        let document = TestDocument("ok ")
+        type("qzxv ", into: &engine, document)
+        for _ in 0..<5 { engine.perform(.delete, in: document) }
+        type("hello ", into: &engine, document)
+        #expect(engine.corrector!.memory.count(of: "qzxv") == 0)
+        #expect(engine.corrector!.memory.count(of: "hello") == 1)
+    }
+
+    @Test func aSentMessageTeachesItsLastWord() {
+        var engine = engine()
+        let document = TestDocument()
+        type("hi work", into: &engine, document)
+        engine.perform(.return, in: document)
+        document.text = ""
+        document.cursor = 0
+        engine.documentChanged(document)
+        #expect(count("w", engine) == 1)
+    }
+
     @Test func retypingTeachesTheErasedTap() {
         var engine = engine()
         let document = TestDocument()

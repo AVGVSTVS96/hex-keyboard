@@ -47,6 +47,7 @@ public struct TypingEngine {
         guard traits != self.traits else { return }
         if traits.kind != self.traits.kind { layer = Self.initialLayer(for: traits.kind) }
         self.traits = traits
+        if text.isKnown { refreshShift() }
         suggestionsChanged()
     }
 
@@ -193,7 +194,13 @@ public struct TypingEngine {
         attach(document)
         spaceJustTyped = false
         revert = nil
-        if typing.letters.isEmpty { pending = nil }
+        if typing.letters.isEmpty, let pending {
+            let head = Substring(text.before).dropLast(while: { !Words.isWordCharacter($0) })
+            if head.hasSuffix(pending.word) {
+                corrector?.memory.forget(pending.word, after: Words.previous(before: Words.current(in: String(head)), in: String(head)))
+            }
+            self.pending = nil
+        }
         typing = WordTaps()
         write("", replacing: Self.wordLength(before: text.before), in: document)
         refreshShift()
@@ -220,11 +227,15 @@ public struct TypingEngine {
     mutating func moveCursor(by offset: Int, in document: some TextDocument) {
         guard panel == nil else { return }
         attach(document)
-        document.moveCursor(by: offset)
-        text.moveCursor(by: offset)
+        moveCaret(by: offset, in: document)
         forgetWord()
         refreshShift()
         suggestionsChanged()
+    }
+
+    mutating func moveCaret(by offset: Int, in document: some TextDocument) {
+        document.moveCursor(by: offset)
+        text.moveCursor(by: offset)
     }
 
     mutating func pressShift(doubleTap: Bool) {
@@ -276,15 +287,20 @@ public struct TypingEngine {
     }
 
     /// The host's `textDidChange` or `selectionDidChange`. A report showing the keyboard's own edits, even late, changes
-    /// nothing; anything else replaces what the engine knows and forgets the word in progress.
+    /// nothing; anything else replaces what the engine knows and forgets the word in progress. An emptied field was
+    /// sent, so its last word was kept.
     @discardableResult
     public mutating func documentChanged(_ document: some TextDocument) -> TextState.Report {
+        let before = text.before
         let report = text.reconcile(before: document.textBeforeInput, after: document.textAfterInput)
         if report == .changed {
+            if text.before.isEmpty, (text.after ?? "").isEmpty { learnPending() }
             forgetWord()
+        }
+        if report == .changed || text.before != before {
+            refreshShift()
             suggestionsChanged()
         }
-        refreshShift()
         return report
     }
 
@@ -317,6 +333,7 @@ public struct TypingEngine {
 
     private mutating func forgetWord() {
         spaceJustTyped = false
+        pending = nil
         typing = WordTaps()
         stray = nil
         revert = nil

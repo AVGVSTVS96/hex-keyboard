@@ -13,6 +13,7 @@ public struct TypingMemory: Codable, Hashable, Sendable {
     public init() {}
 
     public mutating func record(_ word: String, after previous: String?) {
+        let word = Words.plain(word), previous = previous.map(Words.plain)
         counts[word, default: 0] += 1
         total += 1
         if let previous { following[previous, default: [:]][word, default: 0] += 1 }
@@ -20,6 +21,7 @@ public struct TypingMemory: Codable, Hashable, Sendable {
     }
 
     public mutating func forget(_ word: String, after previous: String?) {
+        let word = Words.plain(word), previous = previous.map(Words.plain)
         guard let count = counts[word] else { return }
         counts[word] = count > 1 ? count - 1 : nil
         total -= 1
@@ -38,11 +40,11 @@ public struct TypingMemory: Codable, Hashable, Sendable {
     }
 
     public mutating func keep(_ word: String) {
-        kept.insert(word.lowercased())
+        kept.insert(Words.plain(word).lowercased())
     }
 
     public func isKept(_ word: String) -> Bool {
-        kept.contains(word.lowercased())
+        kept.contains(Words.plain(word).lowercased())
     }
 
     func count(of word: String) -> Int {
