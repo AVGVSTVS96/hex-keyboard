@@ -5,5 +5,5 @@
 set -e
 cd "$(dirname "$0")/.."
 dir=${1:-Developer/hex-keyboard}
-rsync -rlpz --checksum --delete --exclude .git --exclude /build --exclude .build --exclude /xtool --exclude /shots --exclude '*.xcodeproj' --exclude /reference --exclude /App/Info.plist --exclude /Keyboard/Info.plist --exclude /Config/Team.xcconfig ./ "mac:$dir/"
+rsync -rlpz --checksum --delete --exclude .git --exclude /build --exclude .build --exclude /xtool --exclude /shots --exclude '*.xcodeproj' --exclude /reference --exclude /.scratch --exclude node_modules --exclude /App/Info.plist --exclude /Keyboard/Info.plist --exclude /Config/Team.xcconfig ./ "mac:$dir/"
 echo "$dir"
