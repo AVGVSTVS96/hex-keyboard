@@ -167,7 +167,10 @@ import UIKit
     }
 
     /// Mixes with whatever else is playing, so music keeps going while you talk. While any app records, iOS mutes every
-    /// app's haptics, the keyboard's included, unless the recording session allows them.
+    /// app's haptics, the keyboard's included, unless the recording session allows them. It hears through Apple's voice
+    /// processing, which picks up your voice from all of the iPhone's microphones as a call does: from one microphone,
+    /// the folded iPhone Duo held upright lost his voice for seconds at a time, 12% of the time, leaving a low rumble
+    /// that Parakeet writes as nothing.
     private func openMic() throws {
         guard micLock == nil else { return }
         let session = AVAudioSession.sharedInstance()
@@ -175,6 +178,9 @@ import UIKit
         try? session.setAllowHapticsAndSystemSoundsDuringRecording(true)
         try session.setActive(true)
         let node = engine.inputNode
+        if !node.isVoiceProcessingEnabled, (try? node.setVoiceProcessingEnabled(true)) != nil {
+            node.voiceProcessingOtherAudioDuckingConfiguration = .init(enableAdvancedDucking: false, duckingLevel: .min)
+        }
         node.installTap(onBus: 0, bufferSize: 4096, format: node.outputFormat(forBus: 0), block: Self.tap(feed) { level in
             Dictation.publish(level: level)
             Task { @MainActor in Listener.shared.onLevel?(level) }
