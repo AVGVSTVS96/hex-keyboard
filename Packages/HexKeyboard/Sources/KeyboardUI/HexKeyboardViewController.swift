@@ -442,7 +442,7 @@ open class HexKeyboardViewController: UIInputViewController {
             case .heard(let text, let keyboard) where keyboard == nil || keyboard == self.keyboard:
                 engine.handle(.dictated(text), in: document)
             case .heard:
-                voiceNotice = "Not typed, as its keyboard closed first: it’s in Hex › Transcripts"
+                voiceNotice = "Not typed, as its keyboard closed first: it’s in iikb › Transcripts"
             case .notice(let notice):
                 voiceNotice = notice
             }

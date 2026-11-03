@@ -119,7 +119,7 @@ import UIKit
             writing.removeAll { $0 === take }
             Transcripts.shared.add(written.text, heard: written.heard, id: take.id, at: take.started, seconds: seconds, typed: take.typed, model: written.model, mic: take.mic)
             if take.typed, written.text.isEmpty {
-                Dictation.leave(.notice("\(written.model) heard nothing: the recording is in Hex › Transcripts"))
+                Dictation.leave(.notice("\(written.model) heard nothing: the recording is in iikb › Transcripts"))
             } else if take.typed {
                 Dictation.leave(.heard(written.text, keyboard: take.keyboard))
             }
@@ -127,7 +127,7 @@ import UIKit
             HostApp.log.notice("\(written.model, privacy: .public) wrote \(seconds, format: .fixed(precision: 1))s down \(Date.now.timeIntervalSince(take.stopped), format: .fixed(precision: 2))s after the stop")
         } catch {
             writing.removeAll { $0 === take }
-            fail("Couldn’t write it down", "\(error.localizedDescription) The recording is kept, and written down when Hex next opens.")
+            fail("Couldn’t write it down", "\(error.localizedDescription) The recording is kept, and written down when iikb next opens.")
         }
         keepMicOn()
     }
