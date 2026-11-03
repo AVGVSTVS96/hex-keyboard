@@ -248,7 +248,7 @@ open, upright 951 × 669         open, held tall 669 × 951     cover 466 × 678
     - **Sound & Haptics**, how a press feels: Character Preview (None, Detached, Attached, each drawn), Key Haptics with a Strength slider of seven stops, Standard in the middle, which it keeps while haptics are off, Sound, and Allow Full Access when Hex hasn't seen it.
   - **Voice Typing**.
     - **Voice Model**: each with a line on what it costs and, for the picked one, its download, getting ready, or why it failed with Try Again.
-    - **Writing Style**: Style (Wispr Flow's four, each showing the same words as it types them with the Editing picked) and Editing (As Said, Light, Clean, and Lists).
+    - **Writing Style**: Style (Wispr Flow's four) and Editing (As Said, Light, Clean), each choice showing the same words as it types them with everything else as picked, and Lists.
     - **Dictionary**: Add Word at the top, then the words the model gets wrong, each with what it writes instead.
     - **Keep Mic On**: how long the mic stays on after a dictation.
   - **Hex**.

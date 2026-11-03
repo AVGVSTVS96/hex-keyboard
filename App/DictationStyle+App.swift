@@ -29,12 +29,4 @@ extension DictationEditing {
         case .clean: "Clean"
         }
     }
-
-    var detail: String {
-        switch self {
-        case .asSaid: "Every word you say, um and uh too."
-        case .light: "Leaves out um and uh."
-        case .clean: "Also leaves out words said twice, like “the the”, and what you take back with “scratch that”."
-        }
-    }
 }

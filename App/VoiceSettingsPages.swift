@@ -51,23 +51,32 @@ struct ModelSettings: View {
     }
 }
 
-/// The words and punctuation Hex types for what you say, each style shown by how it types the same words.
+/// The words and punctuation Hex types for what you say, each style and each level of editing shown by how it types
+/// the same words with everything else as picked.
 struct WritingSettings: View {
     private static let said = "So, let's send it to Sam tonight."
+    private static let rambled = "Um, I think the the plan works."
     private let model = SettingsModel.shared
+
+    private func typed(_ said: String, _ change: (inout DictationWriting) -> Void) -> String {
+        var writing = model.settings.dictation
+        change(&writing)
+        return "“\(writing.typed(said, lexicon: .english))”"
+    }
 
     var body: some View {
         Box(header: "Style", footer: "A style sets punctuation, as Wispr Flow’s do. Capitals follow Auto-Capitalization in Keyboard › Typing, as typing’s do, and very casual has none.") {
             ForEach(DictationStyle.allCases, id: \.self) { style in
-                let writing = { var writing = model.settings.dictation; writing.style = style; return writing }()
-                ChoiceRow(title: style.title, detail: "“\(writing.typed(Self.said, lexicon: .english))”", picked: model.settings.dictationStyle == style) {
+                ChoiceRow(title: style.title, detail: typed(Self.said) { $0.style = style }, picked: model.settings.dictationStyle == style) {
                     model.update { $0.dictationStyle = style }
                 }
             }
         }
-        Box(header: "Editing", footer: "Transcripts keep what the model wrote.") {
+        Box(header: "Editing", footer: "Clean also takes back what you cancel with “scratch that”. Transcripts keep what the model wrote.") {
             ForEach(DictationEditing.allCases, id: \.self) { editing in
-                ChoiceRow(title: editing.title, detail: editing.detail, picked: model.settings.dictationEditing == editing) { model.update { $0.dictationEditing = editing } }
+                ChoiceRow(title: editing.title, detail: typed(Self.rambled) { $0.editing = editing }, picked: model.settings.dictationEditing == editing) {
+                    model.update { $0.dictationEditing = editing }
+                }
             }
             ToggleRow(title: "Lists", detail: "“One, eggs, two, milk” is typed as a numbered list. First, second works too.", isOn: model.binding(\.dictationLists))
         }
