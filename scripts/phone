@@ -4,14 +4,36 @@
 # dictation is going on there: Hex writes a dictation's recording as it's heard, so one written in the last 10 seconds
 # is still going. Then it starts Hex in the background, so Parakeet compiles for the new install right away.
 # It builds main's last commit in its own worktree, so agents' branches and uncommitted edits never reach the phone,
-# and one run at a time, so agents installing at once queue instead of sharing that worktree.
+# and one run at a time, so agents installing at once queue instead of sharing that worktree. The build number is main's
+# commit count, which Settings › About shows as "Version 0.1.0 (<build>)"; when the iPhone already has that build,
+# nothing is built or installed, sparing it the Neural Engine compile, unless --reinstall (which renews the signing).
 set -e
 cd "$(dirname "$0")/.."
 build=../hex-keyboard-build
 exec 9>"$build.lock"
 flock 9
 [ -d "$build" ] || git worktree add -q --detach "$build"
-git -C "$build" checkout -q --detach "$(git rev-parse main)"
+commit=$(git rev-parse --short main)
+number=$(git rev-list --count main)
+phone=$(ssh mac 'xcrun devicectl list devices --json-output /tmp/hex-phone.json >/dev/null && /usr/bin/python3 -c "
+import json
+for d in json.load(open(\"/tmp/hex-phone.json\"))[\"result\"][\"devices\"]:
+    h, c = d[\"hardwareProperties\"], d[\"connectionProperties\"]
+    if h.get(\"deviceType\") == \"iPhone\" and h.get(\"reality\") == \"physical\" and c.get(\"transportType\"): print(h[\"udid\"]); break"')
+[ -n "$phone" ] || { echo "the Mac doesn't reach an iPhone" >&2; exit 1; }
+installed=$(ssh mac sh -s "$phone" <<'MAC'
+xcrun devicectl device info apps --device "$1" --bundle-id com.shahidy.hexkeyboard --json-output /tmp/hex-apps.json >/dev/null 2>&1 &&
+/usr/bin/python3 -c "import json; print(next((a.get('bundleVersion', '') for a in json.load(open('/tmp/hex-apps.json'))['result']['apps']), ''))"
+MAC
+)
+if [ "$installed" = "$number" ] && [ "${1:-}" != --reinstall ]; then
+  echo "build $number (main $commit) is already on the iPhone"
+  exit 0
+fi
+git -C "$build" checkout -q -f --detach "$commit"
+for plist in Config/xtool/Hex-Info.plist Config/xtool/Keyboard-Info.plist; do
+  python3 -c "import plistlib, sys; p = plistlib.load(open(sys.argv[1], 'rb')); p['CFBundleVersion'] = sys.argv[2]; plistlib.dump(p, open(sys.argv[1], 'wb'))" "$build/$plist" "$number"
+done
 key=Packages/HexKeyboard/Sources/KeyboardUI/Resources/Keys/klipy.key
 [ ! -f "$key" ] || cp "$key" "$build/$key"
 cd "$build"
@@ -23,12 +45,6 @@ for binary in xtool/Hex.app/Hex xtool/Hex.app/PlugIns/Keyboard.appex/Keyboard; d
     exit 1
   }
 done
-phone=$(ssh mac 'xcrun devicectl list devices --json-output /tmp/hex-phone.json >/dev/null && /usr/bin/python3 -c "
-import json
-for d in json.load(open(\"/tmp/hex-phone.json\"))[\"result\"][\"devices\"]:
-    h, c = d[\"hardwareProperties\"], d[\"connectionProperties\"]
-    if h.get(\"deviceType\") == \"iPhone\" and h.get(\"reality\") == \"physical\" and c.get(\"transportType\"): print(h[\"udid\"]); break"')
-[ -n "$phone" ] || { echo "the Mac doesn't reach an iPhone" >&2; exit 1; }
 rsync -a --delete xtool/Hex.app/ mac:Developer/hex-keyboard-phone/Hex.app/
 dictating() {
   ssh mac sh -s "$phone" <<'MAC'
@@ -48,3 +64,4 @@ done
 ssh mac xcrun devicectl device install app --device "$phone" Developer/hex-keyboard-phone/Hex.app
 ssh mac xcrun devicectl device process launch --no-activate --device "$phone" com.shahidy.hexkeyboard >/dev/null ||
   echo "Hex is installed but didn't start, so Parakeet gets ready at the next dictation instead" >&2
+echo "build $number (main $commit) is on the iPhone"
