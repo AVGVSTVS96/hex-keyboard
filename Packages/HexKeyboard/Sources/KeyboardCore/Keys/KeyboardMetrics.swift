@@ -129,10 +129,10 @@ extension KeyboardMetrics {
             metrics.symbolSize = 21
             return metrics.oneHanded(oneHanded, width: width)
         case (true, false):
-            metrics.sideInset = 18
-            metrics.keyGap = 9
-            metrics.keyHeight = 45.67
-            metrics.rowGap = 14
+            metrics.sideInset = 4.5
+            metrics.keyGap = 6
+            metrics.keyHeight = 49.42
+            metrics.rowGap = 9
             metrics.bottomInset = 3
             metrics.letterSize = 28
             metrics.labelSize = 22

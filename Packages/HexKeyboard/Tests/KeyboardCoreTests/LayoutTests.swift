@@ -178,11 +178,12 @@ struct LayoutTests {
     }
 
     /// docs/design.md, "Per device": Apple's keys and letters on each of the Duo's screens, measured in the iOS 27.1
-    /// simulator: (key height, row gap, key gap, side inset, letter size).
+    /// simulator: (key height, row gap, key gap, side inset, letter size). Open on its side the keys take over Apple's
+    /// margins and gaps, in the same height, as Bassim asked.
     @Test func theDuoMatchesApplesKeysOnEachScreen() {
         let screens: [(width: Double, height: Double, keys: [Double])] = [
             (466, 678, [45, 11, 6, 6.5, 25.5]),
-            (669, 951, [45.67, 14, 9, 18, 28]),
+            (669, 951, [49.42, 9, 6, 4.5, 28]),
             (678, 466, [33.33, 9, 7, 4.5, 23.5]),
             (951, 669, [38.67, 13, 10, 9, 28.5]),
         ]

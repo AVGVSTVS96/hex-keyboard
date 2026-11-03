@@ -14,8 +14,9 @@ public final class KeyboardPreviewView: UIView {
     private var settings = KeyboardSettings.initial
     private var dark = false
 
-    /// iOS's card behind a third-party keyboard (docs/design.md, Colors).
-    private static let card = (dark: RGBA(red: 0x22 / 255.0, green: 0x22 / 255.0, blue: 0x23 / 255.0), light: RGBA(red: 0xE2 / 255.0, green: 0xE3 / 255.0, blue: 0xE8 / 255.0))
+    /// The card behind the keys: Raycast's preview in a dark app (its photos, Nov 3), iOS's card behind a third-party
+    /// keyboard in a light one (docs/design.md, Colors).
+    private static let card = (dark: RGBA(red: 0x10 / 255.0, green: 0x10 / 255.0, blue: 0x10 / 255.0), light: RGBA(red: 0xE2 / 255.0, green: 0xE3 / 255.0, blue: 0xE8 / 255.0))
 
     override public init(frame: CGRect) {
         super.init(frame: frame)

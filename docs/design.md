@@ -122,7 +122,7 @@ Physical and Mechanical come Automatic (following the app), Dark or Light.
 |---|---|---|---|---|---|---|---|---|---|
 | Duo folded (cover), upright, 466 × 678 | 6.5 in, keys 6 apart | 45 | 11 | 3 | 38 | 7 | 39 | |
 | Duo open, upright, 951 × 669 (compact) | 9 in, keys 10 apart | 38.67 | 13 | 3 | 38 | 7 | 20 | |
-| Duo open, on its side, 669 × 951 | 18 in, keys 9 apart | 45.67 | 14 | 3 | 38 | 7 | 73 | |
+| Duo open, on its side, 669 × 951 | 4.5 in, keys 6 apart | 49.42 | 9 | 3 | 38 | 7 | 73 | |
 | Duo folded, on its side, 678 × 466 (compact) | 4.5 in, keys 7 apart | 33.33 | 9 | 3 | 32 | 7 | 20 | |
 | iPhone portrait (Face ID), 375–440 wide | full width | 43, or 45 from 415 wide | 11 | 3 | 38 | 7 | today's `bottomInset` | |
 | iPhone landscape (compact) | today's | today's 27.33 | today's 8 | 3 | 34 | 7 | today's | |
@@ -131,7 +131,7 @@ Physical and Mechanical come Automatic (following the app), Dark or Light.
 - Every Duo row is Apple's keyboard measured in the iOS 27.1 simulator (`scripts/sim duo`, which unfolds it with Device Hub's hinge event). "Keys block" is the side inset inside the keyboard's own width, which iOS narrows on the side layouts; "Bottom" is how far above the screen's bottom Apple's last row ends.
 - The open Duo is wide when you hold it upright (951 × 669) and tall on its side (669 × 951).
 - Apple's letters on the Duo are bigger than on other iPhones: 25.5 on the cover, 23.5 folded on its side, 28.5 open and upright, 28 open on its side. Hex's `123`, return and symbols grow by the same share; Apple's own `123` is bigger still, but its key is three times as wide, since its row has no globe.
-- The Duo's keys span the keyboard's whole width on every screen, at Apple's insets.
+- The Duo's keys span the keyboard's whole width on every screen, at Apple's insets, except open on its side: there Apple's keys (18 in, 9 apart, 45.67 tall, rows 14 apart) leave wide margins and gaps, and Bassim asked for keys "taller and wider as much as possible using as much available space as possible" (Nov 3), so the keys take them over in the same keyboard height: about 10% wider and 8% taller.
 - Regular iPhones and iPads keep their key geometry, which is measured against Apple's.
 
 ### The compact layout
