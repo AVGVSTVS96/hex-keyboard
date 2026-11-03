@@ -93,6 +93,8 @@ enum PhoneLayouts {
 
     /// `123`, as wide as on every Raycast theme (measured on the Duo, open upright and on its side).
     private static let raycastSide = KeyWidth.pitch(0.93)
+    /// Return beside the emoji key, as wide as Raycast's on the open Duo, upright and on its side.
+    private static let raycastReturn = KeyWidth.pitch(1.4)
 
     private static func bottomRow(_ context: LayoutContext, layerKey: KeyboardLayer) -> [RowItem] {
         let side = context.isLandscape ? 2.0 : 2.5
@@ -112,7 +114,7 @@ enum PhoneLayouts {
             return leading + [space, character(".", .input), .key(Key(.return, width: .pitch(1.75)))]
         default:
             guard context.showsEmoji else { return leading + [space, returnKey] }
-            return leading + emoji + [space, .key(Key(.return, width: .pitch(side - 0.5)))]
+            return leading + emoji + [space, .key(Key(.return, width: raycastReturn))]
         }
     }
 }

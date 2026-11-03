@@ -17,8 +17,6 @@ public struct KeyFace: Hashable, Sendable {
     public var secondaryIsDimmed = true
     public var alignment: Alignment = .center
     public var isProminent = false
-    /// Shift's state on the shift and caps lock keys, which iOS 5 lit up.
-    public var lit = ShiftState.off
 
     public init(content: Content, secondary: String? = nil, secondaryIsDimmed: Bool = true, alignment: Alignment = .center, isProminent: Bool = false) {
         self.content = content
@@ -68,10 +66,8 @@ extension KeyFace {
             case .locked: "capslock.fill"
             }
             self.init(content: .symbol(name), alignment: edge)
-            lit = context.shift
         case .capsLock:
             self.init(content: .symbol(context.shift == .locked ? "capslock.fill" : "capslock"), alignment: edge)
-            lit = context.shift == .locked ? .locked : .off
         case .return:
             let kind = context.returnKind
             self.init(

@@ -7,18 +7,20 @@ final class KeyView: UIView {
     private let secondaryLabel = UILabel()
     private let cornerLabel = UILabel()
     private let icon = UIImageView()
-    /// A raised key's sides, around its face; hidden on flat keys.
+    /// A raised key's sides around its face, and the light along their top; hidden on flat keys.
     private let sides = CAGradientLayer()
+    private let glow = CAGradientLayer()
     private let face = CAGradientLayer()
+    /// The lit line just inside the key's edge, where the theme has one.
+    private let rim = CAGradientLayer()
+    private let rimShape = CAShapeLayer()
     private var shown = KeyFace(content: .none)
     private var metrics: KeyboardMetrics?
 
     var theme = KeyboardTheme.lightCurrent {
         didSet {
             guard theme != oldValue else { return }
-            if theme.typeface != oldValue.typeface || theme.capitalLetters != oldValue.capitalLetters || theme.spaceLabel != oldValue.spaceLabel || theme.cornerScale != oldValue.cornerScale {
-                applyFace()
-            }
+            if theme.keyShape != oldValue.keyShape { applyFace() }
             updateColors()
         }
     }
@@ -27,7 +29,7 @@ final class KeyView: UIView {
     var isFlicked = false {
         didSet {
             guard isFlicked != oldValue, let secondary = shown.secondary, case .letter(let primary) = shown.content else { return }
-            label.text = isFlicked ? secondary : letter(primary)
+            label.text = isFlicked ? secondary : primary
             secondaryLabel.isHidden = isFlicked
             setNeedsLayout()
         }
@@ -43,11 +45,19 @@ final class KeyView: UIView {
         isUserInteractionEnabled = false
         isAccessibilityElement = true
         accessibilityTraits = .keyboardKey
-        for shape in [sides, face] {
-            shape.cornerCurve = .circular
-            shape.actions = ["bounds": NSNull(), "position": NSNull(), "colors": NSNull(), "frame": NSNull()]
-            layer.addSublayer(shape)
+        let still: [String: CAAction] = ["bounds": NSNull(), "position": NSNull(), "colors": NSNull(), "locations": NSNull(), "frame": NSNull(), "path": NSNull()]
+        for shape in [sides, glow, face, rim, rimShape] {
+            shape.actions = still
         }
+        [sides, face, rim].forEach(layer.addSublayer)
+        sides.addSublayer(glow)
+        sides.masksToBounds = true
+        glow.type = .radial
+        glow.startPoint = CGPoint(x: 0.5, y: 0.5)
+        glow.endPoint = CGPoint(x: 1, y: 1)
+        rimShape.fillColor = nil
+        rimShape.strokeColor = UIColor.black.cgColor
+        rim.mask = rimShape
         icon.contentMode = .center
         label.textAlignment = .center
         secondaryLabel.textAlignment = .center
@@ -66,27 +76,27 @@ final class KeyView: UIView {
 
     private func applyFace() {
         guard let metrics else { return }
-        let classic = theme.typeface == .classic
+        let shape = theme.keyShape
+        let labelScale = shape?.labelScale ?? 1
         switch shown.content {
         case .letter(let text):
-            label.text = letter(text)
-            label.font = classic ? Self.helvetica(metrics.letterSize * 0.9) : KeyboardFont.letter(metrics.letterSize)
+            label.text = text
+            label.font = shape.map { .systemFont(ofSize: metrics.letterSize * $0.letterScale, weight: .regular) } ?? KeyboardFont.letter(metrics.letterSize)
             icon.image = nil
         case .text(let text):
             label.text = text
-            label.font = classic ? Self.helvetica(metrics.labelSize * 0.88) : .systemFont(ofSize: metrics.labelSize, weight: .regular)
+            label.font = .systemFont(ofSize: metrics.labelSize * labelScale, weight: .regular)
             icon.image = nil
         case .smallText(let text):
             label.text = text
-            label.font = classic ? Self.helvetica(metrics.labelSize * 0.7) : .systemFont(ofSize: metrics.labelSize * 0.75, weight: .regular)
+            label.font = .systemFont(ofSize: metrics.labelSize * 0.75 * labelScale, weight: .regular)
             icon.image = nil
         case .symbol(let name):
             label.text = nil
-            let configuration = UIImage.SymbolConfiguration(pointSize: metrics.symbolSize, weight: classic ? .semibold : .regular)
-            icon.image = UIImage(systemName: name, withConfiguration: configuration)
+            let size = metrics.symbolSize * (shape?.symbolScale ?? 1)
+            icon.image = UIImage(systemName: name, withConfiguration: UIImage.SymbolConfiguration(pointSize: size, weight: .regular))
         case .none:
-            label.text = key.action == .space ? theme.spaceLabel : nil
-            label.font = Self.helvetica(metrics.labelSize * 0.88)
+            label.text = nil
             icon.image = nil
         }
         accessibilityLabel = accessibilityName
@@ -103,38 +113,29 @@ final class KeyView: UIView {
         setNeedsLayout()
     }
 
-    private func letter(_ text: String) -> String {
-        theme.capitalLetters ? text.uppercased() : text
-    }
-
-    private static func helvetica(_ size: CGFloat) -> UIFont {
-        UIFont(name: "Helvetica-Bold", size: size) ?? .systemFont(ofSize: size, weight: .bold)
-    }
-
     override func layoutSubviews() {
         super.layoutSubviews()
         guard let metrics else { return }
-        layoutPaint(radius: metrics.cornerRadius * theme.cornerScale)
+        layoutPaint(radius: metrics.cornerRadius)
         label.sizeToFit()
         icon.sizeToFit()
         layoutCorner(inset: metrics.cornerRadius)
-        let lift = paint.keycap == nil ? 0 : bounds.height * (Keycap.faceBottom - Keycap.faceTop) / 2
 
         switch shown.alignment {
         case .center:
             let offset = isLetter ? metrics.letterOffset : 0
-            label.center = CGPoint(x: bounds.midX, y: bounds.midY + offset - lift)
-            icon.center = CGPoint(x: bounds.midX, y: bounds.midY - lift)
+            label.center = CGPoint(x: bounds.midX, y: bounds.midY + offset)
+            icon.center = CGPoint(x: bounds.midX, y: bounds.midY)
         case .bottomLeading, .bottomTrailing:
             let leading = shown.alignment == .bottomLeading
             let inset = metrics.edgeInset
             label.frame.origin = CGPoint(
                 x: leading ? inset.width : bounds.width - inset.width - label.bounds.width,
-                y: bounds.height - metrics.textBaselineInset - (label.font?.ascender ?? 0) - lift
+                y: bounds.height - metrics.textBaselineInset - (label.font?.ascender ?? 0)
             )
             icon.frame.origin = CGPoint(
                 x: leading ? inset.width : bounds.width - inset.width - icon.bounds.width,
-                y: bounds.height - inset.height - icon.bounds.height - lift
+                y: bounds.height - inset.height - icon.bounds.height
             )
         }
 
@@ -156,18 +157,35 @@ final class KeyView: UIView {
     }
 
     private func layoutPaint(radius: CGFloat) {
+        let curve: CALayerCornerCurve = theme.keyShape == nil ? .circular : .continuous
+        let paint = paint
+        let height = bounds.height
         sides.frame = bounds
         sides.cornerRadius = radius
+        let reach = height * Keycap.glowReach
+        glow.frame = CGRect(x: bounds.midX - reach, y: -reach, width: reach * 2, height: reach * 2)
         var faceFrame = bounds
         if paint.keycap != nil {
-            let height = bounds.height
             faceFrame = bounds.inset(by: UIEdgeInsets(
                 top: height * Keycap.faceTop, left: height * Keycap.faceSide, bottom: height * Keycap.faceBottom, right: height * Keycap.faceSide
             ))
         }
         face.frame = faceFrame
-        face.cornerRadius = paint.keycap == nil ? radius : max(radius - bounds.height * Keycap.faceSide * 0.6, 2)
-        layer.shadowPath = paint.drop == nil ? nil : UIBezierPath(roundedRect: bounds, cornerRadius: radius).cgPath
+        face.cornerRadius = paint.keycap == nil ? radius : radius * Keycap.faceCorner
+        for shape in [sides, face] { shape.cornerCurve = curve }
+        rim.frame = bounds
+        if let line = paint.rim {
+            rimShape.lineWidth = line.width
+            rimShape.path = Self.outline(bounds.insetBy(dx: line.width / 2, dy: line.width / 2), radius: radius - line.width / 2, curve: curve)
+        }
+        layer.shadowPath = paint.drop == nil ? nil : Self.outline(bounds, radius: radius, curve: curve)
+    }
+
+    /// The key's outline: continuous corners as `cornerCurve` draws them, or circular ones.
+    private static func outline(_ rect: CGRect, radius: CGFloat, curve: CALayerCornerCurve) -> CGPath {
+        curve == .continuous
+            ? UIBezierPath(roundedRect: rect, cornerRadius: radius).cgPath
+            : CGPath(roundedRect: rect, cornerWidth: radius, cornerHeight: radius, transform: nil)
     }
 
     private func layoutCorner(inset: CGFloat) {
@@ -198,12 +216,10 @@ final class KeyView: UIView {
         if case .letter = shown.content { true } else { false }
     }
 
-    /// The paint for this key as it is now: letters and space in the letter paint, the rest in the function paint,
-    /// a prominent return (and, in iOS 5, caps lock) in the prominent one, and shift while it's on lit where the theme
-    /// lights it.
+    /// The paint for this key: letters and space in the letter paint, a prominent return in the prominent one, and the
+    /// rest in the function paint.
     private var paint: KeyPaint {
         if shown.isProminent { return theme.prominentKey }
-        if let lit = theme.litKey, shown.lit != .off { return shown.lit == .locked ? theme.prominentKey : lit }
         switch key.action {
         case .character, .space: return theme.letterKey
         default: return theme.functionKey
@@ -217,7 +233,16 @@ final class KeyView: UIView {
         let bottom = isPressed ? paint.pressedBottom : paint.bottom
         face.colors = [top.ui.cgColor, bottom.ui.cgColor]
         sides.isHidden = paint.keycap == nil
-        if let keycap = paint.keycap { sides.colors = [keycap.top.ui.cgColor, keycap.bottom.ui.cgColor] }
+        if let keycap = paint.keycap {
+            sides.colors = keycap.sides.map(\.color.ui.cgColor)
+            sides.locations = keycap.sides.map { NSNumber(value: $0.at) }
+            glow.colors = [keycap.glow.ui.cgColor, keycap.glow.ui.withAlphaComponent(0).cgColor]
+        }
+        rim.isHidden = paint.rim == nil
+        if let line = paint.rim {
+            rim.colors = [line.color.ui.cgColor, line.color.ui.withAlphaComponent(0).cgColor]
+            rim.locations = [0, NSNumber(value: line.fade)]
+        }
         if let drop = paint.drop, !isPressed || paint.keycap == nil {
             layer.shadowColor = drop.color.ui.cgColor
             layer.shadowOffset = CGSize(width: 0, height: drop.y)
@@ -227,13 +252,13 @@ final class KeyView: UIView {
             layer.shadowOpacity = 0
         }
         let foreground = paint.label.ui
-        label.textColor = key.action == .space ? foreground.withAlphaComponent(0.6) : foreground
+        label.textColor = foreground
         icon.tintColor = foreground
         if let shadow = paint.labelShadow {
-            label.shadowColor = shadow.ui
-            label.shadowOffset = CGSize(width: 0, height: -1)
-            icon.layer.shadowColor = shadow.ui.cgColor
-            icon.layer.shadowOffset = CGSize(width: 0, height: -1)
+            label.shadowColor = shadow.color.ui
+            label.shadowOffset = CGSize(width: 0, height: shadow.y)
+            icon.layer.shadowColor = shadow.color.ui.cgColor
+            icon.layer.shadowOffset = CGSize(width: 0, height: shadow.y)
             icon.layer.shadowRadius = 0
             icon.layer.shadowOpacity = 1
         } else {

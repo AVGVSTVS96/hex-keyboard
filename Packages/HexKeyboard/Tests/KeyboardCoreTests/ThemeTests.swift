@@ -4,19 +4,19 @@ import Testing
 struct ThemeTests {
     @Test func physicalAndMechanicalKeysKeepTheirAppearanceWhileTheBarFollowsTheApp() {
         let lightKeysInDarkApp = KeyboardTheme.named(.physical, appearance: .light, dark: true, style: .ios27)
-        #expect(lightKeysInDarkApp.letterKey.top == .white)
+        #expect(lightKeysInDarkApp.letterKey.top == RGBA(white: 248 / 255))
         #expect(lightKeysInDarkApp.candidateDivider == KeyboardTheme.dark(.ios27).candidateDivider, "the bar sits on iOS's dark card")
         let automatic = KeyboardTheme.named(.mechanical, appearance: .automatic, dark: true, style: .ios27)
         #expect(automatic == KeyboardTheme.named(.mechanical, appearance: .dark, dark: true, style: .ios27))
         #expect(automatic.letterKey.keycap != nil)
     }
 
-    @Test func defaultIsTodaysKeyboard() {
-        for dark in [false, true] {
-            let theme = KeyboardTheme.named(.standard, dark: dark, style: .ios27)
-            #expect(theme == (dark ? KeyboardTheme.dark(.ios27) : KeyboardTheme.light(.ios27)))
-            #expect(theme.letterKey.top == theme.key && theme.functionKey == theme.letterKey)
-        }
+    @Test func defaultIsRaycastsInDarkAndTodaysInLight() {
+        let light = KeyboardTheme.named(.standard, dark: false, style: .ios27)
+        #expect(light.letterKey == KeyboardTheme.light(.ios27).letterKey)
+        let dark = KeyboardTheme.named(.standard, dark: true, style: .ios27)
+        #expect(dark.letterKey.top == RGBA(white: 47 / 255) && dark.functionKey == dark.letterKey)
+        #expect(dark.keyShape == .raycast && KeyboardTheme.dark(.ios27).keyShape == nil)
     }
 
     @Test func clearKeysHaveNoFillButTheirPreviewDoes() {
@@ -25,17 +25,16 @@ struct ThemeTests {
         #expect(theme.bubble == theme.key)
     }
 
-    @Test func iOS5ShowsCapitalsAndSetsFunctionKeysApart() {
+    @Test func iOS5PressesLabelsIntoItsKeys() {
         let theme = KeyboardTheme.named(.classic, appearance: .dark, dark: false, style: .ios27)
-        #expect(theme.capitalLetters && theme.typeface == .classic && theme.spaceLabel == "space")
-        #expect(theme.functionKey.top != theme.letterKey.top && theme.functionKey.labelShadow != nil)
-        #expect(theme.litKey == theme.letterKey)
+        #expect(theme.letterKey.labelShadow?.y == 1 && theme.functionKey.labelShadow?.y == -1, "light under dark letters, dark over light ones")
+        #expect(theme.functionKey.top != theme.letterKey.top && theme.functionKey.rim != nil)
     }
 
-    @Test func shiftKeysSayWhetherShiftIsOn() {
-        let context = KeyFaceContext(device: .phone, layer: .letters, kind: .text, shift: .locked, returnKind: .default, returnEnabled: true)
-        #expect(KeyFace(Key(.shift), trailing: false, context: context).lit == .locked)
-        #expect(KeyFace(Key(.character("a")), trailing: false, context: context).lit == .off)
+    @Test func raycastsCornersFollowTheLetterKeysWidth() {
+        #expect(abs(KeyShape.raycast.cornerRadius(letterWidth: 69) - 13.75) < 0.2, "the open Duo held wide")
+        #expect(abs(KeyShape.raycast.cornerRadius(letterWidth: 55) - 11.75) < 0.2, "the open Duo on its side")
+        #expect(abs(KeyShape.raycast.cornerRadius(letterWidth: 28) - 7.8) < 0.2, "Raycast's app preview")
     }
 
     @Test func theNumberRowGrowsTheKeyboardUpwardAndLeavesTheLettersWhereTheyWere() {

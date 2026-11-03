@@ -23,10 +23,10 @@ From top to bottom: 3 of padding (iOS draws its backdrop 4 above the keyboard, s
 
 - Ten columns. Pitch = (keys block width − 2 × 6.5 + 6) / 10, so on the Duo's 466pt cover a letter key is 39.9 wide and its pitch is 45.9, the same as Apple's (Raycast's are 37.9 with 14pt side margins; Hex keeps Apple's wider keys).
 - Side inset 6.5, gap between keys 6, gap between rows 11 (9 and 7 in the compact layouts, below).
-- Corner radius 9 on every key and every size (Apple 8, Raycast ~8.5).
+- Corners are Raycast's on every theme (Themes, below).
 - Row 2 is centered (a half pitch in on each side). Row 3: shift and delete are 1.3 pitch − 6 wide at the edges; z to m are centered between them.
 - Bottom row: `123` is 0.93 pitch − 6 wide, as on every Raycast theme (measured on the Duo, open upright and on its side), return is 2.5 pitch − 6 (2 on its side), space takes the rest. An iPhone's row has no globe, so `123 · emoji · space · return`: Bassim kept hitting it by accident. Where iOS wants a way to the next keyboard (`needsInputModeSwitchKey`, and always on the Duo, which has no system globe bar), the bar's More menu offers Next Keyboard above Hex Settings, as does holding `123` where it offers layouts; App Review asks only for "a method for progressing to the next keyboard" (4.4.1). Face ID iPhones also have iOS's globe in the bar under the keyboard. iPad keeps its globe key.
-- The emoji key sits where Apple's does, after `123`, 1.25 pitch − 6 wide (1 on its side), wider than Raycast's because it's the one Bassim taps most; return gives up half a pitch to make room, and space takes the rest. Settings › Keys › Emoji Key takes it away, leaving the bar's emoji for the word as the way to emoji; on iPad, which has no room for it in the bottom row, the emoji tool sits in the bar instead.
+- The emoji key sits where Apple's does, after `123`, 1.25 pitch − 6 wide (1 on its side), wider than Raycast's because it's the one Bassim taps most. Beside it return is Raycast's 1.4 pitch − 6 (measured on the open Duo, upright and on its side), and space takes the rest. Settings › Keys › Emoji Key takes it away, leaving the bar's emoji for the word as the way to emoji; on iPad, which has no room for it in the bottom row, the emoji tool sits in the bar instead.
 - Space is blank (no "hex" label).
 - Return shows the `return.left` glyph. For go, search, send, join, route, done and next it turns into the prominent key: accent fill, white label (`go`, `search`, `send`, …), semibold 17.
 - All keys share one fill; letter and function keys look the same, as in Raycast and in iOS 27.
@@ -88,23 +88,26 @@ Behavior is what `MicButton` does today; only its look changes.
 | Record (stop, recording) | `#FF453A` | `#FF3B30` |
 | Search field | `#333335` | `#FFFFFF` |
 
-The key, pressed and label colors are the iOS 27 theme (`KeyboardTheme`), which is the Default theme; the mic is new.
+The key, pressed and label colors are the iOS 27 theme (`KeyboardTheme`), which the light Default theme keeps; the mic is new.
 
 ### Themes
 
-Raycast's five, picked in the app (Keyboard › Theme) or Settings › Apps › Hex › Theme (`ThemeName`, `KeyboardTheme.named`). A theme paints the keys (`KeyPaint`: a face shading top to bottom, a pressed face, the label, and for raised keys the keycap's sides and the shadow below); the bar, panels and mic stay on iOS's card and follow the app's light or dark. Callouts and accents take the letter keys' face.
+Raycast's five, picked in the app (Keyboard › Theme) or Settings › Apps › Hex › Theme (`ThemeName`, `KeyboardTheme.named`), each read pixel by pixel off Raycast's keyboard and its app's preview on the iPhone Duo (full-resolution screenshots, Nov 2 2026). A theme paints the keys (`KeyPaint`: a face shading top to bottom, a pressed face, the label and its letterpress, a lit rim, a keycap's sides and glow, the shadow below); the bar, panels and mic stay on iOS's card and follow the app's light or dark. Callouts and accents take the letter keys' face.
+
+Every theme has Raycast's keys (`KeyShape`): continuous corners, 3.9 + 0.143 × a letter key's width (13.75 on the open Duo held wide, 11.75 on its side, 7.8 in Raycast's preview), and letters in SF Pro, rounder than Apple's SF Compact, 1.07 times Apple's size, with `123` at 0.67 of Apple's and symbols at 0.86. Labels are lowercase, as Raycast's are, and sit where they do on the plain keys whatever the theme.
 
 | Theme | Letter keys | Function keys | Notes |
 |---|---|---|---|
-| Default | the Colors above | the same | |
+| Default, dark | `#2F2F2F`, flat, white label | the same | |
+| Default, light | the Colors above | the same | Raycast's light Default wasn't captured |
 | Clear | no fill; label in the label color; pressed: the label color at 16% | the same | glyphs only |
-| Physical, dark | `#0A0A0B`, pressed `#3A3A3C`, white label | the same | flat |
-| Physical, light | `#FFFFFF`, pressed `#C4C6CC`, black label, shadow 0 1 0 black 20% | the same | flat |
-| Mechanical, dark | face `#28282A`→`#232325` inside sides `#4E4E52`→`#0E0E0F`; shadow 0 2 2 black 70% | the same | the face sits 7% of the key's height below its top, 10% in from its sides and 19% above its bottom, and the label rises with it |
-| Mechanical, light | face `#FCFCFC`→`#F2F2F3` inside sides `#E2E2E5`→`#B0B0B5`; shadow 0 1.5 1.5 black 40%; label `#1C1C1E` | the same | |
-| iOS 5 | `#FCFCFD`→`#D4D6DB`, pressed `#C4C7CD`→`#ACB0B8`, black Helvetica Bold capitals, a hard 1pt `#24262C` edge below | `#A5ABB6`→`#737A88`, white labels pressed in (a 45% black line above them) | prominent return and caps lock `#609CF5`→`#2462D8`; shift lights up white while on; space says "space"; corners 62% of Default's; the picked accent is the prominent blue |
+| Physical, dark | `#0B0B0B`→`#050505`, white label; a ⅓ pt rim, white 15% at the top, gone a quarter of the way down | the same | |
+| Physical, light | `#F8F8F8`, label `#2C2C2C`; a ⅓ pt rim, white 60%, gone a tenth of the way down | the same | |
+| Mechanical, dark | face `#171717`→`#202020` inside sides `#171717`→`#0E0E0E` (80%)→`#0D0D0D`, lit by a glow of white 10.8% from the middle of the top edge, 0.93 of the key's height across | the same | the face sits 10.5% of the key's height below its top, 9.7% in from its sides and 15% above its bottom, with corners 37% of the key's |
+| Mechanical, light | face `#FAFAFA`→`#E5E5E5` inside sides `#E0E0E0`→`#DBDBDB`, glow white 23%; label `#2A2A29` | the same | |
+| iOS 5 | `#F4F4F4`→`#C6C7CB`, black label over a white line 1 pt below it | `#9DA3AB`→`#70757D`, white label under a black 55% line 1 pt above it; a ⅔ pt rim, white 14%, gone a fifth of the way down | every key casts black 30%, 1 pt down, 1.5 blurred; a prominent return stays blue (`#609CF5`→`#2462D8`), which Raycast's screenshots don't show |
 
-Physical and Mechanical come Automatic (following the app), Dark or Light. iOS 5's blue-gray backdrop stays out: a keyboard's view sits inside iOS's card, short of its sides and bottom, so a backdrop shows as a box within the card.
+Physical and Mechanical come Automatic (following the app), Dark or Light.
 
 ### Options from Raycast
 

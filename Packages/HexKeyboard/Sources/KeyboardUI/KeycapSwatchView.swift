@@ -25,7 +25,9 @@ public final class KeycapSwatchView: UIView {
         for (index, key) in keys.enumerated() {
             let darkKey = split ? index == 1 : dark
             key.theme = KeyboardTheme.named(theme, appearance: split ? (darkKey ? .dark : .light) : appearance, dark: darkKey, style: .current)
-            key.configure(KeyFace(content: .letter(index == 0 ? "A" : "B")), metrics: Self.metrics)
+            var metrics = Self.metrics
+            if let shape = key.theme.keyShape { metrics.cornerRadius = shape.cornerRadius(letterWidth: Self.key.width) }
+            key.configure(KeyFace(content: .letter(index == 0 ? "A" : "B")), metrics: metrics)
         }
         setNeedsLayout()
     }

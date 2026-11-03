@@ -51,13 +51,9 @@ public struct KeyboardTheme: Hashable, Sendable {
     public var letterKey = KeyPaint.flat(.white, pressed: .white, label: .black)
     public var functionKey = KeyPaint.flat(.white, pressed: .white, label: .black)
     public var prominentKey = KeyPaint.flat(.white, pressed: .white, label: .black)
-    /// Shift while it's on, where the theme lights it (iOS 5).
-    public var litKey: KeyPaint?
-    public var cornerScale = 1.0
-    public var typeface = Typeface.standard
-    /// iOS 5's keys always showed capitals, whatever shift said.
-    public var capitalLetters = false
-    public var spaceLabel: String?
+    /// Raycast's corners and letters, where the theme has them; otherwise the device's `cornerRadius`, circular, and
+    /// Apple's letters.
+    public var keyShape: KeyShape?
 
     public static func light(_ style: KeyboardStyle) -> KeyboardTheme {
         let ios27 = style == .ios27

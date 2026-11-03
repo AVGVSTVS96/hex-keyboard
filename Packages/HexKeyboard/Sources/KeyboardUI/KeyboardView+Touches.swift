@@ -160,7 +160,7 @@ extension KeyboardView {
     private func show(_ tracked: TrackedTouch) {
         guard showsCallouts, tracked.mode != .alternates, let view = tracked.keyView,
               let text = text(for: view.key, flicked: tracked.flicked) else { return callout.hide() }
-        callout.show(displayed(text), over: view.frame, in: drawableBounds, metrics: metrics, theme: theme, detached: characterPreview == .detached)
+        callout.show(displayed(text), over: view.frame, in: drawableBounds, metrics: keyMetrics, theme: theme, detached: characterPreview == .detached)
     }
 
     private func text(for key: Key, flicked: Bool) -> String? {
@@ -198,7 +198,7 @@ extension KeyboardView {
                     self.callout.hide()
                     let shown = view.key.alternates.map(self.displayed)
                     let base = self.displayed(self.text(for: view.key, flicked: false) ?? "")
-                    self.alternates.show(shown, selected: shown.firstIndex(of: base) ?? 0, over: view.frame, in: self.drawableBounds, metrics: self.metrics, theme: self.theme)
+                    self.alternates.show(shown, selected: shown.firstIndex(of: base) ?? 0, over: view.frame, in: self.drawableBounds, metrics: self.keyMetrics, theme: self.theme)
                 }
             }
         }
@@ -211,7 +211,7 @@ extension KeyboardView {
                 tracked.mode = .menu
                 self.callout.hide()
                 let items = self.menu.items
-                self.alternates.show(symbols: items.map(\.symbol), selected: self.menu.current.flatMap(items.firstIndex) ?? 0, over: frame, in: self.drawableBounds, metrics: self.metrics, theme: self.theme)
+                self.alternates.show(symbols: items.map(\.symbol), selected: self.menu.current.flatMap(items.firstIndex) ?? 0, over: frame, in: self.drawableBounds, metrics: self.keyMetrics, theme: self.theme)
             }
         }
     }

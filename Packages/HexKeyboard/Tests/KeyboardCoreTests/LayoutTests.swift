@@ -88,6 +88,7 @@ struct LayoutTests {
             let width = { (action: KeyAction) in keys.first { $0.action == action }?.width.span ?? 0 }
             #expect(width(.layer(.numbers)) == 0.93)
             #expect(width(.emoji) == (isLandscape ? 1 : 1.25), "the emoji key keeps its width")
+            #expect(width(.return) == 1.4, "return is Raycast's")
         }
     }
 

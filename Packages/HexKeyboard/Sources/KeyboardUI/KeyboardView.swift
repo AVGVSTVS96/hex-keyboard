@@ -109,10 +109,21 @@ final class KeyboardView: UIView {
     }
 
     private func refreshFaces() {
+        let metrics = keyMetrics
         for view in keyViews {
             view.theme = theme
             view.configure(KeyFace(view.key, trailing: view.center.x > bounds.midX, context: faceContext), metrics: metrics)
         }
+    }
+
+    /// The metrics keys and their callouts are drawn with: the theme's corners, sized from the narrowest key of the top
+    /// row, a letter or a digit.
+    var keyMetrics: KeyboardMetrics {
+        var metrics = metrics
+        if let shape = theme.keyShape, let width = grid.rows.first?.map(\.frame.width).min() {
+            metrics.cornerRadius = shape.cornerRadius(letterWidth: width)
+        }
+        return metrics
     }
 
     var drawableBounds: CGRect {

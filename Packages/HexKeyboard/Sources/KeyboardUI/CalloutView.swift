@@ -20,7 +20,7 @@ final class CalloutView: UIView {
 
     /// Attached grows the key up into the bubble, as Apple's does; detached floats the bubble above the key.
     func show(_ text: String, over key: CGRect, in area: CGRect, metrics: KeyboardMetrics, theme: KeyboardTheme, detached: Bool = false) {
-        let radius = metrics.cornerRadius * theme.cornerScale
+        let radius = metrics.cornerRadius
         var bubble = Self.bubbleRect(for: key, in: area)
         if detached {
             bubble = CGRect(x: key.midX - key.width * 0.7, y: key.minY - key.height * 1.12 - 6, width: key.width * 1.4, height: key.height * 1.12)
@@ -36,9 +36,7 @@ final class CalloutView: UIView {
         shape.shadowColor = theme.shadow.ui.cgColor
         label.text = text
         label.textColor = theme.bubbleLabel.ui
-        label.font = theme.typeface == .classic
-            ? UIFont(name: "Helvetica-Bold", size: metrics.letterSize * 1.45) ?? .boldSystemFont(ofSize: metrics.letterSize * 1.45)
-            : .systemFont(ofSize: metrics.letterSize * 1.55, weight: .regular)
+        label.font = .systemFont(ofSize: metrics.letterSize * 1.55, weight: .regular)
         label.frame = local(bubble).offsetBy(dx: 0, dy: -metrics.keyHeight * 0.06)
         isHidden = false
     }
