@@ -113,4 +113,6 @@ schemes:
       config: Release
     test:
       config: Debug
-      targets: [HexUITests]
+      targets:
+        - HexUITests
+        - package: HexKeyboard/KeyboardUITests

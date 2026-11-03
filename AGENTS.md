@@ -24,13 +24,15 @@ An iOS custom keyboard (UIKit, Swift 6, iOS 26+) that types like Apple's and loo
 
 ## Build and test
 
-Development happens on a Linux box. Simulator builds, tests and screenshots run on a Mac over ssh (`ssh mac`); the iPhone build is made on the Linux box and installed through the Mac with `scripts/phone` (see below). `scripts/mac <command>` syncs the tree to `~/Developer/hex-keyboard` on the Mac and runs the command there. Device builds take the team from `Config/Team.xcconfig` (`DEVELOPMENT_TEAM = …`, not committed), which syncing leaves in place. To prove a change works, follow the `verify` skill (`.claude/skills/verify`).
+Development happens on a Linux box. Simulator builds, tests and screenshots run on a Mac over ssh (`ssh mac`); the iPhone build is made on the Linux box and installed through the Mac with `scripts/phone` (see below). `scripts/mac <command>` syncs the tree to `~/Developer/hex-keyboard` on the Mac and runs the command there; runs from every checkout take turns, and `scripts/sim` shuts down the other Hex simulators before it hands one out. One agent runs the Mac's simulators: the others check KeyboardCore here with `scripts/coretest`, commit to main and put main on the phone with `scripts/phone`, and that one agent tests what landed together with `scripts/verify`. Device builds take the team from `Config/Team.xcconfig` (`DEVELOPMENT_TEAM = …`, not committed), which syncing leaves in place. To prove a change works, follow the `verify` skill (`.claude/skills/verify`).
 
 Prefer committing straight to main, merge parallel work like a zipper on new projects
 
 ```sh
 scripts/mac scripts/build                       # sync to the Mac, xcodegen, build for the simulator
-scripts/mac scripts/test                        # KeyboardCore unit tests on an iOS simulator
+scripts/coretest                                # KeyboardCore's tests here on Linux, no Mac (about 25 s)
+scripts/mac scripts/verify                      # a batch at once on one iPhone Duo simulator: package and UI tests, light and dark, shots in shots/raw/verify/
+scripts/mac scripts/test                        # KeyboardCore and KeyboardUI package tests on an iOS simulator
 scripts/mac scripts/uitest                      # type through the real extension (iPhone 17 by default)
 scripts/mac 'scripts/sim all v7'                # screenshots: system vs Hex, light and dark, 8 devices
 scripts/mac 'scripts/sim variants "iPhone 17" v7'  # return key types, keyboard types, landscape

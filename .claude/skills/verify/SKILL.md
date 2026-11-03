@@ -17,11 +17,11 @@ Everything builds and runs on the Mac (`ssh mac`). From this checkout, `scripts/
 
 ## Drive
 
-Pick by what changed, and run every row that applies.
+A batch of changes from several agents goes through `scripts/mac scripts/verify` at once: one build, KeyboardUI's package tests and every UI test on one iPhone Duo simulator (light, then the screenshot tests in dark), with screenshots in `shots/raw/verify/`. It passes when no `✘`, `error:` or `failed` line prints. For one change, pick by what changed, and run every row that applies.
 
 | Change touches | Run | Passes when |
 | --- | --- | --- |
-| anything in `KeyboardCore` | `scripts/mac scripts/test` | both `Test run with N tests … passed` lines print. `TextStateStressTests` (3,000 seeded runs against a host that reports late and cut off) is one of them. |
+| anything in `KeyboardCore` | `scripts/coretest`, here on Linux | `Test run with N tests … passed` prints. `TextStateStressTests` (3,000 seeded runs against a host that reports late and cut off) is one of them. |
 | the decoder, models, key map, autocorrect or what a touch types | `scripts/mac scripts/eval` | it ends with `EVAL matches eval.expected`. A change that moves the numbers must beat them and updates `scripts/eval.expected` in the same commit. |
 | anything a user touches | `scripts/mac scripts/uitest`, and `scripts/mac "scripts/uitest 'iPad Pro 11' iPad-Pro-11-inch-M5-12GB"` for iPad | every `Test Case … passed`, none failed. |
 | how keys look | `scripts/mac 'scripts/sim all <tag>'`, then `uv run --with pillow --with numpy --with scipy scripts/shotdiff.py <tag>` | key rects match Apple's within half a point, light and dark. |
