@@ -159,8 +159,9 @@ public enum Duo {
         public var keyboardWidth: Double {
             switch self {
             case .foldedPortrait: 452
+            case .foldedLandscape: 528
+            case .openPortrait: size.width
             case .openLandscape: 801
-            case .foldedLandscape, .openPortrait: size.width
             }
         }
 

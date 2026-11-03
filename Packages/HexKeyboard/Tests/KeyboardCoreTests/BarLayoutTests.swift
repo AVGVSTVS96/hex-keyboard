@@ -14,7 +14,7 @@ struct BarLayoutTests {
 
     private static let screens: [Screen] = [
         Screen(name: "Duo folded, portrait", device: .phone, width: 466, height: 678, window: 452),
-        Screen(name: "Duo folded, landscape", device: .phone, width: 678, height: 466, window: 678),
+        Screen(name: "Duo folded, landscape", device: .phone, width: 678, height: 466, window: 528),
         Screen(name: "Duo open, portrait", device: .phone, width: 669, height: 951, window: 669),
         Screen(name: "Duo open, landscape", device: .phone, width: 951, height: 669, window: 801),
         Screen(name: "iPhone 17", device: .phone, width: 402, height: 874, window: 402),
