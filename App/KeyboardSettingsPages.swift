@@ -207,7 +207,7 @@ struct TypingSettings: View {
             ToggleRow(title: "“.” Shortcut", detail: "Double-tap space for a period and a space.", isOn: model.binding(\.periodShortcut))
         }
         Box(header: "Text Replacements") {
-            Button { HexStatus.openSettings() } label: {
+            Button { HexStatus.openTextReplacements() } label: {
                 HStack {
                     RowText(title: "From iOS Settings", detail: "Hex types the ones in Settings › General › Keyboard › Text Replacement.")
                     Image(systemName: "arrow.up.forward")
