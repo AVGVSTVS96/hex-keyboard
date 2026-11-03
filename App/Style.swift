@@ -129,14 +129,6 @@ struct Glyph: View {
     static func openSettings() {
         UIApplication.shared.open(URL(string: UIApplication.openSettingsURLString)!)
     }
-
-    /// Settings › General › Keyboard › Text Replacement, by Settings' own link for it, or iikb's page in Settings when
-    /// iOS won't open that.
-    static func openTextReplacements() {
-        UIApplication.shared.open(URL(string: "App-prefs:General&path=Keyboard/USER_DICTIONARY")!) { opened in
-            if !opened { openSettings() }
-        }
-    }
 }
 
 /// The app icon's mark, drawn: iikb flush left on the bottom margin of a black square, as brand/logo/gen.mjs draws it.
