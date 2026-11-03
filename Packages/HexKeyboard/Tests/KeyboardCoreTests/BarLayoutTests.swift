@@ -71,15 +71,15 @@ struct BarLayoutTests {
     @Test func nothingOverlaps() {
         for screen in Self.screens {
             for (_, layout, label) in layouts(screen) {
-                var edge = layout.tools.first?.x ?? layout.more?.x ?? layout.minX
+                var edge = layout.more?.x ?? layout.tools.first?.x ?? layout.minX
                 #expect(edge >= 0, "\(label)")
-                for tool in layout.tools {
-                    #expect(tool.x >= edge, "\(label)")
-                    edge = tool.x + tool.width + BarLayout.gap
-                }
                 if let more = layout.more {
-                    #expect(near(more.x, edge) && near(more.width, layout.mic.width / 2) && more.y == layout.mic.y, "\(label): More is half a tool, after the tools")
+                    #expect(near(more.width, layout.mic.width / 2) && more.y == layout.mic.y, "\(label): More is half a tool, first at the left")
                     edge = more.x + more.width + BarLayout.gap
+                }
+                for tool in layout.tools {
+                    #expect(near(tool.x, edge) || tool.x >= edge, "\(label)")
+                    edge = tool.x + tool.width + BarLayout.gap
                 }
                 #expect(layout.minX >= edge - 0.001, "\(label)")
                 for slot in layout.slots {

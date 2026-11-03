@@ -1,6 +1,6 @@
 /// Where the bar's parts go, on every screen from the same rule: the mic is as far from the keyboard's side as it is
 /// from the keys below it, or in line with the keys where they sit further in, so it never crowds the keyboard's
-/// corner. The tools mirror it at the left, round cells the mic's size, with the More button after them, half as wide. Between them, the three suggestions take
+/// corner. The tools mirror it at the left, round cells the mic's size, after the More button, half as wide, at the far left. Between them, the three suggestions take
 /// what they need and, on a bar wide enough, the word's emoji get the rest beside them rather than the third one's place.
 public struct BarLayout: Hashable, Sendable {
     public var mic: Rect
@@ -32,10 +32,10 @@ public struct BarLayout: Hashable, Sendable {
         let left = max(block.minX, reach - screenInset)
         let right = min(block.maxX, width + screenInset - reach)
         mic = Rect(x: right - side, y: y, width: side, height: side)
-        self.tools = (0..<tools).map { Rect(x: left + Double($0) * (side + Self.gap), y: y, width: side, height: side) }
-        let afterTools = self.tools.last.map { $0.x + $0.width + Self.gap } ?? left
-        self.more = more ? Rect(x: afterTools, y: y, width: side / 2, height: side) : nil
-        minX = self.more.map { $0.x + $0.width + Self.gap } ?? afterTools
+        self.more = more ? Rect(x: left, y: y, width: side / 2, height: side) : nil
+        let start = self.more.map { $0.x + $0.width + Self.gap } ?? left
+        self.tools = (0..<tools).map { Rect(x: start + Double($0) * (side + Self.gap), y: y, width: side, height: side) }
+        minX = self.tools.last.map { $0.x + $0.width + Self.gap } ?? start
         maxX = mic.x - Self.gap
         let span = maxX - minX
         let room = span - 3 * Self.slotWidth

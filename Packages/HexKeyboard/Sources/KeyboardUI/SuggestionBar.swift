@@ -121,7 +121,7 @@ final class SuggestionBar: UIView {
         tools.forEach { $0.theme = theme }
     }
 
-    /// The More button after the tools, its dots upright.
+    /// The More button at the far left, before the tools, its dots upright.
     func update(more menu: UIMenu?) {
         more.menu = menu
         if more.isHidden != (menu == nil) {
