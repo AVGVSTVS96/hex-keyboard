@@ -58,16 +58,18 @@ final class HomeViewController: UIHostingController<AnyView> {
 /// What the home screen reads that isn't the keyboard's status, read again whenever Hex comes forward.
 @Observable final class HomeState {
     var taps = 0
+    var copied = 0
     var typed = false
 
     func refresh() {
         HexStatus.shared.refresh()
         taps = MemoryStore.sharedTouches()?.signatures.reduce(0) { $0 + $1.taps } ?? 0
+        copied = ClipboardStore().history.items.count
     }
 }
 
-/// Wide, the field and what Hex has gathered take the half before the hinge and the settings' cards the half after
-/// it, so the field stays above the keys while you try them; on the cover, one column.
+/// Wide, the field and what Hex has gathered take the first half and the settings' cards the second, so the field
+/// stays above the keys while you try them; elsewhere, one column.
 struct HomeView: View {
     let state: HomeState
     let field: UITextView
@@ -143,10 +145,15 @@ struct HomeView: View {
 
     private static let columns = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
 
+    /// What Hex has gathered, one tile per tab that keeps it.
     private var stats: some View {
-        LazyVGrid(columns: Self.columns, spacing: 12) {
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 3), spacing: 12) {
             Button { Router.shared.show(.transcripts) } label: { VoiceTile() }
                 .buttonStyle(CardPress())
+            Button { Router.shared.show(.clipboard) } label: {
+                Tile(symbol: "list.clipboard.fill", color: .orange, title: state.copied == 1 ? "item copied" : "items copied", value: state.copied.formatted())
+            }
+            .buttonStyle(CardPress())
             Button { Router.shared.show(.taps) } label: {
                 Tile(symbol: "hand.tap.fill", color: .blue, title: state.taps == 1 ? "tap learned" : "taps learned", value: state.taps.formatted())
             }
