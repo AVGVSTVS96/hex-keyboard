@@ -597,6 +597,13 @@ extension CGFloat {
     func rounded(scale: CGFloat) -> CGFloat { (self * scale).rounded() / scale }
 }
 
+extension CGRect {
+    func rounded(scale: CGFloat) -> CGRect {
+        let left = minX.rounded(scale: scale), top = minY.rounded(scale: scale)
+        return CGRect(x: left, y: top, width: maxX.rounded(scale: scale) - left, height: maxY.rounded(scale: scale) - top)
+    }
+}
+
 /// The More button, its dots upright: turned a quarter, so its bounds' top faces the tools and its bottom the screen's
 /// edge. Its cell is half the mic's width; taps in the gap before the tools and toward the edge still reach it.
 private final class MoreButton: UIButton {

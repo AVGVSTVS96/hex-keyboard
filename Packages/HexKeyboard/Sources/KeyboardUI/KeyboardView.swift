@@ -94,9 +94,10 @@ final class KeyboardView: UIView {
 
     private func placeKeys() {
         var globes = globeControls.makeIterator()
+        let scale = traitCollection.displayScale
         for (views, keys) in zip(rowKeys, grid.rows) {
             for (view, key) in zip(views, keys) {
-                view.frame = CGRect(key.frame)
+                view.frame = CGRect(key.frame).rounded(scale: scale)
                 view.layoutIfNeeded()
                 if view.key.action == .nextKeyboard { globes.next()?.frame = view.frame }
             }

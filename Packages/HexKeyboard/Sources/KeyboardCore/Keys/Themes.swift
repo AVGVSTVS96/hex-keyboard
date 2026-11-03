@@ -110,7 +110,8 @@ public struct Keycap: Hashable, Sendable {
     public static let faceTop = 0.093, faceSide = 0.097, faceBottom = 0.15, glowReach = 0.93, faceCorner = 0.65
 }
 
-/// A shadow below a key, `y` down and `blur` wide.
+/// A shadow below a key, `y` down and `blur` wide, cast from the key set in `blur` at its sides, so it shows below the
+/// key and not beside it, as Raycast's does.
 public struct Drop: Hashable, Sendable {
     public var color: RGBA
     public var y, blur: Double
@@ -190,11 +191,11 @@ extension KeyboardTheme {
         let lit = { (alpha: Double) in Rim(RGBA(white: 1, alpha: alpha), width: 0.85, fade: 0.2) }
         let pressedIn = LabelShadow(RGBA(white: 0, alpha: 0.55), y: -1)
         letterKey = KeyPaint(
-            top: .rgb(244, 244, 244), bottom: .rgb(196, 197, 201), pressedTop: .rgb(196, 199, 205), pressedBottom: .rgb(172, 176, 184),
+            top: .rgb(245, 245, 245), bottom: .rgb(195, 197, 201), pressedTop: .rgb(196, 199, 205), pressedBottom: .rgb(172, 176, 184),
             label: .black, labelShadow: LabelShadow(.white, y: 1), rim: lit(0.3), drop: drop
         )
         functionKey = KeyPaint(
-            top: .rgb(160, 166, 174), bottom: .rgb(113, 118, 126), pressedTop: .rgb(128, 134, 143), pressedBottom: .rgb(90, 95, 104),
+            top: .rgb(158, 166, 175), bottom: .rgb(109, 115, 124), pressedTop: .rgb(128, 134, 143), pressedBottom: .rgb(90, 95, 104),
             label: .white, labelShadow: pressedIn, rim: lit(0.18), drop: drop
         )
         prominentKey = KeyPaint(

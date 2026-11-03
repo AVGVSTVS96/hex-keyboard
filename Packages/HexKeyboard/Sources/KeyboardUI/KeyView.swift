@@ -117,6 +117,7 @@ final class KeyView: UIView {
     override func layoutSubviews() {
         super.layoutSubviews()
         guard let metrics else { return }
+        defer { placeContentOnPixels() }
         layoutPaint(radius: metrics.cornerRadius)
         label.sizeToFit()
         icon.sizeToFit()
@@ -157,6 +158,14 @@ final class KeyView: UIView {
         label.frame.origin = CGPoint(x: bounds.midX - label.bounds.width / 2, y: baseline - font.ascender)
     }
 
+    /// Centered, a label or icon usually starts between two pixels, and the screen smears its edges across both.
+    private func placeContentOnPixels() {
+        let scale = traitCollection.displayScale
+        for view in [label, secondaryLabel, cornerLabel, icon] {
+            view.frame.origin = CGPoint(x: view.frame.minX.rounded(scale: scale), y: view.frame.minY.rounded(scale: scale))
+        }
+    }
+
     private func layoutPaint(radius: CGFloat) {
         let curve: CALayerCornerCurve = theme.keyShape == nil ? .circular : .continuous
         let paint = paint
@@ -179,7 +188,9 @@ final class KeyView: UIView {
             rimShape.lineWidth = line.width
             rimShape.path = Self.outline(bounds.insetBy(dx: line.width / 2, dy: line.width / 2), radius: radius - line.width / 2, curve: curve)
         }
-        layer.shadowPath = paint.drop == nil ? nil : Self.outline(bounds, radius: radius, curve: curve)
+        layer.shadowPath = paint.drop.map { drop in
+            Self.outline(bounds.insetBy(dx: drop.blur, dy: 0), radius: max(0, radius - drop.blur), curve: curve)
+        }
     }
 
     /// The key's outline: continuous corners as `cornerCurve` draws them, or circular ones.
