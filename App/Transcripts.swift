@@ -19,26 +19,60 @@ struct Transcript: Codable, Identifiable, Hashable {
 }
 
 /// Every dictation the app transcribed, newest first, in one JSON line each in the app's own container, and the sound of
-/// each as a `Recording` beside it, up to 512 MB (about 4½ hours of talking), past which the oldest lose their sound.
-/// Nothing leaves the iPhone: the keyboard never reads it, and the app's only download is the voice model.
+/// each as a `Recording` beside it, written as it's heard, up to 512 MB (about 4½ hours of talking), past which the oldest
+/// lose their sound. A recording with no transcript, left by an app that ended mid-dictation, is written down the next
+/// time the app opens. Nothing leaves the iPhone: the keyboard never reads it, and the app's only download is the voice
+/// model.
 @Observable final class Transcripts {
     static let shared = Transcripts()
 
     private(set) var all: [Transcript] = []
     @ObservationIgnored private let url = URL.applicationSupportDirectory.appending(path: "transcripts.jsonl")
     @ObservationIgnored private let recordings = URL.applicationSupportDirectory.appending(path: "recordings")
+    @ObservationIgnored private var unwritten: [URL] = []
 
     private init() {
-        guard let data = try? Data(contentsOf: url) else { return }
-        let decoder = JSONDecoder()
-        all = data.split(separator: UInt8(ascii: "\n")).compactMap { try? decoder.decode(Transcript.self, from: $0) }.reversed()
+        if let data = try? Data(contentsOf: url) {
+            let decoder = JSONDecoder()
+            all = data.split(separator: UInt8(ascii: "\n")).compactMap { try? decoder.decode(Transcript.self, from: $0) }.sorted { $0.date > $1.date }
+        }
+        let ids = Set(all.map(\.id))
+        unwritten = ((try? FileManager.default.contentsOfDirectory(at: recordings, includingPropertiesForKeys: nil)) ?? []).filter { file in
+            UUID(uuidString: file.deletingPathExtension().lastPathComponent).map { !ids.contains($0) } ?? false
+        }
     }
 
-    func add(_ text: String, heard: String, at date: Date, seconds: Double, typed: Bool, model: String, mic: String?, recording: [Float]) {
-        guard !text.isEmpty else { return }
-        let transcript = Transcript(date: date, text: text, seconds: seconds, typed: typed, model: model, mic: mic, heard: heard == text ? nil : heard)
-        all.insert(transcript, at: 0)
-        keep(recording, of: transcript.id)
+    /// Writes down the recordings an ended app left without a transcript, kept as not typed. One that can't be written
+    /// now waits for the next launch.
+    func recover() async {
+        for file in unwritten {
+            guard let id = UUID(uuidString: file.deletingPathExtension().lastPathComponent), let samples = try? Recording.read(file) else { continue }
+            guard !samples.isEmpty else {
+                try? FileManager.default.removeItem(at: file)
+                continue
+            }
+            let date = (try? file.resourceValues(forKeys: [.creationDateKey]).creationDate) ?? .now
+            do {
+                let again = try await VoiceModel.shared.again(samples)
+                try? Recording.write(samples, to: file)
+                add(again.text, heard: again.heard, id: id, at: date, seconds: Double(samples.count) / 16_000, typed: false, model: again.model, mic: nil)
+            } catch {
+                HostApp.log.error("couldn't write down \(file.lastPathComponent, privacy: .public): \(error.localizedDescription, privacy: .public)")
+            }
+        }
+        unwritten = []
+    }
+
+    /// Keeps a dictation whose `Recording` was written to `recording(of: id)` as it was heard, or, when nothing was
+    /// said, drops its sound.
+    func add(_ text: String, heard: String, id: Transcript.ID, at date: Date, seconds: Double, typed: Bool, model: String, mic: String?) {
+        guard !text.isEmpty else {
+            try? FileManager.default.removeItem(at: recording(of: id))
+            return
+        }
+        let transcript = Transcript(id: id, date: date, text: text, seconds: seconds, typed: typed, model: model, mic: mic, heard: heard == text ? nil : heard)
+        all.insert(transcript, at: all.firstIndex { $0.date < date } ?? all.endIndex)
+        trim()
         guard let line = try? JSONEncoder().encode(transcript) else { return }
         do {
             let file = try FileHandle(forWritingTo: url)
@@ -73,13 +107,10 @@ struct Transcript: Codable, Identifiable, Hashable {
         FileManager.default.fileExists(atPath: recording(of: id).path)
     }
 
-    private func keep(_ recording: [Float], of id: Transcript.ID) {
-        guard !recording.isEmpty else { return }
-        let (folder, url) = (recordings, self.recording(of: id))
+    private func trim() {
+        let folder = recordings
         Task.detached(priority: .utility) {
             let files = FileManager.default
-            try? files.createDirectory(at: folder, withIntermediateDirectories: true)
-            try? Recording.write(recording, to: url)
             let keys: [URLResourceKey] = [.fileSizeKey, .creationDateKey]
             let kept = ((try? files.contentsOfDirectory(at: folder, includingPropertiesForKeys: keys)) ?? []).compactMap { url in
                 (try? url.resourceValues(forKeys: Set(keys))).map { (url, $0.fileSize ?? 0, $0.creationDate ?? .distantPast) }

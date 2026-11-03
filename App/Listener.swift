@@ -17,6 +17,7 @@ import UIKit
     private var transcription: (any Transcription)?
     private var tokens: [Int32] = []
     private var started = Date.now
+    private var id = UUID()
     private var listened: Double = 0
     private var recording: [Float] = []
     private var mic: String?
@@ -51,6 +52,7 @@ import UIKit
         guard state == .idle else { return }
         micOff?.cancel()
         started = .now
+        id = UUID()
         set(.listening)
         do {
             guard await AVAudioApplication.requestRecordPermission() else { throw Failure.microphone }
@@ -61,7 +63,7 @@ import UIKit
             switch state {
             case .listening:
                 let natural = engine.inputNode.outputFormat(forBus: 0)
-                guard feed.start(from: natural, into: transcription) else {
+                guard feed.start(from: natural, into: transcription, file: Transcripts.shared.recording(of: id)) else {
                     HostApp.log.error("no converter from the mic's \(natural, privacy: .public) to \(transcription.format?.description ?? "", privacy: .public)")
                     throw Failure.language
                 }
@@ -94,7 +96,7 @@ import UIKit
     /// Types what was heard, unless you cancelled or started another dictation meanwhile. The microphone stays on until
     /// then, since its lock is how the keyboard knows the app is still writing.
     private func deliver(_ transcription: any Transcription) async {
-        let (recording, mic) = (recording, mic)
+        let (recording, mic, id) = (recording, mic, id)
         let background = UIApplication.shared.beginBackgroundTask()
         defer {
             keepMicOn()
@@ -114,7 +116,7 @@ import UIKit
         self.transcription = nil
         let text = DictationStyle.typed(heard)
         set(.idle, heard: text)
-        Transcripts.shared.add(text, heard: heard, at: started, seconds: listened, typed: true, model: writer.model, mic: mic, recording: recording)
+        Transcripts.shared.add(text, heard: heard, id: id, at: started, seconds: listened, typed: true, model: writer.model, mic: mic)
         HostApp.log.notice("\(writer.model, privacy: .public) wrote \(self.listened, format: .fixed(precision: 1))s down in \(Date.now.timeIntervalSince(self.started) - self.listened, format: .fixed(precision: 2))s")
     }
 
@@ -128,7 +130,7 @@ import UIKit
     func cancel() async {
         guard state != .idle else { return }
         let recording = feed.stop()
-        let (transcription, started, wasListening) = (transcription, started, state == .listening)
+        let (transcription, started, id, wasListening) = (transcription, started, id, state == .listening)
         self.transcription = nil
         set(.idle)
         keepMicOn()
@@ -138,7 +140,7 @@ import UIKit
         defer { UIApplication.shared.endBackgroundTask(background) }
         guard let heard = try? await transcription.text(of: recording) else { return }
         let text = DictationStyle.typed(heard)
-        Transcripts.shared.add(text, heard: heard, at: started, seconds: Date.now.timeIntervalSince(started), typed: false, model: transcription.model, mic: mic, recording: recording)
+        Transcripts.shared.add(text, heard: heard, id: id, at: started, seconds: Date.now.timeIntervalSince(started), typed: false, model: transcription.model, mic: mic)
     }
 
     private func cancel(_ transcription: any Transcription) async {
@@ -233,19 +235,20 @@ import UIKit
     }
 }
 
-/// Where the microphone's buffers go while you dictate: into the `Recording`, and converted to what the dictation's
-/// model hears as you talk, if it does; nowhere while the microphone is only being kept on. The audio thread reads it
-/// and the main thread swaps it, under a lock.
+/// Where the microphone's buffers go while you dictate: into the `Recording`, kept in memory and written to its file as
+/// it comes, and converted to what the dictation's model hears as you talk, if it does; nowhere while the microphone is
+/// only being kept on. The audio thread reads it and the main thread swaps it, under a lock.
 nonisolated private final class Feed: @unchecked Sendable {
     private let lock = NSLock()
     private var recorder: AVAudioConverter?
     private var converter: AVAudioConverter?
     private var transcription: (any Transcription)?
     private var recording: [Float] = []
+    private var file: Recording.File?
     private var end: UInt64?
     private var ended: CheckedContinuation<[Float], Never>?
 
-    func start(from natural: AVAudioFormat, into transcription: any Transcription) -> Bool {
+    func start(from natural: AVAudioFormat, into transcription: any Transcription, file url: URL) -> Bool {
         guard let recorder = AVAudioConverter(from: natural, to: Recording.format) else { return false }
         let converter = transcription.format.flatMap { AVAudioConverter(from: natural, to: $0) }
         guard converter != nil || transcription.format == nil else { return false }
@@ -254,6 +257,7 @@ nonisolated private final class Feed: @unchecked Sendable {
             self.converter = converter
             self.transcription = transcription
             recording = []
+            file = Recording.File(url)
         }
         return true
     }
@@ -285,7 +289,9 @@ nonisolated private final class Feed: @unchecked Sendable {
         let (took, done) = lock.withLock { () -> (Bool, ([Float], CheckedContinuation<[Float], Never>?)?) in
             guard let recorder, let transcription else { return (false, nil) }
             if let converted = Self.convert(buffer, with: recorder), let channel = converted.floatChannelData?[0] {
-                recording.append(contentsOf: UnsafeBufferPointer(start: channel, count: Int(converted.frameLength)))
+                let samples = UnsafeBufferPointer(start: channel, count: Int(converted.frameLength))
+                recording.append(contentsOf: samples)
+                file?.append(samples)
             }
             if let converter, let converted = Self.convert(buffer, with: converter) { transcription.hear(converted) }
             let length = AVAudioTime.hostTime(forSeconds: Double(buffer.frameLength) / buffer.format.sampleRate)
@@ -297,7 +303,9 @@ nonisolated private final class Feed: @unchecked Sendable {
     }
 
     private func take() -> ([Float], CheckedContinuation<[Float], Never>?) {
+        file?.close()
         defer {
+            file = nil
             recorder = nil
             converter = nil
             transcription = nil

@@ -25,11 +25,14 @@ nonisolated enum Recording {
     }
 
     static func write(_ samples: [Float], to url: URL) throws {
-        var data = Data(capacity: 44 + samples.count * 2)
+        try (header(bytes: samples.count * 2) + pcm(samples)).write(to: url, options: .atomic)
+    }
+
+    private static func header(bytes: Int) -> Data {
+        var data = Data(capacity: 44)
         func append<T: FixedWidthInteger>(_ value: T) { withUnsafeBytes(of: value.littleEndian) { data.append(contentsOf: $0) } }
-        let bytes = UInt32(samples.count * 2)
         data.append(contentsOf: Array("RIFF".utf8))
-        append(36 + bytes)
+        append(UInt32(36 + bytes))
         data.append(contentsOf: Array("WAVEfmt ".utf8))
         append(UInt32(16))
         append(UInt16(1))
@@ -39,9 +42,42 @@ nonisolated enum Recording {
         append(UInt16(2))
         append(UInt16(16))
         data.append(contentsOf: Array("data".utf8))
-        append(bytes)
-        for sample in samples { append(Int16(max(-1, min(1, sample)) * Float(Int16.max))) }
-        try data.write(to: url, options: .atomic)
+        append(UInt32(bytes))
+        return data
+    }
+
+    private static func pcm(_ samples: some Collection<Float>) -> Data {
+        var data = Data(capacity: samples.count * 2)
+        for sample in samples { withUnsafeBytes(of: Int16(max(-1, min(1, sample)) * Float(Int16.max)).littleEndian) { data.append(contentsOf: $0) } }
+        return data
+    }
+
+    /// A recording written to disk as it's heard, so an app that ends mid-dictation (a crash, an install, a dead
+    /// iPhone) leaves the sound up to then. `read` reads one whose header never got its length.
+    nonisolated final class File {
+        private let handle: FileHandle
+        private var bytes = 0
+
+        init?(_ url: URL) {
+            try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+            guard FileManager.default.createFile(atPath: url.path, contents: Recording.header(bytes: 0)),
+                  let handle = try? FileHandle(forWritingTo: url)
+            else { return nil }
+            _ = try? handle.seekToEnd()
+            self.handle = handle
+        }
+
+        func append(_ samples: UnsafeBufferPointer<Float>) {
+            let data = Recording.pcm(samples)
+            try? handle.write(contentsOf: data)
+            bytes += data.count
+        }
+
+        func close() {
+            try? handle.seek(toOffset: 0)
+            try? handle.write(contentsOf: Recording.header(bytes: bytes))
+            try? handle.close()
+        }
     }
 
     /// A recording `write` saved.

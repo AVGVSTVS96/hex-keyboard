@@ -51,6 +51,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         window.rootViewController = tabs
         window.makeKeyAndVisible()
         self.window = window
+        Task { await Transcripts.shared.recover() }
         open(options.urlContexts)
     }
 
