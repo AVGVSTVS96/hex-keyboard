@@ -26,10 +26,11 @@ for r, ds in json.load(sys.stdin)['devices'].items():
         if d['name'] == name and d['isAvailable'] and runtime in ('', r): print(d['udid']); sys.exit()" "$1" "${RUNTIME:-}"
 }
 
-# The slot's simulator of a device type, made on RUNTIME or else the newest iOS that has the type (iOS 27.1 for the
-# iPhone Duo, the only one that has it), with the slot's other simulators shut down.
+# The slot's one simulator of a device type (named for the type, whatever name the caller gives), made on RUNTIME or
+# else the newest iOS that has the type (iOS 27.1 for the iPhone Duo, the only one that has it), with the slot's other
+# simulators shut down.
 ensure() {
-  local name="$PREFIX $1" type="com.apple.CoreSimulator.SimDeviceType.$2" id runtime
+  local name="$PREFIX ${2//-/ }" type="com.apple.CoreSimulator.SimDeviceType.$2" id runtime
   id=$(udid "$name")
   if [ -z "$id" ]; then
     runtime=${RUNTIME:-$(xcrun simctl list runtimes -j | /usr/bin/python3 -c "
@@ -97,10 +98,13 @@ shoot() {
   xcrun simctl io "$id" screenshot ${DISPLAY_ID:+--display="$DISPLAY_ID"} "$out" >/dev/null 2>&1
 }
 
+DEVICES=("iPhone 17:iPhone-17" "iPhone 17 Pro Max:iPhone-17-Pro-Max" "iPhone 16e:iPhone-16e" "iPhone Air:iPhone-Air"
+  "iPad Pro 11:iPad-Pro-11-inch-M5-12GB" "iPad Pro 13:iPad-Pro-13-inch-M5-12GB" "iPad A16:iPad-A16" "iPad mini:iPad-mini-A17-Pro"
+  "iPhone Duo:iPhone-Duo")
+
 all() {
   local tag=$1; shift
-  for spec in "iPhone 17:iPhone-17" "iPhone 17 Pro Max:iPhone-17-Pro-Max" "iPhone 16e:iPhone-16e" "iPhone Air:iPhone-Air" \
-              "iPad Pro 11:iPad-Pro-11-inch-M5-12GB" "iPad Pro 13:iPad-Pro-13-inch-M5-12GB" "iPad A16:iPad-A16" "iPad mini:iPad-mini-A17-Pro"; do
+  for spec in "${DEVICES[@]:0:8}"; do
     local name=${spec%%:*} id slug
     [ -n "${ONLY:-}" ] && [[ "$name" != *$ONLY* ]] && continue
     slug=$(echo "$name" | tr 'A-Z ' 'a-z-')
@@ -116,8 +120,8 @@ all() {
 }
 
 variants() {
-  local name=$1 tag=$2 id slug
-  id=$(udid "$PREFIX $name")
+  local name=$1 tag=$2 id slug spec
+  for spec in "${DEVICES[@]}"; do [ "${spec%%:*}" = "$name" ] && id=$(ensure "$name" "${spec##*:}"); done
   slug=$(echo "$name" | tr 'A-Z ' 'a-z-')
   boot "$id"
   for keyboard in ${KEYBOARDS:-system hex}; do
