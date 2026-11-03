@@ -1,6 +1,6 @@
 #!/bin/bash
 # Runs on the Mac. Everything a batch of changes needs, at once, on one simulator, the iPhone Duo folded unless named:
-# one build of the app and every test, KeyboardUI's package tests, every UI test with Full Access on two clones of the
+# one build of the app and every test, KeyboardUI's package tests, every UI test with Full Access on the
 # simulator (each test capped at 2 minutes, a failure retried once), the voice test with scripts/voiceapp.py standing in
 # for the app, and the screenshot tests again in dark, into shots/raw/verify/.
 # scripts/verify ["iPhone 17"] [iPhone-17] (OPEN=1 unfolds; ORIENTATION=landscape)
@@ -58,7 +58,7 @@ for appearance in light dark; do
   prefix=$shots/$appearance/hex
   step "ui tests, $appearance"
   if [ "$appearance" = light ]; then
-    uitest light -only-testing:HexUITests -skip-testing:HexUITests/VoiceTests -parallel-testing-enabled YES -parallel-testing-worker-count 2
+    uitest light -only-testing:HexUITests -skip-testing:HexUITests/VoiceTests
   else
     uitest dark -only-testing:HexUITests/PanelTests -only-testing:HexUITests/ToolPanelTests -only-testing:HexUITests/SuggestionShots
   fi

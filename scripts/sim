@@ -1,5 +1,6 @@
 #!/bin/bash
-# Runs on the Mac. Headless simulator helpers for screenshots and keyboard checks.
+# Runs on the Mac. Headless simulator helpers for screenshots and keyboard checks. Each scripts/mac slot has its own
+# simulators (SIMPREFIX, hexkb<n>), and ensure shuts down the slot's others, so a slot boots one at a time.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -9,6 +10,7 @@ print([r['identifier'] for r in json.load(sys.stdin)['runtimes'] if r['platform'
        and any(d['name'] == 'iPhone 17' for d in r['supportedDeviceTypes'])][-1])")}
 APP=${APP:-build/Build/Products/Debug-iphonesimulator/Hex.app}
 BUNDLE=com.shahidy.hexkeyboard
+PREFIX=${SIMPREFIX:-hexkb}
 
 udid() {
   xcrun simctl list devices -j | /usr/bin/python3 -c "
@@ -19,10 +21,10 @@ for d in json.load(sys.stdin)['devices'].get(runtime, []):
 }
 
 ensure() {
-  local name="${SIMPREFIX:-hexkb} $1" type="com.apple.CoreSimulator.SimDeviceType.$2" id
+  local name="$PREFIX $1" type="com.apple.CoreSimulator.SimDeviceType.$2" id
   id=$(udid "$name")
   [ -n "$id" ] || id=$(xcrun simctl create "$name" "$type" "$RUNTIME")
-  for other in $(xcrun simctl list devices booted | sed -n 's/^ *hexkb .*(\([0-9A-F-]\{36\}\)) (Booted).*/\1/p'); do
+  for other in $(xcrun simctl list devices booted | sed -n "s/^ *$PREFIX .*(\([0-9A-F-]\{36\}\)) (Booted).*/\1/p"); do
     [ "$other" = "$id" ] || xcrun simctl shutdown "$other"
   done
   echo "$id"
@@ -96,7 +98,7 @@ all() {
 
 variants() {
   local name=$1 tag=$2 id slug
-  id=$(udid "hexkb $name")
+  id=$(udid "$PREFIX $name")
   slug=$(echo "$name" | tr 'A-Z ' 'a-z-')
   boot "$id"
   for keyboard in ${KEYBOARDS:-system hex}; do
@@ -211,7 +213,7 @@ SCREENS
 # shots/raw/duo/app/<tag>-<screen>-<page>-<appearance>.png. TOUCHES (a touch model, as the keyboard shares it) and
 # TRANSCRIPTS (JSON lines, as the app keeps them) fill Your Taps and Transcripts, and CLIPBOARD (a history.json, as
 # ClipboardStore keeps it) Clipboard; PAGES picks the pages; ARGS adds launch arguments to each (-HexScrollToEnd YES shows each page's end); SIM names
-# the simulator (hexkb <SIM>), so checkouts side by side don't share one.
+# the simulator.
 duoapp() {
   local tag=$1 id data group; shift
   RUNTIME=com.apple.CoreSimulator.SimRuntime.iOS-27-1

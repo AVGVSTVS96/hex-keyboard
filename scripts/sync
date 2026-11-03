@@ -1,8 +1,9 @@
 #!/bin/sh
-# Syncs the tree to its own folder on the Mac, so checkouts side by side don't overwrite each other, and prints it.
+# Syncs the tree to a folder on the Mac (scripts/sync Developer/hex-keyboard-slot1) and prints it. Files are compared by
+# content and only changed ones are written, so a folder that trees from several checkouts take turns in keeps its
+# builds incremental.
 set -e
 cd "$(dirname "$0")/.."
-name=$(basename "$PWD")
-[ "$name" = hex-keyboard ] && dir=Developer/hex-keyboard || dir=Developer/hex-keyboard-$name
-rsync -az --delete --exclude .git --exclude /build --exclude .build --exclude /xtool --exclude /shots --exclude '*.xcodeproj' --exclude /reference --exclude /App/Info.plist --exclude /Keyboard/Info.plist --exclude /Config/Team.xcconfig ./ "mac:$dir/"
+dir=${1:-Developer/hex-keyboard}
+rsync -rlpz --checksum --delete --exclude .git --exclude /build --exclude .build --exclude /xtool --exclude /shots --exclude '*.xcodeproj' --exclude /reference --exclude /App/Info.plist --exclude /Keyboard/Info.plist --exclude /Config/Team.xcconfig ./ "mac:$dir/"
 echo "$dir"

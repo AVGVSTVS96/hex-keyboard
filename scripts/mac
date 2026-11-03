@@ -1,11 +1,44 @@
-#!/bin/sh
-# Syncs the tree to the Mac, runs a command there with Xcode 27.1 (the SDK the phone build uses, which gives the iPhone
-# Duo its vertical bar), and copies screenshots back. Runs from every checkout take turns on the Mac, one at a time.
-set -e
+#!/bin/bash
+# Runs a command on the Mac with Xcode 27.1 (the SDK the phone build uses, which gives the iPhone Duo its vertical bar)
+# in the first free of the Mac's three slots, so up to three runs go at once and the rest wait for one to free up.
+# Each slot has its own folder (~/Developer/hex-keyboard-slot<n>, where this tree is synced) and its own simulators
+# (hexkb<n> …). Screenshots the command takes are copied back to shots/raw/.
+set -euo pipefail
 cd "$(dirname "$0")/.."
-dir=$(scripts/sync)
-printf '%s\n' "$*" | ssh mac "cd ~/$dir && export DEVELOPER_DIR=\${DEVELOPER_DIR:-/Applications/Xcode-beta.app/Contents/Developer} &&
-  { lockf -t 0 /tmp/hexkb.lock true 2>/dev/null || echo 'waiting for the Mac: another Hex keyboard run has it' >&2; } &&
-  lockf /tmp/hexkb.lock zsh -s"
+slot='
+import fcntl, sys, threading
+slots = [open(f"/tmp/hexkb-slot{n}.lock", "a") for n in (1, 2, 3)]
+def take(f, block):
+    try:
+        fcntl.flock(f, fcntl.LOCK_EX | (0 if block else fcntl.LOCK_NB))
+        return True
+    except BlockingIOError:
+        return False
+taken = next((n for n, f in enumerate(slots, 1) if take(f, False)), None)
+if taken is None:
+    print("waiting for the Mac: three Hex keyboard runs have it", file=sys.stderr, flush=True)
+    won, guard, first = threading.Event(), threading.Lock(), []
+    def wait(n, f):
+        take(f, True)
+        with guard:
+            if first:
+                return f.close()
+            first.append(n)
+        won.set()
+    for n, f in enumerate(slots, 1):
+        threading.Thread(target=wait, args=(n, f), daemon=True).start()
+    won.wait()
+    taken = first[0]
+print(taken, flush=True)
+sys.stdin.read()
+'
+coproc held { ssh mac "$(printf '%q ' /usr/bin/python3 -u -c "$slot")"; }
+read -r n <&"${held[0]}"
+dir=Developer/hex-keyboard-slot$n
+ssh mac "mkdir -p ~/$dir && rm -rf ~/$dir/shots/raw" </dev/null
+scripts/sync "$dir" >/dev/null
+status=0
+printf '%s\n' "$*" | ssh mac "cd ~/$dir && export SIMPREFIX=hexkb$n DEVELOPER_DIR=\${DEVELOPER_DIR:-/Applications/Xcode-beta.app/Contents/Developer} && zsh -s" || status=$?
 mkdir -p shots/raw
-rsync -a "mac:$dir/shots/raw/" shots/raw/ 2>/dev/null || true
+rsync -a "mac:$dir/shots/raw/" shots/raw/ 2>/dev/null </dev/null || true
+exit "$status"
