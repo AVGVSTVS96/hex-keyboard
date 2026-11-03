@@ -1,23 +1,12 @@
 import KeyboardCore
 import UIKit
 
-/// The text laid out as the field the keyboard types into likely lays it out. iOS never tells a keyboard where its
-/// host wraps lines, only the text around the caret, so this wraps it in the body font at the reader's text size, as
-/// wide as the field likely is; where the host wraps differently, a move up or down lands a few letters off.
+/// Where the field the keyboard types into wraps its text, as far as a keyboard can know: iOS gives it the text around
+/// the caret, never the field's width. Every field fits the screen, so this wraps the text in the body font as wide as
+/// the screen within the system's margins; in a narrower field a move up or down lands a few letters off.
 struct HostLayout: LineLayout {
     var width: CGFloat
     var font = Self.font
-
-    /// Chat apps put buttons beside their field (Messages: + on the left, the mic inside on the right); other apps run
-    /// text nearly edge to edge.
-    init(keyboardWidth: CGFloat, host: String?) {
-        width = keyboardWidth - (host.map(Self.chatApps.contains) == true ? 120 : 40)
-    }
-
-    private static let chatApps: Set = [
-        "com.apple.MobileSMS", "ph.telegra.Telegraph", "net.whatsapp.WhatsApp", "org.whispersystems.signal",
-        "com.tinyspeck.chatlyio", "com.hammerandchisel.discord", "com.facebook.Messenger", "com.burbn.instagram",
-    ]
 
     static var font: UIFont { .preferredFont(forTextStyle: .body) }
     /// How far a finger on the space bar moves for the caret to move a line, as far as a line is tall.
@@ -27,7 +16,6 @@ struct HostLayout: LineLayout {
         let storage = NSTextStorage(string: paragraph, attributes: [.font: font])
         let manager = NSLayoutManager()
         let container = NSTextContainer(size: CGSize(width: width, height: .greatestFiniteMagnitude))
-        container.lineFragmentPadding = 0
         manager.addTextContainer(container)
         storage.addLayoutManager(manager)
         var lines: [NSRange] = []

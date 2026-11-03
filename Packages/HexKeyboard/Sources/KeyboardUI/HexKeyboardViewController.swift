@@ -330,7 +330,8 @@ open class HexKeyboardViewController: UIInputViewController {
         case .oneHanded(let hand), .pick(let hand):
             SettingsStore.set(hand, sharing: hasFullAccess)
         case .cursorLines:
-            engine.lineLayout = HostLayout(keyboardWidth: view.bounds.width, host: KeyboardHost.app(of: self))
+            let margins = systemMinimumLayoutMargins
+            engine.lineLayout = HostLayout(width: view.bounds.width - margins.leading - margins.trailing)
         default:
             break
         }
