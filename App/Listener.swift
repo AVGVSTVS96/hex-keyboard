@@ -8,7 +8,6 @@ import UIKit
 /// the next dictation (`start`) without opening the app, which is the only place iOS lets a recording begin.
 @MainActor final class Listener {
     static let shared = Listener()
-    private static let tail = 0.5
 
     private let engine = AVAudioEngine()
     private let feed = Feed()
@@ -82,13 +81,12 @@ import UIKit
         set(.idle, failure: (error as? Failure)?.description ?? error.localizedDescription)
     }
 
-    /// Stops listening and hands the keyboard everything heard, once the transcription is ready if it isn't yet. It
-    /// keeps listening for `tail` after the stop arrives, since a stop tapped right as you finish speaking lands on
-    /// your last word, and the microphone hands its sound over about a tenth of a second late.
+    /// Stops listening once you're quiet and hands the keyboard everything heard, once the transcription is ready if it
+    /// isn't yet.
     func finish() async {
         guard state == .listening else { return }
         set(.transcribing)
-        recording = await feed.stop(after: engine.isRunning ? Self.tail : 0)
+        recording = engine.isRunning ? await feed.stopOnceQuiet() : feed.stop()
         listened = Date.now.timeIntervalSince(started)
         if let transcription { await deliver(transcription) } else { keepMicOn() }
     }
@@ -213,13 +211,12 @@ import UIKit
     /// Runs on the audio thread: hands each buffer to the dictation in progress, if there is one, and says how loud it was.
     nonisolated private static func tap(_ feed: Feed, level: @escaping @Sendable (Float) -> Void) -> AVAudioNodeTapBlock {
         return { buffer, time in
-            guard feed.yield(buffer, at: time) else { return }
-            if let samples = buffer.floatChannelData?[0], buffer.frameLength > 0 {
-                let frames = Int(buffer.frameLength)
-                var sum: Float = 0
-                for index in 0 ..< frames { sum += samples[index] * samples[index] }
-                level((sum / Float(frames)).squareRoot())
-            }
+            guard let samples = buffer.floatChannelData?[0], buffer.frameLength > 0 else { return }
+            let frames = Int(buffer.frameLength)
+            var sum: Float = 0
+            for index in 0 ..< frames { sum += samples[index] * samples[index] }
+            let loudness = (sum / Float(frames)).squareRoot()
+            if feed.yield(buffer, at: time, loudness: loudness) { level(loudness) }
         }
     }
 
@@ -245,7 +242,8 @@ nonisolated private final class Feed: @unchecked Sendable {
     private var transcription: (any Transcription)?
     private var recording: [Float] = []
     private var file: Recording.File?
-    private var end: UInt64?
+    private var loudness: [Float] = []
+    private var stopped: UInt64?
     private var ended: CheckedContinuation<[Float], Never>?
 
     func start(from natural: AVAudioFormat, into transcription: any Transcription, file url: URL) -> Bool {
@@ -258,6 +256,7 @@ nonisolated private final class Feed: @unchecked Sendable {
             self.transcription = transcription
             recording = []
             file = Recording.File(url)
+            loudness = []
         }
         return true
     }
@@ -269,23 +268,24 @@ nonisolated private final class Feed: @unchecked Sendable {
         return recording
     }
 
-    /// Everything heard since `start` through `seconds` from now, by the clock the microphone stamps its sound with.
-    /// If the sound stops coming, what came.
-    @MainActor func stop(after seconds: Double) async -> [Float] {
-        guard seconds > 0, lock.withLock({ recorder != nil }) else { return stop() }
-        let end = mach_absolute_time() + AVAudioTime.hostTime(forSeconds: seconds)
-        let stalled = Task {
-            guard (try? await Task.sleep(for: .seconds(seconds + 0.5))) != nil else { return }
+    /// Everything heard since `start`, through the moment of the stop by the clock the microphone stamps its sound with,
+    /// and on until you're quiet, since a stop tapped as you finish speaking lands on your last word. A room that never
+    /// gets quiet, or a microphone that stops sending, ends it a second after the stop.
+    @MainActor func stopOnceQuiet() async -> [Float] {
+        guard lock.withLock({ recorder != nil }) else { return stop() }
+        let stopped = mach_absolute_time()
+        let loud = Task {
+            guard (try? await Task.sleep(for: .seconds(1))) != nil else { return }
             _ = self.stop()
         }
-        defer { stalled.cancel() }
+        defer { loud.cancel() }
         return await withCheckedContinuation { ended in
-            lock.withLock { (self.end, self.ended) = (end, ended) }
+            lock.withLock { (self.stopped, self.ended) = (stopped, ended) }
         }
     }
 
     /// Whether a dictation took the buffer.
-    func yield(_ buffer: AVAudioPCMBuffer, at time: AVAudioTime) -> Bool {
+    func yield(_ buffer: AVAudioPCMBuffer, at time: AVAudioTime, loudness level: Float) -> Bool {
         let (took, done) = lock.withLock { () -> (Bool, ([Float], CheckedContinuation<[Float], Never>?)?) in
             guard let recorder, let transcription else { return (false, nil) }
             if let converted = Self.convert(buffer, with: recorder), let channel = converted.floatChannelData?[0] {
@@ -294,8 +294,9 @@ nonisolated private final class Feed: @unchecked Sendable {
                 file?.append(samples)
             }
             if let converter, let converted = Self.convert(buffer, with: converter) { transcription.hear(converted) }
+            loudness.append(level)
             let length = AVAudioTime.hostTime(forSeconds: Double(buffer.frameLength) / buffer.format.sampleRate)
-            guard let end, !time.isHostTimeValid || time.hostTime + length >= end else { return (true, nil) }
+            guard let stopped, !time.isHostTimeValid || time.hostTime + length >= stopped && isQuiet(level) else { return (true, nil) }
             return (true, take())
         }
         if let (recording, ended) = done { ended?.resume(returning: recording) }
@@ -310,10 +311,17 @@ nonisolated private final class Feed: @unchecked Sendable {
             converter = nil
             transcription = nil
             recording = []
-            end = nil
+            loudness = []
+            stopped = nil
             ended = nil
         }
         return (recording, ended)
+    }
+
+    /// Nearer the room than your voice, as this dictation's quietest tenth and loudest twentieth of the sound have them.
+    private func isQuiet(_ level: Float) -> Bool {
+        let sorted = loudness.sorted()
+        return level * level <= sorted[sorted.count / 10] * sorted[sorted.count * 19 / 20]
     }
 
     private static func convert(_ buffer: AVAudioPCMBuffer, with converter: AVAudioConverter) -> AVAudioPCMBuffer? {

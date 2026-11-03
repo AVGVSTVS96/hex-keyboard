@@ -36,14 +36,22 @@ import Speech
             }
         }
 
-        /// Loads the Parakeet, downloading it first if it isn't on the iPhone yet; nil for Apple's.
+        /// Loads the Parakeet, downloading it first if it isn't on the iPhone yet; nil for Apple's. iOS sometimes kills its
+        /// Neural Engine compiler for memory while it compiles the encoder after an install, and Core ML then runs the
+        /// encoder on the CPU, ten times slower, until it's loaded again: so it's loaded again, up to three times.
         var loader: (@Sendable (@escaping ProgressHandler) async throws -> any Parakeet)? {
             guard let version else { return nil }
+            let title = title
             return { progress in
                 let folder = try await AsrModels.download(version: version, progressHandler: progress)
-                let parakeet = AsrManager(config: .default)
-                try await parakeet.loadModels(try await AsrModels.load(from: folder, version: version))
-                return parakeet
+                var load = 1
+                while true {
+                    let parakeet = AsrManager(config: .default)
+                    try await parakeet.loadModels(try await AsrModels.load(from: folder, version: version))
+                    guard load < 3, try await !parakeet.onNeuralEngine() else { return parakeet }
+                    HostApp.log.error("\(title, privacy: .public)'s encoder ran on the CPU after load \(load)")
+                    load += 1
+                }
             }
         }
     }
@@ -171,6 +179,14 @@ extension AsrManager: Parakeet {
     func write(_ samples: [Float]) async throws -> String {
         var state = TdtDecoderState.make(decoderLayers: decoderLayerCount)
         return try await transcribe(samples, decoderState: &state, language: .english).text
+    }
+
+    /// Whether the encoder runs on the Neural Engine, from how long it takes over a second of silence, which it pads to
+    /// its 15-second window: on the iPhone Duo about 0.1 s there, and 1.5 s on the CPU.
+    func onNeuralEngine() async throws -> Bool {
+        let began = ContinuousClock.now
+        _ = try await write([Float](repeating: 0, count: ASRConstants.minimumRequiredSamples(forSampleRate: 16_000)))
+        return ContinuousClock.now - began < .seconds(0.5)
     }
 }
 

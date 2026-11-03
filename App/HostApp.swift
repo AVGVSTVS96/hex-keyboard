@@ -5,7 +5,7 @@ import UIKit
 /// isn't API: where it won't open the app by its bundle ID, the app's own link does, and with neither the dictation
 /// screen stays up for you to swipe back.
 enum HostApp {
-    static let log = Logger(subsystem: "com.shahidy.hexkeyboard", category: "voice")
+    nonisolated static let log = Logger(subsystem: "com.shahidy.hexkeyboard", category: "voice")
 
     static func open(_ bundle: String) async -> Bool {
         if openByID(bundle) { return true }
