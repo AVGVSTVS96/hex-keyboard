@@ -288,10 +288,10 @@ open class HexKeyboardViewController: UIInputViewController {
         keyboardView.menu = (context.menuKey(in: layout), context.menu, context.menuPick)
         keyboardView.update(layout: layout, signature: context.signature, metrics: metrics, faces: engine.faces(on: device), theme: theme)
         renderToolbar(metrics, device: device)
-        let more = [context.menuPick] + context.layoutPicks + context.moreMenu
+        let more = context.showsMoreButton ? [context.menuPick] + context.layoutPicks + context.moreMenu : []
         if more != shownMore {
             shownMore = more
-            suggestionBar.update(more: moreMenu(context))
+            suggestionBar.update(more: more.isEmpty ? nil : moreMenu(context))
         }
         renderSuggestions()
 

@@ -48,7 +48,7 @@ public final class KeyboardPreviewView: UIView {
         bar.screenInset = CGFloat(max((self.screen.width - keys.width) / 2, 0))
         bar.block = (CGFloat(metrics.margin.leading + metrics.sideInset), CGFloat(keys.width - metrics.margin.trailing - metrics.sideInset))
         bar.update(tools: [.gif, .clipboard], theme: theme)
-        bar.update(more: UIMenu(children: []))
+        bar.update(more: keys.context.showsMoreButton ? UIMenu(children: []) : nil)
         bar.update(mic: .off, recorded: 0, saved: [], waitingFor: nil, notice: nil, theme: theme)
         bar.update([Suggestion("The", .candidate), Suggestion("I", .candidate), Suggestion("And", .candidate)], emoji: [], enabled: true, theme: theme)
         let card = dark ? Self.card.dark : Self.card.light
@@ -75,7 +75,7 @@ public final class KeyboardPreviewView: UIView {
     }
 
     /// The keyboard's own layout and metrics on `screen`, at the width iOS gives it there.
-    private static func keys(_ settings: KeyboardSettings, on screen: Size) -> (layout: KeyboardLayout, metrics: KeyboardMetrics, faces: KeyFaceContext, width: Double, height: Double) {
+    private static func keys(_ settings: KeyboardSettings, on screen: Size) -> (context: LayoutContext, layout: KeyboardLayout, metrics: KeyboardMetrics, faces: KeyFaceContext, width: Double, height: Double) {
         let device = DeviceClass(isPad: UIDevice.current.userInterfaceIdiom == .pad, shortSide: min(screen.width, screen.height))
         let context = LayoutContext(device: device, layer: .letters, showsGlobe: true, screen: screen, settings: settings)
         let duo = device == .phone ? Duo.Screen(width: screen.width, height: screen.height) : nil
@@ -84,6 +84,6 @@ public final class KeyboardPreviewView: UIView {
         metrics.bottomInset = bottom
         let layout = Layouts.layout(for: context)
         let faces = KeyFaceContext(device: device, layer: .letters, kind: .text, shift: .off, returnKind: .default, returnEnabled: true)
-        return (layout, metrics, faces, width, metrics.toolbar.height + metrics.height(rows: layout.rows.count, hasNumberRow: layout.hasNumberRow))
+        return (context, layout, metrics, faces, width, metrics.toolbar.height + metrics.height(rows: layout.rows.count, hasNumberRow: layout.hasNumberRow))
     }
 }

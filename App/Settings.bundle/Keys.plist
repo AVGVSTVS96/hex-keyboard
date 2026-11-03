@@ -90,7 +90,7 @@
 		</dict>
 		<dict>
 			<key>FooterText</key>
-			<string>On the open iPhone Duo held wide, half the keys sit under each thumb. You can also hold 123 and slide, or tap … above the keys.</string>
+			<string>On the open iPhone Duo held wide, half the keys sit under each thumb. You can also pick it from the keyboard’s menu.</string>
 			<key>Type</key>
 			<string>PSGroupSpecifier</string>
 		</dict>
@@ -106,7 +106,7 @@
 		</dict>
 		<dict>
 			<key>FooterText</key>
-			<string>Moves the keys toward one thumb on an iPhone in portrait, on the Duo only folded. You can also hold 123 and slide.</string>
+			<string>Moves the keys toward one thumb on an iPhone in portrait, on the Duo only folded. You can also pick it from the keyboard’s menu.</string>
 			<key>Type</key>
 			<string>PSGroupSpecifier</string>
 		</dict>
@@ -130,6 +130,34 @@
 				<string>off</string>
 				<string>left</string>
 				<string>right</string>
+			</array>
+		</dict>
+		<dict>
+			<key>FooterText</key>
+			<string>Where to open layouts, Next Keyboard and iikb Settings: hold 123 and slide, or tap … above the keys.</string>
+			<key>Type</key>
+			<string>PSGroupSpecifier</string>
+		</dict>
+		<dict>
+			<key>DefaultValue</key>
+			<string>both</string>
+			<key>Key</key>
+			<string>keyboardMenu</string>
+			<key>Title</key>
+			<string>Keyboard Menu</string>
+			<key>Titles</key>
+			<array>
+				<string>Both</string>
+				<string>Hold 123</string>
+				<string>… Button</string>
+			</array>
+			<key>Type</key>
+			<string>PSMultiValueSpecifier</string>
+			<key>Values</key>
+			<array>
+				<string>both</string>
+				<string>hold</string>
+				<string>button</string>
 			</array>
 		</dict>
 	</array>

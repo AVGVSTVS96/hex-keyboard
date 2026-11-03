@@ -151,7 +151,7 @@ Slightly folded in portrait with a panel open, the open Duo gives a keyboard onl
 - Pressed key: the pressed fill, plus today's callout above letter keys. Function keys and tools show only the pressed fill.
 - Shift: `shift` off, `shift.fill` on, `capslock.fill` locked. Letters show uppercase while shift is on.
 - The number and symbol layers keep today's keys (`PhoneLayouts`) in this look; `123` reads `ABC` there.
-- Holding `123` opens the bar's … menu in a row on every iPhone screen: the layouts that apply there (Left, Full and Right in portrait, on the Duo only folded; Full and Split on the open Duo in landscape; elsewhere the layout in use, so letting go without sliding changes nothing), Next Keyboard where iOS wants one, and iikb Settings. Bassim reaches Hex's settings this way (Nov 2).
+- Holding `123` opens the bar's … menu in a row on every iPhone screen: the layouts that apply there (Left, Full and Right in portrait, on the Duo only folded; Full and Split on the open Duo in landscape; elsewhere the layout in use, so letting go without sliding changes nothing), Next Keyboard where iOS wants one, and iikb Settings. Bassim reaches Hex's settings this way (Nov 2). Settings › Keyboard › Layout › Keyboard Menu picks where the menu opens: holding `123`, the … button, or both (the default); Bassim found the … button unneeded once holding `123` had it (Nov 3). An iPad has no hold menu, so it always keeps the button.
 
 ## Panels
 

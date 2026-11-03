@@ -29,8 +29,9 @@ public struct LayoutContext: Hashable, Sendable {
     /// A row of digits above an iPhone's letters.
     public var showsNumberRow: Bool
     public var keySpacing = KeySpacing.standard
+    public var keyboardMenu: KeyboardMenu
 
-    public init(device: DeviceClass, layer: KeyboardLayer, kind: InputKind = .text, showsGlobe: Bool = false, isLandscape: Bool = false, isOpen: Bool = false, oneHanded: OneHanded = .off, isSplit: Bool = false, showsEmoji: Bool = false, showsNumberRow: Bool = false) {
+    public init(device: DeviceClass, layer: KeyboardLayer, kind: InputKind = .text, showsGlobe: Bool = false, isLandscape: Bool = false, isOpen: Bool = false, oneHanded: OneHanded = .off, isSplit: Bool = false, showsEmoji: Bool = false, showsNumberRow: Bool = false, keyboardMenu: KeyboardMenu = .both) {
         self.device = device
         self.layer = layer
         self.kind = kind
@@ -41,6 +42,7 @@ public struct LayoutContext: Hashable, Sendable {
         self.isSplit = isSplit
         self.showsEmoji = showsEmoji && device == .phone
         self.showsNumberRow = showsNumberRow && device == .phone && layer == .letters
+        self.keyboardMenu = device == .phone ? keyboardMenu : .button
         if !allowsOneHanded { self.oneHanded = .off }
         if !allowsSplit { self.isSplit = false }
     }
@@ -50,7 +52,7 @@ public struct LayoutContext: Hashable, Sendable {
         self.init(
             device: device, layer: layer, kind: kind, showsGlobe: showsGlobe, isLandscape: screen.width > screen.height,
             isOpen: Duo.isOpen(short: min(screen.width, screen.height)), oneHanded: settings.oneHanded, isSplit: settings.split,
-            showsEmoji: settings.emojiKey, showsNumberRow: settings.numberRow
+            showsEmoji: settings.emojiKey, showsNumberRow: settings.numberRow, keyboardMenu: settings.keyboardMenu
         )
         keySpacing = settings.keySpacing
     }
@@ -79,9 +81,12 @@ public struct LayoutContext: Hashable, Sendable {
     /// What holding an iPhone's layer key offers, left to right, on every screen: the More button's items, after the
     /// layout in use where no other applies, so letting go without sliding changes nothing.
     public var menu: [KeyboardEvent] {
-        guard device == .phone else { return [] }
+        guard keyboardMenu != .button else { return [] }
         return (layoutPicks.isEmpty ? [.keep] : []) + moreMenu
     }
+
+    /// Whether the bar shows its More button.
+    public var showsMoreButton: Bool { keyboardMenu != .hold }
 
     /// The layouts that apply here.
     public var layoutPicks: [KeyboardEvent] {

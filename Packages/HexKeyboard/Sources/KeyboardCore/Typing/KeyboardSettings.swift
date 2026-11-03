@@ -16,6 +16,8 @@ public struct KeyboardSettings: Hashable, Sendable {
     /// The open Duo's keys in two halves in landscape, as Apple's More button's Split picks.
     public var split = false
     public var keySpacing = KeySpacing.standard
+    /// Where the menu of layouts, Next Keyboard and iikb Settings opens: holding 123, the bar's … button, or both.
+    public var keyboardMenu = KeyboardMenu.both
     public var theme = ThemeName.standard
     public var themeAppearance = ThemeAppearance.automatic
     /// A row of digits above an iPhone's letters, which grows the keyboard upward.
@@ -37,6 +39,19 @@ public struct KeyboardSettings: Hashable, Sendable {
         settings.autoCorrection = false
         return settings
     }()
+}
+
+/// Where an iPhone's keyboard menu opens. An iPad has no hold menu, so its … button always shows.
+public enum KeyboardMenu: String, CaseIterable, Hashable, Sendable {
+    case both, hold, button
+
+    public var title: String {
+        switch self {
+        case .both: "Both"
+        case .hold: "Hold 123"
+        case .button: "… Button"
+        }
+    }
 }
 
 /// What pressing a key shows above it: nothing, the letter in a bubble of its own, or Apple's, the key grown upward.

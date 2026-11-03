@@ -34,6 +34,7 @@ public enum SettingsStore {
     private static let keySpacing = Choice(key: "keySpacing", path: \.keySpacing)
     private static let dictationStyle = Choice(key: "writingStyle", path: \.dictationStyle)
     private static let dictationEditing = Choice(key: "dictationEditing", path: \.dictationEditing, switchKey: "keepsUmAndUh", on: .asSaid, off: .light)
+    private static let keyboardMenu = Choice(key: "keyboardMenu", path: \.keyboardMenu)
     private static let skinToneKey = "skinTone"
 
     private static let oneHandedKey = "oneHanded"
@@ -55,6 +56,7 @@ public enum SettingsStore {
         keySpacing.load(into: &settings, sharing: sharing)
         dictationStyle.load(into: &settings, sharing: sharing)
         dictationEditing.load(into: &settings, sharing: sharing)
+        keyboardMenu.load(into: &settings, sharing: sharing)
         settings.skinTone = (value(forKey: skinToneKey, sharing: sharing) as? String).flatMap(SkinTone.init)
         return settings
     }
@@ -71,6 +73,7 @@ public enum SettingsStore {
         keySpacing.save(settings)
         dictationStyle.save(settings)
         dictationEditing.save(settings)
+        keyboardMenu.save(settings)
         set(settings.skinTone?.rawValue ?? "", forKey: skinToneKey)
     }
 
