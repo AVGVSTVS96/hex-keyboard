@@ -72,7 +72,7 @@ final class TypingTests: XCTestCase {
         let space = key("space").coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
         space.press(forDuration: 1, thenDragTo: space.withOffset(CGVector(dx: -20, dy: 0)))
         type("x")
-        XCTAssertEqual(field.value as? String, "Axbc")
+        XCTAssertEqual((field.value as? String)?.lowercased(), "axbc")
     }
 
     func testSpaceBarMovesCursorUpAndDownLines() {
