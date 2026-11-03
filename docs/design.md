@@ -93,7 +93,7 @@ The key, pressed and label colors are the iOS 27 theme (`KeyboardTheme`), which 
 
 Raycast's five, picked in the app (Keyboard › Theme) or Settings › Apps › Hex › Theme (`ThemeName`, `KeyboardTheme.named`), each read pixel by pixel off Raycast's keyboard and its app's preview on the iPhone Duo (full-resolution screenshots, Nov 2 2026). A theme paints the keys (`KeyPaint`: a face shading top to bottom, a pressed face, the label and its letterpress, a lit rim, a keycap's sides and glow, the shadow below); the bar, panels and mic stay on iOS's card and follow the app's light or dark. Callouts and accents take the letter keys' face.
 
-Every theme has Raycast's keys (`KeyShape`): continuous corners, 3.9 + 0.143 × a letter key's width (13.75 on the open Duo in landscape, 11.75 in portrait, 7.8 in Raycast's preview), and Apple's SF Compact letters 1.08 times Apple's size, with `123` at 0.67 of Apple's, 1.6 above the middle, and symbols at 0.86. Labels are lowercase, as Raycast's are, and sit where they do on the plain keys whatever the theme.
+Every theme has Raycast's keys (`KeyShape`): continuous corners, 3.9 + 0.143 × a letter key's width (Raycast's are 13.75 on its 69-wide keys on the open Duo in landscape, 11.75 on its 55-wide keys in portrait, 7.8 in its preview), and Apple's SF Compact letters 1.08 times Apple's size, with `123` at 0.67 of Apple's, 1.6 above the middle, and symbols at 0.86. Labels are lowercase, as Raycast's are, and sit where they do on the plain keys whatever the theme.
 
 | Theme | Letter keys | Function keys | Notes |
 |---|---|---|---|
@@ -120,7 +120,7 @@ Physical and Mechanical come Automatic (following the app), Dark or Light.
 | | Keys block | Key h | Row gap | Top | Bar | Bar → keys | Bottom | Total |
 |---|---|---|---|---|---|---|---|---|---|
 | Duo folded, portrait, 466 × 678 | 6.5 in, keys 6 apart | 45 | 11 | 3 | 38 | 7 | 39 | |
-| Duo open, landscape, 951 × 669 (compact) | 9 in, keys 10 apart | 38.67 | 13 | 3 | 38 | 7 | 20 | |
+| Duo open, landscape, 951 × 669 (compact) | 4.5 in, keys 6 apart | 41.67 | 9 | 3 | 38 | 7 | 20 | |
 | Duo open, portrait, 669 × 951 | 4.5 in, keys 6 apart | 49.42 | 9 | 3 | 38 | 7 | 73 | |
 | Duo folded, landscape, 678 × 466 (compact) | 4.5 in, keys 7 apart | 33.33 | 9 | 3 | 32 | 7 | 20 | |
 | iPhone portrait (Face ID), 375–440 wide | full width | 43, or 45 from 415 wide | 11 | 3 | 38 | 7 | today's `bottomInset` | |
@@ -130,7 +130,8 @@ Physical and Mechanical come Automatic (following the app), Dark or Light.
 - Every Duo row is Apple's keyboard measured in the iOS 27.1 simulator (`scripts/sim duo`, which unfolds it with Device Hub's hinge event). "Keys block" is the side inset inside the keyboard's own width, which iOS narrows on the side layouts; "Bottom" is how far above the screen's bottom Apple's last row ends.
 - The Duo's screens go by Bassim's words, as `Duo.Screen` names them: folded (the cover) or open (the inner screen), in portrait (taller than wide) or landscape (wider than tall). Slightly folding the open screen keeps its screen and changes only the height iOS gives the keyboard; nothing reads the hinge. The open screen's own upright is landscape, which is why the simulator's portrait shows it 951 wide.
 - Apple's letters on the Duo are bigger than on other iPhones: 25.5 folded in portrait, 23.5 folded in landscape, 28.5 open in landscape, 28 open in portrait. Hex's `123`, return and symbols grow by the same share; Apple's own `123` is bigger still, but its key is three times as wide, since its row has no globe.
-- The Duo's keys span the keyboard's whole width on every screen, at Apple's insets, except open in portrait: there Apple's keys (18 in, 9 apart, 45.67 tall, rows 14 apart) leave wide margins and gaps, and Bassim asked for keys "taller and wider as much as possible using as much available space as possible" (Nov 3), so the keys take them over in the same keyboard height: about 10% wider and 8% taller.
+- The Duo's keys span the keyboard's whole width on every screen, at Apple's insets folded. Open, Apple's keys leave wide margins and gaps (in portrait 18 in, 9 apart, 45.67 tall, rows 14 apart; in landscape 9 in, 10 apart, 38.67 tall, rows 13 apart), and Bassim asked for keys "taller and wider as much as possible using as much available space as possible" (Nov 3), every key alike, so open the keys take the folded landscape's margins and gaps (4.5 in, 6 apart, rows 9 apart) in Apple's keyboard height: in portrait about 10% wider and 8% taller, in landscape about 6% wider and 8% taller.
+- Split Keyboard (open in landscape; Settings › Keyboard › Layout, holding `123`, or the bar's … menu) puts half of each row under each thumb, as Apple's does: each half five keys from the keyboard's edge, with two keys' room between the hands (12 columns of the same margins and gaps), G and V on both halves, the layer and emoji keys and a space bar on the left, a space bar, the field's own keys and return on the right. Apple's split keys are a fifth narrower, with about four keys' room between the halves, which Bassim found used "barely any" of the screen (Nov 2).
 - Regular iPhones and iPads keep their key geometry, which is measured against Apple's.
 
 ### The compact layout

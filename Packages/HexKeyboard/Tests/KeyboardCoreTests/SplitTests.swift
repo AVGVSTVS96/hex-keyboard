@@ -35,19 +35,24 @@ struct SplitTests {
             let left = row.filter { $0.frame.midX < middle }, right = row.filter { $0.frame.midX > middle }
             #expect(!left.isEmpty && !right.isEmpty)
             let gap = right.map(\.frame.x).min()! - left.map { $0.frame.x + $0.frame.width }.max()!
-            #expect(gap > 100, "the halves meet with a gap between them")
+            #expect(gap > 60, "at least a key's room between the halves")
             let leftEdge = left.map(\.frame.x).min()!, rightEdge = width - right.map { $0.frame.x + $0.frame.width }.max()!
             #expect(abs(leftEdge - rightEdge) < 0.01, "the halves mirror each other")
         }
     }
 
-    @Test func splitKeysAreApplesSize() {
+    /// Bassim found Apple's split, 57 points a key, used "barely any" of the screen: each half is five keys from the
+    /// keyboard's edge with two keys' room between the hands.
+    @Test func theSplitFillsTheKeyboard() {
         let full = KeyboardMetrics.for(.phone, width: Duo.Screen.openLandscape.size.width, height: height)
         let letters = KeyGrid(Layouts.layout(for: LayoutContext(device: .phone, layer: .letters, isLandscape: true, isOpen: true)), width: width, metrics: full.grid, signature: "")
         let split = grid()
         let pitch = split.frame(of: "w")!.x - split.frame(of: "q")!.x
-        #expect(abs(pitch - 57) < 0.01, "Apple's split keys repeat every 57 points, not \(pitch)")
+        #expect(abs(pitch - (width - 2 * full.sideInset + full.keyGap) / 12) < 0.01)
+        #expect(pitch > 57 * 1.15, "well past Apple's 57")
         #expect(split.frame(of: "q")!.width < letters.frame(of: "q")!.width)
+        let between = split.frame(of: "y")!.x - (split.frame(of: "t")!.x + split.frame(of: "t")!.width)
+        #expect(abs(between - (2 * pitch + full.keyGap)) < 0.01, "two keys' room between T and Y")
         let keys = grid().rows.joined()
         #expect(keys.map(\.frame.x).min()! < 10 && keys.map { $0.frame.x + $0.frame.width }.max()! > width - 10,
                 "the halves start at the keyboard's edges, where the full keyboard's keys do")

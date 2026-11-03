@@ -185,11 +185,16 @@ struct LayoutTests {
             (466, 678, [45, 11, 6, 6.5, 25.5]),
             (669, 951, [49.42, 9, 6, 4.5, 28]),
             (678, 466, [33.33, 9, 7, 4.5, 23.5]),
-            (951, 669, [38.67, 13, 10, 9, 28.5]),
+            (951, 669, [41.67, 9, 6, 4.5, 28.5]),
         ]
         for screen in screens {
             let metrics = KeyboardMetrics.for(.phone, width: screen.width, height: screen.height)
             #expect([metrics.keyHeight, metrics.rowGap, metrics.keyGap, metrics.sideInset, metrics.letterSize] == screen.keys, "\(screen.width) × \(screen.height)")
+        }
+        let apple = [(Duo.Screen.openPortrait, 45.67, 14.0), (.openLandscape, 38.67, 13)]
+        for (screen, key, row) in apple {
+            let metrics = KeyboardMetrics.for(.phone, width: screen.size.width, height: screen.size.height)
+            #expect(abs(metrics.height(rows: 4, hasNumberRow: false) - (metrics.topInset + 4 * key + 3 * row + metrics.bottomInset)) < 0.05, "\(screen.name): Apple's keyboard height")
         }
         #expect(KeyboardMetrics.for(.phone, width: 440, height: 956).letterSize == 23, "regular iPhones keep their letters")
     }

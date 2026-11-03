@@ -118,7 +118,10 @@ extension KeyboardMetrics {
     }
 
     /// The iPhone Duo's four screens: Apple's keys and letters measured on each in the iOS 27.1 simulator
-    /// (docs/design.md), across the keyboard's whole width.
+    /// (docs/design.md), across the keyboard's whole width. Open, Apple's keys leave wide margins and gaps (18 in, 9
+    /// apart, rows 14 apart in portrait; 9 in, 10 apart, rows 13 apart in landscape), and Bassim wants the keys "taller
+    /// and wider as much as possible using as much available space as possible", so there they take the margins and
+    /// gaps of the folded Duo in landscape, in Apple's keyboard height.
     static func duo(_ screen: Duo.Screen, style: KeyboardStyle, oneHanded: OneHanded, split: Bool) -> KeyboardMetrics {
         let width = screen.size.width
         var metrics = phone(width: width, style: style)
@@ -148,10 +151,10 @@ extension KeyboardMetrics {
             metrics.symbolSize = 19.5
             metrics.toolbar = .compact(mic: 32)
         case .openLandscape:
-            metrics.sideInset = 9
-            metrics.keyGap = 10
-            metrics.keyHeight = 38.67
-            metrics.rowGap = 13
+            metrics.sideInset = 4.5
+            metrics.keyGap = 6
+            metrics.keyHeight = 41.67
+            metrics.rowGap = 9
             metrics.bottomInset = 4
             metrics.letterSize = 28.5
             metrics.labelSize = 22
@@ -162,9 +165,10 @@ extension KeyboardMetrics {
         return metrics
     }
 
-    /// The split keyboard's width in keys, from Apple's split on the open Duo held wide (iOS 27.1 simulator): iOS gives a
-    /// keyboard 801 of the screen's 951 points there, and Apple's split keys repeat every 57 points.
-    static let splitColumns = (801 - 2 * 9 + 10) / 57.0
+    /// The split keyboard's width in keys: each half five keys from the keyboard's edge, and two keys' room between
+    /// the hands. Apple's keys are a fifth narrower, with about four keys' room between the halves, which Bassim found
+    /// used "barely any" of the screen.
+    static let splitColumns = 12.0
 
     static let compactPad = KeyboardMetrics(
         columns: 11.2, sideInset: 6, keyGap: 12, rowGap: 9,
