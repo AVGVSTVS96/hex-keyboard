@@ -26,7 +26,7 @@ import UIKit
         var detail: String {
             switch self {
             case .v3: "Fast and accurate. Downloads once, about 500 MB."
-            case .ultra: "A little more accurate. Takes minutes to get ready, and warms the iPhone, each time Hex opens."
+            case .ultra: "A little more accurate. Takes minutes to get ready, and warms the iPhone, each time iikb opens."
             case .apple: "Built into iOS."
             }
         }

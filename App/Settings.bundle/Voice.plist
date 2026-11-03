@@ -72,7 +72,7 @@
 		</dict>
 		<dict>
 			<key>FooterText</key>
-			<string>After you dictate, Hex keeps the mic on this long, so the mic beside the suggestions starts and stops dictating without leaving your app. Hold it to turn the mic off. Nothing is recorded until you tap it. Pick the voice model in the Hex app.</string>
+			<string>After you dictate, iikb keeps the mic on this long, so the mic beside the suggestions starts and stops dictating without leaving your app. Hold it to turn the mic off. Nothing is recorded until you tap it. Pick the voice model in the iikb app.</string>
 			<key>Type</key>
 			<string>PSGroupSpecifier</string>
 		</dict>

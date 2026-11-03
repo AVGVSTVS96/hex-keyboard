@@ -241,7 +241,7 @@ extension KeyboardEvent {
         case .pick(.left): "Left"
         case .pick(.right): "Right"
         case .split(true): "Split"
-        case .settings: "Hex Settings"
+        case .settings: "iikb Settings"
         case .nextKeyboard: "Next Keyboard"
         default: "Full"
         }

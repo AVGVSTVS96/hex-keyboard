@@ -183,7 +183,7 @@ struct ClipboardPage: View {
         } description: {
             Text(store.started
                 ? "Everything you copy shows up here and in the keyboard’s clipboard, kept on this iPhone."
-                : "Open Hex keyboard in any app, and what it has kept of what you copy shows up here.")
+                : "Type with iikb in any app, and what it keeps of what you copy shows up here.")
         }
     }
 }

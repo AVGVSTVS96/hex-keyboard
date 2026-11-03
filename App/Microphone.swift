@@ -103,7 +103,7 @@ import KeyboardUI
 
 nonisolated private struct Unrecordable: LocalizedError {
     let format: String
-    var errorDescription: String? { "Hex can't record from this microphone (\(format))." }
+    var errorDescription: String? { "iikb can't record from this microphone (\(format))." }
 }
 
 /// Where the microphone's buffers go: into the `Recording` while one is being made, nowhere while the microphone is

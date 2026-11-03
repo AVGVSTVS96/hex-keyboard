@@ -11,7 +11,7 @@ struct SettingsPage: View {
         static let sections: [(title: String, pages: [Page])] = [
             ("Keyboard", [.theme, .layout, .typing, .feedback]),
             ("Voice Typing", [.model, .writing, .dictionary, .mic]),
-            ("Hex", [.sources, .access, .privacy, .about]),
+            ("iikb", [.sources, .access, .privacy, .about]),
         ]
 
         var title: String {
@@ -27,7 +27,7 @@ struct SettingsPage: View {
             case .sources: "Sources"
             case .access: "Keyboard Access"
             case .privacy: "Privacy & Data"
-            case .about: "About Hex"
+            case .about: "About iikb"
             }
         }
 

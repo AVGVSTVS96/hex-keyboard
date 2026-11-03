@@ -8,7 +8,7 @@ final class OneHandedTests: XCTestCase {
         app = XCUIApplication()
         app.launchArguments = ["-HexFocus", "YES", "-HexOneHanded", "off", "-HexOrientation", "portrait"]
         app.launch()
-        XCTAssertTrue(key("space").waitForExistence(timeout: 10), "Hex keyboard is not the active keyboard")
+        XCTAssertTrue(key("space").waitForExistence(timeout: 10), "iikb is not the active keyboard")
     }
 
     private var field: XCUIElement { app.textViews.firstMatch }

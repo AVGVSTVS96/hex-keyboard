@@ -12,7 +12,7 @@ final class VoiceTests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["-HexFocus", "YES", "-HexOrientation", "portrait", "-HexOneHanded", "off"]
         app.launch()
-        XCTAssertTrue(key("space", in: app).waitForExistence(timeout: 10), "Hex keyboard is not the active keyboard")
+        XCTAssertTrue(key("space", in: app).waitForExistence(timeout: 10), "iikb is not the active keyboard")
         for letter in "pizza" { key(String(letter), in: app).tap() }
 
         let mic = app.buttons["hex.mic"]

@@ -15,7 +15,7 @@ final class FirstTapTests: XCTestCase {
         for attempt in 0..<4 {
             app.launch()
             let key = app.keys["hex.q"]
-            XCTAssertTrue(key.waitForExistence(timeout: 10), "Hex keyboard is not the active keyboard")
+            XCTAssertTrue(key.waitForExistence(timeout: 10), "iikb is not the active keyboard")
             try tap(at: CGPoint(x: key.frame.midX, y: key.frame.midY))
             XCTAssertEqual(settled(), "Q", "attempt \(attempt)")
             app.terminate()
@@ -25,7 +25,7 @@ final class FirstTapTests: XCTestCase {
     func testTapsBetweenKeysType() throws {
         app.launch()
         let q = app.keys["hex.q"], w = app.keys["hex.w"], a = app.keys["hex.a"], b = app.keys["hex.b"], space = app.keys["hex.space"]
-        XCTAssertTrue(q.waitForExistence(timeout: 10), "Hex keyboard is not the active keyboard")
+        XCTAssertTrue(q.waitForExistence(timeout: 10), "iikb is not the active keyboard")
         let points = [
             ("between q and w", CGPoint(x: (q.frame.maxX + w.frame.minX) / 2, y: q.frame.midY)),
             ("just above q", CGPoint(x: q.frame.midX, y: q.frame.minY - 3)),

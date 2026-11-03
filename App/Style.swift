@@ -17,6 +17,25 @@ enum HexStyle {
 
     static let cardRadius: CGFloat = 22
 
+    /// Helvetica Neue, iikb's display face (brand/BRAND.md), for titles and big numbers; everything else is the system font.
+    static func display(_ size: CGFloat, weight: UIFont.Weight = .bold) -> UIFont {
+        let name = switch weight {
+        case .bold, .heavy, .black, .semibold: "HelveticaNeue-Bold"
+        case .medium: "HelveticaNeue-Medium"
+        case .light, .thin, .ultraLight: "HelveticaNeue-Light"
+        default: "HelveticaNeue"
+        }
+        return UIFont(name: name, size: size) ?? .systemFont(ofSize: size, weight: weight)
+    }
+
+    /// Page titles in the display face, tracked tight as the wordmark is.
+    static func applyTitles() {
+        let large = display(34)
+        let inline = display(17)
+        UINavigationBar.appearance().largeTitleTextAttributes = [.font: large, .kern: -0.02 * large.pointSize]
+        UINavigationBar.appearance().titleTextAttributes = [.font: inline]
+    }
+
     private static func rgb(_ red: Int, _ green: Int, _ blue: Int) -> UIColor {
         UIColor(red: CGFloat(red) / 255, green: CGFloat(green) / 255, blue: CGFloat(blue) / 255, alpha: 1)
     }
@@ -35,6 +54,10 @@ enum HexStyle {
 
 private extension UITraitCollection {
     var isDark: Bool { userInterfaceStyle == .dark }
+}
+
+extension Font {
+    static func display(_ size: CGFloat, weight: UIFont.Weight = .bold) -> Font { Font(HexStyle.display(size, weight: weight)) }
 }
 
 extension Color {
@@ -107,7 +130,7 @@ struct Glyph: View {
         UIApplication.shared.open(URL(string: UIApplication.openSettingsURLString)!)
     }
 
-    /// Settings › General › Keyboard › Text Replacement, by Settings' own link for it, or Hex's page in Settings when
+    /// Settings › General › Keyboard › Text Replacement, by Settings' own link for it, or iikb's page in Settings when
     /// iOS won't open that.
     static func openTextReplacements() {
         UIApplication.shared.open(URL(string: "App-prefs:General&path=Keyboard/USER_DICTIONARY")!) { opened in
@@ -116,34 +139,19 @@ struct Glyph: View {
     }
 }
 
-/// The app icon's mark, drawn: a hexagon around five keys, white on near-black in light and dark.
-struct HexMark: View {
+/// The app icon's mark, drawn: iikb flush left on the bottom margin of a black square, as brand/logo/gen.mjs draws it.
+struct Mark: View {
     var size: CGFloat
 
     var body: some View {
-        Canvas { context, size in
-            let side = size.width
-            let center = CGPoint(x: size.width / 2, y: size.height / 2)
-            var hexagon = Path()
-            for corner in 0 ..< 6 {
-                let angle = CGFloat(corner) * .pi / 3 - .pi / 2
-                let point = CGPoint(x: center.x + side * 0.31 * cos(angle), y: center.y + side * 0.31 * sin(angle))
-                corner == 0 ? hexagon.move(to: point) : hexagon.addLine(to: point)
-            }
-            hexagon.closeSubpath()
-            context.stroke(hexagon, with: .color(.white), style: StrokeStyle(lineWidth: side * 0.055, lineJoin: .round))
-            let key = side * 0.052, gap = side * 0.082
-            for (row, count) in [3, 2].enumerated() {
-                for column in 0 ..< count {
-                    let x = center.x + (CGFloat(column) - CGFloat(count - 1) / 2) * gap - key / 2
-                    let y = center.y + (CGFloat(row) - 0.5) * gap - key / 2
-                    context.fill(Path(roundedRect: CGRect(x: x, y: y, width: key, height: key), cornerRadius: key * 0.22), with: .color(.white))
-                }
-            }
-        }
-        .frame(width: size, height: size)
-        .background(Color(white: 0.07), in: .rect(cornerRadius: size * 0.225, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: size * 0.225, style: .continuous).strokeBorder(.white.opacity(0.12), lineWidth: 0.5))
-        .accessibilityHidden(true)
+        Text("iikb")
+            .font(.display(size * 0.37, weight: .bold))
+            .tracking(-0.045 * size * 0.37)
+            .foregroundStyle(.white)
+            .padding(size * 0.13)
+            .frame(width: size, height: size, alignment: .bottomLeading)
+            .background(.black, in: .rect(cornerRadius: size * 0.225, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: size * 0.225, style: .continuous).strokeBorder(.white.opacity(0.12), lineWidth: 0.5))
+            .accessibilityHidden(true)
     }
 }

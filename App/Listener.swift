@@ -166,7 +166,7 @@ import UIKit
 
         var description: String {
             switch self {
-            case .microphone: "Hex needs the microphone. Turn it on in Settings › Apps › Hex."
+            case .microphone: "iikb needs the microphone. Turn it on in Settings › Apps › iikb."
             }
         }
     }

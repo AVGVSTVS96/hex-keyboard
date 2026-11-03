@@ -49,7 +49,7 @@ struct VocabularyView: View {
                     store.set(terms)
                 }
             } footer: {
-                Text("Hex types each word as you spell it here, in place of what the voice model wrote instead, or of the word with other spaces, hyphens or capitals. Only whole words change, and nothing that isn’t listed.")
+                Text("iikb types each word as you spell it here, in place of what the voice model wrote, or of the same word with other spaces, hyphens or capitals. Only whole words change.")
             }
             .listRowBackground(Color.hexCard)
         }

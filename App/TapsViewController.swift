@@ -126,10 +126,10 @@ final class TapsViewController: UIViewController {
         empty.image = UIImage(systemName: "hand.tap")
         empty.text = "No Taps Yet"
         guard !HexStatus.shared.fullAccess else {
-            empty.secondaryText = "Type with Hex anywhere, and your taps show up here each time the keyboard closes."
+            empty.secondaryText = "Type with iikb anywhere, and your taps show up here each time the keyboard closes."
             return empty
         }
-        empty.secondaryText = "Type with Hex anywhere, and your taps show up here each time the keyboard closes. Hex needs Allow Full Access to share them with this app."
+        empty.secondaryText = "Type with iikb anywhere, and your taps show up here each time the keyboard closes. iikb needs Allow Full Access to share them with this app."
         var button = UIButton.Configuration.borderedProminent()
         button.title = "Allow Full Access"
         button.cornerStyle = .capsule
@@ -327,7 +327,7 @@ final class TapsViewController: UIViewController {
         case (.aim, _):
             "Each dot is one of your recent taps. The ring holds half of all your taps for that key, and the line runs from the key’s center to where you really aim."
         case (.accuracy, nil):
-            "How often a tap lands on the key you meant, judged by where it lands alone, before Hex looks at the word. Tap a key to see where its taps go."
+            "How often a tap lands on the key you meant, judged by where it lands alone, before iikb looks at the word. Tap a key to see where its taps go."
         case (.accuracy, let aim?):
             "Where your taps for “\(TapMapPalette.name(of: aim.key))” land. Tap it again to go back."
         }

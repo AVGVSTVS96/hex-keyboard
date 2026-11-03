@@ -392,7 +392,7 @@ open class HexKeyboardViewController: UIInputViewController {
     /// the microphone and iOS starts a recording only in an app in front.
     private func toggleVoice() {
         guard hasFullAccess else {
-            dictation = Dictation.Status(failure: "Voice needs Allow Full Access in Settings › Apps › Hex › Keyboards")
+            dictation = Dictation.Status(failure: "Voice needs Allow Full Access in Settings › Apps › iikb › Keyboards")
             return render()
         }
         if dictation.listening { return Dictation.send(.finish) }

@@ -11,7 +11,7 @@ struct RecordingSection: View {
     var body: some View {
         let kept = Transcripts.shared.hasRecording(transcript.id)
         if kept || transcript.mic != nil {
-            Box(footer: kept ? "Hex keeps the sound of each dictation on this iPhone, so it can be written again with \(VoiceModel.shared.model.title)." : nil) {
+            Box(footer: kept ? "iikb keeps the sound of each dictation on this iPhone, so it can be written again with \(VoiceModel.shared.model.title)." : nil) {
                 if let mic = transcript.mic { Fact(title: "Microphone", value: mic) }
                 if kept {
                     ActionRow(title: writing ? VoiceModel.shared.state == .ready ? "Transcribing Again…" : "Transcribing Again once \(VoiceModel.shared.model.title) is ready…" : "Transcribe Again", symbol: "arrow.clockwise") { Task { await write() } }

@@ -25,7 +25,7 @@ struct SourcesPage: View {
                     }
                 }
             }
-            Box(footer: "A source is a service you run that Hex tells what you type. With Full Access on, each one gets the text of the field you’re typing in, never passwords or codes, and can answer with a hint above the keys. Tap a hint to hide it.") {
+            Box(footer: "A source is a service you run that iikb tells what you type. With Full Access on, each one gets the text of the field you’re typing in, never passwords or codes, and can answer with a hint above the keys. Tap a hint to hide it.") {
                 ActionRow(title: "Add Source", symbol: "plus") { adding = true }
             }
         }
@@ -69,7 +69,7 @@ private struct SourceForm: View {
     var body: some View {
         NavigationStack {
             Column {
-                Box(footer: problem ?? "Hex sends the token with each update, so the source can tell it’s you.") {
+                Box(footer: problem ?? "iikb sends the token with each update, so the source can tell it’s you.") {
                     TextField("Name", text: $name)
                         .textInputAutocapitalization(.words)
                         .row()
@@ -114,7 +114,7 @@ struct SetupSteps: View {
     private let status = HexStatus.shared
 
     var body: some View {
-        SetupStep(done: status.isAdded, title: "Add Hex", detail: status.isAdded ? "Hex is one of your keyboards." : "Turn on Keyboards › Hex.")
+        SetupStep(done: status.isAdded, title: "Add iikb", detail: status.isAdded ? "iikb is one of your keyboards." : "Turn on Keyboards › iikb.")
         SetupStep(done: status.fullAccess, title: "Allow Full Access", detail: "For voice typing, haptics, GIFs, the clipboard, sources and your taps.")
         SetupStep(done: status.pasteAllowed, title: "Paste from Other Apps", detail: "Set it to Allow, so the clipboard keeps what you copy.")
     }
@@ -148,11 +148,11 @@ private struct SetupStep: View {
 struct SetupPage: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 28) {
-            Box(footer: "iOS keeps these in Settings › Apps › Hex. Hex checks each one off once the keyboard has seen it on; if you turn one off later, Hex can’t tell.") {
+            Box(footer: "iOS keeps these in Settings › Apps › iikb. iikb checks each one off once the keyboard has seen it on; if you turn one off later, iikb can’t tell.") {
                 SetupSteps()
             }
             Box {
-                ActionRow(title: "Open Hex in Settings", symbol: "arrow.up.forward") { HexStatus.openSettings() }
+                ActionRow(title: "Open iikb in Settings", symbol: "arrow.up.forward") { HexStatus.openSettings() }
             }
         }
     }
@@ -167,9 +167,9 @@ struct PrivacyPage: View {
         VStack(alignment: .leading, spacing: 28) {
             Box(header: "What Leaves This iPhone") {
                 Label("What you type, say and copy stays here.", systemImage: "iphone").row()
-                Label("Hex goes online only to download its voice model once, search GIFs, and reach the sources you add.", systemImage: "network").row()
+                Label("iikb goes online only to download its voice model once, search GIFs, and reach the sources you add.", systemImage: "network").row()
             }
-            Box(footer: "Hex forgets the words it learned from your typing and where your thumbs land on each key. Your Dictionary stays.") {
+            Box(footer: "iikb forgets the words it learned from your typing and where your thumbs land on each key. Your Dictionary stays.") {
                 ActionRow(title: "Reset Learned Words and Taps", role: .destructive) { confirmsReset = true }
             }
             Box(footer: transcripts.all.isEmpty ? "You haven’t dictated anything yet." : "Deletes all \(transcripts.all.count.formatted()) dictations and their sound from this iPhone.") {
@@ -177,7 +177,7 @@ struct PrivacyPage: View {
                     .disabled(transcripts.all.isEmpty)
             }
         }
-        .confirmationDialog("Hex will forget the words it learned and everything it learned about your taps.", isPresented: $confirmsReset, titleVisibility: .visible) {
+        .confirmationDialog("iikb will forget the words it learned and everything it learned about your taps.", isPresented: $confirmsReset, titleVisibility: .visible) {
             Button("Reset", role: .destructive) { MemoryStore.reset() }
         }
         .confirmationDialog("Delete all \(transcripts.all.count) transcripts from this iPhone?", isPresented: $confirmsDelete, titleVisibility: .visible) {
@@ -190,15 +190,15 @@ struct AboutPage: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 28) {
             HStack(spacing: 16) {
-                HexMark(size: 64)
+                Mark(size: 64)
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("Hex Keyboard").font(.title2.weight(.semibold))
+                    Text("iikb").font(.display(28)).tracking(-0.045 * 28)
                     Text(Self.version).foregroundStyle(Color.hexSecondary)
                 }
             }
             .padding(.horizontal, 4)
-            Box(footer: "Hex types like Apple’s keyboard and learns where your thumbs land. It’s open source, under the MIT license.") {
-                Link(destination: URL(string: "https://github.com/AVGVSTVS96/hex-keyboard")!) {
+            Box(footer: "iikb types like Apple’s keyboard and learns where your thumbs land. It’s open source, under the MIT license.") {
+                Link(destination: URL(string: "https://github.com/AVGVSTVS96/iikb")!) {
                     HStack {
                         Text("Source Code").foregroundStyle(.primary)
                         Spacer()

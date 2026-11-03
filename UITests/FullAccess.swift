@@ -40,7 +40,7 @@ extension XCTestCase {
         if !paste.waitForExistence(timeout: 20) {
             settings.terminate()
             settings.launch()
-            path = ["Apps", "Hex"] + path
+            path = ["Apps", "iikb"] + path
         }
         for label in path {
             let row = settings.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH %@", label)).firstMatch

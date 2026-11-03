@@ -9,7 +9,7 @@ final class PanelTests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["-HexFocus", "YES", "-HexOrientation", orientation, "-HexOneHanded", "off", "-HexCompactPanels", compactSetting ? "YES" : "NO"]
         app.launch()
-        XCTAssertTrue(key("space", in: app).waitForExistence(timeout: 30), "Hex keyboard is not the active keyboard")
+        XCTAssertTrue(key("space", in: app).waitForExistence(timeout: 30), "iikb is not the active keyboard")
         for letter in "coffee at" { key(letter == " " ? "space" : String(letter), in: app).tap() }
         try shot(shots, "main")
 
@@ -75,7 +75,7 @@ final class PanelTests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["-HexFocus", "YES", "-HexOrientation", "portrait", "-HexOneHanded", "off"]
         app.launch()
-        XCTAssertTrue(key("space", in: app).waitForExistence(timeout: 30), "Hex keyboard is not the active keyboard")
+        XCTAssertTrue(key("space", in: app).waitForExistence(timeout: 30), "iikb is not the active keyboard")
         for letter in text { key(letter == " " ? "space" : String(letter), in: app).tap() }
         return app
     }

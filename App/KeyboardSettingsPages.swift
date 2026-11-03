@@ -35,7 +35,7 @@ struct TryPreview: View {
     var body: some View {
         VStack(spacing: 14) {
             if trying {
-                TextField("Type to try Hex", text: $text, axis: .vertical)
+                TextField("Type to try iikb", text: $text, axis: .vertical)
                     .font(.title3)
                     .focused($focused)
                     .lineLimit(3 ... 6)
@@ -171,7 +171,7 @@ struct ThemeSettings: View {
 
     static func detail(of theme: ThemeName) -> String {
         switch theme {
-        case .standard: "Hex’s own keys, flat, as iOS 27 draws them."
+        case .standard: "iikb’s own keys, flat, as iOS 27 draws them."
         case .clear: "Only the letters, no keys around them."
         case .physical: "Solid keys, dark or light."
         case .mechanical: "Raised keycaps you can almost press."
@@ -209,7 +209,7 @@ struct TypingSettings: View {
         Box(header: "Text Replacements") {
             Button { HexStatus.openTextReplacements() } label: {
                 HStack {
-                    RowText(title: "From iOS Settings", detail: "Hex types the ones in Settings › General › Keyboard › Text Replacement.")
+                    RowText(title: "From iOS Settings", detail: "iikb types the ones in Settings › General › Keyboard › Text Replacement.")
                     Image(systemName: "arrow.up.forward")
                         .font(.footnote.weight(.semibold))
                         .foregroundStyle(Color.hexSecondary)

@@ -250,8 +250,7 @@ struct Tile: View {
             VStack(alignment: .leading, spacing: 2) {
                 if let value {
                     Text(value)
-                        .font(.title2.weight(.semibold))
-                        .monospacedDigit()
+                        .font(.display(28))
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
                 }

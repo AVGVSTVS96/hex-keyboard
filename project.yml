@@ -43,7 +43,7 @@ targets:
     info:
       path: App/Info.plist
       properties:
-        CFBundleDisplayName: Hex
+        CFBundleDisplayName: iikb
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         UILaunchScreen: {}
@@ -51,7 +51,7 @@ targets:
         CFBundleURLTypes:
           - CFBundleURLName: com.shahidy.hexkeyboard
             CFBundleURLSchemes: [hexkeyboard]
-        NSMicrophoneUsageDescription: Hex listens when you pick Voice on the keyboard, and turns what you say into text on your iPhone.
+        NSMicrophoneUsageDescription: iikb listens when you tap the mic on the keyboard, and turns what you say into text on your iPhone.
         UIBackgroundModes: [audio]
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
         UISupportedInterfaceOrientations~ipad: [UIInterfaceOrientationPortrait, UIInterfaceOrientationPortraitUpsideDown, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
@@ -76,7 +76,7 @@ targets:
     info:
       path: Keyboard/Info.plist
       properties:
-        CFBundleDisplayName: Hex
+        CFBundleDisplayName: iikb
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         NSAppTransportSecurity:

@@ -88,7 +88,7 @@ struct MicSettings: View {
     private let model = SettingsModel.shared
 
     var body: some View {
-        Box(footer: "After you dictate, Hex keeps the mic on this long, so the mic beside the suggestions starts and stops without leaving your app. Hold it to turn the mic off.") {
+        Box(footer: "After you dictate, iikb keeps the mic on this long, so the mic beside the suggestions starts and stops without leaving your app. Hold it to turn the mic off.") {
             ForEach(Dictation.micChoices, id: \.self) { seconds in
                 ChoiceRow(title: Dictation.title(keepingMicOn: seconds), picked: model.keepMicOn == seconds) { model.keepMicOn(seconds) }
             }

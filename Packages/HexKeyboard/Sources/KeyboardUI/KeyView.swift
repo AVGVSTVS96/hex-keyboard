@@ -103,7 +103,8 @@ final class KeyView: UIView {
         accessibilityIdentifier = if case .character(let value) = key.action { "hex.\(value)" } else { "hex.\(accessibilityName)" }
         secondaryLabel.text = shown.secondary
         cornerLabel.text = shown.corner
-        cornerLabel.font = .systemFont(ofSize: metrics.secondarySize * labelScale, weight: .regular)
+        let corner = (metrics.secondarySize + 1.5) * labelScale
+        cornerLabel.font = UIFont(name: "HelveticaNeue-Bold", size: corner) ?? .systemFont(ofSize: corner, weight: .bold)
         if shown.secondary != nil, !shown.secondaryIsDimmed {
             label.font = .systemFont(ofSize: metrics.pairSize, weight: .regular)
             secondaryLabel.font = label.font

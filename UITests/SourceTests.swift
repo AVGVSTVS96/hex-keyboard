@@ -24,7 +24,7 @@ final class SourceTests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["-HexFocus", "YES", "-HexOrientation", "portrait"]
         app.launch()
-        XCTAssertTrue(key("space", in: app).waitForExistence(timeout: 10), "Hex keyboard is not the active keyboard")
+        XCTAssertTrue(key("space", in: app).waitForExistence(timeout: 10), "iikb is not the active keyboard")
         type("i hate", in: app)
         let hint = app.descendants(matching: .any).matching(identifier: "hex.notice").firstMatch
         XCTAssertTrue(wait { hint.exists && hint.label == "Careful" }, "the source's hint stands in for the suggestions")

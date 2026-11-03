@@ -8,7 +8,7 @@
 	<array>
 		<dict>
 			<key>FooterText</key>
-			<string>The same settings are in the Hex app, which also picks the voice model, keeps your dictionary and adds sources.</string>
+			<string>The same settings are in the iikb app, which also picks the voice model, keeps your dictionary and adds sources.</string>
 			<key>Type</key>
 			<string>PSGroupSpecifier</string>
 		</dict>

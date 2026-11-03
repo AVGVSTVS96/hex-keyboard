@@ -17,7 +17,7 @@ final class SettingsAppTests: XCTestCase {
         let apps = settings.buttons["Apps"].firstMatch
         while !apps.isHittable { settings.swipeUp() }
         apps.tap()
-        let entry = settings.buttons["Hex"].firstMatch
+        let entry = settings.buttons["iikb"].firstMatch
         while !entry.isHittable { settings.swipeUp() }
         entry.tap()
         open("Layout", in: settings)
@@ -59,7 +59,7 @@ final class SettingsAppTests: XCTestCase {
         let apps = settings.buttons["Apps"].firstMatch
         while !apps.isHittable { settings.swipeUp() }
         apps.tap()
-        let entry = settings.buttons["Hex"].firstMatch
+        let entry = settings.buttons["iikb"].firstMatch
         while !entry.isHittable { settings.swipeUp() }
         entry.tap()
         open("Voice Typing", in: settings)

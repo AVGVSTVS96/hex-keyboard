@@ -11,7 +11,7 @@ final class SuggestionTests: XCTestCase {
 
     private func launch() {
         app.launch()
-        XCTAssertTrue(key("space").waitForExistence(timeout: 10), "Hex keyboard is not the active keyboard")
+        XCTAssertTrue(key("space").waitForExistence(timeout: 10), "iikb is not the active keyboard")
     }
 
     private var field: XCUIElement { app.textViews.firstMatch }
@@ -59,7 +59,7 @@ final class SuggestionTests: XCTestCase {
         XCTAssertTrue(toggle.waitForExistence(timeout: 5))
         toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5)).tap()
         XCTAssertEqual(toggle.value as? String, "0")
-        app.tabBars.buttons["Hex"].tap()
+        app.tabBars.buttons["iikb"].tap()
         field.tap()
         XCTAssertTrue(key("space").waitForExistence(timeout: 10))
         type("helo ")

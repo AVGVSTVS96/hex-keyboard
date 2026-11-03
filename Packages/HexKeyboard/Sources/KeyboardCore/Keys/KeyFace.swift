@@ -57,7 +57,7 @@ extension KeyFace {
             secondaryIsDimmed = !key.isPair
         case .space:
             self.init(content: .none)
-            corner = "hex"
+            corner = "iikb"
         case .delete:
             self.init(content: .symbol("delete.left"), alignment: edge)
         case .shift:

@@ -14,7 +14,7 @@ final class HomeViewController: UIHostingController<AnyView> {
         self.field = field
         self.state = state
         super.init(rootView: AnyView(NavigationStack { HomeView(state: state, field: field) }.readsWindow()))
-        title = "Hex"
+        title = "iikb"
     }
 
     required init?(coder: NSCoder) { fatalError() }
@@ -26,7 +26,7 @@ final class HomeViewController: UIHostingController<AnyView> {
         field.adjustsFontForContentSizeCategory = true
         field.backgroundColor = .clear
         field.textContainerInset = UIEdgeInsets(top: 16, left: 14, bottom: 16, right: 14)
-        field.accessibilityLabel = "Try Hex"
+        field.accessibilityLabel = "Try iikb"
         LaunchOptions.configure(field)
         state.typed = !field.text.isEmpty
         NotificationCenter.default.addObserver(self, selector: #selector(refresh), name: UIApplication.didBecomeActiveNotification, object: nil)
@@ -106,7 +106,7 @@ struct HomeView: View {
             }
         }
         .hexPage()
-        .navigationTitle("Hex")
+        .navigationTitle("iikb")
         .navigationSubtitle(status.summary)
         .toolbarTitleDisplayMode(.inlineLarge)
         .toolbar {
@@ -123,7 +123,7 @@ struct HomeView: View {
         TryField(view: field)
             .overlay(alignment: .topLeading) {
                 if !state.typed {
-                    Text("Type something with Hex")
+                    Text("Type something with iikb")
                         .font(.title3)
                         .foregroundStyle(Color.hexSecondary)
                         .padding(.horizontal, 19)

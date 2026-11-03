@@ -17,7 +17,7 @@ final class FastTypingTests: XCTestCase {
         app = XCUIApplication()
         app.launchArguments = ["-HexFocus", "YES", "-HexResetSettings", "YES"]
         app.launch()
-        XCTAssertTrue(app.keys["hex.space"].waitForExistence(timeout: 10), "Hex keyboard is not the active keyboard")
+        XCTAssertTrue(app.keys["hex.space"].waitForExistence(timeout: 10), "iikb is not the active keyboard")
     }
 
     func test200WordsPerMinuteSustained() throws {

@@ -50,7 +50,7 @@ final class ToolPanelTests: XCTestCase {
         let field = messages.textFields["messageBodyField"]
         XCTAssertTrue(field.waitForExistence(timeout: 10), "the conversation has a message field")
         field.tap()
-        XCTAssertTrue(key("space", in: messages).waitForExistence(timeout: 20), "Hex keyboard is not the active keyboard")
+        XCTAssertTrue(key("space", in: messages).waitForExistence(timeout: 20), "iikb is not the active keyboard")
         messages.buttons["hex.tool.gif"].tap()
         let tile = messages.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH 'hex.gif.'"))
         XCTAssertTrue(tile.firstMatch.waitForExistence(timeout: 15), "an empty search shows KLIPY's trending GIFs")
@@ -118,7 +118,7 @@ final class ToolPanelTests: XCTestCase {
             app.terminate()
             app.launch()
         }
-        XCTAssertTrue(key("space", in: app).waitForExistence(timeout: 30), "Hex keyboard is not the active keyboard")
+        XCTAssertTrue(key("space", in: app).waitForExistence(timeout: 30), "iikb is not the active keyboard")
         return app
     }
 

@@ -35,9 +35,10 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         LaunchOptions.resetSettingsIfAsked()
         LaunchOptions.applySettings()
         LaunchOptions.applyLook()
+        HexStyle.applyTitles()
         VoiceProbe.runIfAsked()
         let tabs = UITabBarController(tabs: [
-            UITab(title: "Hex", image: UIImage(systemName: "house"), identifier: Router.Destination.home.rawValue) { _ in HomeViewController() },
+            UITab(title: "iikb", image: UIImage(systemName: "house"), identifier: Router.Destination.home.rawValue) { _ in HomeViewController() },
             UITab(title: "Transcripts", image: UIImage(systemName: "waveform"), identifier: Router.Destination.transcripts.rawValue) { _ in
                 Self.hosting(TranscriptsPage())
             },
@@ -105,7 +106,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     private func offer(_ source: Source) {
         let alert = UIAlertController(
             title: "Add “\(source.name)”?",
-            message: "With Allow Full Access on, Hex will send \(source.url.host() ?? "it") the text of the field you’re typing in, except passwords and codes, and show the hints it answers with above the keys.",
+            message: "With Allow Full Access on, iikb will send \(source.url.host() ?? "it") the text of the field you’re typing in, except passwords and codes, and show the hints it answers with above the keys.",
             preferredStyle: .alert
         )
         alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
