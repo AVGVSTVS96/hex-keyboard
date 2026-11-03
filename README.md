@@ -45,10 +45,7 @@ The Hex app shows what it learned: a heat map of where your thumbs press, where 
 
 Tap the mic beside the suggestions. iOS doesn't let keyboards use the microphone, so the first time Hex opens its app to start listening, then goes back to your app while you keep talking. The app can then keep the mic on for as long as you pick, and while it's on, the mic starts and stops dictating right there, in any app; hold it to turn the mic off. What you say is turned into text on the iPhone by the voice model you pick in Hex's settings: NVIDIA's [Parakeet v3](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3) (the default) or moondream's [Parakeet Ultra](https://huggingface.co/moondream/parakeet-ultra), run on the Neural Engine by [FluidAudio](https://github.com/FluidInference/FluidAudio), or Apple's own. The app downloads a Parakeet once (about 500 MB) and uses Apple's model until it's ready; each transcript says which model wrote it. Every transcript is saved in the Hex app.
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/voice-dark.png">
-  <img alt="The suggestion bar while dictating: pizza emoji beside a red mic" src="docs/voice-light.png" width="400">
-</picture>
+<img alt="The bar while dictating: the time and a waveform in place of the suggestions, and a red stop button" src="docs/voice.png" width="400">
 
 ## Emoji
 
