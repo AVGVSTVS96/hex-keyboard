@@ -59,8 +59,10 @@ struct BarLayoutTests {
                 let keysSide = screen.window + inset - (screen.window - metrics.margin.trailing - metrics.sideInset)
                 #expect(near(toSide, max(toKeys, keysSide)), "\(label): \(toSide) from the side, \(toKeys) from the keys")
                 #expect(near(layout.mic.y - metrics.toolbar.top, metrics.toolbar.top + metrics.toolbar.bar - layout.mic.y - layout.mic.height), "\(label): centered in the bar")
-                if let first = layout.tools.first, screen.oneHanded == .off {
-                    #expect(near(first.x + inset, toSide), "\(label): the first tool mirrors the mic")
+                if let leftmost = layout.more ?? layout.tools.first, screen.oneHanded == .off {
+                    #expect(near(leftmost.x + inset, toSide), "\(label): what sits leftmost mirrors the mic")
+                }
+                if let first = layout.tools.first {
                     #expect(first.y == layout.mic.y && first.width == layout.mic.width, "\(label): tools are the mic's size")
                 }
             }
