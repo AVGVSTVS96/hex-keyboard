@@ -257,12 +257,12 @@ private struct TapSummary {
             .sorted { $0.share > $1.share }
     }
 
-    static func describe(_ drift: (x: Double, y: Double)) -> String {
+    static func describe(_ drift: (x: Double, y: Double), separator: String = ", ") -> String {
         let parts = [
             abs(drift.x) >= 0.5 ? String(format: "%.1f pt %@", abs(drift.x), drift.x < 0 ? "left" : "right") : nil,
             abs(drift.y) >= 0.5 ? String(format: "%.1f pt %@", abs(drift.y), drift.y < 0 ? "high" : "low") : nil,
         ].compactMap { $0 }
-        return parts.isEmpty ? "On center" : parts.joined(separator: ", ")
+        return parts.isEmpty ? "On center" : parts.joined(separator: separator)
     }
 }
 
@@ -708,9 +708,11 @@ private struct Thumbs: View {
                     VStack(alignment: .leading, spacing: 10) {
                         Target(drift: targets[index].drift, reach: reach)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(TapSummary.describe(targets[index].drift))
+                            Text(TapSummary.describe(targets[index].drift, separator: "\n"))
                                 .font(.subheadline.weight(.medium))
                                 .monospacedDigit()
+                                .lineLimit(2)
+                                .minimumScaleFactor(0.8)
                             Text(targets[index].name)
                                 .font(.footnote)
                                 .foregroundStyle(Color.hexSecondary)
