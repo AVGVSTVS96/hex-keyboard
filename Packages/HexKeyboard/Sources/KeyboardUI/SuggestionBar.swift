@@ -296,7 +296,8 @@ final class MicButton: UIControl {
 /// The suggestions' place while the app listens: the time so far, then bars that trace your voice, newest on the
 /// right, each as bright as it was loud, the older ones fading out to the left. Both move only as the app publishes a
 /// level, never on a timer of the keyboard's own. Dictations recorded while the model gets ready are saved: while you
-/// talk the bar counts them at its right, and once you stop each shows its length beside what the model is doing.
+/// talk the bar counts them at its right, and once you stop each shows its length beside what the model is doing,
+/// until the model is ready and each chip leaves as its dictation is typed, oldest first.
 private final class Waveform: UIView {
     private let time = UILabel()
     private let track = UIView()
@@ -339,23 +340,34 @@ private final class Waveform: UIView {
         self.since = since
         self.theme = theme
         let waits = waitingFor != nil && !lengths.isEmpty
-        waiting = phase == .writing && waits
+        let shown = waiting
+        waiting = phase == .writing && !lengths.isEmpty && (waits || waiting)
         words.isHidden = !waits
         words.text = waiting ? waitingFor : "\(lengths.count) saved"
         words.textColor = theme.candidate.ui
         time.textColor = theme.candidate.ui
         if lengths != self.lengths {
-            self.lengths = lengths
-            chips.forEach { $0.removeFromSuperview() }
-            chips = lengths.indices.map { index in
-                let chip = UILabel()
-                chip.font = .monospacedDigitSystemFont(ofSize: 13, weight: .medium)
-                chip.textAlignment = .center
-                chip.clipsToBounds = true
-                chip.accessibilityIdentifier = "hex.saved.\(index)"
-                addSubview(chip)
-                return chip
+            let typed = self.lengths.count - lengths.count
+            if shown, typed > 0, Array(self.lengths.dropFirst(typed)) == lengths {
+                let gone = chips.prefix(typed)
+                chips.removeFirst(typed)
+                UIView.animate(withDuration: 0.2, delay: 0, options: .beginFromCurrentState) {
+                    gone.forEach {
+                        $0.alpha = 0
+                        $0.transform = CGAffineTransform(scaleX: 0.6, y: 0.6)
+                    }
+                } completion: { _ in gone.forEach { $0.removeFromSuperview() } }
+            } else if lengths.starts(with: self.lengths) {
+                chips += lengths.dropFirst(self.lengths.count).map { _ in Self.chip(in: self) }
+            } else {
+                chips.forEach { $0.removeFromSuperview() }
+                chips = lengths.map { _ in Self.chip(in: self) }
             }
+            self.lengths = lengths
+            for (index, chip) in chips.enumerated() { chip.accessibilityIdentifier = "hex.saved.\(index)" }
+        }
+        if shown, waiting {
+            UIView.animate(withDuration: 0.2, delay: 0, options: .beginFromCurrentState) { self.layoutChips() }
         }
         for chip in chips {
             chip.isHidden = !waiting
@@ -368,6 +380,15 @@ private final class Waveform: UIView {
         tick()
         layoutBars()
         setNeedsLayout()
+    }
+
+    private static func chip(in waveform: Waveform) -> UILabel {
+        let chip = UILabel()
+        chip.font = .monospacedDigitSystemFont(ofSize: 13, weight: .medium)
+        chip.textAlignment = .center
+        chip.clipsToBounds = true
+        waveform.addSubview(chip)
+        return chip
     }
 
     func hear(_ level: Float) {
@@ -422,6 +443,7 @@ private final class Waveform: UIView {
         let scale = traitCollection.displayScale
         let gap: CGFloat = 6, height = min(bounds.height - 12, 24)
         let wordsWidth = min(words.intrinsicContentSize.width.rounded(.up), bounds.width * 0.6)
+        let room = bounds.width - (words.isHidden ? 0 : wordsWidth + 10)
         var shown = chips.count
         func widths() -> [CGFloat] {
             chips.prefix(shown).enumerated().map { index, chip in
@@ -430,16 +452,18 @@ private final class Waveform: UIView {
             }
         }
         var sizes = widths()
-        while shown > 1, sizes.reduce(0, +) + gap * CGFloat(shown - 1) > bounds.width - wordsWidth - 10 {
+        while shown > 1, sizes.reduce(0, +) + gap * CGFloat(shown - 1) > room {
             shown -= 1
             sizes = widths()
         }
         let row = sizes.reduce(0, +) + gap * CGFloat(shown - 1)
-        var x = ((bounds.width - row - 10 - wordsWidth) / 2).rounded(scale: scale)
+        var x = ((room - row) / 2).rounded(scale: scale)
         for (index, chip) in chips.enumerated() {
             chip.isHidden = index >= shown
             guard index < shown else { continue }
-            chip.frame = CGRect(x: x, y: ((bounds.height - height) / 2).rounded(scale: scale), width: sizes[index], height: height)
+            let frame = CGRect(x: x, y: ((bounds.height - height) / 2).rounded(scale: scale), width: sizes[index], height: height)
+            // A new chip laid out inside the keyboard's slide-in animation would grow out of the bar's corner.
+            if chip.frame == .zero { UIView.performWithoutAnimation { chip.frame = frame } } else { chip.frame = frame }
             chip.layer.cornerRadius = height / 2
             x += sizes[index] + gap
         }
