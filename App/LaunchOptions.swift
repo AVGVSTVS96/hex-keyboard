@@ -49,10 +49,11 @@ enum LaunchOptions {
         MemoryStore.reset()
     }
 
-    /// `-HexOneHanded left` and `-HexCompactPanels YES` set those settings for a test.
+    /// `-HexOneHanded left`, `-HexCompactPanels YES` and `-HexAutoCapitalization YES` set those settings for a test.
     static func applySettings() {
         if let hand = defaults.string(forKey: "HexOneHanded").flatMap(OneHanded.init) { SettingsStore.set(hand) }
         if defaults.object(forKey: "HexCompactPanels") != nil { SettingsStore.set(defaults.bool(forKey: "HexCompactPanels"), for: \.compactPanels) }
+        if defaults.object(forKey: "HexAutoCapitalization") != nil { SettingsStore.set(defaults.bool(forKey: "HexAutoCapitalization"), for: \.autoCapitalization) }
     }
 
     /// `-HexTheme mechanical -HexThemeAppearance dark -HexCharacterPreview detached -HexNumberRow YES -HexSkinTone medium

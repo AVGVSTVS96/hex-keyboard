@@ -6,7 +6,7 @@ final class TypingTests: XCTestCase {
     override func setUp() {
         continueAfterFailure = false
         app = XCUIApplication()
-        app.launchArguments = ["-HexFocus", "YES"]
+        app.launchArguments = ["-HexFocus", "YES", "-HexAutoCapitalization", "YES"]
         app.launch()
         XCTAssertTrue(key("space").waitForExistence(timeout: 10), "iikb is not the active keyboard")
     }
