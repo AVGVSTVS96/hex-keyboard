@@ -111,42 +111,38 @@ import Speech
 nonisolated protocol Transcription: AnyObject, Sendable {
     /// For the log and the transcript.
     var model: String { get }
-    /// The sound it takes, which the microphone's is converted to.
-    var format: AVAudioFormat { get }
+    /// The sound it hears while you talk, which the microphone's is converted to; nil when it only reads the recording.
+    var format: AVAudioFormat? { get }
     /// Runs on the audio thread.
     func hear(_ buffer: AVAudioPCMBuffer)
-    /// Everything said, once no more sound is coming.
-    func text() async throws -> String
+    /// Everything said, once no more sound is coming, given all of it as a `Recording`.
+    func text(of recording: [Float]) async throws -> String
     func cancel() async
 }
 
-/// Keeps the sound while you talk and writes it all down when you're done: Parakeet takes a whole recording at once,
-/// fast enough on the Neural Engine that a minute of talking is written in well under a second.
+/// Writes the whole recording down when you're done: Parakeet takes it at once, fast enough on the Neural Engine that a
+/// minute of talking is written in well under a second.
 nonisolated final class ParakeetTranscription: Transcription, @unchecked Sendable {
     let model: String
-    let format = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 16_000, channels: 1, interleaved: false)!
+    let format: AVAudioFormat? = nil
     private let parakeet: Task<AsrManager, any Error>
-    private let lock = NSLock()
-    private var samples: [Float] = []
 
     init(_ parakeet: Task<AsrManager, any Error>, model: String) {
         self.parakeet = parakeet
         self.model = model
     }
 
-    func hear(_ buffer: AVAudioPCMBuffer) {
-        guard let channel = buffer.floatChannelData?[0] else { return }
-        lock.withLock { samples.append(contentsOf: UnsafeBufferPointer(start: channel, count: Int(buffer.frameLength))) }
-    }
+    func hear(_ buffer: AVAudioPCMBuffer) {}
 
-    /// Pads a tap with next to nothing said up to the shortest sound Parakeet takes.
-    func text() async throws -> String {
-        var samples = lock.withLock { self.samples }
-        let shortest = ASRConstants.minimumRequiredSamples(forSampleRate: Int(format.sampleRate))
+    /// Pads a tap with next to nothing said up to the shortest sound Parakeet takes. English keeps v3 to the Latin
+    /// alphabet, which it otherwise leaves for Cyrillic on short or unclear English.
+    func text(of recording: [Float]) async throws -> String {
+        var samples = Recording.leveled(recording)
+        let shortest = ASRConstants.minimumRequiredSamples(forSampleRate: 16_000)
         if samples.count < shortest { samples += repeatElement(0, count: shortest - samples.count) }
         let parakeet = try await parakeet.value
         var state = TdtDecoderState.make(decoderLayers: await parakeet.decoderLayerCount)
-        return try await parakeet.transcribe(samples, decoderState: &state).text.trimmingCharacters(in: .whitespacesAndNewlines)
+        return try await parakeet.transcribe(samples, decoderState: &state, language: .english).text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     func cancel() async {}
@@ -156,7 +152,7 @@ nonisolated final class ParakeetTranscription: Transcription, @unchecked Sendabl
 /// model with punctuation. It writes as you speak, so when you're done only the last words are left to finish.
 nonisolated final class SpeechTranscription: Transcription, @unchecked Sendable {
     var model = "Apple"
-    let format: AVAudioFormat
+    let format: AVAudioFormat?
     private let input: AsyncStream<AnalyzerInput>.Continuation
     private let analyzer: Task<SpeechAnalyzer, any Error>
     private let heard: Task<String, any Error>
@@ -184,7 +180,7 @@ nonisolated final class SpeechTranscription: Transcription, @unchecked Sendable 
         input.yield(AnalyzerInput(buffer: buffer))
     }
 
-    func text() async throws -> String {
+    func text(of _: [Float]) async throws -> String {
         input.finish()
         try await analyzer.value.finalizeAndFinishThroughEndOfInput()
         return try await heard.value.trimmingCharacters(in: .whitespacesAndNewlines)

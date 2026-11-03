@@ -10,17 +10,21 @@ struct Transcript: Codable, Identifiable, Hashable {
     var typed: Bool
     /// The speech model that wrote it; nil before Hex kept it.
     var model: String?
+    /// The microphone it was said into, as iOS names it; nil before Hex kept it.
+    var mic: String?
 
     var words: Int { text.split(whereSeparator: \.isWhitespace).count }
 }
 
-/// Every dictation the app transcribed, newest first, in one JSON line each in the app's own container. Nothing leaves
-/// the iPhone: the keyboard never reads it, and the app's only download is the voice model.
+/// Every dictation the app transcribed, newest first, in one JSON line each in the app's own container, and the sound of
+/// each as a `Recording` beside it, up to 512 MB (about 4½ hours of talking), past which the oldest lose their sound.
+/// Nothing leaves the iPhone: the keyboard never reads it, and the app's only download is the voice model.
 @Observable final class Transcripts {
     static let shared = Transcripts()
 
     private(set) var all: [Transcript] = []
     @ObservationIgnored private let url = URL.applicationSupportDirectory.appending(path: "transcripts.jsonl")
+    @ObservationIgnored private let recordings = URL.applicationSupportDirectory.appending(path: "recordings")
 
     private init() {
         guard let data = try? Data(contentsOf: url) else { return }
@@ -28,10 +32,11 @@ struct Transcript: Codable, Identifiable, Hashable {
         all = data.split(separator: UInt8(ascii: "\n")).compactMap { try? decoder.decode(Transcript.self, from: $0) }.reversed()
     }
 
-    func add(_ text: String, at date: Date, seconds: Double, typed: Bool, model: String) {
+    func add(_ text: String, at date: Date, seconds: Double, typed: Bool, model: String, mic: String?, recording: [Float]) {
         guard !text.isEmpty else { return }
-        let transcript = Transcript(date: date, text: text, seconds: seconds, typed: typed, model: model)
+        let transcript = Transcript(date: date, text: text, seconds: seconds, typed: typed, model: model, mic: mic)
         all.insert(transcript, at: 0)
+        keep(recording, of: transcript.id)
         guard let line = try? JSONEncoder().encode(transcript) else { return }
         do {
             let file = try FileHandle(forWritingTo: url)
@@ -46,6 +51,42 @@ struct Transcript: Codable, Identifiable, Hashable {
     func delete(_ ids: Set<Transcript.ID>) {
         all.removeAll { ids.contains($0.id) }
         save()
+        for id in ids { try? FileManager.default.removeItem(at: recording(of: id)) }
+    }
+
+    /// Puts a new writing of a transcript's recording in its place.
+    func replace(_ id: Transcript.ID, with text: String, model: String) {
+        guard let index = all.firstIndex(where: { $0.id == id }), !text.isEmpty else { return }
+        all[index].text = text
+        all[index].model = model
+        save()
+    }
+
+    func recording(of id: Transcript.ID) -> URL {
+        recordings.appending(path: "\(id.uuidString).wav")
+    }
+
+    func hasRecording(_ id: Transcript.ID) -> Bool {
+        FileManager.default.fileExists(atPath: recording(of: id).path)
+    }
+
+    private func keep(_ recording: [Float], of id: Transcript.ID) {
+        guard !recording.isEmpty else { return }
+        let (folder, url) = (recordings, self.recording(of: id))
+        Task.detached(priority: .utility) {
+            let files = FileManager.default
+            try? files.createDirectory(at: folder, withIntermediateDirectories: true)
+            try? Recording.write(recording, to: url)
+            let keys: [URLResourceKey] = [.fileSizeKey, .creationDateKey]
+            let kept = ((try? files.contentsOfDirectory(at: folder, includingPropertiesForKeys: keys)) ?? []).compactMap { url in
+                (try? url.resourceValues(forKeys: Set(keys))).map { (url, $0.fileSize ?? 0, $0.creationDate ?? .distantPast) }
+            }.sorted { $0.2 > $1.2 }
+            var bytes = 0
+            for (url, size, _) in kept {
+                bytes += size
+                if bytes > 512_000_000 { try? files.removeItem(at: url) }
+            }
+        }
     }
 
     private func save() {

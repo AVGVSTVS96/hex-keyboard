@@ -4,7 +4,8 @@ import FluidAudio
 import UIKit
 
 /// `-HexVoiceProbe <ultra|v3> [-HexVoiceProbeUnits ane|cpu|gpu]` (`scripts/voiceprobe`): times each of a Parakeet's
-/// parts loading on this iPhone, then writes `Documents/probe.wav` three times, logging to `Documents/probe.log`.
+/// parts loading on this iPhone, then writes `Documents/probe.wav` three times, as it is and as dictation does
+/// (`ParakeetTranscription`), logging to `Documents/probe.log`.
 nonisolated enum VoiceProbe {
     static var asked: Bool { UserDefaults.standard.string(forKey: "HexVoiceProbe") != nil }
 
@@ -78,11 +79,15 @@ nonisolated enum VoiceProbe {
         say("all loaded again in \(seconds(since: began))")
         let clip = URL.documentsDirectory.appendingPathComponent("probe.wav")
         let samples = try AudioConverter().resampleAudioFile(clip)
+        let dictation = ParakeetTranscription(Task { manager }, model: name)
         for _ in 0..<3 {
             began = .now
             var state = TdtDecoderState.make(decoderLayers: await manager.decoderLayerCount)
             let text = try await manager.transcribe(samples, decoderState: &state).text
-            say("wrote \(Double(samples.count) / 16_000)s in \(seconds(since: began)): \(text)")
+            say("wrote \(Double(samples.count) / 16_000)s as is in \(seconds(since: began)): \(text)")
+            began = .now
+            let written = try await dictation.text(of: samples)
+            say("wrote it as dictation does in \(seconds(since: began)): \(written)")
         }
     }
 

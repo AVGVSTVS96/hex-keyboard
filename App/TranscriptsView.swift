@@ -227,6 +227,7 @@ private struct TranscriptDetail: View {
                 if let model = transcript.model { LabeledContent("Written by", value: model) }
             }
             .listRowBackground(Color.hexCard)
+            RecordingSection(transcript: transcript)
             Section {
                 Button("Delete Transcript", role: .destructive) { confirmsDelete = true }
             }

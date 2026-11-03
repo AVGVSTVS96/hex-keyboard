@@ -16,6 +16,8 @@ import UIKit
     private var tokens: [Int32] = []
     private var started = Date.now
     private var listened: Double = 0
+    private var recording: [Float] = []
+    private var mic: String?
     private(set) var state = Dictation.State.idle
     var onChange: (() -> Void)?
     var onLevel: ((Float) -> Void)?
@@ -53,11 +55,12 @@ import UIKit
             let transcription = try await VoiceModel.shared.transcription()
             self.transcription = transcription
             try openMic()
+            mic = AVAudioSession.sharedInstance().currentRoute.inputs.first?.portName
             switch state {
             case .listening:
                 let natural = engine.inputNode.outputFormat(forBus: 0)
                 guard feed.start(from: natural, into: transcription) else {
-                    HostApp.log.error("no converter from the mic's \(natural, privacy: .public) to \(transcription.format, privacy: .public)")
+                    HostApp.log.error("no converter from the mic's \(natural, privacy: .public) to \(transcription.format?.description ?? "", privacy: .public)")
                     throw Failure.language
                 }
             case .transcribing: await deliver(transcription)
@@ -69,7 +72,7 @@ import UIKit
     }
 
     private func fail(_ error: any Error) async {
-        feed.stop()
+        _ = feed.stop()
         closeMic()
         if let transcription { await cancel(transcription) }
         set(.idle, failure: (error as? Failure)?.description ?? error.localizedDescription)
@@ -78,7 +81,7 @@ import UIKit
     /// Stops listening and hands the keyboard everything heard, once the transcription is ready if it isn't yet.
     func finish() async {
         guard state == .listening else { return }
-        feed.stop()
+        recording = feed.stop()
         listened = Date.now.timeIntervalSince(started)
         set(.transcribing)
         if let transcription { await deliver(transcription) } else { keepMicOn() }
@@ -87,6 +90,7 @@ import UIKit
     /// Types what was heard, unless you cancelled or started another dictation meanwhile. The microphone stays on until
     /// then, since its lock is how the keyboard knows the app is still writing.
     private func deliver(_ transcription: any Transcription) async {
+        let (recording, mic) = (recording, mic)
         let background = UIApplication.shared.beginBackgroundTask()
         defer {
             keepMicOn()
@@ -94,7 +98,7 @@ import UIKit
         }
         let text: String
         do {
-            text = try await transcription.text()
+            text = try await transcription.text(of: recording)
         } catch {
             guard transcription === self.transcription else { return }
             self.transcription = nil
@@ -103,14 +107,14 @@ import UIKit
         guard transcription === self.transcription else { return }
         self.transcription = nil
         set(.idle, heard: text)
-        Transcripts.shared.add(text, at: started, seconds: listened, typed: true, model: transcription.model)
+        Transcripts.shared.add(text, at: started, seconds: listened, typed: true, model: transcription.model, mic: mic, recording: recording)
         HostApp.log.notice("\(transcription.model, privacy: .public) wrote \(self.listened, format: .fixed(precision: 1))s down in \(Date.now.timeIntervalSince(self.started) - self.listened, format: .fixed(precision: 2))s")
     }
 
     /// Types nothing. What was said while listening is still written down, for Transcripts.
     func cancel() async {
         guard state != .idle else { return }
-        feed.stop()
+        let recording = feed.stop()
         let (transcription, started, wasListening) = (transcription, started, state == .listening)
         self.transcription = nil
         set(.idle)
@@ -119,8 +123,8 @@ import UIKit
         guard wasListening else { return await transcription.cancel() }
         let background = UIApplication.shared.beginBackgroundTask()
         defer { UIApplication.shared.endBackgroundTask(background) }
-        guard let text = try? await transcription.text() else { return }
-        Transcripts.shared.add(text, at: started, seconds: Date.now.timeIntervalSince(started), typed: false, model: transcription.model)
+        guard let text = try? await transcription.text(of: recording) else { return }
+        Transcripts.shared.add(text, at: started, seconds: Date.now.timeIntervalSince(started), typed: false, model: transcription.model, mic: mic, recording: recording)
     }
 
     private func cancel(_ transcription: any Transcription) async {
@@ -215,44 +219,64 @@ import UIKit
     }
 }
 
-/// Where the microphone's buffers go: to the dictation in progress, converted to its model's format, or nowhere while
-/// the microphone is only being kept on. The audio thread reads it and the main thread swaps it, under a lock.
+/// Where the microphone's buffers go while you dictate: into the `Recording`, and converted to what the dictation's
+/// model hears as you talk, if it does; nowhere while the microphone is only being kept on. The audio thread reads it
+/// and the main thread swaps it, under a lock.
 nonisolated private final class Feed: @unchecked Sendable {
     private let lock = NSLock()
+    private var recorder: AVAudioConverter?
     private var converter: AVAudioConverter?
     private var transcription: (any Transcription)?
+    private var recording: [Float] = []
 
     func start(from natural: AVAudioFormat, into transcription: any Transcription) -> Bool {
-        guard let converter = AVAudioConverter(from: natural, to: transcription.format) else { return false }
+        guard let recorder = AVAudioConverter(from: natural, to: Recording.format) else { return false }
+        let converter = transcription.format.flatMap { AVAudioConverter(from: natural, to: $0) }
+        guard converter != nil || transcription.format == nil else { return false }
         lock.withLock {
+            self.recorder = recorder
             self.converter = converter
             self.transcription = transcription
+            recording = []
         }
         return true
     }
 
-    func stop() {
+    /// Everything heard since `start`.
+    func stop() -> [Float] {
         lock.withLock {
-            converter = nil
-            transcription = nil
+            defer {
+                recorder = nil
+                converter = nil
+                transcription = nil
+                recording = []
+            }
+            return recording
         }
     }
 
     /// Whether a dictation took the buffer.
     func yield(_ buffer: AVAudioPCMBuffer) -> Bool {
         lock.withLock {
-            guard let converter, let transcription else { return false }
-            let format = transcription.format
-            let capacity = AVAudioFrameCount(Double(buffer.frameLength) * format.sampleRate / buffer.format.sampleRate) + 1
-            guard let converted = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: capacity) else { return false }
-            nonisolated(unsafe) var fed = false
-            converter.convert(to: converted, error: nil) { _, status in
-                status.pointee = fed ? .noDataNow : .haveData
-                defer { fed = true }
-                return fed ? nil : buffer
+            guard let recorder, let transcription else { return false }
+            if let converted = Self.convert(buffer, with: recorder), let channel = converted.floatChannelData?[0] {
+                recording.append(contentsOf: UnsafeBufferPointer(start: channel, count: Int(converted.frameLength)))
             }
-            transcription.hear(converted)
+            if let converter, let converted = Self.convert(buffer, with: converter) { transcription.hear(converted) }
             return true
         }
+    }
+
+    private static func convert(_ buffer: AVAudioPCMBuffer, with converter: AVAudioConverter) -> AVAudioPCMBuffer? {
+        let format = converter.outputFormat
+        let capacity = AVAudioFrameCount(Double(buffer.frameLength) * format.sampleRate / buffer.format.sampleRate) + 1
+        guard let converted = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: capacity) else { return nil }
+        nonisolated(unsafe) var fed = false
+        converter.convert(to: converted, error: nil) { _, status in
+            status.pointee = fed ? .noDataNow : .haveData
+            defer { fed = true }
+            return fed ? nil : buffer
+        }
+        return converted
     }
 }
