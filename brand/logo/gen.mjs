@@ -68,7 +68,20 @@ function spacebar(size = 1024) {
   return svg(size, size, `<rect width="${size}" height="${size}" rx="${size * 0.225}" fill="${ink}"/><rect x="${key.x}" y="${key.y}" width="${key.w}" height="${key.h}" rx="${0.06 * size}" fill="${paper}"/><path fill="${ink}" d="${t.d}"/>`);
 }
 
+// The favicon: the icon on a tighter margin so the name survives 16px, white on black, and black on white in a dark
+// browser, where a black square would sink into the tab bar.
+function favicon(size = 64) {
+  const m = 0.09 * size;
+  const probe = line("iikb", 100, -45);
+  const type = (100 * (size - 2 * m)) / (probe.box.x2 - probe.box.x1);
+  const fit = line("iikb", type, -45);
+  const t = line("iikb", type, -45, m - fit.box.x1, size - m - fit.box.y2);
+  const style = `<style>rect{fill:${ink}}path{fill:${paper}}@media (prefers-color-scheme:dark){rect{fill:${paper}}path{fill:${ink}}}</style>`;
+  return svg(size, size, `${style}<rect width="${size}" height="${size}" rx="${size * 0.2}"/><path d="${t.d}"/>`);
+}
+
 const files = {
+  "favicon.svg": favicon(),
   "direction-poster.svg": poster(),
   "direction-spacebar.svg": spacebar(),
   "wordmark-ink.svg": wordmark(ink),

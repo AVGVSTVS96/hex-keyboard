@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>iikb · brand</title>
+<link rel="icon" href="logo/out/favicon.svg" type="image/svg+xml">
+<style>
+  @font-face { font-family: "iikb Sans"; font-weight: 400; src: local("Helvetica Neue"), local("HelveticaNeue"), url("fonts/texgyreheros-regular.woff2") format("woff2"); }
+  @font-face { font-family: "iikb Sans"; font-weight: 500; src: local("Helvetica Neue Medium"), local("HelveticaNeue-Medium"), url("fonts/texgyreheros-regular.woff2") format("woff2"); }
+  @font-face { font-family: "iikb Sans"; font-weight: 700; src: local("Helvetica Neue Bold"), local("HelveticaNeue-Bold"), url("fonts/texgyreheros-bold.woff2") format("woff2"); }
+  :root { --page: #F2F2F5; --card: #fff; --ink: #000; --ink-2: #6C6C70; --rule: #E3E3E8; --red: #FF3B30; --blue: #007AFF; --m: clamp(20px, 5vw, 64px); }
+  @media (prefers-color-scheme: dark) { :root { --page: #000; --card: #1C1C1E; --ink: #fff; --ink-2: #8E8E93; --rule: #2C2C2E; --red: #FF453A; --blue: #0A84FF; } }
+  * { margin: 0; box-sizing: border-box; }
+  body { font: 17px/1.45 "iikb Sans", "Helvetica Neue", Helvetica, Arial, sans-serif; background: var(--page); color: var(--ink); -webkit-font-smoothing: antialiased; }
+  main { max-width: 1200px; margin: 0 auto; padding: var(--m); }
+  section { display: grid; grid-template-columns: repeat(12, 1fr); gap: 24px; padding: 64px 0; border-top: 1px solid var(--rule); }
+  section:first-child { border-top: 0; padding-top: 24px; }
+  h2 { grid-column: 1 / span 3; font-size: 14px; font-weight: 500; color: var(--ink-2); }
+  .body { grid-column: 4 / -1; min-width: 0; }
+  .hero { display: block; }
+  .hero img { width: min(100%, 640px); display: block; }
+  .hero p { font-size: clamp(22px, 3vw, 32px); line-height: 1.2; letter-spacing: -0.01em; color: var(--ink-2); margin-top: 32px; max-width: 22em; }
+  .ink-only { display: block; } .paper-only { display: none; }
+  @media (prefers-color-scheme: dark) { .ink-only { display: none; } .paper-only { display: block; } }
+  .icons { display: flex; gap: 24px; align-items: flex-end; flex-wrap: wrap; }
+  .icons img { display: block; border-radius: 22.5%; }
+  .icons figure { display: grid; gap: 8px; } figcaption { font-size: 12px; color: var(--ink-2); }
+  .scale > * { letter-spacing: -0.02em; font-weight: 700; line-height: 1; margin-bottom: 20px; }
+  .scale .t { font-weight: 400; letter-spacing: 0; line-height: 1.45; }
+  .tokens { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px; }
+  .tokens div { display: grid; gap: 6px; font-size: 13px; } .tokens i { height: 72px; border-radius: 14px; border: 1px solid var(--rule); display: block; }
+  .tokens b { font-weight: 500; } .tokens span { color: var(--ink-2); }
+  .rule { font-size: clamp(24px, 3vw, 34px); font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; max-width: 18em; }
+  .rule em { font-style: normal; color: var(--red); } .rule u { text-decoration: none; color: var(--blue); }
+  .og img, .og video { width: 100%; display: block; border-radius: 14px; }
+  .dirs { display: flex; gap: 24px; flex-wrap: wrap; } .dirs img { width: 160px; display: block; }
+  .dirs p { font-size: 13px; color: var(--ink-2); max-width: 160px; margin-top: 8px; }
+  @media (max-width: 720px) { h2, .body { grid-column: 1 / -1; } section { padding: 40px 0; } }
+</style>
+</head>
+<body>
+<main>
+  <section class="hero">
+    <img class="ink-only" src="logo/out/wordmark-ink.svg" alt="iikb">
+    <img class="paper-only" src="logo/out/wordmark-paper.svg" alt="iikb">
+    <p>An iPhone keyboard that types like Apple’s and learns where your thumbs land.</p>
+  </section>
+
+  <section>
+    <h2>Icon</h2>
+    <div class="body icons">
+      <figure><img src="logo/out/icon.svg" width="180" alt=""><figcaption>Home Screen</figcaption></figure>
+      <figure><img src="logo/out/icon.svg" width="60" alt=""><figcaption>60</figcaption></figure>
+      <figure><img src="logo/out/icon.svg" width="40" alt=""><figcaption>40</figcaption></figure>
+      <figure><img src="logo/out/favicon.svg" width="32" style="border-radius:0" alt=""><figcaption>Tab, 32</figcaption></figure>
+      <figure><img src="logo/out/favicon.svg" width="16" style="border-radius:0" alt=""><figcaption>16</figcaption></figure>
+    </div>
+  </section>
+
+  <section>
+    <h2>Type: Helvetica Neue</h2>
+    <div class="body scale">
+      <div style="font-size: clamp(56px, 9vw, 120px); letter-spacing: -0.035em">97.6%</div>
+      <div style="font-size: clamp(34px, 5vw, 56px)">It moves with your grip.</div>
+      <div style="font-size: 34px">Your Taps</div>
+      <div class="t">Text is Regular at 17. Titles and big numbers are Bold, tracked tight. Rows and controls in the app stay the system font.</div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Color</h2>
+    <div class="body">
+      <p class="rule">Black, white and gray do the work. <em>Red means live.</em> <u>Blue means selected.</u></p>
+      <div class="tokens" style="margin-top: 32px">
+        <div><i style="background: var(--page)"></i><b>page</b><span>#F2F2F5 · #000</span></div>
+        <div><i style="background: var(--card)"></i><b>card</b><span>#FFF · #1C1C1E</span></div>
+        <div><i style="background: var(--ink)"></i><b>ink</b><span>#000 · #FFF</span></div>
+        <div><i style="background: var(--ink-2)"></i><b>ink 2</b><span>#6C6C70 · #8E8E93</span></div>
+        <div><i style="background: var(--red)"></i><b>red, live</b><span>#FF3B30 · #FF453A</span></div>
+        <div><i style="background: var(--blue)"></i><b>blue, selected</b><span>#007AFF · #0A84FF</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Link preview</h2>
+    <div class="body og">
+      <video src="og/out/og.mp4" poster="og/out/og.png" autoplay muted loop playsinline></video>
+    </div>
+  </section>
+
+  <section>
+    <h2>Directions not taken</h2>
+    <div class="body dirs">
+      <div><img src="logo/out/direction-poster.svg" alt=""><p>The name smaller, low on the square. Less presence on the Home Screen.</p></div>
+      <div><img src="logo/out/direction-spacebar.svg" alt=""><p>A space bar with iikb in its corner. Gone below 60px.</p></div>
+    </div>
+  </section>
+</main>
+</body>
+</html>

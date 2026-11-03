@@ -1,0 +1,7 @@
+@font-face { font-family: "iikb Sans"; font-weight: 400; src: local("Helvetica Neue"), local("HelveticaNeue"), url("/.scratch/fonts/HelveticaNeue-Regular.ttf"), url("/brand/fonts/texgyreheros-regular.woff2") format("woff2"); }
+@font-face { font-family: "iikb Sans"; font-weight: 500; src: local("Helvetica Neue Medium"), local("HelveticaNeue-Medium"), url("/.scratch/fonts/HelveticaNeue-Medium.ttf"), url("/brand/fonts/texgyreheros-regular.woff2") format("woff2"); }
+@font-face { font-family: "iikb Sans"; font-weight: 700; src: local("Helvetica Neue Bold"), local("HelveticaNeue-Bold"), url("/.scratch/fonts/HelveticaNeue-Bold.ttf"), url("/brand/fonts/texgyreheros-bold.woff2") format("woff2"); }
+:root { --page: #F2F2F5; --card: #fff; --ink: #000; --ink-2: #6C6C70; --rule: #E3E3E8; --red: #FF3B30; --blue: #007AFF; }
+.dark { --page: #000; --card: #1C1C1E; --ink: #fff; --ink-2: #8E8E93; --rule: #2C2C2E; --red: #FF453A; --blue: #0A84FF; }
+* { margin: 0; box-sizing: border-box; }
+body { font-family: "iikb Sans", "Helvetica Neue", Helvetica, Arial, sans-serif; background: var(--page); color: var(--ink); -webkit-font-smoothing: antialiased; }

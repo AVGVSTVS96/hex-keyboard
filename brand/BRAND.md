@@ -66,7 +66,8 @@ Dark is the app's dark: a black page, near-black cards. It follows the system th
 
 - **Wordmark:** `wordmark-ink.svg`, `wordmark-paper.svg`.
 - **Icon:** `icon.svg` (full bleed, for iOS, which masks it), `icon-rounded.svg`, `icon-light.svg`. The wordmark white on black, flush left on a 13% margin, as wide as the margins allow. The app's icon is this, at 1024.
-- **Not taken:** a stacked "ii / kb" (it splits the name into two words it isn't), and a space bar with iikb in its corner (grown from the keyboard, but the label vanishes below 60px). Both are kept in `gen.mjs` as `direction-*.svg`.
+- **Favicon:** `favicon.svg`, the icon on a tighter margin so the name survives 16px, flipping to black on white in a dark browser. `apple-touch-icon.png` (180) and `icon-512.png` are the icon full bleed.
+- **Not taken:** a stacked "ii / kb" (it splits the name into two words it isn't); the name smaller and low on the square (`direction-poster.svg`, less presence on the Home Screen); and a space bar with iikb in its corner (`direction-spacebar.svg`, grown from the keyboard, but the label vanishes below 60px).
 
 ## Words
 
