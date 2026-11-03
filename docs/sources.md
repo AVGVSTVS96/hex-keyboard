@@ -1,24 +1,24 @@
 # Sources
 
-A source is a web service Hex tells what you type. It sees the text of the field you're typing in, in any app, and can answer with a hint that Hex shows above the keys in place of the suggestions. Tapping the hint hides it until the source answers with a different one.
+A source is a web service iikb tells what you type. It sees the text of the field you're typing in, in any app, and can answer with a hint that iikb shows above the keys in place of the suggestions. Tapping the hint hides it until the source answers with a different one.
 
 ```
-you type ──► Hex keyboard ──POST the field──► your source
+you type ──► iikb ──POST the field──► your source
                  ▲                                 │
                  └──────── { "hint": "…" } ◄───────┘
 ```
 
-Sources need Allow Full Access (Settings › Apps › Hex › Keyboards), since that is what lets a keyboard use the network. Hex never sends password, new-password, one-time-code or card fields, and iOS swaps in its own keyboard for secure fields.
+Sources need Allow Full Access (Settings › Apps › iikb › Keyboards), since that is what lets a keyboard use the network. iikb never sends password, new-password, one-time-code or card fields, and iOS swaps in its own keyboard for secure fields.
 
 ## Adding one
 
-In the Hex app: Settings › Hex › Sources › Add Source, with a name, an address and an optional token. iOS lets a keyboard reach `https` URLs, and `http` only on your local network (`localhost`, `.local` names). Or a source can give you a link, which the app asks about before adding:
+In the iikb app: Settings › iikb › Sources › Add Source, with a name, an address and an optional token. iOS lets a keyboard reach `https` URLs, and `http` only on your local network (`localhost`, `.local` names). Or a source can give you a link, which the app asks about before adding:
 
 ```
 hexkeyboard://source?name=Example&url=https%3A%2F%2Fexample.com%2Fhex&token=secret
 ```
 
-## What Hex sends
+## What iikb sends
 
 `POST <url>` with `Content-Type: application/json`, and `Authorization: Bearer <token>` when the source has a token.
 
@@ -41,9 +41,9 @@ hexkeyboard://source?name=Example&url=https%3A%2F%2Fexample.com%2Fhex&token=secr
 - `returnKey`: what the return key says, like `default`, `send`, `search`, `go` or `done`.
 - `at`: when the field was this way.
 
-Hex sends one update at a time to each source and waits for the answer before the next. If you type while one is on its way, only the newest text follows it, but every change the app makes is sent, so the text as it was right before an app change (a message being sent) always arrives first.
+iikb sends one update at a time to each source and waits for the answer before the next. If you type while one is on its way, only the newest text follows it, but every change the app makes is sent, so the text as it was right before an app change (a message being sent) always arrives first.
 
-An update that gets no answer in 10 seconds, or an error, counts as unreachable: the hint goes, and Hex tries again at your next change, starting with what it couldn't send. While the keyboard stays open it keeps every change the app made and the newest text you typed, so a source that was down still learns, in order and with their `at`, what you sent.
+An update that gets no answer in 10 seconds, or an error, counts as unreachable: the hint goes, and iikb tries again at your next change, starting with what it couldn't send. While the keyboard stays open it keeps every change the app made and the newest text you typed, so a source that was down still learns, in order and with their `at`, what you sent.
 
 ## What a source answers
 
@@ -53,14 +53,14 @@ A `2xx` with JSON:
 { "hint": "This might come across harsher than you mean." }
 ```
 
-`{}`, `{"hint": null}` or an empty body clears the hint. A hint belongs to the field it was answered for, and stays until the source answers again. Hex ignores keys it doesn't know, so a source can be written once and keep working as Hex learns more answers.
+`{}`, `{"hint": null}` or an empty body clears the hint. A hint belongs to the field it was answered for, and stays until the source answers again. iikb ignores keys it doesn't know, so a source can be written once and keep working as iikb learns more answers.
 
 ## What a source can't see
 
 iOS has no public way to tell a keyboard which app it's in, which conversation a field belongs to, or anything on the screen beyond the field's text and its keyboard settings. As of iOS 27:
 
 - Apps can describe a conversation to the keyboard (`UIConversationContext`, iOS 18.4), but iOS keeps it for its own keyboard: a third-party keyboard reads `nil` and is never told it changed, even in an app that sets it.
-- A keyboard's own ways to learn its host app stopped working in iOS 26.4. Hex still finds the app through a private UIKit path (`KeyboardHost`, UIKit's keyboard arbiter), from the moment the keyboard appears, before you type. Only voice typing uses it so far, to send you back to the app; updates to sources don't carry it yet.
+- A keyboard's own ways to learn its host app stopped working in iOS 26.4. iikb still finds the app through a private UIKit path (`KeyboardHost`, UIKit's keyboard arbiter), from the moment the keyboard appears, before you type. Only voice typing uses it so far, to send you back to the app; updates to sources don't carry it yet.
 
 So for now a source learns the app from Shortcuts (below), and who a message was for after it's sent (an `app` update that empties the field right after the text you sent), or from outside the keyboard.
 
