@@ -161,7 +161,7 @@ final class TapsViewController: UIViewController {
         }
     }
 
-    private var wantsWide: Bool { view.bounds.width > view.bounds.height }
+    private var wantsWide: Bool { view.bounds.width >= Arrangement.wide && view.bounds.width > view.bounds.height }
 
     private var isWide: Bool { secondary.superview != nil }
 
@@ -220,6 +220,11 @@ final class TapsViewController: UIViewController {
         }
         if let label = LaunchOptions.tapsKey, let aim = map.aims.first(where: { $0.key.label == label }) { map.select(aim) }
         updateLegend()
+        if LaunchOptions.scrollsToEnd {
+            view.layoutIfNeeded()
+            scroll.contentOffset.y = max(scroll.contentSize.height - scroll.bounds.height + scroll.adjustedContentInset.bottom, -scroll.adjustedContentInset.top)
+            return
+        }
         guard let target = LaunchOptions.tapsScroll else { return }
         view.layoutIfNeeded()
         let anchor: UIView = target == "detail" ? detail : missed
@@ -704,12 +709,15 @@ final class PillBar: UIView {
             configuration.title = title
             configuration.cornerStyle = .capsule
             configuration.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 15, bottom: 8, trailing: 15)
+            configuration.titleLineBreakMode = .byClipping
             configuration.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer {
                 var attributes = $0
                 attributes.font = UIFontMetrics(forTextStyle: .body).scaledFont(for: .systemFont(ofSize: 17, weight: .medium))
                 return attributes
             }
-            return UIButton(configuration: configuration)
+            let button = UIButton(configuration: configuration)
+            button.setContentCompressionResistancePriority(.required, for: .horizontal)
+            return button
         }
         super.init(frame: .zero)
         let row = UIStackView(arrangedSubviews: buttons + [UIView()])

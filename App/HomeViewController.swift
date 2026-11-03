@@ -78,7 +78,7 @@ struct HomeView: View {
         Group {
             switch arrangement {
             case .side:
-                Panes(share: 0.44) {
+                Panes {
                     VStack(alignment: .leading, spacing: 20) {
                         header
                         tryIt.frame(maxHeight: 300)

@@ -1,13 +1,15 @@
 import SwiftUI
 
-/// How a page uses the screen it's on. Wider than tall (the iPhone Duo open and wide, 951 × 669, or the cover on its
-/// side, 678 × 466), a page has two columns, as an iPad's split view does. Taller than wide (the cover, or the open
-/// screen held tall, 669 × 951), it is one column that scrolls as one, across the fold, as every iOS app's does there.
+/// How a page uses the screen it's on. Only the iPhone Duo open and held wide (951 × 669) has room for two columns,
+/// as an iPad's split view does; everywhere else, the cover either way up and the open screen held tall, a page is one
+/// column that scrolls as one, as iOS lays out a compact width.
 enum Arrangement {
     case side, single
 
+    static let wide: CGFloat = 800
+
     init(window: CGSize) {
-        self = window.width > window.height ? .side : .single
+        self = window.width >= Self.wide && window.width > window.height ? .side : .single
     }
 }
 
@@ -48,11 +50,9 @@ private struct WindowReader: ViewModifier {
     }
 }
 
-/// Two columns with a hairline between, each its own page with its own header, scrolling on its own. On the open Duo
-/// the line sits on the hinge; on the cover, which has none, `first` takes `share` of the width. In one column they
-/// follow each other.
+/// Two columns with a hairline between, each its own page with its own header, scrolling on its own, meeting at the
+/// window's middle, which on the open Duo is the hinge. In one column they follow each other.
 struct Panes<First: View, Second: View>: View {
-    var share: CGFloat = 0.5
     @ViewBuilder var first: First
     @ViewBuilder var second: Second
     @Environment(\.window) private var window
@@ -62,7 +62,7 @@ struct Panes<First: View, Second: View>: View {
         switch arrangement {
         case .side:
             GeometryReader { proxy in
-                let hinge = window.width >= 900 ? window.width / 2 - proxy.frame(in: .global).minX : proxy.size.width * share
+                let hinge = window.width / 2 - proxy.frame(in: .global).minX
                 HStack(spacing: 0) {
                     first.frame(width: max(hinge - 0.5, 0))
                     Rectangle().fill(Color.hexDivider).frame(width: 1).ignoresSafeArea(edges: .vertical)
@@ -413,5 +413,6 @@ struct Column<Content: View>: View {
                 .frame(maxWidth: .infinity)
         }
         .scrollDismissesKeyboard(.interactively)
+        .defaultScrollAnchor(LaunchOptions.scrollAnchor)
     }
 }

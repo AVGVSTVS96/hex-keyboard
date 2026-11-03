@@ -198,7 +198,7 @@ SCREENS
 
 # Screenshots each of the app's screens on the iPhone Duo's four screens, as duo does for the keyboard:
 # shots/raw/duo/app/<tag>-<screen>-<page>-<appearance>.png. TOUCHES (a touch model, as the keyboard shares it) and
-# TRANSCRIPTS (JSON lines, as the app keeps them) fill Your Taps and Transcripts; PAGES picks the screens; SIM names
+# TRANSCRIPTS (JSON lines, as the app keeps them) fill Your Taps and Transcripts; PAGES picks the pages; ARGS adds launch arguments to each (-HexScrollToEnd YES shows each page's end); SIM names
 # the simulator (hexkb <SIM>), so checkouts side by side don't share one.
 duoapp() {
   local tag=$1 id data group; shift
@@ -227,7 +227,7 @@ plistlib.dump(prefs, open(path, 'wb'))" "$group/Library/Preferences/group.com.sh
         [ -n "${PAGES:-}" ] && [[ " $PAGES " != *" $page "* ]] && continue
         xcrun simctl terminate "$id" "$BUNDLE" 2>/dev/null || true
         hub "$id" orientation "$orientation"
-        xcrun simctl launch "$id" "$BUNDLE" -HexOrientation "$([ "$orientation" = portrait ] && echo portrait || echo landscape)" $args >/dev/null 2>&1 || true
+        xcrun simctl launch "$id" "$BUNDLE" -HexOrientation "$([ "$orientation" = portrait ] && echo portrait || echo landscape)" $args ${ARGS:-} >/dev/null 2>&1 || true
         sleep "${SETTLE:-4}"
         mkdir -p shots/raw/duo/app
         xcrun simctl io "$id" screenshot --display="$display" "shots/raw/duo/app/$tag-$screen-$page-$appearance.png" >/dev/null 2>&1

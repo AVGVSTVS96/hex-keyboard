@@ -52,6 +52,7 @@ struct MorePage: View {
                 .frame(maxWidth: 1000)
                 .frame(maxWidth: .infinity)
             }
+            .defaultScrollAnchor(LaunchOptions.scrollAnchor)
             .hexPage()
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: Page.self) { page in

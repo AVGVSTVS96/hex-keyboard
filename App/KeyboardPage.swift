@@ -27,7 +27,7 @@ struct KeyboardPage: View {
         Group {
             switch arrangement {
             case .side:
-                Panes(share: 0.42) {
+                Panes {
                     VStack(alignment: .leading, spacing: 0) {
                         PageTitle(title: "Keyboard")
                             .padding(.top, 12)
@@ -69,6 +69,7 @@ struct KeyboardPage: View {
                     .frame(maxWidth: .infinity)
                 }
                 .scrollDismissesKeyboard(.interactively)
+                .defaultScrollAnchor(LaunchOptions.scrollAnchor)
             }
         }
         .hexPage()

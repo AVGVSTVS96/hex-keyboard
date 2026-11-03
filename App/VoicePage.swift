@@ -135,6 +135,7 @@ struct VoicePage: View {
             .frame(maxWidth: .infinity)
         }
         .scrollDismissesKeyboard(.interactively)
+        .defaultScrollAnchor(LaunchOptions.scrollAnchor)
     }
 
     @ViewBuilder private func row(_ transcript: Transcript) -> some View {

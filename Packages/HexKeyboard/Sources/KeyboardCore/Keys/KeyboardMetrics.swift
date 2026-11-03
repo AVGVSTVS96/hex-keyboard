@@ -145,7 +145,7 @@ extension KeyboardMetrics {
             metrics.letterSize = 28.5
             metrics.labelSize = 22
             metrics.symbolSize = 23
-            metrics.toolbar = .compact(mic: 38)
+            metrics.toolbar = .compact(mic: 38, backdropAbove: Toolbar.openWideBackdropAbove)
             if split { metrics.columns = Self.splitColumns }
         }
         return metrics

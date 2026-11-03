@@ -13,8 +13,10 @@ public struct Toolbar: Hashable, Sendable {
     /// The space around the mic: to the top of the keyboard's backdrop, to the keys, and to the keyboard's side
     /// where the keys reach it. With it, the keyboard is as tall as Apple's with its suggestions (iPhone Duo, iOS 27.1).
     public static let gap = 7.0
-    /// iOS draws the keyboard's backdrop this far above the keyboard's own top (iPhone Duo, iOS 27.1 simulator).
+    /// iOS draws the keyboard's backdrop this far above the keyboard's own top (iPhone Duo, iOS 27.1 simulator), and
+    /// further on the open screen held wide.
     public static let backdropAbove = 4.0
+    public static let openWideBackdropAbove = 7.0
     /// How much of the bar's bottom goes nowhere, so a reach for the top row never picks a suggestion: with the gap
     /// under the bar, 17 above the keys.
     public static let deadEdge = 10.0
@@ -64,7 +66,7 @@ public struct Toolbar: Hashable, Sendable {
     static let compactResults = 46.0
     static let compactField = 34.0
 
-    static func compact(mic: Double) -> Toolbar {
+    static func compact(mic: Double, backdropAbove: Double = backdropAbove) -> Toolbar {
         Toolbar(top: gap - backdropAbove, bar: mic, mic: mic, results: compactResults, field: compactField)
     }
 

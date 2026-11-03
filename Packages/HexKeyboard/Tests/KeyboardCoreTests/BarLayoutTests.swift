@@ -99,11 +99,12 @@ struct BarLayoutTests {
 
     /// On an iPhone the mic has the same space above it (to the backdrop iOS draws), below it (to the keys) and beside
     /// it where the keys reach the side: on the Duo folded upright, 7 all round, where it had 14 above, 12 below and 7
-    /// beside.
+    /// beside; open and held wide, where iOS draws the backdrop 7 above the keyboard, 7 all round, where it had 10 above.
     @Test func theMicHasTheSameSpaceAllRound() {
         for screen in Self.screens where screen.device == .phone {
+            let backdrop = screen.width == 951 ? Toolbar.openWideBackdropAbove : Toolbar.backdropAbove
             for (metrics, layout, label) in layouts(screen) {
-                let above = layout.mic.y + Toolbar.backdropAbove
+                let above = layout.mic.y + backdrop
                 let below = metrics.toolbar.height - (layout.mic.y + layout.mic.height) + metrics.topInset
                 #expect(near(above, Toolbar.gap) && near(below, Toolbar.gap), "\(label): \(above) above, \(below) below")
             }

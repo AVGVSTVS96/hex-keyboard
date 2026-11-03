@@ -1,5 +1,6 @@
 import KeyboardCore
 import KeyboardUI
+import SwiftUI
 import UIKit
 
 enum LaunchOptions {
@@ -10,6 +11,9 @@ enum LaunchOptions {
     }
 
     static var focus: Bool { defaults.bool(forKey: "HexFocus") }
+    /// `-HexScrollToEnd YES` opens every page scrolled to its end, for screenshots of what sits above the tab bar.
+    static var scrollsToEnd: Bool { defaults.bool(forKey: "HexScrollToEnd") }
+    static var scrollAnchor: UnitPoint { scrollsToEnd ? .bottom : .top }
     /// The tab and page the app opens on: `-HexTab keyboard`, `-HexTaps YES` for Your Taps, `-HexSettings typing` for a
     /// Keyboard page (`YES` for its first), `-HexSettings voice` for Voice's settings, or `-HexSettings sources` for a
     /// page under More.
