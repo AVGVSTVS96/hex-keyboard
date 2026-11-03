@@ -22,6 +22,9 @@ ensure() {
   local name="hexkb $1" type="com.apple.CoreSimulator.SimDeviceType.$2" id
   id=$(udid "$name")
   [ -n "$id" ] || id=$(xcrun simctl create "$name" "$type" "$RUNTIME")
+  for other in $(xcrun simctl list devices booted | sed -n 's/^ *hexkb .*(\([0-9A-F-]\{36\}\)) (Booted).*/\1/p'); do
+    [ "$other" = "$id" ] || xcrun simctl shutdown "$other"
+  done
   echo "$id"
 }
 
