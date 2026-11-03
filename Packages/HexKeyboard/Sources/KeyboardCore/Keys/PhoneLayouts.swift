@@ -43,7 +43,7 @@ enum PhoneLayouts {
     /// own keys and return on the right.
     private static func splitBottomRow(_ context: LayoutContext, layerKey: KeyboardLayer) -> [RowItem] {
         let character = { (value: String) in RowItem.key(Key(.character(value))) }
-        let leading = [Key(.layer(layerKey), width: raycastSide)]
+        let leading = [Key(.layer(layerKey))]
             + (context.showsEmoji ? [Key(.emoji)] : [])
         let leadingSpan = leading.compactMap(\.width.span).reduce(0, +)
         let trailing: [RowItem] = switch context.kind {
@@ -91,14 +91,12 @@ enum PhoneLayouts {
         [".", ",", "?", "!", "'"].map { .key(Key(.character($0), width: .pitch(1.4), alternates: Alternates.for($0))) }
     }
 
-    /// `123`, as wide as on every Raycast theme (measured on the Duo, open upright and on its side).
-    private static let raycastSide = KeyWidth.pitch(0.93)
     /// Return beside the emoji key, as wide as Raycast's on the open Duo, upright and on its side.
     private static let raycastReturn = KeyWidth.pitch(1.4)
 
     private static func bottomRow(_ context: LayoutContext, layerKey: KeyboardLayer) -> [RowItem] {
         let side = context.isLandscape ? 2.0 : 2.5
-        let leading: [RowItem] = [.key(Key(.layer(layerKey), width: raycastSide))]
+        let leading: [RowItem] = [.key(Key(.layer(layerKey), width: .pitch(side / 2)))]
         let space = RowItem.key(Key(.space, width: .fill))
         let returnKey = RowItem.key(Key(.return, width: .pitch(side)))
         let emoji: [RowItem] = context.showsEmoji ? [.key(Key(.emoji, width: .pitch(side / 2)))] : []

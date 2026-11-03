@@ -82,12 +82,12 @@ struct LayoutTests {
         #expect(landscape.keys.first { $0.action == .return }?.width == .pitch(2))
     }
 
-    @Test func bottomRowKeysAreRaycastsWithTheEmojiKeyWider() {
+    @Test func bottomRowKeys123AsWideAsEmoji() {
         for isLandscape in [false, true] {
             let keys = Layouts.layout(for: LayoutContext(device: .phone, layer: .letters, showsGlobe: true, isLandscape: isLandscape, showsEmoji: true)).keys
             let width = { (action: KeyAction) in keys.first { $0.action == action }?.width.span ?? 0 }
-            #expect(width(.layer(.numbers)) == 0.93)
             #expect(width(.emoji) == (isLandscape ? 1 : 1.25), "the emoji key keeps its width")
+            #expect(width(.layer(.numbers)) == width(.emoji), "123 is as wide as the emoji key")
             #expect(width(.return) == 1.4, "return is Raycast's")
         }
     }
