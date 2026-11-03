@@ -1,0 +1,65 @@
+{
+  "name": "iikb",
+  "site": "https://iikb.vercel.app",
+  "repo": "https://github.com/AVGVSTVS96/iikb",
+  "license": "MIT",
+  "iosMinimum": 26,
+  "accuracy": {
+    "source": "scripts/eval.expected, EVAL thumbs (KeyboardUITests/Evaluation.biasedThumbs)",
+    "phrases": 500,
+    "words": 5428,
+    "blockWords": 500,
+    "baseline": 85.2,
+    "iikb": 97.6,
+    "baselineCurve": [
+      83.2,
+      85.4,
+      85,
+      83.4,
+      85.4,
+      87.4,
+      84.8,
+      86.6,
+      85.8,
+      83.8
+    ],
+    "iikbCurve": [
+      96.4,
+      97,
+      97.2,
+      98,
+      97.4,
+      97.4,
+      97.2,
+      98.2,
+      97.6,
+      99
+    ]
+  },
+  "missesToMoveAKey": 3,
+  "themes": [
+    "Default",
+    "Clear",
+    "Physical",
+    "Mechanical",
+    "iOS 5"
+  ],
+  "haptics": {
+    "levels": 7,
+    "softest": 0.5,
+    "strongest": 2
+  },
+  "emoji": 1905,
+  "emojiWords": 6785,
+  "lexiconWords": 137578,
+  "tests": {
+    "core": 233,
+    "ui": 64,
+    "coreSeconds": 25
+  },
+  "voice": {
+    "downloadMB": 500,
+    "speechSeconds": 8.2,
+    "writeSeconds": 0.05
+  }
+}
