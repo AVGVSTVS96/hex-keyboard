@@ -13,7 +13,7 @@ Where this file and a Paper frame disagree, this file wins.
 │ q  w  e  r  t  y  u  i  o  p             │
 │  a  s  d  f  g  h  j  k  l               │  keys: 4 rows
 │ ⇧   z  x  c  v  b  n  m   ⌫              │
-│ 123  🌐  🙂 [      space      ]  return  │
+│ 123  🙂  [        space        ]  return │
 └──────────────────────────────────────────┘
 ```
 
@@ -25,7 +25,7 @@ From top to bottom: 3 of padding (iOS draws its backdrop 4 above the keyboard, s
 - Side inset 6.5, gap between keys 6, gap between rows 11 (9 and 7 in the compact layouts, below).
 - Corners are Raycast's on every theme (Themes, below).
 - Row 2 is centered (a half pitch in on each side). Row 3: shift and delete are 1.3 pitch − 6 wide at the edges; z to m are centered between them.
-- Bottom row: `123` is 0.93 pitch − 6 wide, as on every Raycast theme (measured on the open Duo in portrait and landscape), return is 2.5 pitch − 6 (2 in landscape), space takes the rest. An iPhone's row has no globe, so `123 · emoji · space · return`: Bassim kept hitting it by accident. Where iOS wants a way to the next keyboard (`needsInputModeSwitchKey`, and always on the Duo, which has no system globe bar), the bar's More menu offers Next Keyboard above Hex Settings, as does holding `123`; App Review asks only for "a method for progressing to the next keyboard" (4.4.1). Face ID iPhones also have iOS's globe in the bar under the keyboard. iPad keeps its globe key.
+- Bottom row: `123` is 1.25 pitch − 6 wide (1 in landscape), as wide as the emoji key, as Bassim asked (Nov 3), return is 2.5 pitch − 6 (2 in landscape), space takes the rest. An iPhone's row has no globe, so `123 · emoji · space · return`: Bassim kept hitting it by accident. Where iOS wants a way to the next keyboard (`needsInputModeSwitchKey`, and always on the Duo, which has no system globe bar), the bar's More menu offers Next Keyboard above Hex Settings, as does holding `123`; App Review asks only for "a method for progressing to the next keyboard" (4.4.1). Face ID iPhones also have iOS's globe in the bar under the keyboard. iPad keeps its globe key.
 - The emoji key sits where Apple's does, after `123`, 1.25 pitch − 6 wide (1 in landscape), wider than Raycast's because it's the one Bassim taps most, in every field, email, URL, X and search ones too. Beside it return is Raycast's 1.4 pitch − 6 (measured on the open Duo in portrait and landscape), and space takes the rest. Settings › Keyboard › Layout › Emoji Key takes it away, leaving the bar's emoji for the word as the way to emoji; on iPad, which has no room for it in the bottom row, the emoji tool sits in the bar instead.
 - Space carries "hex" in its top trailing corner, in the theme's secondary label color at the key's secondary size, where Raycast's space is blank.
 - Return shows the `return.left` glyph. For go, search, send, join, route, done and next it turns into the prominent key: accent fill, white label (`go`, `search`, `send`, …), semibold 17.
@@ -104,7 +104,7 @@ Every theme has Raycast's keys (`KeyShape`): continuous corners, 3.9 + 0.143 × 
 | Physical, light | `#F8F8F8`, label `#2C2C2C`; a ⅓ pt rim, white 60%, gone a tenth of the way down | the same | |
 | Mechanical, dark | face `#171717`→`#202020` inside sides `#171717`→`#0E0E0E` (80%)→`#0D0D0D`, lit by a glow of white 12% from the middle of the top edge, 0.93 of the key's height across | the same | the face sits 9.3% of the key's height below its top, 9.7% in from its sides and 15% above its bottom, with corners 65% of the key's |
 | Mechanical, light | face `#FAFAFA`→`#E5E5E5` inside sides `#E0E0E0`→`#DBDBDB`, glow white 23%; label `#2A2A29` | the same | |
-| iOS 5 | `#F4F4F4`→`#C6C7CB`, black label over a white line 1 pt below it | `#9DA3AB`→`#70757D`, white label under a black 55% line 1 pt above it; a ⅔ pt rim, white 14%, gone a fifth of the way down | every key casts black 30%, 1 pt down, 1.5 blurred; a prominent return stays blue (`#609CF5`→`#2462D8`), which Raycast's screenshots don't show |
+| iOS 5 | `#F4F4F4`→`#C4C5C9`, black label over a white line 1 pt below it; a 0.85 pt rim, white 30%, gone a fifth of the way down | `#A0A6AE`→`#71767E`, white label under a black 55% line 1 pt above it; a 0.85 pt rim, white 18%, gone a fifth of the way down | every key casts black 30%, 1 pt down, 1 blurred; a prominent return stays blue (`#609CF5`→`#2462D8`), which Raycast's screenshots don't show |
 
 Physical and Mechanical come Automatic (following the app), Dark or Light.
 
@@ -113,7 +113,7 @@ Physical and Mechanical come Automatic (following the app), Dark or Light.
 - **Character Preview**: None, Detached (the letter in a bubble of its own 6 above the key, which shows pressed) or Attached (Apple's: the key grows up into the bubble). Default Attached.
 - **Number Row**: digits 1 to 0 above an iPhone's letters, 80% of a key's height, one row gap above the letters; the letters stay where Apple's are and the keyboard grows upward. Off by default.
 - **Skin Tone**: the tone emoji take in the bar and the panel until you pick another for one by holding it. Default none (yellow).
-- **Haptic Feedback**: Off, Soft (55% of Apple's intensity) or Standard (Apple's). Default Standard.
+- **Haptic Feedback**: Off, or seven strengths on a slider, Standard (Apple's) in the middle, three softer and three up to twice as strong (Lightest, Lighter, Light, Standard, Strong, Stronger, Strongest; Bassim asked for 5 to 7, Nov 3). Default Standard.
 
 ### Per device
 
@@ -256,7 +256,7 @@ open, landscape 951 × 669       open, portrait 669 × 951      folded 466 × 67
     - **Keyboard Access**: the three switches and Open Hex in Settings.
     - **Privacy & Data**: what stays on the iPhone and what goes online; Reset Learned Words and Taps; Delete All Transcripts.
     - **About Hex**.
-- Settings › Apps › Hex has the same pages for the keyboard's switches (Theme, Layout, Typing, Feedback, Voice Typing), and says the app also picks the voice model and adds sources.
+- Settings › Apps › Hex has the same pages for the keyboard's switches (Theme; Layout with Split Keyboard and One-Handed Keyboard; Typing; Sound & Haptics; Voice Typing), and says the app also picks the voice model and adds sources.
 - Full Access and Paste from Other Apps are read from TCC, where iOS keeps them for the app (`HexStatus`), and with Add Hex each time the app comes forward, so Home's setup steps check off as you come back from Settings and leave once all three are on.
 - The dictation screen (opened by the keyboard's mic) is the record-red circle swelling with your voice over a readable-width hint; if it couldn't listen it says why, with Close.
 
