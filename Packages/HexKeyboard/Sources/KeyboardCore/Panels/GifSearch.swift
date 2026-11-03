@@ -30,7 +30,8 @@ public struct Gif: Codable, Hashable, Sendable, Identifiable {
 
 /// What the GIF panel shows, and the one request it has out at a time. KLIPY's testing keys allow 100 requests an
 /// hour, so keys typed while a search is out don't each send one: when it comes back, a single search goes out for
-/// whatever the field holds then. Results only ever show for what the field holds.
+/// whatever the field holds then. Results only ever show for what the field holds. Scrolled to the end, a feed asks for
+/// its next page while KLIPY has one.
 public struct GifSearch: Sendable {
     public enum Feed: Hashable, Sendable {
         case trending
@@ -48,6 +49,8 @@ public struct GifSearch: Sendable {
     public private(set) var wanted: Feed = .trending
     private var inFlight: Feed?
     private var answers: [Feed: Results] = [:]
+    /// The page each feed's results go on with, while KLIPY says there is one.
+    private var next: [Feed: Int] = [:]
 
     public init() {}
 
@@ -66,10 +69,23 @@ public struct GifSearch: Sendable {
         return nextRequest()
     }
 
-    /// A request came back, with nil when it failed. Returns the next request to send, if any.
-    public mutating func received(_ gifs: [Gif]?, for feed: Feed) -> Feed? {
+    /// The next page of what shows, when the panel is scrolled to its end: nil when there's none, or a request is out.
+    public mutating func more() -> (feed: Feed, page: Int)? {
+        guard inFlight == nil, case .gifs = answers[wanted], let page = next[wanted] else { return nil }
+        inFlight = wanted
+        return (wanted, page)
+    }
+
+    /// A request came back, with nil when it failed, and whether KLIPY has a page after it. A later page adds to what
+    /// shows; one that failed ends the feed where it is. Returns the next request to send, if any.
+    public mutating func received(_ gifs: [Gif]?, for feed: Feed, page: Int = 1, hasNext: Bool = false) -> Feed? {
         if inFlight == feed { inFlight = nil }
-        answers[feed] = gifs.map(Results.gifs) ?? .failed
+        next[feed] = gifs != nil && hasNext ? page + 1 : nil
+        if page > 1 {
+            if let gifs, case .gifs(let shown) = answers[feed] { answers[feed] = .gifs(shown + gifs.filter { !shown.contains($0) }) }
+        } else {
+            answers[feed] = gifs.map(Results.gifs) ?? .failed
+        }
         return nextRequest()
     }
 

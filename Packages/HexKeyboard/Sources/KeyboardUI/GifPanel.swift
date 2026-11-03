@@ -32,8 +32,7 @@ final class GifPanel: UIView, PanelContent, UIScrollViewDelegate {
     private var rows = 2
     private let scroll = ButtonScrollView()
     private var tiles: [GifTile] = []
-    private let message = UILabel()
-    private let turnOn = UIButton(type: .system)
+    private let message = PanelNotice()
     private let clock = UIButton(type: .custom)
 
     init(klipy: Klipy) {
@@ -42,13 +41,8 @@ final class GifPanel: UIView, PanelContent, UIScrollViewDelegate {
         scroll.alwaysBounceHorizontal = true
         scroll.delegate = self
         scroll.accessibilityIdentifier = "hex.gifs"
-        message.font = .systemFont(ofSize: 15)
-        message.textAlignment = .center
-        message.numberOfLines = 2
-        turnOn.setTitle("Turn On", for: .normal)
-        turnOn.titleLabel?.font = .systemFont(ofSize: 15, weight: .semibold)
-        turnOn.accessibilityIdentifier = "hex.gifs.turnOn"
-        turnOn.addAction(UIAction { [unowned self] _ in onTurnOn() }, for: .touchUpInside)
+        message.accessibilityIdentifier = "hex.gifs.message"
+        message.onTurnOn = { [unowned self] in onTurnOn() }
         clock.accessibilityIdentifier = "hex.gifs.recents"
         clock.accessibilityLabel = "Recent GIFs"
         clock.setImage(UIImage(systemName: "clock", withConfiguration: UIImage.SymbolConfiguration(pointSize: 18, weight: .regular)), for: .normal)
@@ -58,7 +52,7 @@ final class GifPanel: UIView, PanelContent, UIScrollViewDelegate {
             notice = nil
             showsRecents ? clearSearch() : changed()
         }, for: .touchUpInside)
-        [scroll, message, turnOn].forEach(addSubview)
+        [scroll, message].forEach(addSubview)
     }
 
     required init?(coder: NSCoder) { fatalError() }
@@ -71,14 +65,15 @@ final class GifPanel: UIView, PanelContent, UIScrollViewDelegate {
     }
 
     func show(query: String, theme: KeyboardTheme, metrics: KeyboardMetrics) {
-        rows = metrics.toolbar.isCompact ? 1 : 2
-        if theme != self.theme {
-            self.theme = theme
-            message.textColor = theme.candidate.ui
-            turnOn.tintColor = theme.prominent.ui
-            tiles.forEach { $0.backgroundColor = theme.key.ui }
-        }
+        let rows = metrics.toolbar.isCompact ? 1 : 2
         clock.tintColor = showsRecents ? theme.prominent.ui : theme.candidate.ui
+        if theme != self.theme || rows != self.rows {
+            self.theme = theme
+            self.rows = rows
+            tiles.forEach { $0.backgroundColor = theme.key.ui }
+            refresh()
+            setNeedsLayout()
+        }
         guard query != self.query else { return }
         if self.query != nil, !query.isEmpty { showsRecents = false }
         self.query = query
@@ -87,11 +82,11 @@ final class GifPanel: UIView, PanelContent, UIScrollViewDelegate {
         refresh()
     }
 
-    private func fetch(_ feed: GifSearch.Feed) {
+    private func fetch(_ feed: GifSearch.Feed, page: Int = 1) {
         Task { [weak self, klipy] in
-            let gifs = await klipy.gifs(feed)
+            let answer = await klipy.gifs(feed, page: page)
             guard let self else { return }
-            if let next = search.received(gifs, for: feed) { fetch(next) }
+            if let next = search.received(answer?.gifs, for: feed, page: page, hasNext: answer?.hasNext == true) { fetch(next) }
             refresh()
         }
     }
@@ -106,23 +101,24 @@ final class GifPanel: UIView, PanelContent, UIScrollViewDelegate {
         case .gifs([]): "No GIFs for “\(GifSearch.feed(for: query ?? "").words)”"
         default: nil
         }
-        message.text = text
-        message.isHidden = text == nil
-        turnOn.isHidden = fullAccess()
+        message.show(text, turnOn: !fullAccess(), oneRow: rows == 1, theme: theme)
         guard results != shown else { return }
+        let had = if case .gifs(let gifs)? = shown { gifs } else { [Gif]() }
         shown = results
-        tiles.forEach { $0.removeFromSuperview() }
-        tiles = []
-        if case .gifs(let gifs) = results {
-            tiles = gifs.map { gif in
-                let tile = GifTile(gif: gif, fill: theme.key.ui)
-                tile.addAction(UIAction { [unowned self, unowned tile] _ in copy(tile) }, for: .touchUpInside)
-                tile.dropped = { [weak self] in self?.sent(gif) }
-                scroll.addSubview(tile)
-                return tile
-            }
+        let gifs = if case .gifs(let gifs) = results { gifs } else { [Gif]() }
+        let more = !had.isEmpty && gifs.starts(with: had)
+        if !more {
+            tiles.forEach { $0.removeFromSuperview() }
+            tiles = []
+            scroll.contentOffset = .zero
         }
-        scroll.contentOffset = .zero
+        tiles += gifs.dropFirst(tiles.count).map { gif in
+            let tile = GifTile(gif: gif, fill: theme.key.ui)
+            tile.addAction(UIAction { [unowned self, unowned tile] _ in copy(tile) }, for: .touchUpInside)
+            tile.dropped = { [weak self] in self?.sent(gif) }
+            scroll.addSubview(tile)
+            return tile
+        }
         setNeedsLayout()
     }
 
@@ -153,8 +149,7 @@ final class GifPanel: UIView, PanelContent, UIScrollViewDelegate {
     override func layoutSubviews() {
         super.layoutSubviews()
         scroll.frame = bounds
-        message.frame = bounds.insetBy(dx: 16, dy: 0).offsetBy(dx: 0, dy: turnOn.isHidden ? 0 : -14)
-        turnOn.frame = CGRect(x: 0, y: bounds.midY + 8, width: bounds.width, height: 30)
+        message.frame = bounds.insetBy(dx: 16, dy: 0)
         let gap = 6.0
         let height = ((bounds.height - gap * Double(rows - 1)) / Double(rows)).rounded(.down)
         var ends = Array(repeating: 0.0, count: rows)
@@ -171,6 +166,8 @@ final class GifPanel: UIView, PanelContent, UIScrollViewDelegate {
 
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
         animateVisible()
+        let left = scroll.contentSize.width - scroll.bounds.maxX
+        if fullAccess(), !tiles.isEmpty, left < scroll.bounds.width, let more = search.more() { fetch(more.feed, page: more.page) }
     }
 
     /// Only the tiles on screen load and animate; the rest drop their frames, since a keyboard's memory is small.

@@ -25,12 +25,12 @@ nonisolated public struct Klipy: Sendable {
         return id
     }
 
-    /// The GIFs for a feed, in KLIPY's order, or nil when the request failed.
-    public func gifs(_ feed: GifSearch.Feed) async -> [Gif]? {
+    /// A page of a feed's GIFs, in KLIPY's order, and whether it has a page after it, or nil when the request failed.
+    public func gifs(_ feed: GifSearch.Feed, page: Int = 1) async -> (gifs: [Gif], hasNext: Bool)? {
         let request: URLRequest
         switch feed {
-        case .trending: request = get("gifs/trending", ["per_page": "30"])
-        case .search(let words): request = get("gifs/search", ["q": words, "per_page": "30"])
+        case .trending: request = get("gifs/trending", ["per_page": "30", "page": "\(page)"])
+        case .search(let words): request = get("gifs/search", ["q": words, "per_page": "30", "page": "\(page)"])
         case .recents(let slugs): request = get("gifs/items", ["slugs": slugs.joined(separator: ",")])
         }
         guard let (data, response) = try? await URLSession.shared.data(for: request),
@@ -38,8 +38,8 @@ nonisolated public struct Klipy: Sendable {
               let page = try? JSONDecoder().decode(Page.self, from: data), page.result
         else { return nil }
         let gifs = page.data.data.compactMap(\.gif)
-        guard case .recents(let slugs) = feed else { return gifs }
-        return slugs.compactMap { slug in gifs.first { Self.base($0.id) == slug } }
+        guard case .recents(let slugs) = feed else { return (gifs, page.data.hasNext == true) }
+        return (slugs.compactMap { slug in gifs.first { Self.base($0.id) == slug } }, false)
     }
 
     /// A slug without the suffix a search adds to it (`cat-dance--k55hIoaZo`), as `gifs/items` answers with it, so the
@@ -68,7 +68,15 @@ nonisolated public struct Klipy: Sendable {
     }
 
     struct Page: Decodable {
-        struct Items: Decodable { var data: [Item] }
+        struct Items: Decodable {
+            var data: [Item]
+            var hasNext: Bool?
+
+            enum CodingKeys: String, CodingKey {
+                case data
+                case hasNext = "has_next"
+            }
+        }
         var result: Bool
         var data: Items
     }

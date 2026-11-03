@@ -44,6 +44,31 @@ struct GifSearchTests {
         #expect(search.results == .loading)
     }
 
+    @Test func theEndOfTheResultsAsksForTheNextPageOnceWhileKlipyHasOne() throws {
+        var search = GifSearch()
+        _ = search.want(.search("cat"))
+        #expect(search.more() == nil, "nothing shows yet")
+        _ = search.received([gif("cat1")], for: .search("cat"), hasNext: true)
+        let asked = search.more()
+        let more = try #require(asked)
+        #expect(more.feed == .search("cat") && more.page == 2)
+        #expect(search.more() == nil, "one request out at a time")
+        _ = search.received([gif("cat1"), gif("cat2")], for: .search("cat"), page: 2, hasNext: false)
+        #expect(search.results == .gifs([gif("cat1"), gif("cat2")]), "a page adds to what shows, without repeats")
+        #expect(search.more() == nil, "KLIPY had no more")
+    }
+
+    @Test func aFailedPageKeepsWhatShows() throws {
+        var search = GifSearch()
+        _ = search.want(.trending)
+        _ = search.received([gif("t1")], for: .trending, hasNext: true)
+        let asked = search.more()
+        let more = try #require(asked)
+        _ = search.received(nil, for: more.feed, page: more.page)
+        #expect(search.results == .gifs([gif("t1")]))
+        #expect(search.more() == nil, "it doesn't keep asking at the end")
+    }
+
     @Test func noRecentsNeedsNoRequest() {
         var search = GifSearch()
         #expect(search.want(.recents([])) == nil)

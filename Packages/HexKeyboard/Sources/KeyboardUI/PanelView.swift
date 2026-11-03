@@ -188,3 +188,33 @@ private final class SearchField: UIView {
         caret.frame = CGRect(x: (text + typed + 1).rounded(scale: scale), y: ((bounds.height - 22) / 2).rounded(scale: scale), width: 2, height: 22)
     }
 }
+
+/// What a panel says in place of results, like "GIF search needs Full Access.", with Turn On after it when Settings has
+/// the answer; then the whole notice opens Settings. In one row, Turn On follows on the same line, so it fits 46pt.
+final class PanelNotice: UIButton {
+    var onTurnOn: () -> Void = {}
+    private var turnsOn = false
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        titleLabel?.numberOfLines = 0
+        titleLabel?.textAlignment = .center
+        addAction(UIAction { [unowned self] _ in if turnsOn { onTurnOn() } }, for: .touchUpInside)
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    override var isHighlighted: Bool {
+        didSet { alpha = isHighlighted && turnsOn ? 0.5 : 1 }
+    }
+
+    func show(_ text: String?, turnOn: Bool, oneRow: Bool, theme: KeyboardTheme) {
+        turnsOn = turnOn && text != nil
+        isHidden = text == nil
+        setAttributedTitle(text.map { text in
+            let title = NSMutableAttributedString(string: text, attributes: [.foregroundColor: theme.candidate.ui, .font: UIFont.systemFont(ofSize: 15)])
+            if turnsOn { title.append(NSAttributedString(string: (oneRow ? " " : "\n") + "Turn On", attributes: [.foregroundColor: theme.prominent.ui, .font: UIFont.systemFont(ofSize: 15, weight: .semibold)])) }
+            return title
+        }, for: .normal)
+    }
+}
