@@ -1,5 +1,6 @@
 import KeyboardCore
 import KeyboardUI
+import SwiftUI
 import UIKit
 
 final class SettingsViewController: UITableViewController {
@@ -8,6 +9,7 @@ final class SettingsViewController: UITableViewController {
         case oneHanded
         case keepMicOn
         case voiceModel
+        case vocabulary
         case source(Source)
         case addSource
         case reset
@@ -36,7 +38,7 @@ final class SettingsViewController: UITableViewController {
         Section(title: "English", footer: "Hex expands your Text Replacements from Settings › General › Keyboard › Text Replacement.", rows: [
             .toggle("Predictive Text", \.predictiveText),
         ]),
-        Section(title: "Voice", footer: Self.voiceFooter, rows: [.keepMicOn, .voiceModel]),
+        Section(title: "Voice", footer: Self.voiceFooter, rows: [.keepMicOn, .voiceModel, .vocabulary]),
         Section(title: "Sources", footer: Self.sourcesFooter, rows: sources.map(Row.source) + [.addSource]),
         Section(footer: "Removes the words and typing habits Hex has learned from you.", rows: [.reset]),
     ] }
@@ -128,6 +130,8 @@ final class SettingsViewController: UITableViewController {
             return show(ChoiceViewController(title: "Voice Model", footer: Self.voiceModelFooter, choices: choices, choice: VoiceModel.shared.model) {
                 VoiceModel.shared.pick($0)
             }, sender: self)
+        case .vocabulary:
+            return show(UIHostingController(rootView: VocabularyView()), sender: self)
         case .addSource:
             tableView.deselectRow(at: indexPath, animated: true)
             return addSource()
@@ -178,6 +182,11 @@ final class SettingsViewController: UITableViewController {
             }
             cell.accessoryView = nil
             cell.accessoryType = .disclosureIndicator
+        case .vocabulary:
+            content.text = "Vocabulary"
+            content.secondaryText = VoiceVocabulary.shared.vocabulary.terms.count.formatted()
+            cell.accessoryView = nil
+            cell.accessoryType = .disclosureIndicator
         case .source(let source):
             content = .subtitleCell()
             content.text = source.name
@@ -216,6 +225,7 @@ final class SettingsViewController: UITableViewController {
         case .toggle(_, \KeyboardSettings.predictiveText): ("text.insert", .systemIndigo)
         case .keepMicOn: ("mic.fill", .systemOrange)
         case .voiceModel: ("waveform", .systemRed)
+        case .vocabulary: ("character.book.closed.fill", .systemBlue)
         case .source: ("antenna.radiowaves.left.and.right", .systemTeal)
         default: nil
         }

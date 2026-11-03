@@ -12,6 +12,8 @@ struct Transcript: Codable, Identifiable, Hashable {
     var model: String?
     /// The microphone it was said into, as iOS names it; nil before Hex kept it.
     var mic: String?
+    /// What the model wrote, when your `Vocabulary` changed it.
+    var heard: String?
 
     var words: Int { text.split(whereSeparator: \.isWhitespace).count }
 }
@@ -32,9 +34,9 @@ struct Transcript: Codable, Identifiable, Hashable {
         all = data.split(separator: UInt8(ascii: "\n")).compactMap { try? decoder.decode(Transcript.self, from: $0) }.reversed()
     }
 
-    func add(_ text: String, at date: Date, seconds: Double, typed: Bool, model: String, mic: String?, recording: [Float]) {
+    func add(_ text: String, heard: String, at date: Date, seconds: Double, typed: Bool, model: String, mic: String?, recording: [Float]) {
         guard !text.isEmpty else { return }
-        let transcript = Transcript(date: date, text: text, seconds: seconds, typed: typed, model: model, mic: mic)
+        let transcript = Transcript(date: date, text: text, seconds: seconds, typed: typed, model: model, mic: mic, heard: heard == text ? nil : heard)
         all.insert(transcript, at: 0)
         keep(recording, of: transcript.id)
         guard let line = try? JSONEncoder().encode(transcript) else { return }
@@ -55,9 +57,10 @@ struct Transcript: Codable, Identifiable, Hashable {
     }
 
     /// Puts a new writing of a transcript's recording in its place.
-    func replace(_ id: Transcript.ID, with text: String, model: String) {
+    func replace(_ id: Transcript.ID, with text: String, heard: String, model: String) {
         guard let index = all.firstIndex(where: { $0.id == id }), !text.isEmpty else { return }
         all[index].text = text
+        all[index].heard = heard == text ? nil : heard
         all[index].model = model
         save()
     }

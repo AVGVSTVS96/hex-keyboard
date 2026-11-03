@@ -98,9 +98,9 @@ import UIKit
         }
         let writer = writer(for: transcription)
         if writer !== transcription { await transcription.cancel() }
-        let text: String
+        let heard: String
         do {
-            text = try await writer.text(of: recording)
+            heard = try await writer.text(of: recording)
         } catch {
             guard transcription === self.transcription else { return }
             self.transcription = nil
@@ -108,8 +108,9 @@ import UIKit
         }
         guard transcription === self.transcription else { return }
         self.transcription = nil
+        let text = VoiceVocabulary.shared.vocabulary.corrected(heard)
         set(.idle, heard: text)
-        Transcripts.shared.add(text, at: started, seconds: listened, typed: true, model: writer.model, mic: mic, recording: recording)
+        Transcripts.shared.add(text, heard: heard, at: started, seconds: listened, typed: true, model: writer.model, mic: mic, recording: recording)
         HostApp.log.notice("\(writer.model, privacy: .public) wrote \(self.listened, format: .fixed(precision: 1))s down in \(Date.now.timeIntervalSince(self.started) - self.listened, format: .fixed(precision: 2))s")
     }
 
@@ -131,8 +132,9 @@ import UIKit
         guard wasListening else { return await transcription.cancel() }
         let background = UIApplication.shared.beginBackgroundTask()
         defer { UIApplication.shared.endBackgroundTask(background) }
-        guard let text = try? await transcription.text(of: recording) else { return }
-        Transcripts.shared.add(text, at: started, seconds: Date.now.timeIntervalSince(started), typed: false, model: transcription.model, mic: mic, recording: recording)
+        guard let heard = try? await transcription.text(of: recording) else { return }
+        let text = VoiceVocabulary.shared.vocabulary.corrected(heard)
+        Transcripts.shared.add(text, heard: heard, at: started, seconds: Date.now.timeIntervalSince(started), typed: false, model: transcription.model, mic: mic, recording: recording)
     }
 
     private func cancel(_ transcription: any Transcription) async {

@@ -2,14 +2,16 @@ import AVFoundation
 import SwiftUI
 
 extension VoiceModel {
-    /// Writes a kept `Recording` down again, with the model picked now, or Apple's while it gets ready.
-    func again(_ recording: [Float]) async throws -> (text: String, model: String) {
+    /// Writes a kept `Recording` down again, with the model picked now, or Apple's while it gets ready, and your
+    /// vocabulary.
+    func again(_ recording: [Float]) async throws -> (text: String, heard: String, model: String) {
         let transcription = try await transcription()
         if let format = transcription.format {
             guard let heard = Self.converted(recording, to: format) else { throw Unconvertible() }
             transcription.hear(heard)
         }
-        return (try await transcription.text(of: recording), transcription.model)
+        let heard = try await transcription.text(of: recording)
+        return (VoiceVocabulary.shared.vocabulary.corrected(heard), heard, transcription.model)
     }
 
     private static func converted(_ recording: [Float], to format: AVAudioFormat) -> AVAudioPCMBuffer? {
@@ -37,7 +39,7 @@ extension VoiceModel {
 /// now, to keep or not.
 struct RecordingSection: View {
     let transcript: Transcript
-    @State private var again: (text: String, model: String)?
+    @State private var again: (text: String, heard: String, model: String)?
     @State private var writing = false
     @State private var failure: String?
 
@@ -60,7 +62,7 @@ struct RecordingSection: View {
                     }
                     .padding(.vertical, 4)
                     Button("Use This Transcript") {
-                        Transcripts.shared.replace(transcript.id, with: again.text, model: again.model)
+                        Transcripts.shared.replace(transcript.id, with: again.text, heard: again.heard, model: again.model)
                         self.again = nil
                     }
                     Button("Copy") { UIPasteboard.general.string = again.text }
