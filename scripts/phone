@@ -4,6 +4,13 @@
 set -e
 cd "$(dirname "$0")/.."
 xtool dev build -c release --sign
+for binary in xtool/Hex.app/Hex xtool/Hex.app/PlugIns/Keyboard.appex/Keyboard; do
+  sdk=$(llvm-otool -l "$binary" | awk '/LC_BUILD_VERSION/ {b=1} b && $1 == "sdk" {print $2; exit}')
+  [ "$(printf '%s\n27.1\n' "$sdk" | sort -V | head -1)" = 27.1 ] || {
+    echo "$binary is linked against iOS SDK $sdk; below 27.1 the iPhone Duo runs Hex as an old iPhone app (AGENTS.md, scripts/phone)" >&2
+    exit 1
+  }
+done
 phone=$(ssh mac 'xcrun devicectl list devices --json-output /tmp/hex-phone.json >/dev/null && /usr/bin/python3 -c "
 import json
 for d in json.load(open(\"/tmp/hex-phone.json\"))[\"result\"][\"devices\"]:
