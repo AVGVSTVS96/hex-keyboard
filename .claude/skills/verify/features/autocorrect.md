@@ -6,7 +6,7 @@ Correcting on space, backspace offering the original back, tapping a suggestion,
 
 ## How to get to it (user POV)
 
-Type a misspelled word and press space; the bar above the keys shows the literal word in quotes, the correction in a pill, and a candidate.
+Turn on Auto-Correction (Hex app › Settings › Keyboard › Typing; it starts off), then type a misspelled word and press space; the bar above the keys shows the literal word in quotes, the correction in a pill, and a candidate.
 
 ## Driving it with XCUITest
 

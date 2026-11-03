@@ -2,7 +2,7 @@
 
 ## Sub-features
 
-Every dictation the app transcribes is kept, newest first, in the app's Transcripts tab: typed ones, and ones you ✕'d (marked Not typed, finished transcribing in the background). Words, time talking and pace overall, words a day for the last two weeks (today's bar in full color), grouped by day, search, swipe to copy or delete, a context menu with Share, a detail page with the full selectable text, and Delete All. Stored as one JSON line each in the app's own container (`Library/Application Support/transcripts.jsonl`); the keyboard never reads it.
+Every dictation is kept, newest first, in the app's Transcripts tab: typed ones, and ones canceled in the app's dictation screen (marked "Canceled, not typed"). Each keeps its sound (`Recording`, a 16 kHz WAV written as it's heard, so a recording an ended app left is written down on the next launch), the model that wrote it and the microphone it came from. Words, time talking and pace overall, words a day for the last two weeks (today's bar in full color), grouped by day, search, a context menu with Copy, Share and Delete, a detail page with the full text, its facts, Transcribe Again (the model picked now) and Delete, and Delete All in the … menu. Held wide on the open Duo the picked transcript shows beside the list. Stored as one JSON line each in the app's own container (`Library/Application Support/transcripts.jsonl`, sounds up to 512 MB); the keyboard never reads it.
 
 ## How to get to it (user POV)
 
@@ -10,8 +10,8 @@ Dictate with the keyboard's mic, then open Hex › Transcripts.
 
 ## Driving it with XCUITest
 
-Not driven yet: dictation needs a real microphone. Screenshots: copy a `transcripts.jsonl` into the app's data container (`xcrun simctl get_app_container <id> com.shahidy.hexkeyboard data`, then `Library/Application Support/`) and launch with `-HexTab transcripts`.
+Not driven yet: dictation needs a real microphone. Screenshots: `TRANSCRIPTS=<transcripts.jsonl> PAGES=transcripts scripts/mac 'scripts/sim duoapp <tag>'` copies one into the app's container and shoots the tab on the Duo's screens; on another simulator copy it into `Library/Application Support/` of `xcrun simctl get_app_container <id> com.shahidy.hexkeyboard data` and launch with `-HexTab transcripts`.
 
 ## Gotchas
 
-A ✕ keeps whatever was recorded, written down but not typed; one with nothing said keeps nothing.
+Cancel keeps whatever was recorded, written down but not typed; a dictation with nothing said keeps nothing, its sound included.

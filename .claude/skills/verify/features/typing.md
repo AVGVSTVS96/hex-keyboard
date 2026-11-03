@@ -2,7 +2,7 @@
 
 ## Sub-features
 
-Autocapitalization, double-space period, shift and double-tap caps lock, holding shift, `123` and `#+=` layers, sliding from a layer key to type one symbol and come back, delete and its speed-up to words, return, the space bar trackpad (along a line and up and down lines), long-press accents, iPad flick-down secondaries, smart punctuation, the one-handed keyboard (hold 123, the chevron), the 123 menu (hold 123: left, both and right hands in one row, the current one above the key).
+Autocapitalization (off until you turn it on in Settings › Keyboard › Typing), double-space period, shift and double-tap caps lock, holding shift, `123` and `#+=` layers, sliding from a layer key to type one symbol and come back, delete and its speed-up to words, return, the space bar trackpad (along a line and up and down lines), long-press accents, iPad flick-down secondaries, smart punctuation, the one-handed keyboard (hold 123, the chevron), the 123 menu (hold 123: left, both and right hands in one row, the current one above the key, then Split on the open Duo held wide, Next Keyboard where iOS asks for one, and Hex Settings).
 
 ## How to get to it (user POV)
 
