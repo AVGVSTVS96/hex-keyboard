@@ -396,7 +396,7 @@ struct MenuRow<Value: Hashable>: View {
 struct FeedbackSettings: View {
     private let model = SettingsModel.shared
     private let status = HexStatus.shared
-    @State private var lastLevel = HapticFeedback.standard
+    @AppStorage("hapticsBeforeOff") private var lastLevel = HapticFeedback.standard
 
     private var hapticsOn: Binding<Bool> {
         Binding { model.settings.haptics != .off } set: { on in

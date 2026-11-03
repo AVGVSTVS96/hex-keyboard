@@ -245,7 +245,7 @@ open, upright 951 × 669         open, held tall 669 × 951     cover 466 × 678
     - **Theme**, how the keys look: Default, Clear, Physical, Mechanical, iOS 5, each with a line on how it looks; under the picked Physical or Mechanical, Automatic, Dark and Light, each as two keycaps.
     - **Layout**, which keys there are and where: Number Row; Emoji Key, the emoji's Skin Tone and Compact Emoji & GIFs; Split Keyboard; One-Handed Keyboard (Off, Left, Right).
     - **Typing**, what typing does to your text: Auto-Capitalization, Auto-Correction, Predictive Text; Smart Punctuation, Enable Caps Lock, "." Shortcut; where Text Replacements come from.
-    - **Sound & Haptics**, how a press feels: Character Preview (None, Detached, Attached, each drawn), Key Haptic Feedback (Off, Soft, Standard), Sound, and Allow Full Access when Hex hasn't seen it.
+    - **Sound & Haptics**, how a press feels: Character Preview (None, Detached, Attached, each drawn), Key Haptics with a Strength slider of seven stops, Standard in the middle, which it keeps while haptics are off, Sound, and Allow Full Access when Hex hasn't seen it.
   - **Voice Typing**.
     - **Voice Model**: each with a line on what it costs and, for the picked one, its download, getting ready, or why it failed with Try Again.
     - **Writing Style**: Style (Wispr Flow's four, each showing the same words as it types them with the Editing picked) and Editing (As Said, Light, Clean, and Lists).
