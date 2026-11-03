@@ -32,7 +32,10 @@ import UIKit
 
     private init() {
         microphone.onLost = { Task { await Listener.shared.lose() } }
-        microphone.onLevel = { Listener.shared.onLevel?($0) }
+        microphone.onLevel = { level, recorded in
+            Listener.shared.recording?.recorded = recorded
+            Listener.shared.onLevel?(level)
+        }
         VoiceModel.shared.onState = {
             guard Listener.shared.isWriting, VoiceModel.shared.waiting != Dictation.status.waiting else { return }
             Listener.shared.publish()
@@ -182,8 +185,7 @@ import UIKit
     private func publish() {
         var status = Dictation.Status()
         status.listening = isListening
-        status.since = recording?.started ?? writing.last?.started
-        status.writing = writing.map { $0.stopped.timeIntervalSince($0.started) }
+        status.writing = writing.map(\.recorded)
         status.waiting = VoiceModel.shared.waiting
         Dictation.publish(status)
         onChange?()
@@ -206,6 +208,8 @@ private final class Take {
     let started = Date.now
     var stopped = Date.now
     var mic: String?
+    /// Seconds recorded, as the microphone counts them.
+    var recorded: Double = 0
     var typed = true
     /// The keyboard you stopped it in, which types it.
     var keyboard: UInt64?

@@ -10,7 +10,7 @@ import KeyboardUI
     private var lock: Int32?
     /// Another app took the microphone (a call), or the route changed under the engine.
     var onLost: () -> Void = {}
-    var onLevel: (Float) -> Void = { _ in }
+    var onLevel: (_ loudness: Float, _ recorded: Double) -> Void = { _, _ in }
 
     init() {
         let center = NotificationCenter.default
@@ -46,9 +46,9 @@ import KeyboardUI
         if !node.isVoiceProcessingEnabled, (try? node.setVoiceProcessingEnabled(true)) != nil {
             node.voiceProcessingOtherAudioDuckingConfiguration = .init(enableAdvancedDucking: false, duckingLevel: .min)
         }
-        node.installTap(onBus: 0, bufferSize: 4096, format: node.outputFormat(forBus: 0), block: Self.tap(feed) { [weak self] level in
-            Dictation.publish(level: level)
-            Task { @MainActor in self?.onLevel(level) }
+        node.installTap(onBus: 0, bufferSize: 4096, format: node.outputFormat(forBus: 0), block: Self.tap(feed) { [weak self] level, recorded in
+            Dictation.publish(level: level, recorded: recorded)
+            Task { @MainActor in self?.onLevel(level, recorded) }
         })
         engine.prepare()
         do {
@@ -76,6 +76,7 @@ import KeyboardUI
     func record(to url: URL) throws {
         let natural = engine.inputNode.outputFormat(forBus: 0)
         guard feed.start(from: natural, file: url) else { throw Unrecordable(format: natural.description) }
+        Dictation.publish(level: 0, recorded: 0)
     }
 
     /// Everything recorded since `record`, through your last word (`Feed.stopOnceQuiet`).
@@ -88,15 +89,16 @@ import KeyboardUI
         feed.stop()
     }
 
-    /// Runs on the audio thread: hands each buffer to the recording, if there is one, and says how loud it was.
-    nonisolated private static func tap(_ feed: Feed, level: @escaping @Sendable (Float) -> Void) -> AVAudioNodeTapBlock {
+    /// Runs on the audio thread: hands each buffer to the recording, if there is one, and says how loud it was and how
+    /// long the recording is now.
+    nonisolated private static func tap(_ feed: Feed, level: @escaping @Sendable (Float, Double) -> Void) -> AVAudioNodeTapBlock {
         return { buffer, time in
             guard let samples = buffer.floatChannelData?[0], buffer.frameLength > 0 else { return }
             let frames = Int(buffer.frameLength)
             var sum: Float = 0
             for index in 0 ..< frames { sum += samples[index] * samples[index] }
             let loudness = (sum / Float(frames)).squareRoot()
-            if feed.yield(buffer, at: time, loudness: loudness) { level(loudness) }
+            if let recorded = feed.yield(buffer, at: time, loudness: loudness) { level(loudness, recorded) }
         }
     }
 }
@@ -151,19 +153,20 @@ nonisolated private final class Feed: @unchecked Sendable {
         }
     }
 
-    /// Whether a recording took the buffer.
-    func yield(_ buffer: AVAudioPCMBuffer, at time: AVAudioTime, loudness level: Float) -> Bool {
-        let (took, done) = lock.withLock { () -> (Bool, ([Float], CheckedContinuation<[Float], Never>?)?) in
-            guard let recorder else { return (false, nil) }
+    /// How many seconds the recording holds with the buffer, nil when there's no recording to take it.
+    func yield(_ buffer: AVAudioPCMBuffer, at time: AVAudioTime, loudness level: Float) -> Double? {
+        let (took, done) = lock.withLock { () -> (Double?, ([Float], CheckedContinuation<[Float], Never>?)?) in
+            guard let recorder else { return (nil, nil) }
             if let converted = Self.convert(buffer, with: recorder), let channel = converted.floatChannelData?[0] {
                 let samples = UnsafeBufferPointer(start: channel, count: Int(converted.frameLength))
                 recording.append(contentsOf: samples)
                 file?.append(samples)
             }
             loudness.append(level)
+            let recorded = Double(recording.count) / Recording.format.sampleRate
             let length = AVAudioTime.hostTime(forSeconds: Double(buffer.frameLength) / buffer.format.sampleRate)
-            guard let stopped, !time.isHostTimeValid || time.hostTime + length >= stopped && isQuiet(level) else { return (true, nil) }
-            return (true, take())
+            guard let stopped, !time.isHostTimeValid || time.hostTime + length >= stopped && isQuiet(level) else { return (recorded, nil) }
+            return (recorded, take())
         }
         if let (recording, ended) = done { ended?.resume(returning: recording) }
         return took

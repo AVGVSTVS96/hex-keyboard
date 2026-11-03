@@ -11,16 +11,13 @@ public enum Dictation {
     /// are still being written down, and has them typed in the order you said them.
     public struct Status: Codable, Equatable, Sendable {
         public var listening = false
-        /// When the newest dictation started, by the app recording it, so every keyboard that opens shows the same time.
-        public var since: Date?
         /// How long each dictation the app has recorded and is still writing down is, in seconds, oldest first.
         public var writing: [Double] = []
         /// What those dictations wait for while the model gets ready, in a few words; nil once it's ready.
         public var waiting: String?
 
-        public init(listening: Bool = false, since: Date? = nil, writing: [Double] = [], waiting: String? = nil) {
+        public init(listening: Bool = false, writing: [Double] = [], waiting: String? = nil) {
             self.listening = listening
-            self.since = since
             self.writing = writing
             self.waiting = waiting
         }
@@ -45,7 +42,7 @@ public enum Dictation {
         case start = "com.shahidy.hexkeyboard.dictation.start"
         /// The keyboard wants the microphone off, with what was said so far typed, carrying its `keyboard` as `finish` does.
         case stop = "com.shahidy.hexkeyboard.dictation.stop"
-        /// How loud you are, carried in the notification's state (`level`).
+        /// How loud you are and how much has been recorded, carried in the notification's state (`level`).
         case level = "com.shahidy.hexkeyboard.dictation.level"
     }
 
@@ -177,21 +174,34 @@ public enum Dictation {
         return token
     }()
 
-    /// The microphone's loudness (RMS of a buffer), for the keyboard's mic to move with your voice.
-    nonisolated public static func publish(level: Float) {
-        notify_set_state(levelToken, UInt64(level.bitPattern))
+    /// The microphone's loudness (RMS of a buffer), for the keyboard's mic to move with your voice, and the seconds the
+    /// recording holds so far, for the time beside it.
+    nonisolated public static func publish(level: Float, recorded seconds: Double) {
+        notify_set_state(levelToken, UInt64(UInt32(min(seconds * 1000, Double(UInt32.max)))) << 32 | UInt64(level.bitPattern))
         notify_post(Signal.level.rawValue)
     }
 
-    /// Calls `handler` on the main queue with each loudness the app publishes.
-    public static func observeLevel(_ handler: @escaping @MainActor @Sendable (Float) -> Void) -> Int32 {
+    /// The last loudness and recorded seconds the app published.
+    public static var level: (loudness: Float, recorded: Double) {
+        var state: UInt64 = 0
+        notify_get_state(levelToken, &state)
+        return level(state)
+    }
+
+    /// Calls `handler` on the main queue with each loudness and recorded seconds the app publishes.
+    public static func observeLevel(_ handler: @escaping @MainActor @Sendable (_ loudness: Float, _ recorded: Double) -> Void) -> Int32 {
         var token: Int32 = 0
         notify_register_dispatch(Signal.level.rawValue, &token, .main) { token in
             var state: UInt64 = 0
             notify_get_state(token, &state)
-            MainActor.assumeIsolated { handler(Float(bitPattern: UInt32(truncatingIfNeeded: state))) }
+            let level = level(state)
+            MainActor.assumeIsolated { handler(level.loudness, level.recorded) }
         }
         return token
+    }
+
+    nonisolated private static func level(_ state: UInt64) -> (loudness: Float, recorded: Double) {
+        (Float(bitPattern: UInt32(truncatingIfNeeded: state)), Double(state >> 32) / 1000)
     }
 
     /// Calls `handler` on the main queue on each `signal`, until the token is cancelled with `stopObserving`.

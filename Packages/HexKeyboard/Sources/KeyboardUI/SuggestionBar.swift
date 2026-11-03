@@ -96,11 +96,11 @@ final class SuggestionBar: UIView {
     }
 
     /// `notice` (why voice couldn't start, or a source's hint) stands in for the suggestions. Tapping it dismisses it.
-    /// `listeningSince` is when the app started listening, for the time beside the waveform; `saved` are the lengths of
+    /// `recorded` is how many seconds the app has recorded, for the time beside the waveform; `saved` are the lengths of
     /// the dictations recorded and still to be written, and `waitingFor` what they wait for while the model gets ready.
-    func update(mic: MicButton.Phase, listeningSince: Date?, saved: [Double], waitingFor: String?, notice: String?, theme: KeyboardTheme) {
+    func update(mic: MicButton.Phase, recorded: Double, saved: [Double], waitingFor: String?, notice: String?, theme: KeyboardTheme) {
         self.mic.show(mic, theme: theme)
-        waveform.show(mic, since: listeningSince, saved: saved, waitingFor: waitingFor, theme: theme)
+        waveform.show(mic, recorded: recorded, saved: saved, waitingFor: waitingFor, theme: theme)
         self.notice.text = notice
         self.notice.textColor = theme.candidate.ui
         noticed = notice != nil
@@ -131,8 +131,8 @@ final class SuggestionBar: UIView {
         }
     }
 
-    func hear(_ level: Float) {
-        waveform.hear(level)
+    func hear(_ level: Float, recorded: Double) {
+        waveform.hear(level, recorded: recorded)
     }
 
     @objc private func tapNotice() {
@@ -308,7 +308,7 @@ private final class Waveform: UIView {
     private let words = UILabel()
     private var chips: [UILabel] = []
     private var lengths: [Double] = []
-    private var since: Date?
+    private var recorded: Double = 0
     private var phase = MicButton.Phase.off
     /// Stopped, with every dictation saved and waiting for the model: their chips take the bars' place.
     private var waiting = false
@@ -318,6 +318,7 @@ private final class Waveform: UIView {
         super.init(frame: frame)
         isUserInteractionEnabled = false
         time.font = .monospacedDigitSystemFont(ofSize: 15, weight: .regular)
+        time.accessibilityIdentifier = "hex.time"
         words.font = .systemFont(ofSize: 15)
         words.adjustsFontSizeToFitWidth = true
         words.minimumScaleFactor = 0.7
@@ -334,10 +335,10 @@ private final class Waveform: UIView {
     required init?(coder: NSCoder) { fatalError() }
 
     /// `lengths` are the saved dictations' lengths in seconds, oldest first, and `waitingFor` what they wait for.
-    func show(_ phase: MicButton.Phase, since: Date?, saved lengths: [Double], waitingFor: String?, theme: KeyboardTheme) {
+    func show(_ phase: MicButton.Phase, recorded: Double, saved lengths: [Double], waitingFor: String?, theme: KeyboardTheme) {
         if phase != .listening, phase != .writing { levels = levels.map { _ in 0 } }
         self.phase = phase
-        self.since = since
+        self.recorded = recorded
         self.theme = theme
         let waits = waitingFor != nil && !lengths.isEmpty
         let shown = waiting
@@ -391,8 +392,9 @@ private final class Waveform: UIView {
         return chip
     }
 
-    func hear(_ level: Float) {
+    func hear(_ level: Float, recorded: Double) {
         guard phase == .listening, !levels.isEmpty else { return }
+        self.recorded = recorded
         let decibels = 20 * log10(max(level, 1e-6))
         let heard = CGFloat(min(max((decibels + 55) / 40, 0), 1))
         let last = levels.last ?? 0
@@ -402,8 +404,7 @@ private final class Waveform: UIView {
     }
 
     private func tick() {
-        let seconds = since.map { max(0, Int(Date().timeIntervalSince($0))) } ?? 0
-        time.text = Self.clock(seconds)
+        time.text = Self.clock(Int(recorded))
         time.sizeToFit()
     }
 

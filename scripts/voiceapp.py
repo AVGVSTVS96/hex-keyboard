@@ -18,18 +18,10 @@ def notify(*arguments):
     return subprocess.Popen(["xcrun", "simctl", "spawn", simulator, "notifyutil", *arguments], stdout=subprocess.DEVNULL)
 
 
-began = None
-
-
 def publish(listening=False, writing=(), waiting=False):
-    global began
-    if listening:
-        began = time.time() - 978307200
     status = {"listening": listening, "writing": list(writing)}
     if waiting:
         status["waiting"] = "Model loading…"
-    if began and (listening or writing):
-        status["since"] = began
     with open(f"{group}/Library/dictation.json", "w") as file:
         json.dump(status, file)
     notify("-p", prefix).wait()
@@ -51,11 +43,13 @@ def keyboard(signal):
 
 
 def speak(stop):
-    step = 0
+    """A voice's levels, each with the seconds recorded so far, as the app's microphone publishes them."""
+    step, began = 0, time.time()
     while not stop.is_set():
         level = 0.002 + 0.12 * abs(math.sin(step * 0.9) * math.sin(step * 0.37 + 1))
         bits = struct.unpack("<I", struct.pack("<f", level))[0]
-        notify("-s", f"{prefix}.level", str(bits)).wait()
+        recorded = int((time.time() - began) * 1000)
+        notify("-s", f"{prefix}.level", str(recorded << 32 | bits)).wait()
         notify("-p", f"{prefix}.level").wait()
         step += 1
         stop.wait(0.1)

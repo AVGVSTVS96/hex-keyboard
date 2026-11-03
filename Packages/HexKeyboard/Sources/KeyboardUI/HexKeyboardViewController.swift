@@ -7,6 +7,8 @@ open class HexKeyboardViewController: UIInputViewController {
     private let keyboardView = KeyboardView()
     private var dictation = Dictation.Status()
     private var micIsOn = false
+    /// How much the app has recorded of the dictation it's making, in seconds.
+    private var recorded: Double = 0
     private var observers: [Int32] = []
     /// Who this keyboard is to the app, new each time it appears: dictations you stop here are typed here.
     private var keyboard = UInt64.random(in: 1 ... .max)
@@ -155,7 +157,10 @@ open class HexKeyboardViewController: UIInputViewController {
             if hasFullAccess {
                 observers += [
                     Dictation.observe(.changed) { [weak self] in self?.dictationChanged() },
-                    Dictation.observeLevel { [weak self] in self?.suggestionBar.hear($0) },
+                    Dictation.observeLevel { [weak self] level, recorded in
+                        self?.recorded = recorded
+                        self?.suggestionBar.hear(level, recorded: recorded)
+                    },
                 ]
                 dictationChanged()
             }
@@ -321,7 +326,7 @@ open class HexKeyboardViewController: UIInputViewController {
         suggestionBar.toolbar = toolbar
         suggestionBar.maximumSlotWidth = device == .phone ? .infinity : 154.5
         suggestionBar.update(tools: tools, theme: theme)
-        suggestionBar.update(mic: mic, listeningSince: dictation.since, saved: dictation.writing, waitingFor: dictation.waiting, notice: voiceNotice ?? hint, theme: theme)
+        suggestionBar.update(mic: mic, recorded: recorded, saved: dictation.writing, waitingFor: dictation.waiting, notice: voiceNotice ?? hint, theme: theme)
         if panel != nil { panelView.show(query: engine.query, theme: theme, metrics: metrics) }
     }
 
@@ -437,6 +442,7 @@ open class HexKeyboardViewController: UIInputViewController {
         micIsOn = Dictation.micIsOn
         if !micIsOn { (status.listening, status.writing, status.waiting) = (false, [], nil) }
         dictation = status
+        recorded = Dictation.level.recorded
         for (file, note) in Dictation.notes where Dictation.take(file) {
             switch note {
             case .heard(let text, let keyboard) where keyboard == nil || keyboard == self.keyboard:

@@ -25,6 +25,8 @@ final class VoiceTests: XCTestCase {
         mic.tap()
         XCTAssertTrue(wait(for: mic, label: "Stop Dictating", value: nil), "tapping the mic starts listening without opening the app")
         Thread.sleep(forTimeInterval: 3)
+        let time = app.staticTexts["hex.time"]
+        XCTAssertTrue(wait { ["0:02", "0:03", "0:04"].contains(time.label) }, "the time is what the app has recorded, \(time.label)")
         try shot("\(shots)-listening")
 
         mic.tap()
