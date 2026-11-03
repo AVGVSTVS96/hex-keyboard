@@ -50,35 +50,32 @@ private struct WindowReader: ViewModifier {
     }
 }
 
-/// Two columns, each its own page with its own header, scrolling on its own. They meet at the fold: open flat, at
-/// its middle with a hairline; partly open, each keeps to its side of the fold's frame, which iOS reports as an
-/// active division with its margins in it, so the fold itself is the gap. In one column they follow each other.
+/// Two columns, each its own page scrolling on its own, with no line between them in any pose: open flat they meet at
+/// the fold's middle, each keeping its own margin; partly open, each keeps to its side of the fold's frame, which iOS
+/// reports as an active division with its margins in it, so the fold itself is the gap. In one column they follow
+/// each other.
 struct Panes<First: View, Second: View>: View {
     @ViewBuilder var first: First
     @ViewBuilder var second: Second
     @Environment(\.arrangement) private var arrangement
 
-    /// Where the first column ends and the second starts, and whether the Duo lies flat.
-    private static func fold(in proxy: GeometryProxy) -> (start: CGFloat, end: CGFloat, flat: Bool) {
+    /// Where the first column ends and the second starts.
+    private static func fold(in proxy: GeometryProxy) -> (start: CGFloat, end: CGFloat) {
         let middle = proxy.size.width / 2
         guard #available(iOS 27.1, *), let fold = proxy.reservedRegions(kind: .division, options: .includeInactive).first else {
-            return (middle, middle, true)
+            return (middle, middle)
         }
-        return fold.isActive ? (fold.frame.minX, fold.frame.maxX, false) : (fold.frame.midX, fold.frame.midX, true)
+        return fold.isActive ? (fold.frame.minX, fold.frame.maxX) : (fold.frame.midX, fold.frame.midX)
     }
 
     var body: some View {
         switch arrangement {
         case .side:
             GeometryReader { proxy in
-                let (start, end, flat) = Self.fold(in: proxy)
+                let (start, end) = Self.fold(in: proxy)
                 HStack(spacing: 0) {
-                    first.frame(width: max(start - (flat ? 0.5 : 0), 0))
-                    if flat {
-                        Rectangle().fill(Color.hexDivider).frame(width: 1).ignoresSafeArea(edges: .vertical)
-                    } else {
-                        Color.clear.frame(width: max(end - start, 0))
-                    }
+                    first.frame(width: max(start, 0))
+                    Color.clear.frame(width: max(end - start, 0))
                     second.frame(maxWidth: .infinity)
                 }
             }
