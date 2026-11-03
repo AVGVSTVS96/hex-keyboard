@@ -1,0 +1,21 @@
+#!/bin/sh
+# Runs one of Packages/HexKeyboard/Tools here on Linux, in a package of it and KeyboardCore alone, in Release:
+# scripts/tool LexiconBuilder words.tsv en.lexicon
+set -e
+root=$(cd "$(dirname "$0")/.." && pwd)
+tool=$1
+shift
+pkg=$root/build/tools/$tool
+mkdir -p "$pkg/Sources"
+ln -sfn "$root/Packages/HexKeyboard/Sources/KeyboardCore" "$pkg/Sources/KeyboardCore"
+ln -sfn "$root/Packages/HexKeyboard/Tools/$tool" "$pkg/Sources/$tool"
+cat > "$pkg/Package.swift" <<SWIFT
+// swift-tools-version: 6.2
+import PackageDescription
+
+let package = Package(name: "$tool", targets: [
+    .target(name: "KeyboardCore"),
+    .executableTarget(name: "$tool", dependencies: ["KeyboardCore"]),
+])
+SWIFT
+swift run --package-path "$pkg" -c release "$tool" "$@"
