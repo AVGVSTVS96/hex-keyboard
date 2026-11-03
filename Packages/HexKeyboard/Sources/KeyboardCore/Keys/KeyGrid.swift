@@ -91,6 +91,11 @@ public struct KeyGrid: Sendable {
         }
     }
 
+    /// Whether the two lay out the same keys in the same places.
+    func isSame(as other: KeyGrid) -> Bool {
+        signature == other.signature && metrics == other.metrics && rows.elementsEqual(other.rows) { $0.elementsEqual($1) { $0.key == $1.key && $0.frame == $1.frame } }
+    }
+
     public func index(atX x: Double, y: Double) -> (row: Int, key: Int)? {
         guard let row = bands.firstIndex(where: { $0.contains(y) }),
               let key = rows[row].indices.min(by: { rows[row][$0].frame.distanceSquared(toX: x, y: y) < rows[row][$1].frame.distanceSquared(toX: x, y: y) })

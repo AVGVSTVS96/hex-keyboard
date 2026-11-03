@@ -74,21 +74,21 @@ extension TypingEngine {
         }
     }
 
-    /// The key a touch means: from the key map made for the text as it is now, or, until that's ready, the key under it.
+    /// The key a touch means, from the key map made for the text as it is now; without a corrector, the key under it.
     public func key(atX x: Double, y: Double, in grid: KeyGrid) -> (row: Int, key: Int)? {
-        guard let keyMap, keyMap.revision == revision else { return grid.index(atX: x, y: y) }
-        return keyMap.key(atX: x, y: y, in: grid)
+        keyMap?.key(atX: x, y: y, in: grid) ?? grid.index(atX: x, y: y)
     }
 
     /// The keys as they're laid out now. Taps are learned per layout, so a new layout first learns the last word you
     /// kept and drops the taps of the word in progress.
     public mutating func use(_ grid: KeyGrid) {
-        guard let corrector, layer == .letters else { return }
+        guard let corrector, layer == .letters, !grid.isSame(as: corrector.grid) else { return }
         if grid.signature != corrector.grid.signature {
             learnPending()
             typing = WordTaps()
         }
         corrector.grid = grid
+        keyMap = corrector.keyMap(after: wordForKeys)
     }
 
     public func layout(on device: DeviceClass, screen: Size, showsGlobe: Bool = false) -> LayoutContext {
@@ -124,16 +124,16 @@ extension TypingEngine {
         case .revert:
             guard let revert, revert.isOffered(before: text), self.text.owned >= revert.replacement.count else { return }
             write(revert.original, replacing: revert.replacement.count, in: document)
-            corrector?.memory.keep(revert.original)
+            corrector?.changeMemory { $0.keep(revert.original) }
             pending?.word = revert.original
         case .literal:
-            corrector?.memory.keep(String(whole))
+            corrector?.changeMemory { $0.keep(String(whole)) }
             hold(String(whole), typed: String(whole))
         case .correction, .candidate:
             write(suggestion.text, replacing: whole.count, in: document)
             hold(suggestion.text, typed: String(whole))
         }
-        if !suggestion.text.contains(" ") { corrector?.memory.record(pending?.word ?? suggestion.text, after: previous) }
+        if !suggestion.text.contains(" ") { corrector?.record(pending?.word ?? suggestion.text, after: previous) }
         revert = nil
         typing = WordTaps()
         if self.text.after?.first == " " {
@@ -162,10 +162,20 @@ extension TypingEngine {
         suggestionsChanged()
     }
 
-    /// Marks the suggestions out of date: ranks them now, or leaves them for a `SuggestionJob`.
+    /// Marks the suggestions out of date: ranks them now, or leaves them for a `SuggestionJob`. The key map is made now
+    /// either way, since the next touch reads it.
     public mutating func suggestionsChanged() {
         revision += 1
         if defersSuggestions { suggestionsAreStale = true } else { refreshSuggestions() }
+        keyMap = corrector?.keyMap(after: wordForKeys)
+    }
+
+    /// The word the next key goes on, or nil where words aren't expected.
+    private var wordForKeys: String? {
+        guard layer == .letters else { return nil }
+        if panel != nil { return String(Words.current(in: query)) }
+        let word = Words.current(in: text.before)
+        return traits.allowsCorrection && (word.isEmpty || Words.isCorrectable(word, in: text.before)) ? String(word) : nil
     }
 
     /// The ranking behind stale suggestions, packed to run on another thread. Only a lexicon ranks off the main thread.
@@ -176,16 +186,15 @@ extension TypingEngine {
         return SuggestionJob(engine: copy)
     }
 
-    /// Shows a finished job's suggestions and keeps its rankings (so the space's autocorrect finds them ready), unless
-    /// the text changed after the job was packed.
+    /// Keeps a finished job's rankings while what's learned is unchanged, so the space's autocorrect finds them ready,
+    /// and shows its suggestions unless the text changed after the job was packed.
     public mutating func finish(_ job: SuggestionJob) {
-        guard job.engine.revision == revision, let snapshot = job.engine.corrector else { return }
+        if let snapshot = job.engine.corrector { corrector?.adopt(snapshot) }
+        guard job.engine.revision == revision else { return }
         suggestions = job.engine.suggestions
         emojiSuggestions = job.engine.emojiSuggestions
         suggestionsBefore = job.engine.suggestionsBefore
-        keyMap = job.engine.keyMap
         suggestionsAreStale = false
-        corrector?.adopt(snapshot)
     }
 
     mutating func commitWord(in document: some TextDocument, ending: Tap? = nil) {
@@ -210,7 +219,7 @@ extension TypingEngine {
            let joined = corrector.joined(nil, space: stray.tap, TypedWord(final.lowercased(), taps: typing.letters, previous: before)).map(written) {
             write(stray.restored + joined, replacing: word.count + stray.swallowed.count, in: document)
             revert = Revert(original: stray.swallowed + final, replacement: stray.restored + joined)
-            if stray.counted { corrector.memory.unrecordSpaceAfterSpace(keepingKey: true) }
+            if stray.counted { corrector.changeMemory { $0.unrecordSpaceAfterSpace(keepingKey: true) } }
             typing.letters = [stray.tap] + typing.letters
             final = joined
             typedText = joined
@@ -218,7 +227,7 @@ extension TypingEngine {
         } else if let pending, owned >= pending.word.count + 1 + word.count, let join = join(typed, after: pending, in: text) {
             write(join.word, replacing: pending.word.count + 1 + word.count, in: document)
             revert = Revert(original: "\(pending.word) \(final)", replacement: join.word)
-            corrector.memory.forget(pending.word, after: join.previous)
+            corrector.forget(pending.word, after: join.previous)
             typing.letters = pending.taps + [join.space] + typing.letters
             self.pending = nil
             final = join.word
@@ -242,7 +251,7 @@ extension TypingEngine {
     }
 
     private mutating func settle(_ word: String, typed: String, after previous: String?, ending: Tap?) {
-        if !word.contains(" ") { corrector?.memory.record(word, after: previous) }
+        if !word.contains(" ") { corrector?.record(word, after: previous) }
         hold(word, typed: typed, ending: ending)
     }
 
@@ -281,9 +290,9 @@ extension TypingEngine {
         let word = written(Words.matchCase(joined, to: Substring(pending.typed)))
         write(word + " ", replacing: pending.word.count + 1, in: document)
         revert = Revert(original: pending.word + ".", replacement: word, trailing: " ")
-        corrector.memory.forget(pending.word, after: previous)
-        corrector.memory.record(word, after: previous)
-        corrector.memory.unrecordSpaceAfterSpace(keepingKey: false)
+        corrector.forget(pending.word, after: previous)
+        corrector.record(word, after: previous)
+        corrector.changeMemory { $0.unrecordSpaceAfterSpace(keepingKey: false) }
         self.pending = PendingWord(word: word, typed: word, taps: pending.taps + [end], retyped: pending.retyped, ending: space)
         return true
     }
@@ -310,7 +319,7 @@ extension TypingEngine {
         let current = Words.current(in: text.before)
         let inProgress = current == pending.word[...]
         guard inProgress || !Substring(text.before).dropLast(while: { !Words.isWordCharacter($0) }).hasSuffix(pending.word) else { return }
-        corrector?.memory.forget(pending.word, after: Words.previous(before: current, in: text.before))
+        corrector?.forget(pending.word, after: Words.previous(before: current, in: text.before))
         if inProgress, pending.taps.count == pending.word.count {
             typing.letters = pending.taps
             typing.retyped = pending.retyped
@@ -322,14 +331,9 @@ extension TypingEngine {
     mutating func refreshSuggestions() {
         suggestionsAreStale = false
         emojiSuggestions = []
-        if panel != nil {
-            keyMap = corrector?.keyMap(revision: revision, after: layer == .letters ? String(Words.current(in: query)) : nil)
-            return suggestions = []
-        }
+        guard panel == nil else { return suggestions = [] }
         let text = self.text.before
         let word = Words.current(in: text)
-        let inWords = layer == .letters && traits.allowsCorrection && (word.isEmpty || Words.isCorrectable(word, in: text))
-        keyMap = corrector?.keyMap(revision: revision, after: inWords ? String(word) : nil)
         guard showsSuggestions else { return suggestions = [] }
         suggestionsBefore = String(text[..<word.startIndex])
         let named = word.isEmpty && text.hasSuffix(" ") ? Words.current(in: String(text.dropLast())) : word

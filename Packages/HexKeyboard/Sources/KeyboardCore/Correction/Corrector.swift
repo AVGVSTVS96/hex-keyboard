@@ -3,22 +3,16 @@ public final class Corrector {
     public let phrases: Phrases?
     public var replacements: [String: String] = [:]
     public var names: [String: String] = [:]
-    public var memory = TypingMemory() {
-        didSet {
-            cachedModel = nil
-            rankings = [:]
-            generation += 1
-        }
-    }
+    /// What you've taught it, changed only through `record`, `forget` and `changeMemory`, which change it in place: a
+    /// property observer here would copy all of it on every change.
+    public private(set) var memory = TypingMemory()
     public var grid = KeyGrid.standard {
-        didSet {
-            rankings = [:]
-            generation += 1
-        }
+        didSet { if !grid.isSame(as: oldValue) { forgetRankings() } }
     }
 
     let lexicon: Lexicon?
-    private var cachedModel: LanguageModel?
+    /// How many of the words in `memory` the lexicon doesn't know, counted once and then kept up to date.
+    private var novel: Int?
     private var rankings: [Ranking: [Candidate]] = [:]
     private var generation = 0
 
@@ -42,7 +36,7 @@ public final class Corrector {
         copy.names = names
         copy.memory = memory
         copy.grid = grid
-        copy.cachedModel = cachedModel
+        copy.novel = novel
         copy.rankings = rankings
         copy.generation = generation
         return copy
@@ -52,7 +46,43 @@ public final class Corrector {
     func adopt(_ snapshot: Corrector) {
         guard snapshot.generation == generation else { return }
         rankings.merge(snapshot.rankings) { mine, _ in mine }
-        if cachedModel == nil { cachedModel = snapshot.cachedModel }
+        if novel == nil { novel = snapshot.novel }
+    }
+
+    /// Counts a word you kept, after the one before it.
+    public func record(_ word: String, after previous: String?) {
+        let total = memory.total
+        memory.record(word, after: previous)
+        recount(word, by: 1, since: total)
+    }
+
+    /// Takes back one count of a word you didn't keep after all.
+    public func forget(_ word: String, after previous: String?) {
+        let total = memory.total
+        memory.forget(word, after: previous)
+        recount(word, by: -1, since: total)
+    }
+
+    /// Any other change to what's learned, or a memory in its place.
+    public func changeMemory(_ change: (inout TypingMemory) -> Void) {
+        let counts = memory.counts
+        change(&memory)
+        if memory.counts != counts { novel = nil }
+        forgetRankings()
+    }
+
+    private func recount(_ word: String, by step: Int, since total: Int) {
+        if memory.total == total + step, let count = novel {
+            novel = lexicon?.logProbability(of: Words.plain(word)) == nil ? count + step : count
+        } else if memory.total != total {
+            novel = nil
+        }
+        forgetRankings()
+    }
+
+    private func forgetRankings() {
+        rankings = [:]
+        generation += 1
     }
 
     public func setReplacements(_ pairs: [(shortcut: String, phrase: String)]) {
@@ -68,6 +98,7 @@ public final class Corrector {
 
     public func learn(_ samples: [TapSample]) {
         memory.touches.learn(samples, on: grid)
+        forgetRankings()
     }
 
     public func correction(for word: TypedWord, guessing: Bool = true) -> String? {
@@ -222,10 +253,9 @@ extension Corrector {
     }
 
     func languageModel(_ lexicon: Lexicon) -> LanguageModel {
-        if let cachedModel { return cachedModel }
-        let model = LanguageModel(lexicon: lexicon, memory: memory, phrases: phrases)
-        cachedModel = model
-        return model
+        let novel = novel ?? LanguageModel.novel(in: memory, lexicon: lexicon)
+        self.novel = novel
+        return LanguageModel(lexicon: lexicon, memory: memory, phrases: phrases, novel: novel)
     }
 }
 

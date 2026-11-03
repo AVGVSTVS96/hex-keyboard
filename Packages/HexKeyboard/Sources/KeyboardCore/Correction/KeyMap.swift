@@ -1,7 +1,6 @@
-/// Which key a touch means, worked out off the main thread after every edit from where your taps for each key land and
-/// how likely each key is next, so a touch costs a few multiplications. It holds only for the text it was made for.
+/// Which key a touch means, worked out after every edit from where your taps for each key land and how likely each key
+/// is next, so a touch costs a few multiplications. It holds only for the text it was made for.
 public struct KeyMap: Sendable {
-    let revision: Int
     let signature: String
     private let keys: [String: Entry]
 
@@ -10,8 +9,7 @@ public struct KeyMap: Sendable {
         let logOdds: Double
     }
 
-    init(revision: Int, grid: KeyGrid, touches: TouchModel.Layout, next: [String: Double]?) {
-        self.revision = revision
+    init(grid: KeyGrid, touches: TouchModel.Layout, next: [String: Double]?) {
         signature = grid.signature
         var keys: [String: Entry] = [:]
         for row in grid.rows {
@@ -45,8 +43,8 @@ public struct KeyMap: Sendable {
 
 extension Corrector {
     /// The key map for the next touch after `prefix` (`nil` where words aren't expected).
-    func keyMap(revision: Int, after prefix: String?) -> KeyMap {
+    func keyMap(after prefix: String?) -> KeyMap {
         let next = prefix.flatMap { prefix in lexicon.map { languageModel($0).next(after: prefix.lowercased()) } }
-        return KeyMap(revision: revision, grid: grid, touches: memory.touches.layout(grid), next: next)
+        return KeyMap(grid: grid, touches: memory.touches.layout(grid), next: next)
     }
 }

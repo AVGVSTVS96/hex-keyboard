@@ -152,28 +152,46 @@ struct TouchModelTests {
         #expect(model.center(of: "m", on: landscape) == (0, 0))
     }
 
+    @Test func theCountOfWordsTheLexiconDoesNotKnowMatchesARecount() {
+        let corrector = Corrector(source: testLexicon)
+        let recount = { LanguageModel(lexicon: testLexicon, memory: corrector.memory).novelty }
+        let kept = { corrector.languageModel(testLexicon).novelty }
+        #expect(kept() == recount())
+        for word in ["home", "Bassim", "qzxv", "home", "Bassim"] { corrector.record(word, after: "go") }
+        #expect(kept() == recount())
+        corrector.forget("qzxv", after: "go")
+        corrector.forget("work", after: "go")
+        #expect(kept() == recount())
+        var other = TypingMemory()
+        for word in ["zzz", "yyy", "xxx", "www"] { other.record(word, after: nil) }
+        #expect(other.total == corrector.memory.total)
+        corrector.changeMemory { $0 = other }
+        #expect(kept() == recount())
+    }
+
     @Test func learnedOffsetsMoveTheBoundaryButNeverPastAQuarterKey() {
         let corrector = Corrector(source: testLexicon)
         let m = grid.frame(of: "m")!
         let between = (x: m.midX - 0.6, y: m.midY)
-        #expect(corrector.keyMap(revision: 0, after: nil).key(atX: between.x, y: between.y, in: grid).map { grid.rows[$0.row][$0.key].key.label } == "n")
+        #expect(corrector.keyMap(after: nil).key(atX: between.x, y: between.y, in: grid).map { grid.rows[$0.row][$0.key].key.label } == "n")
         corrector.learn(samples("m", dx: -0.4))
-        #expect(corrector.keyMap(revision: 0, after: nil).key(atX: between.x, y: between.y, in: grid).map { grid.rows[$0.row][$0.key].key.label } == "m")
+        #expect(corrector.keyMap(after: nil).key(atX: between.x, y: between.y, in: grid).map { grid.rows[$0.row][$0.key].key.label } == "m")
         corrector.learn(samples("m", dx: -0.8, count: 300))
-        #expect(corrector.keyMap(revision: 0, after: nil).key(atX: m.midX - 1, y: m.midY, in: grid).map { grid.rows[$0.row][$0.key].key.label } == "n")
+        #expect(corrector.keyMap(after: nil).key(atX: m.midX - 1, y: m.midY, in: grid).map { grid.rows[$0.row][$0.key].key.label } == "n")
     }
 
     @Test func nextLetterOddsResizeKeysInsideWords() {
         let corrector = Corrector(source: testLexicon)
         let o = grid.frame(of: "o")!
         let label = { (prefix: String?) in
-            corrector.keyMap(revision: 0, after: prefix).key(atX: o.midX - 0.55, y: o.midY, in: grid).map { grid.rows[$0.row][$0.key].key.label }
+            corrector.keyMap(after: prefix).key(atX: o.midX - 0.55, y: o.midY, in: grid).map { grid.rows[$0.row][$0.key].key.label }
         }
         #expect(label(nil) == "i")
         #expect(label("hell") == "o")
     }
 
-    @Test func aTouchTakesTheKeyUnderItUntilTheMapForTheTextIsReady() throws {
+    /// Rollover: the last key lands, and the next touch is read at once, before any suggestions are ranked.
+    @Test func aTouchReadsTheMapForTheTextAsItIsNowBeforeTheSuggestionsAreRanked() {
         var engine = TypingEngine()
         engine.corrector = Corrector(source: testLexicon)
         engine.defersSuggestions = true
@@ -181,12 +199,21 @@ struct TouchModelTests {
         engine.documentChanged(document)
         engine.type("hell", in: document)
         let o = grid.frame(of: "o")!
-        let label = { (engine: TypingEngine) in engine.key(atX: o.midX - 0.55, y: o.midY, in: grid).map { grid.rows[$0.row][$0.key].key.label } }
-        #expect(label(engine) == "i")
-        var job = try #require(engine.suggestionJob())
-        job.run()
-        engine.finish(job)
-        #expect(label(engine) == "o")
+        #expect(engine.suggestionsAreStale)
+        #expect(engine.key(atX: o.midX - 0.55, y: o.midY, in: grid).map { grid.rows[$0.row][$0.key].key.label } == "o")
+    }
+
+    @Test func aTouchReadsWhereYourTapsLandBeforeTheSuggestionsAreRanked() {
+        var engine = TypingEngine(traits: InputTraits(autocapitalization: .none))
+        let corrector = Corrector(source: testLexicon)
+        corrector.learn(samples("m", dx: -0.4))
+        engine.corrector = corrector
+        engine.defersSuggestions = true
+        let document = TestDocument()
+        engine.documentChanged(document)
+        engine.type("a", in: document)
+        let m = grid.frame(of: "m")!
+        #expect(engine.key(atX: m.midX - 0.6, y: m.midY, in: grid).map { grid.rows[$0.row][$0.key].key.label } == "m")
     }
 
     /// Auto-Correction off stops words being replaced, not keys being read from the word so far; a field that asks for
@@ -207,7 +234,7 @@ struct TouchModelTests {
     @Test func controlKeysKeepTheirTaps() {
         let corrector = Corrector(source: testLexicon)
         let delete = grid.rows[2].last!.frame
-        let hit = corrector.keyMap(revision: 0, after: "hel").key(atX: delete.x + 0.01, y: delete.midY, in: grid)
+        let hit = corrector.keyMap(after: "hel").key(atX: delete.x + 0.01, y: delete.midY, in: grid)
         #expect(hit.map { grid.rows[$0.row][$0.key].key.action } == .delete)
     }
 }
@@ -400,7 +427,7 @@ struct LabelTests {
         let document = TestDocument()
         type("work the ", into: &engine, document)
         #expect(count("w", engine) == 1)
-        engine.corrector!.memory = TypingMemory()
+        engine.corrector!.changeMemory { $0 = TypingMemory() }
         #expect(count("w", engine) == 0)
     }
 }
@@ -446,7 +473,7 @@ struct DecoderTests {
 
     @Test func frequentWordsNeverOverruleCleanTaps() {
         let corrector = Corrector(source: testLexicon)
-        for _ in 0..<50 { corrector.memory.record("home", after: "go") }
+        for _ in 0..<50 { corrector.record("home", after: "go") }
         #expect(correct("come", after: "go", corrector) == nil)
         #expect(correct("hime", after: "go", corrector) == "home")
     }
@@ -512,7 +539,7 @@ struct DecoderTests {
     @Test func yourOwnWordsWinOnceYouUseThem() {
         let corrector = Corrector(source: testLexicon)
         #expect(correct("bassim", corrector) == nil)
-        for _ in 0..<3 { corrector.memory.record("Bassim", after: "") }
+        for _ in 0..<3 { corrector.record("Bassim", after: "") }
         #expect(correct("bassin", corrector) == "Bassim")
     }
 

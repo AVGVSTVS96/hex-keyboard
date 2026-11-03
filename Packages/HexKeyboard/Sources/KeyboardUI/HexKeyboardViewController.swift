@@ -145,7 +145,7 @@ open class HexKeyboardViewController: UIInputViewController {
         KeyboardHost.appeared()
         keyboard = .random(in: 1 ... .max)
         MemoryStore.refresh { [weak self] memory in
-            self?.engine.corrector?.memory = memory
+            self?.engine.corrector?.changeMemory { $0 = memory }
             self?.engine.suggestionsChanged()
             self?.render()
         }

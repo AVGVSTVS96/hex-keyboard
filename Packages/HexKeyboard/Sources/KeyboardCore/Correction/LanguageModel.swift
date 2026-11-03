@@ -12,12 +12,18 @@ struct LanguageModel {
 
     static let spellingLogProbability = -Math.log(Double(Lexicon.alphabet))
 
-    init(lexicon: Lexicon, memory: TypingMemory, phrases: Phrases? = nil) {
+    /// `novel` is `novel(in:lexicon:)`, when the caller keeps it counted.
+    init(lexicon: Lexicon, memory: TypingMemory, phrases: Phrases? = nil, novel: Int? = nil) {
         self.lexicon = lexicon
         self.memory = memory
         self.phrases = phrases
-        let novel = memory.counts.reduce(0) { $0 + (lexicon.logProbability(of: $1.key) == nil ? $1.value : 0) }
+        let novel = novel ?? Self.novel(in: memory, lexicon: lexicon)
         novelty = (Double(novel) + 1) / (Double(memory.total) + 2)
+    }
+
+    /// How many of the words you've typed the lexicon doesn't know.
+    static func novel(in memory: TypingMemory, lexicon: Lexicon) -> Int {
+        memory.counts.reduce(0) { $0 + (lexicon.logProbability(of: $1.key) == nil ? $1.value : 0) }
     }
 
     func logProbability(_ word: String, after previous: String?) -> Double {

@@ -86,7 +86,7 @@ struct Evaluation {
             for learning in [false, true] {
                 var prediction = Prediction()
                 for phrase in phrases {
-                    if !learning { prediction.engine.corrector?.memory = TypingMemory() }
+                    if !learning { prediction.engine.corrector?.changeMemory { $0 = TypingMemory() } }
                     prediction.type(phrase.split(separator: " ").map(String.init))
                 }
                 print("EVAL predict corpus=\(corpus) user=\(learning ? "learning" : "new") \(prediction.summary)")
@@ -211,7 +211,7 @@ struct Session {
         }
         if keyboard == .decoder {
             engine.endSession()
-            engine.corrector?.memory.touches = TouchModel()
+            engine.corrector?.changeMemory { $0.touches = TouchModel() }
         }
         let final = String(document.text.dropFirst(start)).trimmingCharacters(in: .whitespaces).lowercased()
         score.add(word: word, typed: typed, final: final, shown: shown, predictions: predictions)

@@ -14,7 +14,7 @@ public struct TypingEngine {
     /// Leaves `suggestions` stale after each change, for a `SuggestionJob` to rank off the keystroke's path.
     public var defersSuggestions = false
     public internal(set) var suggestionsAreStale = false
-    /// Which key a touch means, made with the suggestions (off the main thread when they're deferred).
+    /// Which key a touch means, made for the text as it is after every change.
     public internal(set) var keyMap: KeyMap?
     /// The text before the word the suggestions were ranked for: a tap on one replaces only that word.
     var suggestionsBefore = ""
@@ -86,7 +86,7 @@ public struct TypingEngine {
         let revert = self.revert
         lastSpace = nil
         self.revert = nil
-        if wasSpace, action != .delete { corrector?.memory.recordAfterSpace(isSpace: action == .space) }
+        if wasSpace, action != .delete { corrector?.changeMemory { $0.recordAfterSpace(isSpace: action == .space) } }
 
         switch action {
         case .character(let key):
@@ -219,7 +219,7 @@ public struct TypingEngine {
         if typing.letters.isEmpty, let pending {
             let head = Substring(text.before).dropLast(while: { !Words.isWordCharacter($0) })
             if head.hasSuffix(pending.word) {
-                corrector?.memory.forget(pending.word, after: Words.previous(before: Words.current(in: String(head)), in: String(head)))
+                corrector?.forget(pending.word, after: Words.previous(before: Words.current(in: String(head)), in: String(head)))
             }
             self.pending = nil
         }

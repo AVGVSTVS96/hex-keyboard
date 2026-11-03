@@ -4,7 +4,7 @@ import Testing
 struct AutocorrectTests {
     @Test func findsMisspelledWords() {
         let corrector = Corrector(source: testLexicon)
-        corrector.memory.keep("qzxv")
+        corrector.changeMemory { $0.keep("qzxv") }
         let text = "I’m done, helo world's qzxv 42nd 'wrld' hello"
         #expect(corrector.misspellings(in: text).map { String(text[$0]) } == ["helo", "wrld"])
     }
