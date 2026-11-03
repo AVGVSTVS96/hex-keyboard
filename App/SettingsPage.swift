@@ -48,6 +48,23 @@ struct SettingsPage: View {
             }
         }
 
+        /// What the page is set to, beside it in the list and on Home's card for it.
+        @MainActor var value: String? {
+            let model = SettingsModel.shared, settings = model.settings, words = VoiceVocabulary.shared.vocabulary.terms.count
+            return switch self {
+            case .theme: settings.theme.title
+            case .layout, .typing, .privacy: nil
+            case .feedback: settings.haptics.title
+            case .model: VoiceModel.shared.model.title
+            case .writing: settings.dictationStyle.title
+            case .words: words == 1 ? "1 word" : "\(words.formatted()) words"
+            case .mic: Dictation.title(keepingMicOn: model.keepMicOn)
+            case .sources: model.sources.isEmpty ? "None" : model.sources.count.formatted()
+            case .access: HexStatus.shared.isSetUp ? "All Set" : "Needs Setup"
+            case .about: AboutPage.version
+            }
+        }
+
         /// The keyboard's pages show Hex drawn as their settings make it, with a field to try it.
         var showsKeyboard: Bool { [.theme, .layout, .typing, .feedback].contains(self) }
     }
@@ -89,9 +106,6 @@ private struct SettingsList: View {
 
     let picked: Page?
     let open: (Page) -> Void
-    private let model = SettingsModel.shared
-    private let status = HexStatus.shared
-    private let voice = VoiceModel.shared
 
     var body: some View {
         Column(top: 4) {
@@ -114,7 +128,7 @@ private struct SettingsList: View {
             Glyph(symbol: page.glyph.0, color: page.glyph.1)
             Text(page.title).foregroundStyle(.primary)
             Spacer(minLength: 8)
-            if let value = value(of: page) {
+            if let value = page.value {
                 Text(value)
                     .foregroundStyle(Color.hexSecondary)
                     .lineLimit(1)
@@ -130,24 +144,6 @@ private struct SettingsList: View {
         .padding(.vertical, 10)
         .frame(minHeight: 52)
         .contentShape(.rect)
-    }
-
-    private func value(of page: Page) -> String? {
-        let settings = model.settings
-        return switch page {
-        case .theme: settings.theme.title
-        case .layout: nil
-        case .typing: nil
-        case .feedback: settings.haptics.title
-        case .model: voice.model.title
-        case .writing: settings.dictationStyle.title
-        case .words: VoiceVocabulary.shared.vocabulary.terms.count.formatted()
-        case .mic: Dictation.title(keepingMicOn: model.keepMicOn)
-        case .sources: model.sources.isEmpty ? "None" : model.sources.count.formatted()
-        case .access: status.isSetUp ? "All Set" : "Needs Setup"
-        case .privacy: nil
-        case .about: AboutPage.version
-        }
     }
 }
 

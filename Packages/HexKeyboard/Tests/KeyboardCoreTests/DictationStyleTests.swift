@@ -86,4 +86,14 @@ struct DictationStyleTests {
         #expect(write(heard, .formal, .light)
             == "Now, one thing they do is when mentioning a list like:\n1. this item\n2. that item\n3. the other item, they are automatically written into a list\nI'm not sure.")
     }
+
+    @Test func theAppsExampleTypedInEachStyle() {
+        let lexicon = Lexicon(counts: ["so", "i", "think", "the", "second", "draft", "reads", "better", "let's", "send", "it", "to", "tonight", "Sam"].map { (word: $0, count: 100) })
+        let heard = "So, um, I think the the second draft reads better. Let's send it to Sam tonight."
+        let typed = { DictationWriting(style: $0, editing: $1).typed(heard, lexicon: lexicon) }
+        #expect(typed(.formal, .asSaid) == heard)
+        #expect(typed(.casual, .asSaid) == "So um, I think the the second draft reads better. Let's send it to Sam tonight")
+        #expect(typed(.veryCasual, .light) == "so i think the the second draft reads better. let's send it to Sam tonight")
+        #expect(typed(.excited, .clean) == "So, I think the second draft reads better. Let's send it to Sam tonight!")
+    }
 }

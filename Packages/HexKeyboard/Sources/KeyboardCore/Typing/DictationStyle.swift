@@ -191,6 +191,11 @@ public struct DictationWriting: Hashable, Sendable {
         return String(style.openersLoosened(text))
     }
 
+    /// `heard` as Hex types it at the start of a field that capitalizes sentences, as a message's does.
+    public func typed(_ heard: String, lexicon: Lexicon?) -> String {
+        TypingEngine.fitted(written(heard), between: "", and: nil, lexicon: lexicon, capitals: style.capitals(in: .sentences))
+    }
+
     /// ".." for ".", which Parakeet sometimes writes, keeping "...".
     private static func withoutDoubledPeriods(_ text: [Character]) -> [Character] {
         var text = text

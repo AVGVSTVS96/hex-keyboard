@@ -3,8 +3,8 @@ import KeyboardUI
 import SwiftUI
 import UIKit
 
-/// Hex's home (docs/design.md, "The app"): whether the keyboard is on and what's left to set up, a field to try it, and
-/// tiles for what Hex has gathered: today's dictation, your taps and Your Words.
+/// Hex's home (docs/design.md, "The app"): whether the keyboard is on and what's left to set up, a field to try it,
+/// tiles for today's dictation and your taps, and a card for each setting you reach for, opening its page in Settings.
 final class HomeViewController: UIHostingController<AnyView> {
     private let field: UITextView
     private let state: HomeState
@@ -134,17 +134,23 @@ struct HomeView: View {
         Box(header: "Set Up") { SetupSteps() }
     }
 
+    /// The settings pages Home links straight to, each showing what it's set to.
+    private static let shortcuts: [SettingsPage.Page] = [.words, .theme, .model, .writing, .feedback, .mic]
+
     private var tiles: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 3), spacing: 12) {
-                Button { Router.shared.show(.transcripts) } label: { VoiceTile() }
-                    .buttonStyle(CardPress())
-                Button { Router.shared.show(.taps) } label: {
-                    Tile(symbol: "hand.tap.fill", color: .blue, title: "taps learned", value: state.taps.formatted())
+        LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
+            Button { Router.shared.show(.transcripts) } label: { VoiceTile() }
+                .buttonStyle(CardPress())
+            Button { Router.shared.show(.taps) } label: {
+                Tile(symbol: "hand.tap.fill", color: .blue, title: state.taps == 1 ? "tap learned" : "taps learned", value: state.taps.formatted())
+            }
+            .buttonStyle(CardPress())
+            ForEach(Self.shortcuts, id: \.self) { page in
+                Button { Router.shared.show(.settings, settings: page) } label: {
+                    Tile(symbol: page.glyph.0, color: page.glyph.1, title: page.title, detail: page.value)
                 }
                 .buttonStyle(CardPress())
-                Button { Router.shared.show(.settings, settings: .words) } label: { VocabularyTile() }
-                    .buttonStyle(CardPress())
+                .accessibilityIdentifier("home-\(page.rawValue)")
             }
         }
     }
@@ -155,14 +161,6 @@ private struct VoiceTile: View {
     var body: some View {
         let today = Transcripts.shared.all.prefix { Calendar.current.isDateInToday($0.date) }.reduce(0) { $0 + $1.words }
         Tile(symbol: "text.bubble.fill", color: .pink, title: today == 1 ? "word said today" : "words said today", value: today.formatted())
-    }
-}
-
-/// Your Words, the dictionary voice typing writes with.
-private struct VocabularyTile: View {
-    var body: some View {
-        let words = VoiceVocabulary.shared.vocabulary.terms.count
-        Tile(symbol: "character.book.closed.fill", color: .orange, title: "Your Words", value: words.formatted())
     }
 }
 
