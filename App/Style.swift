@@ -87,7 +87,7 @@ struct Glyph: View {
     }
 }
 
-/// What iOS keeps for Hex in Settings › Apps › Hex, read again whenever Hex comes forward, as it does when you come back
+/// What iOS keeps for Hex in Settings › Apps › iikb, read again whenever Hex comes forward, as it does when you come back
 /// from Settings.
 @Observable final class HexStatus {
     static let shared = HexStatus()
