@@ -86,44 +86,19 @@ struct KeyboardPage: View {
     }
 }
 
-/// Hex as it will look, over a pill that brings up the real keyboard in a field, so a change can be tried at once.
+/// A field to try the keyboard in, so a change can be felt at once.
 private struct TryPreview: View {
-    @State private var trying = false
     @State private var text = ""
-    @FocusState private var focused: Bool
-    private let model = SettingsModel.shared
 
     var body: some View {
-        VStack(spacing: 14) {
-            if trying {
-                TextField("Type to try Hex", text: $text, axis: .vertical)
-                    .focused($focused)
-                    .lineLimit(3 ... 6)
-                    .padding(18)
-                    .background(Color.hexCard, in: .rect(cornerRadius: HexStyle.cardRadius, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: HexStyle.cardRadius, style: .continuous).strokeBorder(Color.hexEdge))
-                    .onAppear { focused = true }
-                    .onChange(of: focused) { _, focused in if !focused { trying = false } }
-                    .transition(.opacity.combined(with: .scale(scale: 0.97)))
-            } else {
-                KeyboardPreview(settings: model.settings)
-                    .transition(.opacity)
-                Button {
-                    withAnimation(.snappy) { trying = true }
-                } label: {
-                    Text("Tap to try")
-                        .font(.subheadline.weight(.medium))
-                        .padding(.horizontal, 18)
-                        .padding(.vertical, 9)
-                        .background(Color.hexCard, in: .capsule)
-                        .overlay(Capsule().strokeBorder(Color.hexEdge))
-                }
-                .buttonStyle(CardPress())
-                .foregroundStyle(.primary)
-            }
-        }
-        .frame(maxWidth: 520)
-        .frame(maxWidth: .infinity)
+        TextField("Type to try Hex", text: $text, axis: .vertical)
+            .font(.title3)
+            .lineLimit(4 ... 8)
+            .padding(18)
+            .background(Color.hexCard, in: .rect(cornerRadius: HexStyle.cardRadius, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: HexStyle.cardRadius, style: .continuous).strokeBorder(Color.hexEdge))
+            .frame(maxWidth: 520)
+            .frame(maxWidth: .infinity)
     }
 }
 
