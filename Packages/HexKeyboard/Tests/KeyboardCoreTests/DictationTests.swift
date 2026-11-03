@@ -2,10 +2,11 @@ import Testing
 @testable import KeyboardCore
 
 struct DictationTests {
-    private func dictate(_ heard: String, into text: String, cursor: Int? = nil, style: DictationStyle = .formal, field: Autocapitalization = .sentences) -> String {
+    private func dictate(_ heard: String, into text: String, cursor: Int? = nil, style: DictationStyle = .formal, field: Autocapitalization = .sentences, autoCapitalization: Bool = true) -> String {
         var engine = TypingEngine(traits: InputTraits(autocapitalization: field))
         engine.corrector = Corrector(source: testLexicon)
         engine.settings.dictationStyle = style
+        engine.settings.autoCapitalization = autoCapitalization
         let document = TestDocument(text)
         if let cursor { document.cursor = cursor }
         engine.handle(.dictated(heard), in: document)
@@ -31,6 +32,12 @@ struct DictationTests {
         #expect(dictate("To work.", into: "I go, then home", cursor: 4) == "I go to work, then home")
         #expect(dictate("Hello there.", into: "How are you", cursor: 0) == "Hello there. How are you")
         #expect(dictate("In the house.", into: "I was , and done", cursor: 6) == "I was in the house, and done")
+    }
+
+    @Test func withAutoCapitalizationOffADictationStartsSentencesLowercaseInEveryStyle() {
+        for style in DictationStyle.allCases {
+            #expect(dictate("Hello. I think it's done. Cheryl liked it.", into: "", style: style, autoCapitalization: false).hasPrefix("hello. i think it's done. Cheryl liked it"))
+        }
     }
 
     @Test func veryCasualStartsSentencesLowercaseAndNamesKeepTheirCapitals() {

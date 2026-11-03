@@ -9,7 +9,7 @@ struct DictationStyleTests {
     @Test func asSaidKeepsEveryWordUmAndUhIncluded() {
         let heard = "Um, so I think, uh, the the job is done."
         #expect(write(heard) == heard)
-        #expect(KeyboardSettings.initial.dictation == DictationWriting(style: .casual, editing: .asSaid, lists: true))
+        #expect(KeyboardSettings.initial.dictation == DictationWriting(style: .casual, editing: .asSaid, lists: true, capitalizes: false))
     }
 
     @Test func lightLeavesOutUmAndUh() {
@@ -58,10 +58,11 @@ struct DictationStyleTests {
         #expect(write("Did we ship it?", .excited) == "Did we ship it?")
     }
 
-    @Test func veryCasualAsksTheKeyboardForNoCapitals() {
-        #expect(DictationStyle.veryCasual.capitals(in: .sentences) == .none)
-        #expect(DictationStyle.formal.capitals(in: .sentences) == .sentences)
-        #expect(DictationStyle.casual.capitals(in: .none) == .none)
+    @Test func capitalsFollowAutoCapitalizationAndVeryCasualHasNone() {
+        #expect(DictationWriting(style: .veryCasual).capitals(in: .sentences) == .none)
+        #expect(DictationWriting(style: .formal).capitals(in: .sentences) == .sentences)
+        #expect(DictationWriting(style: .casual).capitals(in: .none) == .none)
+        #expect(DictationWriting(style: .formal, capitalizes: false).capitals(in: .sentences) == .none)
     }
 
     @Test func aSpokenListIsWrittenAsOne() {

@@ -190,7 +190,7 @@ public struct TypingEngine {
             insertWhole(text, in: document)
         case .dictated(let heard):
             let lexicon = corrector?.lexicon
-            let capitals = settings.dictationStyle.capitals(in: traits.autocapitalization)
+            let capitals = settings.dictation.capitals(in: traits.autocapitalization)
             insertWhole(in: document) { Self.fitted(heard, between: $0.before, and: $0.after, lexicon: lexicon, capitals: capitals) }
         }
         return true

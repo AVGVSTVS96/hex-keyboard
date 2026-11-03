@@ -11,11 +11,6 @@ public enum DictationStyle: String, CaseIterable, Hashable, Sendable {
 
     public static let standard = DictationStyle.casual
 
-    /// The capitals the keyboard gives a dictation in a field that asks for `field`'s (`TypingEngine.fitted`).
-    public func capitals(in field: Autocapitalization) -> Autocapitalization {
-        self == .veryCasual ? .none : field
-    }
-
     /// `text` punctuated in this style, around a list it may end on.
     func punctuated(_ text: [Character]) -> [Character] {
         var text = text
@@ -171,17 +166,26 @@ public enum DictationEditing: String, CaseIterable, Hashable, Sendable {
 }
 
 /// What you said, as Hex types it: edited, in its style, and with any list you spoke written as one. Its capitals are
-/// the keyboard's (`DictationStyle.capitals`).
+/// the keyboard's, set where it goes in (`capitals`).
 public struct DictationWriting: Hashable, Sendable {
     public var style = DictationStyle.standard
     public var editing = DictationEditing.standard
     /// "one, eggs, two, milk" written as a numbered list (`SpokenList`).
     public var lists = true
+    /// Auto-Capitalization, which a dictation follows as typing does.
+    public var capitalizes = true
 
-    public init(style: DictationStyle = .standard, editing: DictationEditing = .standard, lists: Bool = true) {
+    public init(style: DictationStyle = .standard, editing: DictationEditing = .standard, lists: Bool = true, capitalizes: Bool = true) {
         self.style = style
         self.editing = editing
         self.lists = lists
+        self.capitalizes = capitalizes
+    }
+
+    /// The capitals a dictation gets in a field that asks for `field`'s: none with Auto-Capitalization off or in
+    /// very casual (`TypingEngine.fitted`).
+    public func capitals(in field: Autocapitalization) -> Autocapitalization {
+        capitalizes && style != .veryCasual ? field : .none
     }
 
     public func written(_ heard: String) -> String {
@@ -193,7 +197,7 @@ public struct DictationWriting: Hashable, Sendable {
 
     /// `heard` as Hex types it at the start of a field that capitalizes sentences, as a message's does.
     public func typed(_ heard: String, lexicon: Lexicon?) -> String {
-        TypingEngine.fitted(written(heard), between: "", and: nil, lexicon: lexicon, capitals: style.capitals(in: .sentences))
+        TypingEngine.fitted(written(heard), between: "", and: nil, lexicon: lexicon, capitals: capitals(in: .sentences))
     }
 
     /// ".." for ".", which Parakeet sometimes writes, keeping "...".
@@ -210,6 +214,6 @@ public struct DictationWriting: Hashable, Sendable {
 
 extension KeyboardSettings {
     public var dictation: DictationWriting {
-        DictationWriting(style: dictationStyle, editing: dictationEditing, lists: dictationLists)
+        DictationWriting(style: dictationStyle, editing: dictationEditing, lists: dictationLists, capitalizes: autoCapitalization)
     }
 }
