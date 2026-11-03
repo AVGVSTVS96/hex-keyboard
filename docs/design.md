@@ -133,7 +133,7 @@ Physical and Mechanical come Automatic (following the app), Dark or Light. iOS 5
 
 ### The compact layout
 
-Where height is short (any landscape, and iPad), the bar and the mic are 34 (32 on the folded landscape, 38 on the open Duo on its side; iPad: a 36 bar and a 34 mic), and a panel's results are one row (`Toolbar.isCompact`).
+Where height is short (any landscape, and iPad), the bar and the mic are 34 (32 on the folded landscape, 38 on the open Duo on its side; iPad: a 36 bar and a 34 mic), and a panel's results are one row (`Toolbar.isCompact`). Settings › Keyboard › Layout › Compact Emoji & GIFs makes the emoji and GIF panels that one row on every screen (`Toolbar.showing`); it's off, so upright screens keep the large panels.
 
 ### Cut from Raycast
 
@@ -176,7 +176,7 @@ Emoji opens from its key, GIF and Clipboard from the bar's tools. A panel replac
 ### Emoji
 
 - Works without Full Access.
-- Results: 10 columns across the keys block (45.3 each on the Duo cover), rows 45.3 tall (three show), emoji 30 (26 in compact). Rows fill left to right; the results scroll up and down.
+- Results: 10 columns across the keys block (45.3 each on the Duo cover), rows 45.3 tall (three show), emoji 30 (26 in compact). Rows fill left to right; the results scroll up and down. Compact: one row, the same columns wide, scrolling sideways.
 - Empty field: your recent emoji first (the ones you picked here and from the bar, as `EmojiHistory` weighs them, up to 30), then every emoji in Apple's order. No category tabs: search is faster than tabs.
 - Typing: matches by CLDR name and keywords, best first, ranked by what you use and then by Unicode's emoji frequency. This search existed (commit 416f351, removed in 00edb44 with `EmojiKeyboardView`): bring it back from history rather than rewrite it. Placeholder: "Search emoji".
 - Tap: inserts the emoji at the app's cursor and counts it as used. Hold an emoji with skin tones: a callout of the tones above it, like a key's accents; the pick is remembered for that emoji.
@@ -187,7 +187,7 @@ Emoji opens from its key, GIF and Clipboard from the bar's tools. A panel replac
 - Needs Full Access (it goes online). Without it, the results area says "GIF search needs Full Access." in secondary 15 with a "Turn On" button (accent text) that opens Hex's app where it explains how.
 - Source: KLIPY's API, its key in `Packages/HexKeyboard/Sources/KeyboardUI/Resources/Keys/klipy.key`, kept out of git like `Config/Team.xcconfig`. With no key built in, the GIF tool doesn't show. KLIPY over GIPHY (what Raycast uses): both give a new key 100 requests an hour, but KLIPY's production keys are free and unlimited, where GIPHY reviews each app and discusses pricing; GIPHY forbids keeping anything it sends, even a GIF's URL, where KLIPY lets an app keep slugs and fetch them again (`gifs/items`), which recents need. KLIPY requires the placeholder "Search KLIPY", loading its media straight from its URLs, and showing its results in its order.
 - Field: leading GIF glyph (20, secondary), placeholder "Search KLIPY", trailing `clock` (20, secondary) that switches the results to your recent GIFs; it turns accent while on. Raycast's GIF token chip is cut: the panel only searches GIFs.
-- Results: two rows 65 tall, 6 apart, scrolling sideways. Each GIF keeps its own aspect ratio at that height (no letterboxing, unlike Raycast), radius 8, the key fill while it loads.
+- Results: two rows 65 tall, 6 apart, scrolling sideways (compact: one row), also when a swipe starts on a GIF (`ButtonScrollView`). Each GIF keeps its own aspect ratio at that height (no letterboxing, unlike Raycast), radius 8, the key fill while it loads.
 - Empty field: KLIPY's trending GIFs.
 - Searching: one request is out at a time. Keys typed while it's out don't each send one; when it returns, one search goes out for what the field holds then (`GifSearch`). That keeps a new key's 100 requests an hour from running out in a few searches, with no timer.
 - Memory: a keyboard has a small memory limit. Load KLIPY's small WebP (`sm`), animate only the tiles on screen, and drop the rest.

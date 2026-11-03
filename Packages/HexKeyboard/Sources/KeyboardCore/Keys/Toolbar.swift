@@ -35,12 +35,24 @@ public struct Toolbar: Hashable, Sendable {
     /// Where height is short, a panel's results are one row.
     public var isCompact: Bool { results < Self.phone.results }
 
+    /// What's above the keys while `panel` is open: with Compact Emoji & GIFs on, those two panels are one row on
+    /// every screen.
+    public func showing(_ panel: Panel?, compact: Bool) -> Toolbar {
+        guard compact, panel == .emoji || panel == .gif else { return self }
+        var toolbar = self
+        toolbar.results = min(results, Self.compactResults)
+        toolbar.field = min(field, Self.compactField)
+        return toolbar
+    }
+
     static let phone = Toolbar(top: gap - backdropAbove, bar: 38, mic: 38, results: 136, field: 40)
+    static let compactResults = 46.0
+    static let compactField = 34.0
 
     static func compact(mic: Double) -> Toolbar {
-        Toolbar(top: gap - backdropAbove, bar: mic, mic: mic, results: 46, field: 34)
+        Toolbar(top: gap - backdropAbove, bar: mic, mic: mic, results: compactResults, field: compactField)
     }
 
     /// iPad, where iOS draws its own bar above the keyboard.
-    static let pad = Toolbar(top: 0, bar: 36, mic: 34, results: 46, field: 34)
+    static let pad = Toolbar(top: 0, bar: 36, mic: 34, results: compactResults, field: compactField)
 }

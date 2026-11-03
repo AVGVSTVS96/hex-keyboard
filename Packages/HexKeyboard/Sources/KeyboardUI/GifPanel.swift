@@ -30,7 +30,7 @@ final class GifPanel: UIView, PanelContent, UIScrollViewDelegate {
     private var copying: Gif?
     private var theme = KeyboardTheme.lightCurrent
     private var rows = 2
-    private let scroll = UIScrollView()
+    private let scroll = ButtonScrollView()
     private var tiles: [GifTile] = []
     private let message = UILabel()
     private let turnOn = UIButton(type: .system)
@@ -39,12 +39,9 @@ final class GifPanel: UIView, PanelContent, UIScrollViewDelegate {
     init(klipy: Klipy) {
         self.klipy = klipy
         super.init(frame: .zero)
-        scroll.showsHorizontalScrollIndicator = false
         scroll.alwaysBounceHorizontal = true
-        scroll.delaysContentTouches = false
         scroll.delegate = self
         scroll.accessibilityIdentifier = "hex.gifs"
-        [scroll.topEdgeEffect, scroll.bottomEdgeEffect, scroll.leftEdgeEffect, scroll.rightEdgeEffect].forEach { $0.isHidden = true }
         message.font = .systemFont(ofSize: 15)
         message.textAlignment = .center
         message.numberOfLines = 2

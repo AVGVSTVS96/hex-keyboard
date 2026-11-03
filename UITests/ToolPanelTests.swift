@@ -27,6 +27,7 @@ final class ToolPanelTests: XCTestCase {
         XCTAssertTrue(wait { (search.value as? String) == "cat" }, "the keys type into the search")
         XCTAssertTrue(wait(15) { tile.count > 4 }, "searching finds GIFs")
         try shot("gif-search")
+        if compact { assertOneRowScrollsSideways(tile, in: gifs, app: app) }
 
         let picked = tile.element(boundBy: 0)
         let id = picked.identifier.components(separatedBy: "--")[0]
@@ -111,7 +112,7 @@ final class ToolPanelTests: XCTestCase {
 
     private func launch() -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments = ["-HexFocus", "YES", "-HexOrientation", ProcessInfo.processInfo.environment["HEX_ORIENTATION"] ?? "portrait", "-HexOneHanded", "off"]
+        app.launchArguments = ["-HexFocus", "YES", "-HexOrientation", orientation, "-HexOneHanded", "off", "-HexCompactPanels", compactSetting ? "YES" : "NO"]
         app.launch()
         if !key("space", in: app).waitForExistence(timeout: 20) {
             app.terminate()
@@ -124,6 +125,24 @@ final class ToolPanelTests: XCTestCase {
     private func wait(_ timeout: TimeInterval = 10, _ condition: @escaping () -> Bool) -> Bool {
         let expectation = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in condition() }, object: nil)
         return XCTWaiter.wait(for: [expectation], timeout: timeout) == .completed
+    }
+
+    private var orientation: String { ProcessInfo.processInfo.environment["HEX_ORIENTATION"] ?? "portrait" }
+    /// `HEX_COMPACT=1` turns on Compact Emoji & GIFs.
+    private var compactSetting: Bool { ProcessInfo.processInfo.environment["HEX_COMPACT"] == "1" }
+    /// Landscape, or the setting, shows the panels as one row.
+    private var compact: Bool { compactSetting || orientation == "landscape" }
+
+    /// The results sit in one row, and a swipe moves them sideways.
+    private func assertOneRowScrollsSideways(_ tiles: XCUIElementQuery, in scroller: XCUIElement, app: XCUIApplication) {
+        let row = (0..<min(tiles.count, 8)).map { tiles.element(boundBy: $0).frame }
+        XCTAssertEqual(Set(row.map(\.minY)).count, 1, "the GIFs are one row")
+        let first = tiles.element(boundBy: 0)
+        let start = first.frame.minX
+        scroller.swipeLeft()
+        XCTAssertTrue(wait(5) { first.frame.minX < start - 40 }, "a swipe scrolls the row sideways")
+        scroller.swipeRight()
+        _ = wait(5) { first.frame.minX == start }
     }
 
     private func shot(_ name: String) throws {

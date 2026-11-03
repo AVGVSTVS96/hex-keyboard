@@ -10,6 +10,8 @@ public struct KeyboardSettings: Hashable, Sendable {
     public var sound = true
     /// The emoji key in the bottom row; without it, the bar's emoji for a word are the way to emoji.
     public var emojiKey = true
+    /// The emoji and GIF panels as one row that scrolls sideways on every screen, as they are in landscape.
+    public var compactPanels = false
     public var oneHanded = OneHanded.off
     /// The open Duo's keys in two halves while it's wider than tall, as Apple's More button's Split picks.
     public var split = false

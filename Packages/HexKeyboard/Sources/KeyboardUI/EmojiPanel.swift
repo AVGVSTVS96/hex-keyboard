@@ -1,8 +1,8 @@
 import UIKit
 import KeyboardCore
 
-/// The emoji panel's results: ten columns of emoji (more on a wide iPad) scrolling up and down, what you pick most first, then every emoji in
-/// Apple's order, or what the search finds.
+/// The emoji panel's results: ten columns of emoji (more on a wide iPad) scrolling up and down, or one row scrolling
+/// sideways in the compact layout; what you pick most first, then every emoji in Apple's order, or what the search finds.
 final class EmojiPanel: UIView, PanelContent, UICollectionViewDataSource, UICollectionViewDelegate {
     /// An emoji tapped, or picked among its skin tones with its untoned version.
     var onPick: (String, String?) -> Void = { _, _ in }
@@ -29,6 +29,7 @@ final class EmojiPanel: UIView, PanelContent, UICollectionViewDataSource, UIColl
         layout.minimumInteritemSpacing = 0
         grid.backgroundColor = .clear
         grid.showsVerticalScrollIndicator = false
+        grid.showsHorizontalScrollIndicator = false
         grid.dataSource = self
         grid.delegate = self
         grid.delaysContentTouches = false
@@ -55,6 +56,12 @@ final class EmojiPanel: UIView, PanelContent, UICollectionViewDataSource, UIColl
     func show(query: String, theme: KeyboardTheme, metrics: KeyboardMetrics) {
         self.metrics = metrics
         size = metrics.toolbar.isCompact ? 26 : 30
+        let direction: UICollectionView.ScrollDirection = metrics.toolbar.isCompact ? .horizontal : .vertical
+        if layout.scrollDirection != direction {
+            layout.scrollDirection = direction
+            grid.contentOffset = .zero
+            setNeedsLayout()
+        }
         if theme != self.theme {
             self.theme = theme
             empty.textColor = theme.candidate.ui
@@ -74,7 +81,7 @@ final class EmojiPanel: UIView, PanelContent, UICollectionViewDataSource, UIColl
         grid.frame = bounds
         empty.frame = bounds
         let side = bounds.width / max(10, (bounds.width / 44).rounded(.down))
-        let cell = CGSize(width: side, height: min(side, bounds.height))
+        let cell = CGSize(width: side, height: layout.scrollDirection == .horizontal ? bounds.height : side)
         if layout.itemSize != cell {
             layout.itemSize = cell
             layout.invalidateLayout()

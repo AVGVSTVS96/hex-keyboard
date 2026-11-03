@@ -74,6 +74,22 @@
 		</dict>
 		<dict>
 			<key>FooterText</key>
+			<string>Shows emoji and GIFs in one row that scrolls sideways, as in landscape, so the keyboard stays short when you hold the iPhone upright.</string>
+			<key>Type</key>
+			<string>PSGroupSpecifier</string>
+		</dict>
+		<dict>
+			<key>DefaultValue</key>
+			<false/>
+			<key>Key</key>
+			<string>compactPanels</string>
+			<key>Title</key>
+			<string>Compact Emoji &amp; GIFs</string>
+			<key>Type</key>
+			<string>PSToggleSwitchSpecifier</string>
+		</dict>
+		<dict>
+			<key>FooterText</key>
 			<string>Moves the keys toward one thumb while the iPhone is upright. You can also hold 123 and slide.</string>
 			<key>Type</key>
 			<string>PSGroupSpecifier</string>

@@ -19,6 +19,7 @@ public enum SettingsStore {
         ("emojiKey", \.emojiKey),
         ("numberRow", \.numberRow),
         ("split", \.split),
+        ("compactPanels", \.compactPanels),
     ]
 
     /// The settings with a value picked from a list, each kept as its raw value. Character Preview and Haptic Feedback

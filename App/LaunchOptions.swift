@@ -56,8 +56,10 @@ enum LaunchOptions {
         MemoryStore.reset()
     }
 
-    static func applyOneHanded() {
+    /// `-HexOneHanded left` and `-HexCompactPanels YES` set those settings for a test.
+    static func applySettings() {
         if let hand = defaults.string(forKey: "HexOneHanded").flatMap(OneHanded.init) { SettingsStore.set(hand) }
+        if defaults.object(forKey: "HexCompactPanels") != nil { SettingsStore.set(defaults.bool(forKey: "HexCompactPanels"), for: \.compactPanels) }
     }
 
     /// `-HexTheme mechanical -HexThemeAppearance dark -HexCharacterPreview detached -HexNumberRow YES -HexSkinTone medium`

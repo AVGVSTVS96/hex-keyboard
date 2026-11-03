@@ -116,6 +116,20 @@ struct LayoutTests {
         #expect(KeyboardMetrics.for(.pad, width: 834, height: 1194).toolbar.isCompact)
     }
 
+    @Test func compactEmojiAndGifsAreOneRowOnEveryScreen() {
+        let cover = KeyboardMetrics.for(.phone, width: 466, height: 678).toolbar
+        let landscape = KeyboardMetrics.for(.phone, width: 951, height: 669).toolbar
+        #expect(cover.showing(.emoji, compact: false) == cover, "the large panels are the default")
+        for panel in [Panel.emoji, .gif] {
+            let compact = cover.showing(panel, compact: true)
+            #expect(compact.isCompact && compact.results == landscape.results && compact.field == landscape.field)
+            #expect(compact.height == cover.height, "the bar stays as it is")
+            #expect(landscape.showing(panel, compact: true) == landscape)
+        }
+        #expect(cover.showing(.clipboard, compact: true) == cover, "the clipboard keeps its rows")
+        #expect(cover.showing(nil, compact: true) == cover)
+    }
+
     /// docs/design.md, "Per device": Apple's keys and letters on each of the Duo's screens, measured in the iOS 27.1
     /// simulator: (key height, row gap, key gap, side inset, letter size).
     @Test func theDuoMatchesApplesKeysOnEachScreen() {

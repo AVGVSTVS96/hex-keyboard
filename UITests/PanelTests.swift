@@ -7,7 +7,7 @@ final class PanelTests: XCTestCase {
         let shots = ProcessInfo.processInfo.environment["HEX_SHOTS"]
         continueAfterFailure = false
         let app = XCUIApplication()
-        app.launchArguments = ["-HexFocus", "YES", "-HexOrientation", ProcessInfo.processInfo.environment["HEX_ORIENTATION"] ?? "portrait", "-HexOneHanded", "off"]
+        app.launchArguments = ["-HexFocus", "YES", "-HexOrientation", orientation, "-HexOneHanded", "off", "-HexCompactPanels", compactSetting ? "YES" : "NO"]
         app.launch()
         XCTAssertTrue(key("space", in: app).waitForExistence(timeout: 30), "Hex keyboard is not the active keyboard")
         for letter in "coffee at" { key(letter == " " ? "space" : String(letter), in: app).tap() }
@@ -19,6 +19,7 @@ final class PanelTests: XCTestCase {
         let grid = app.collectionViews["hex.emoji"]
         XCTAssertTrue(grid.waitForExistence(timeout: 3), "the emoji key opens the emoji panel")
         try shot(shots, "emoji")
+        if compact { try assertOneRowScrollsSideways(grid.cells, in: grid, app: app) }
 
         for letter in "pizza" { key(String(letter), in: app).tap() }
         let search = app.descendants(matching: .any).matching(identifier: "hex.panel.search").firstMatch
@@ -63,6 +64,12 @@ final class PanelTests: XCTestCase {
         XCTAssertEqual(field.value as? String, "Hi " + emoji, "letting go where the hold began picks the emoji held")
     }
 
+    private var orientation: String { ProcessInfo.processInfo.environment["HEX_ORIENTATION"] ?? "portrait" }
+    /// `HEX_COMPACT=1` turns on Compact Emoji & GIFs.
+    private var compactSetting: Bool { ProcessInfo.processInfo.environment["HEX_COMPACT"] == "1" }
+    /// Landscape, or the setting, shows the panels as one row.
+    private var compact: Bool { compactSetting || orientation == "landscape" }
+
     private func launchAndType(_ text: String) -> XCUIApplication {
         continueAfterFailure = false
         let app = XCUIApplication()
@@ -86,6 +93,20 @@ final class PanelTests: XCTestCase {
 
     private func key(_ name: String, in app: XCUIApplication) -> XCUIElement {
         app.keys.matching(NSPredicate(format: "identifier == %@ OR label ==[c] %@", "hex.\(name)", name)).firstMatch
+    }
+
+    /// The results sit in one row, and a swipe moves them sideways.
+    private func assertOneRowScrollsSideways(_ cells: XCUIElementQuery, in scroller: XCUIElement, app: XCUIApplication) throws {
+        let row = (0..<min(cells.count, 12)).map { cells.element(boundBy: $0).frame }
+        XCTAssertGreaterThan(row.count, 4)
+        XCTAssertEqual(Set(row.map(\.minY)).count, 1, "the results are one row")
+        let first = cells.element(boundBy: 0)
+        let id = first.identifier
+        let start = first.frame.minX
+        scroller.swipeLeft()
+        let moved = app.descendants(matching: .any).matching(identifier: id).firstMatch
+        XCTAssertTrue(wait { !moved.exists || moved.frame.minX < start - 40 }, "a swipe scrolls the row sideways")
+        scroller.swipeRight()
     }
 
     private func openEmoji(in app: XCUIApplication) {
