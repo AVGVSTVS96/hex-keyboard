@@ -88,7 +88,7 @@ extension TypingEngine {
     }
 
     public func layout(on device: DeviceClass, showsGlobe: Bool = false, isLandscape: Bool = false, isOpen: Bool = false) -> LayoutContext {
-        LayoutContext(device: device, layer: layer, kind: panel == nil ? traits.kind : .text, showsGlobe: showsGlobe, isLandscape: isLandscape, isOpen: isOpen, oneHanded: settings.oneHanded, showsEmoji: settings.emojiKey)
+        LayoutContext(device: device, layer: layer, kind: panel == nil ? traits.kind : .text, showsGlobe: showsGlobe, isLandscape: isLandscape, isOpen: isOpen, oneHanded: settings.oneHanded, showsEmoji: settings.emojiKey, showsNumberRow: settings.numberRow)
     }
 
     /// While a panel is open, the keys are a plain text keyboard whose return closes it.

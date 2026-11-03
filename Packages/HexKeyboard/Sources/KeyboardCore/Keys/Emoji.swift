@@ -29,7 +29,7 @@ public struct EmojiCatalog: Sendable {
         }
         let found = forms.lazy.compactMap { byWord[$0] }.first ?? []
         guard !found.isEmpty else { return [] }
-        let picked = ranked(found, history: history)
+        let picked = ranked(found.map { search?.toned($0, history: history) ?? $0 }, history: history)
         let named = search?.named(word, history: history).filter { !picked.contains($0) } ?? []
         return Array((picked + named).prefix(limit))
     }
@@ -87,8 +87,15 @@ public struct EmojiSearch: Sendable {
         return ranked(entries.filter { $0.words.contains { Self.isWhole(term, $0) } }.map(\.emoji), history: history)
     }
 
+    /// `emoji` in the tone last picked for it, else in your preferred tone, else as it is.
+    public func toned(_ emoji: String, history: EmojiHistory) -> String {
+        if let picked = history.tones[emoji] { return picked }
+        guard let tone = history.skinTone, let toned = tones[emoji], let index = SkinTone.allCases.firstIndex(of: tone), toned.indices.contains(index) else { return emoji }
+        return toned[index]
+    }
+
     private func ranked(_ tier: [String], history: EmojiHistory) -> [String] {
-        let tier = tier.map { history.tones[$0] ?? $0 }
+        let tier = tier.map { toned($0, history: history) }
         let used = tier.filter { history.scores[$0] != nil }.sorted { history.scores[$0]! > history.scores[$1]! }
         return used + tier.filter { history.scores[$0] == nil }
     }
@@ -99,8 +106,8 @@ public struct EmojiSearch: Sendable {
     public func search(_ query: String, history: EmojiHistory) -> [String] {
         let terms = query.lowercased().split(whereSeparator: { $0 == " " || $0 == "-" }).map(String.init)
         guard !terms.isEmpty else {
-            let frequent = history.frequent
-            return frequent + all.map { history.tones[$0] ?? $0 }.filter { !frequent.contains($0) }
+            let frequent = history.frequent.map { toned($0, history: history) }
+            return frequent + all.map { toned($0, history: history) }.filter { !frequent.contains($0) }
         }
         var tiers: [[String]] = [[], []]
         for entry in entries {
@@ -126,6 +133,8 @@ public struct EmojiHistory: Codable, Hashable, Sendable {
     public private(set) var scores: [String: Double] = [:]
     /// The skin tone last picked for each emoji that has them, which the panel shows from then on.
     public private(set) var tones: [String: String] = [:]
+    /// The tone emoji take until you pick another for one (Settings › Keys), not kept with the history.
+    public var skinTone: SkinTone?
     private var weight = 1.0
 
     static let growth = 1.1
@@ -146,7 +155,7 @@ public struct EmojiHistory: Codable, Hashable, Sendable {
 
     /// `base` is the emoji's untoned version, when `emoji` was picked among its skin tones.
     public mutating func use(_ emoji: String, base: String? = nil) {
-        if let base { tones[base] = emoji == base ? nil : emoji }
+        if let base { tones[base] = emoji }
         scores[emoji, default: 0] += weight
         weight *= Self.growth
         if weight > 1e12 {

@@ -87,7 +87,30 @@ Behavior is what `MicButton` does today; only its look changes.
 | Record (stop, recording) | `#FF453A` | `#FF3B30` |
 | Search field | `#333335` | `#FFFFFF` |
 
-The key, pressed and label colors are the iOS 27 theme (`KeyboardTheme`); the mic is new.
+The key, pressed and label colors are the iOS 27 theme (`KeyboardTheme`), which is the Default theme; the mic is new.
+
+### Themes
+
+Raycast's five, picked in the app (Keyboard › Theme) or Settings › Apps › Hex › Theme (`ThemeName`, `KeyboardTheme.named`). A theme paints the keys (`KeyPaint`: a face shading top to bottom, a pressed face, the label, and for raised keys the keycap's sides and the shadow below); the bar, panels and mic stay on iOS's card and follow the app's light or dark. Callouts and accents take the letter keys' face.
+
+| Theme | Letter keys | Function keys | Notes |
+|---|---|---|---|
+| Default | the Colors above | the same | |
+| Clear | no fill; label in the label color; pressed: the label color at 16% | the same | glyphs only |
+| Physical, dark | `#0A0A0B`, pressed `#3A3A3C`, white label | the same | flat |
+| Physical, light | `#FFFFFF`, pressed `#C4C6CC`, black label, shadow 0 1 0 black 20% | the same | flat |
+| Mechanical, dark | face `#28282A`→`#232325` inside sides `#4E4E52`→`#0E0E0F`; shadow 0 2 2 black 70% | the same | the face sits 7% of the key's height below its top, 10% in from its sides and 19% above its bottom, and the label rises with it |
+| Mechanical, light | face `#FCFCFC`→`#F2F2F3` inside sides `#E2E2E5`→`#B0B0B5`; shadow 0 1.5 1.5 black 40%; label `#1C1C1E` | the same | |
+| iOS 5 | `#FCFCFD`→`#D4D6DB`, pressed `#C4C7CD`→`#ACB0B8`, black Helvetica Bold capitals, a hard 1pt `#24262C` edge below | `#A5ABB6`→`#737A88`, white labels pressed in (a 45% black line above them) | prominent return and caps lock `#609CF5`→`#2462D8`; shift lights up white while on; space says "space"; corners 62% of Default's; the picked accent is the prominent blue |
+
+Physical and Mechanical come Automatic (following the app), Dark or Light. iOS 5's blue-gray backdrop stays out: a keyboard's view sits inside iOS's card, short of its sides and bottom, so a backdrop shows as a box within the card.
+
+### Options from Raycast
+
+- **Character Preview**: None, Detached (the letter in a bubble of its own 6 above the key, which shows pressed) or Attached (Apple's: the key grows up into the bubble). Default Attached.
+- **Number Row**: digits 1 to 0 above an iPhone's letters, 80% of a key's height, one row gap above the letters; the letters stay where Apple's are and the keyboard grows upward. Off by default.
+- **Skin Tone**: the tone emoji take in the bar and the panel until you pick another for one by holding it. Default none (yellow).
+- **Haptic Feedback**: Off, Soft (55% of Apple's intensity) or Standard (Apple's). Default Standard.
 
 ### Per device
 
@@ -224,4 +247,4 @@ open, upright 951 × 669         open, on its side 669 × 951     cover 466 × 6
 
 ## Out of this design
 
-Swipe typing, themes, snippets and quicklinks are later phases. Nothing here uses AI.
+Swipe typing, snippets and quicklinks are later phases. Nothing here uses AI.

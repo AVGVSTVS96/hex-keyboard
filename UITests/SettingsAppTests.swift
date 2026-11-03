@@ -5,7 +5,7 @@ final class SettingsAppTests: XCTestCase {
         let hex = XCUIApplication()
         hex.launchArguments = ["-HexResetSettings", "YES", "-HexSettings", "keys"]
         hex.launch()
-        let inHex = hex.switches["Character Preview"]
+        let inHex = hex.switches["Emoji Key"]
         XCTAssertTrue(inHex.waitForExistence(timeout: 5))
         XCTAssertEqual(inHex.value as? String, "1")
         hex.terminate()
@@ -21,7 +21,7 @@ final class SettingsAppTests: XCTestCase {
         while !entry.isHittable { settings.swipeUp() }
         entry.tap()
         open("Keys", in: settings)
-        let inSettings = settings.switches["Character Preview"]
+        let inSettings = settings.switches["Emoji Key"]
         XCTAssertTrue(inSettings.waitForExistence(timeout: 5))
         if let path = ProcessInfo.processInfo.environment["HEX_SETTINGS_SHOT"] {
             try XCUIScreen.main.screenshot().pngRepresentation.write(to: URL(fileURLWithPath: path))

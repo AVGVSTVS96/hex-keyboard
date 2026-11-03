@@ -153,14 +153,14 @@ extension KeyboardView {
     }
 
     private func press(_ view: KeyView, tracked: TrackedTouch) {
-        view.isPressed = !(showsCallouts && view.key.text(shifted: false) != nil)
+        view.isPressed = !(showsCallouts && characterPreview == .attached && view.key.text(shifted: false) != nil)
         show(tracked)
     }
 
     private func show(_ tracked: TrackedTouch) {
         guard showsCallouts, tracked.mode != .alternates, let view = tracked.keyView,
               let text = text(for: view.key, flicked: tracked.flicked) else { return callout.hide() }
-        callout.show(displayed(text), over: view.frame, in: drawableBounds, metrics: metrics, theme: theme)
+        callout.show(displayed(text), over: view.frame, in: drawableBounds, metrics: metrics, theme: theme, detached: characterPreview == .detached)
     }
 
     private func text(for key: Key, flicked: Bool) -> String? {

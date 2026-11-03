@@ -16,8 +16,10 @@ public struct LayoutContext: Hashable, Sendable {
     public var oneHanded: OneHanded
     /// The emoji key in an iPhone's bottom row, beside space.
     public var showsEmoji: Bool
+    /// A row of digits above an iPhone's letters.
+    public var showsNumberRow: Bool
 
-    public init(device: DeviceClass, layer: KeyboardLayer, kind: InputKind = .text, showsGlobe: Bool = false, isLandscape: Bool = false, isOpen: Bool = false, oneHanded: OneHanded = .off, showsEmoji: Bool = false) {
+    public init(device: DeviceClass, layer: KeyboardLayer, kind: InputKind = .text, showsGlobe: Bool = false, isLandscape: Bool = false, isOpen: Bool = false, oneHanded: OneHanded = .off, showsEmoji: Bool = false, showsNumberRow: Bool = false) {
         self.device = device
         self.layer = layer
         self.kind = kind
@@ -26,6 +28,7 @@ public struct LayoutContext: Hashable, Sendable {
         self.isOpen = isOpen && device == .phone
         self.oneHanded = oneHanded
         self.showsEmoji = showsEmoji && device == .phone
+        self.showsNumberRow = showsNumberRow && device == .phone && layer == .letters
         if !allowsOneHanded { self.oneHanded = .off }
     }
 

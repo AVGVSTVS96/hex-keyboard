@@ -8,12 +8,14 @@ enum PhoneLayouts {
     }
 
     private static func letters(_ context: LayoutContext) -> KeyboardLayout {
-        KeyboardLayout(rows: [
+        let rows = [
             RowItem.keys("qwertyuiop"),
             [.flexible] + RowItem.keys("asdfghjkl") + [.flexible],
             [.key(Key(.shift, width: .pitch(1.3))), .flexible] + RowItem.keys("zxcvbnm") + [.flexible, .key(Key(.delete, width: .pitch(1.3)))],
             bottomRow(context, layerKey: .numbers),
-        ])
+        ]
+        guard context.showsNumberRow else { return KeyboardLayout(rows: rows) }
+        return KeyboardLayout(rows: [RowItem.keys("1234567890")] + rows, hasNumberRow: true)
     }
 
     private static func numbers(_ context: LayoutContext) -> KeyboardLayout {

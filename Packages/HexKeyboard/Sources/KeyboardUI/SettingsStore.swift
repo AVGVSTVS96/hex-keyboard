@@ -15,11 +15,18 @@ public enum SettingsStore {
         ("smartPunctuation", \.smartPunctuation),
         ("periodShortcut", \.periodShortcut),
         ("predictiveText", \.predictiveText),
-        ("characterPreview", \.characterPreview),
-        ("haptics", \.haptics),
         ("sound", \.sound),
         ("emojiKey", \.emojiKey),
+        ("numberRow", \.numberRow),
     ]
+
+    /// The settings with a value picked from a list, each kept as its raw value. Character Preview and Haptic Feedback
+    /// were switches under their old keys, which stand in until a new value is kept.
+    private static let theme = Choice(key: "theme", path: \.theme)
+    private static let themeAppearance = Choice(key: "themeAppearance", path: \.themeAppearance)
+    private static let characterPreview = Choice(key: "characterPreviewStyle", path: \.characterPreview, switchKey: "characterPreview", on: .attached, off: CharacterPreview.none)
+    private static let haptics = Choice(key: "hapticFeedback", path: \.haptics, switchKey: "haptics", on: .standard, off: .off)
+    private static let skinToneKey = "skinTone"
 
     private static let oneHandedKey = "oneHanded"
     private static let keepMicOnKey = "keepMicOn"
@@ -35,7 +42,23 @@ public enum SettingsStore {
             if let value = value(forKey: key, sharing: sharing) as? Bool { settings[keyPath: path] = value }
         }
         settings.oneHanded = (value(forKey: oneHandedKey, sharing: sharing) as? String).flatMap(OneHanded.init) ?? .off
+        theme.load(into: &settings, sharing: sharing)
+        themeAppearance.load(into: &settings, sharing: sharing)
+        characterPreview.load(into: &settings, sharing: sharing)
+        haptics.load(into: &settings, sharing: sharing)
+        settings.skinTone = (value(forKey: skinToneKey, sharing: sharing) as? String).flatMap(SkinTone.init)
         return settings
+    }
+
+    /// Keeps every value of `settings`, for the app, which changes them one page at a time.
+    public static func save(_ settings: KeyboardSettings) {
+        for (key, path) in toggles { set(settings[keyPath: path], forKey: key) }
+        set(settings.oneHanded)
+        theme.save(settings)
+        themeAppearance.save(settings)
+        characterPreview.save(settings)
+        haptics.save(settings)
+        set(settings.skinTone?.rawValue ?? "", forKey: skinToneKey)
     }
 
     public static func set(_ value: Bool, for path: WritableKeyPath<KeyboardSettings, Bool>) {
@@ -80,8 +103,7 @@ public enum SettingsStore {
     }
 
     public static func reset(to settings: KeyboardSettings = .initial) {
-        for (key, path) in toggles { set(settings[keyPath: path], forKey: key) }
-        set(OneHanded.off)
+        save(settings)
         keepMicOn = Dictation.micDefault
         dictationStyle = .standard
         keepsUmAndUh = true
@@ -106,5 +128,32 @@ public enum SettingsStore {
         guard sharing else { return }
         group.set(value, forKey: key)
         own.set(value, forKey: "seen." + key)
+    }
+}
+
+private struct Choice<Value: RawRepresentable<String>> {
+    let key: String
+    let path: WritableKeyPath<KeyboardSettings, Value>
+    var switchKey: String?
+    var on, off: Value?
+
+    init(key: String, path: WritableKeyPath<KeyboardSettings, Value>, switchKey: String? = nil, on: Value? = nil, off: Value? = nil) {
+        self.key = key
+        self.path = path
+        self.switchKey = switchKey
+        self.on = on
+        self.off = off
+    }
+
+    func load(into settings: inout KeyboardSettings, sharing: Bool) {
+        if let value = (SettingsStore.value(forKey: key, sharing: sharing) as? String).flatMap({ Value(rawValue: $0) }) {
+            settings[keyPath: path] = value
+        } else if let switchKey, let old = SettingsStore.value(forKey: switchKey, sharing: sharing) as? Bool, let value = old ? on : off {
+            settings[keyPath: path] = value
+        }
+    }
+
+    func save(_ settings: KeyboardSettings) {
+        SettingsStore.set(settings[keyPath: path].rawValue, forKey: key)
     }
 }

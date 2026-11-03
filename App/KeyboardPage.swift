@@ -134,6 +134,14 @@ private struct TryPreview: View {
         }
     }
 
+    /// A setting with more values than on and off, shown as a switch.
+    func onOff<Value: Equatable>(_ path: WritableKeyPath<KeyboardSettings, Value>, on: Value, off: Value) -> Binding<Bool> {
+        Binding { self.settings[keyPath: path] != off } set: {
+            self.settings[keyPath: path] = $0 ? on : off
+            SettingsStore.save(self.settings)
+        }
+    }
+
     var oneHanded: OneHanded {
         get { settings.oneHanded }
         set {
@@ -224,7 +232,7 @@ private struct KeysSettings: View {
             ToggleRow(title: "Emoji Key", detail: "Every emoji, from beside the space bar. Without it, a word’s emoji still show in the suggestions.", isOn: model.binding(\.emojiKey))
         }
         Box(header: "Pressing a Key") {
-            ToggleRow(title: "Character Preview", detail: "The letter shows bigger above your thumb.", isOn: model.binding(\.characterPreview))
+            ToggleRow(title: "Character Preview", detail: "The letter shows bigger above your thumb.", isOn: model.onOff(\.characterPreview, on: .attached, off: .none))
         }
         Box(header: "One-Handed Keyboard", footer: "Moves the keys toward one thumb while the iPhone is upright. You can also hold 123 and slide.") {
             ForEach(OneHanded.allCases, id: \.self) { hand in
@@ -248,7 +256,7 @@ private struct SoundSettings: View {
 
     var body: some View {
         Box(footer: status.fullAccess ? nil : "Haptics need Allow Full Access.") {
-            ToggleRow(title: "Haptic Feedback", detail: "Each key taps back, as Apple’s keyboard does.", isOn: model.binding(\.haptics))
+            ToggleRow(title: "Haptic Feedback", detail: "Each key taps back, as Apple’s keyboard does.", isOn: model.onOff(\.haptics, on: .standard, off: .off))
             ToggleRow(title: "Sound", detail: "The key click, while Keyboard Clicks is on in iOS Settings › Sounds & Haptics.", isOn: model.binding(\.sound))
             if !status.fullAccess {
                 ActionRow(title: "Allow Full Access", symbol: "arrow.up.forward") { HexStatus.openSettings() }

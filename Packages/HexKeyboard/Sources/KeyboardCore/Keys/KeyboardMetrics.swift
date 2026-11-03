@@ -45,14 +45,16 @@ public struct KeyboardMetrics: Hashable, Sendable {
 extension KeyboardMetrics {
     public static func `for`(_ device: DeviceClass, width: Double, height: Double, style: KeyboardStyle = .ios26, oneHanded: OneHanded = .off) -> KeyboardMetrics {
         let landscape = width > height
-        switch device {
-        case .phone where Duo.isDuo(short: min(width, height)): return duo(width: width, height: height, style: style, oneHanded: oneHanded)
-        case .phone where landscape: return phoneLandscape(width: width)
-        case .phone: return phone(width: width, style: style).oneHanded(oneHanded, width: width)
-        case .compactPad: return compactPad
-        case .pad: return pad(shortSide: min(width, height))
-        case .largePad: return largePad
+        var metrics = switch device {
+        case .phone where Duo.isDuo(short: min(width, height)): duo(width: width, height: height, style: style, oneHanded: oneHanded)
+        case .phone where landscape: phoneLandscape(width: width)
+        case .phone: phone(width: width, style: style).oneHanded(oneHanded, width: width)
+        case .compactPad: compactPad
+        case .pad: pad(shortSide: min(width, height))
+        case .largePad: largePad
         }
+        if device == .phone { metrics.numberRowHeight = (metrics.keyHeight * 0.8).rounded() }
+        return metrics
     }
 
     public static func phone(width: Double, style: KeyboardStyle = .ios26) -> KeyboardMetrics {

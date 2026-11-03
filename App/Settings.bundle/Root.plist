@@ -14,6 +14,14 @@
 		</dict>
 		<dict>
 			<key>File</key>
+			<string>Theme</string>
+			<key>Title</key>
+			<string>Theme</string>
+			<key>Type</key>
+			<string>PSChildPaneSpecifier</string>
+		</dict>
+		<dict>
+			<key>File</key>
 			<string>Typing</string>
 			<key>Title</key>
 			<string>Typing</string>

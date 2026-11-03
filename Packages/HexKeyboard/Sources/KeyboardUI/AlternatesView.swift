@@ -50,11 +50,11 @@ final class AlternatesView: UIView {
         panel.frame = bounds
         panel.layer.cornerRadius = metrics.cornerRadius * 2
         panel.layer.shadowPath = UIBezierPath(roundedRect: panel.bounds, cornerRadius: panel.layer.cornerRadius).cgPath
-        panel.backgroundColor = theme.key.ui
+        panel.backgroundColor = theme.bubble.ui
         panel.layer.shadowColor = theme.shadow.ui.cgColor
         highlight.backgroundColor = theme.selection.ui
         highlight.layer.cornerRadius = metrics.cornerRadius * 1.25
-        labelColor = theme.label.ui
+        labelColor = theme.bubbleLabel.ui
         selectedLabelColor = theme.selectionLabel.ui
         labels = contents.enumerated().map { index, content in
             let label = UILabel(frame: CGRect(x: padding + CGFloat(index) * cell.width, y: 0, width: cell.width, height: cell.height))

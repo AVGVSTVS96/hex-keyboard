@@ -14,6 +14,11 @@ extension KeyboardTheme {
     static func current(for traits: UITraitCollection, appearance: UIKeyboardAppearance?) -> KeyboardTheme {
         appearance == .dark || traits.userInterfaceStyle == .dark ? darkCurrent : lightCurrent
     }
+
+    static func current(for traits: UITraitCollection, appearance: UIKeyboardAppearance?, settings: KeyboardSettings) -> KeyboardTheme {
+        let dark = appearance == .dark || traits.userInterfaceStyle == .dark
+        return named(settings.theme, appearance: settings.themeAppearance, dark: dark, style: .current)
+    }
 }
 
 extension RGBA {

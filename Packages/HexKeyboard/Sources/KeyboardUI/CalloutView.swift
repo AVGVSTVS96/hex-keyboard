@@ -18,16 +18,27 @@ final class CalloutView: UIView {
 
     required init?(coder: NSCoder) { fatalError() }
 
-    func show(_ text: String, over key: CGRect, in area: CGRect, metrics: KeyboardMetrics, theme: KeyboardTheme) {
-        let bubble = Self.bubbleRect(for: key, in: area)
-        frame = bubble.union(key)
+    /// Attached grows the key up into the bubble, as Apple's does; detached floats the bubble above the key.
+    func show(_ text: String, over key: CGRect, in area: CGRect, metrics: KeyboardMetrics, theme: KeyboardTheme, detached: Bool = false) {
+        let radius = metrics.cornerRadius * theme.cornerScale
+        var bubble = Self.bubbleRect(for: key, in: area)
+        if detached {
+            bubble = CGRect(x: key.midX - key.width * 0.7, y: key.minY - key.height * 1.12 - 6, width: key.width * 1.4, height: key.height * 1.12)
+            bubble.origin.x = min(max(bubble.minX, area.minX + 1), area.maxX - bubble.width - 1)
+            bubble.origin.y = max(bubble.minY, area.minY + 1)
+        }
+        frame = detached ? bubble : bubble.union(key)
         let local = { (rect: CGRect) in rect.offsetBy(dx: -self.frame.minX, dy: -self.frame.minY) }
-        shape.path = Self.path(bubble: local(bubble), key: local(key), radius: metrics.cornerRadius)
-        shape.fillColor = theme.key.ui.cgColor
+        shape.path = detached
+            ? UIBezierPath(roundedRect: local(bubble), cornerRadius: radius * 1.4).cgPath
+            : Self.path(bubble: local(bubble), key: local(key), radius: radius)
+        shape.fillColor = theme.bubble.ui.cgColor
         shape.shadowColor = theme.shadow.ui.cgColor
         label.text = text
-        label.textColor = theme.label.ui
-        label.font = .systemFont(ofSize: metrics.letterSize * 1.55, weight: .regular)
+        label.textColor = theme.bubbleLabel.ui
+        label.font = theme.typeface == .classic
+            ? UIFont(name: "Helvetica-Bold", size: metrics.letterSize * 1.45) ?? .boldSystemFont(ofSize: metrics.letterSize * 1.45)
+            : .systemFont(ofSize: metrics.letterSize * 1.55, weight: .regular)
         label.frame = local(bubble).offsetBy(dx: 0, dy: -metrics.keyHeight * 0.06)
         isHidden = false
     }

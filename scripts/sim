@@ -19,7 +19,7 @@ for d in json.load(sys.stdin)['devices'].get(runtime, []):
 }
 
 ensure() {
-  local name="hexkb $1" type="com.apple.CoreSimulator.SimDeviceType.$2" id
+  local name="${SIMPREFIX:-hexkb} $1" type="com.apple.CoreSimulator.SimDeviceType.$2" id
   id=$(udid "$name")
   [ -n "$id" ] || id=$(xcrun simctl create "$name" "$type" "$RUNTIME")
   for other in $(xcrun simctl list devices booted | sed -n 's/^ *hexkb .*(\([0-9A-F-]\{36\}\)) (Booted).*/\1/p'); do
@@ -148,6 +148,36 @@ open-upright 180 portrait 3
 open-side 180 landscape-right 3
 SCREENS
   done
+  [ -n "${KEEP:-}" ] || xcrun simctl shutdown "$id"
+}
+
+# Screenshots the keyboard in every theme on the iPhone Duo, folded and open, light and dark:
+# shots/raw/themes/<tag>-<theme>-<screen>-<appearance>.png. THEMES and SCREENS (cover-upright cover-side open-upright
+# open-side) pick some; extra arguments go to the app (-HexReturnKey 1).
+themes() {
+  local tag=$1 id; shift
+  RUNTIME=com.apple.CoreSimulator.SimRuntime.iOS-27-1
+  id=$(ensure "iPhone Duo" iPhone-Duo)
+  xcrun simctl shutdown "$id" 2>/dev/null || true
+  boot "$id"
+  while read -r screen hinge orientation display; do
+    [ -n "${SCREENS:-}" ] && [[ " $SCREENS " != *" $screen "* ]] && continue
+    [ "$screen" = open-upright ] && unfold "$id" "$hinge"
+    hub "$id" orientation "$orientation"
+    for theme in ${THEMES:-standard clear physical physical-dark physical-light mechanical mechanical-dark mechanical-light classic}; do
+      local name=${theme%%-*} look=automatic
+      [ "$name" != "$theme" ] && look=${theme#*-}
+      for appearance in ${APPEARANCES:-dark light}; do
+        DISPLAY_ID=$display shoot "$id" hex "$appearance" "shots/raw/themes/$tag-$theme-$screen-$appearance.png" \
+          -HexOrientation "$([ "$orientation" = portrait ] && echo portrait || echo landscape)" -HexTheme "$name" -HexThemeAppearance "$look" "$@"
+      done
+    done
+  done <<SCREENS
+cover-upright 0 portrait 1
+cover-side 0 landscape-right 1
+open-upright 180 portrait 3
+open-side 180 landscape-right 3
+SCREENS
   [ -n "${KEEP:-}" ] || xcrun simctl shutdown "$id"
 }
 

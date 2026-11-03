@@ -5,6 +5,7 @@ final class CaptureTests: XCTestCase {
         try XCTSkipUnless(ProcessInfo.processInfo.environment["HEX_CAPTURE"] != nil)
         let app = XCUIApplication()
         app.launchArguments = ["-HexFocus", "YES", "-HexOrientation", "portrait"]
+            + (ProcessInfo.processInfo.environment["HEX_ARGS"] ?? "").split(separator: " ").map(String.init)
         app.launch()
         let g = key("g", in: app)
         XCTAssertTrue(g.waitForExistence(timeout: 10))

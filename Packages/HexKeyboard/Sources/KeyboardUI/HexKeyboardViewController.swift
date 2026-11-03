@@ -2,7 +2,7 @@ import UIKit
 import KeyboardCore
 
 open class HexKeyboardViewController: UIInputViewController {
-    open var hapticsEnabled: Bool { hasFullAccess && engine.settings.haptics }
+    open var hapticsEnabled: Bool { hasFullAccess && engine.settings.haptics != .off }
 
     private let keyboardView = KeyboardView()
     private var dictation = Dictation.Status()
@@ -138,6 +138,8 @@ open class HexKeyboardViewController: UIInputViewController {
         engine.settings = SettingsStore.load(sharing: hasFullAccess)
         engine.corrector?.memory = MemoryStore.load()
         engine.emojiHistory = MemoryStore.loadEmoji()
+        engine.emojiHistory.skinTone = engine.settings.skinTone
+        haptics.strength = Float(engine.settings.haptics.strength)
         if hasFullAccess {
             clipboard.catchUp()
             if !SettingsStore.fullAccessSeen { SettingsStore.fullAccessSeen = true }
@@ -287,7 +289,7 @@ open class HexKeyboardViewController: UIInputViewController {
     }
 
     private var theme: KeyboardTheme {
-        KeyboardTheme.current(for: traitCollection, appearance: textDocumentProxy.keyboardAppearance)
+        KeyboardTheme.current(for: traitCollection, appearance: textDocumentProxy.keyboardAppearance, settings: engine.settings)
     }
 
     private var ranking = false

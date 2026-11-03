@@ -29,6 +29,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         let window = UIWindow(windowScene: scene)
         LaunchOptions.resetSettingsIfAsked()
         LaunchOptions.applyOneHanded()
+        LaunchOptions.applyLook()
         VoiceProbe.runIfAsked()
         let tabs = UITabBarController(tabs: [
             UITab(title: "Hex", image: UIImage(systemName: "house"), identifier: Router.Destination.home.rawValue) { _ in HomeViewController() },

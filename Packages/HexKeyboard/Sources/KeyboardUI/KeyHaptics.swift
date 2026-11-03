@@ -31,10 +31,10 @@ final class KeyHaptics {
             }
         }
 
-        var pattern: CHHapticPattern? {
+        func pattern(strength: Float) -> CHHapticPattern? {
             try? CHHapticPattern(events: [
                 CHHapticEvent(eventType: .hapticTransient, parameters: [
-                    CHHapticEventParameter(parameterID: .hapticIntensity, value: intensity),
+                    CHHapticEventParameter(parameterID: .hapticIntensity, value: intensity * strength),
                     CHHapticEventParameter(parameterID: .hapticSharpness, value: sharpness),
                 ], relativeTime: 0),
             ], parameters: [])
@@ -44,6 +44,13 @@ final class KeyHaptics {
     private var engine: CHHapticEngine?
     private var players: [Kind: CHHapticPatternPlayer] = [:]
     private var running = false
+    /// A share of Apple's intensity (`HapticFeedback.strength`).
+    var strength: Float = 1 {
+        didSet {
+            guard strength != oldValue, let engine else { return }
+            players = Self.players(on: engine, strength: strength)
+        }
+    }
 
     func start() {
         if engine == nil { engine = makeEngine() }
@@ -76,18 +83,18 @@ final class KeyHaptics {
                 guard let self, let engine = self.engine else { return }
                 TouchTrace.shared.mark("haptics reset")
                 self.running = false
-                self.players = Self.players(on: engine)
+                self.players = Self.players(on: engine, strength: self.strength)
                 self.start()
             }
         }
-        players = Self.players(on: engine)
+        players = Self.players(on: engine, strength: strength)
         return engine
     }
 
-    private static func players(on engine: CHHapticEngine) -> [Kind: CHHapticPatternPlayer] {
+    private static func players(on engine: CHHapticEngine, strength: Float) -> [Kind: CHHapticPatternPlayer] {
         var players: [Kind: CHHapticPatternPlayer] = [:]
         for kind in Kind.allCases {
-            if let pattern = kind.pattern, let player = try? engine.makePlayer(with: pattern) { players[kind] = player }
+            if let pattern = kind.pattern(strength: strength), let player = try? engine.makePlayer(with: pattern) { players[kind] = player }
         }
         return players
     }

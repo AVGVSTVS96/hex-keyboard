@@ -27,29 +27,41 @@ public enum KeyboardStyle: Hashable, Sendable {
 }
 
 public struct KeyboardTheme: Hashable, Sendable {
-    public let key: RGBA
-    public let keyPressed: RGBA
-    public let label: RGBA
-    public let secondaryLabel: RGBA
-    public let prominent: RGBA
-    public let prominentLabel: RGBA
-    public let selection: RGBA
-    public let selectionLabel: RGBA
-    public let shadow: RGBA
-    public let candidate: RGBA
-    public let candidateHighlighted: RGBA
-    public let candidatePill: RGBA
-    public let candidateDivider: RGBA
-    public let expander: RGBA
+    public var key: RGBA
+    public var keyPressed: RGBA
+    public var label: RGBA
+    public var secondaryLabel: RGBA
+    public var prominent: RGBA
+    public var prominentLabel: RGBA
+    public var selection: RGBA
+    public var selectionLabel: RGBA
+    public var shadow: RGBA
+    public var candidate: RGBA
+    public var candidateHighlighted: RGBA
+    public var candidatePill: RGBA
+    public var candidateDivider: RGBA
+    public var expander: RGBA
     /// The mic's circle and its glyph, the record red, and a panel's search field (docs/design.md, Colors).
-    public let mic: RGBA
-    public let micGlyph: RGBA
-    public let record: RGBA
-    public let searchField: RGBA
+    public var mic: RGBA
+    public var micGlyph: RGBA
+    public var record: RGBA
+    public var searchField: RGBA
+
+    /// How each kind of key is painted; the plain themes paint every key with `key`, `keyPressed` and `label`.
+    public var letterKey = KeyPaint.flat(.white, pressed: .white, label: .black)
+    public var functionKey = KeyPaint.flat(.white, pressed: .white, label: .black)
+    public var prominentKey = KeyPaint.flat(.white, pressed: .white, label: .black)
+    /// Shift while it's on, where the theme lights it (iOS 5).
+    public var litKey: KeyPaint?
+    public var cornerScale = 1.0
+    public var typeface = Typeface.standard
+    /// iOS 5's keys always showed capitals, whatever shift said.
+    public var capitalLetters = false
+    public var spaceLabel: String?
 
     public static func light(_ style: KeyboardStyle) -> KeyboardTheme {
         let ios27 = style == .ios27
-        return KeyboardTheme(
+        return KeyboardTheme.plain(
             key: .white,
             keyPressed: RGBA(red: 0.67, green: 0.69, blue: 0.73),
             label: .black,
@@ -73,7 +85,7 @@ public struct KeyboardTheme: Hashable, Sendable {
 
     public static func dark(_ style: KeyboardStyle) -> KeyboardTheme {
         let ios27 = style == .ios27
-        return KeyboardTheme(
+        return KeyboardTheme.plain(
             key: RGBA(white: (ios27 ? 68 : 61) / 255),
             keyPressed: RGBA(white: 0.42),
             label: .white,
@@ -93,5 +105,22 @@ public struct KeyboardTheme: Hashable, Sendable {
             record: .rgb(255, 69, 58),
             searchField: .rgb(51, 51, 53)
         )
+    }
+
+    private static func plain(
+        key: RGBA, keyPressed: RGBA, label: RGBA, secondaryLabel: RGBA, prominent: RGBA, prominentLabel: RGBA, selection: RGBA,
+        selectionLabel: RGBA, shadow: RGBA, candidate: RGBA, candidateHighlighted: RGBA, candidatePill: RGBA, candidateDivider: RGBA,
+        expander: RGBA, mic: RGBA, micGlyph: RGBA, record: RGBA, searchField: RGBA
+    ) -> KeyboardTheme {
+        var theme = KeyboardTheme(
+            key: key, keyPressed: keyPressed, label: label, secondaryLabel: secondaryLabel, prominent: prominent,
+            prominentLabel: prominentLabel, selection: selection, selectionLabel: selectionLabel, shadow: shadow, candidate: candidate,
+            candidateHighlighted: candidateHighlighted, candidatePill: candidatePill, candidateDivider: candidateDivider, expander: expander,
+            mic: mic, micGlyph: micGlyph, record: record, searchField: searchField
+        )
+        theme.letterKey = .flat(key, pressed: keyPressed, label: label)
+        theme.functionKey = theme.letterKey
+        theme.prominentKey = .flat(prominent, pressed: prominent, label: prominentLabel)
+        return theme
     }
 }

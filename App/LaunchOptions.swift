@@ -56,6 +56,18 @@ enum LaunchOptions {
         if let hand = defaults.string(forKey: "HexOneHanded").flatMap(OneHanded.init) { SettingsStore.set(hand) }
     }
 
+    /// `-HexTheme mechanical -HexThemeAppearance dark -HexCharacterPreview detached -HexNumberRow YES -HexSkinTone medium`
+    /// set the keyboard's look for screenshots.
+    static func applyLook() {
+        var settings = SettingsStore.load()
+        if let theme = defaults.string(forKey: "HexTheme").flatMap(ThemeName.init) { settings.theme = theme }
+        if let appearance = defaults.string(forKey: "HexThemeAppearance").flatMap(ThemeAppearance.init) { settings.themeAppearance = appearance }
+        if let preview = defaults.string(forKey: "HexCharacterPreview").flatMap(CharacterPreview.init) { settings.characterPreview = preview }
+        if defaults.object(forKey: "HexNumberRow") != nil { settings.numberRow = defaults.bool(forKey: "HexNumberRow") }
+        if let tone = defaults.string(forKey: "HexSkinTone") { settings.skinTone = SkinTone(rawValue: tone) }
+        if settings != SettingsStore.load() { SettingsStore.save(settings) }
+    }
+
     static func configure(_ field: UITextView) {
         if let value = integer("HexKeyboardType").flatMap(UIKeyboardType.init) { field.keyboardType = value }
         if let value = integer("HexReturnKey").flatMap(UIReturnKeyType.init) { field.returnKeyType = value }

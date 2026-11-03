@@ -8,19 +8,31 @@
 	<array>
 		<dict>
 			<key>FooterText</key>
-			<string>Shows the letter bigger above your thumb as you press it.</string>
+			<string>What shows above your thumb as you press a key: the letter in a bubble of its own, or the key grown up into it, as on Apple’s keyboard.</string>
 			<key>Type</key>
 			<string>PSGroupSpecifier</string>
 		</dict>
 		<dict>
 			<key>DefaultValue</key>
-			<true/>
+			<string>attached</string>
 			<key>Key</key>
-			<string>characterPreview</string>
+			<string>characterPreviewStyle</string>
 			<key>Title</key>
 			<string>Character Preview</string>
+			<key>Titles</key>
+			<array>
+				<string>None</string>
+				<string>Detached</string>
+				<string>Attached</string>
+			</array>
 			<key>Type</key>
-			<string>PSToggleSwitchSpecifier</string>
+			<string>PSMultiValueSpecifier</string>
+			<key>Values</key>
+			<array>
+				<string>none</string>
+				<string>detached</string>
+				<string>attached</string>
+			</array>
 		</dict>
 		<dict>
 			<key>FooterText</key>
@@ -37,6 +49,56 @@
 			<string>Emoji Key</string>
 			<key>Type</key>
 			<string>PSToggleSwitchSpecifier</string>
+		</dict>
+		<dict>
+			<key>FooterText</key>
+			<string>A row of digits above the letters. The keyboard grows taller to fit it.</string>
+			<key>Type</key>
+			<string>PSGroupSpecifier</string>
+		</dict>
+		<dict>
+			<key>DefaultValue</key>
+			<false/>
+			<key>Key</key>
+			<string>numberRow</string>
+			<key>Title</key>
+			<string>Number Row</string>
+			<key>Type</key>
+			<string>PSToggleSwitchSpecifier</string>
+		</dict>
+		<dict>
+			<key>FooterText</key>
+			<string>The skin tone emoji take until you pick another for one by holding it.</string>
+			<key>Type</key>
+			<string>PSGroupSpecifier</string>
+		</dict>
+		<dict>
+			<key>DefaultValue</key>
+			<string></string>
+			<key>Key</key>
+			<string>skinTone</string>
+			<key>Title</key>
+			<string>Skin Tone</string>
+			<key>Titles</key>
+			<array>
+				<string>Default</string>
+				<string>Light</string>
+				<string>Medium Light</string>
+				<string>Medium</string>
+				<string>Medium Dark</string>
+				<string>Dark</string>
+			</array>
+			<key>Type</key>
+			<string>PSMultiValueSpecifier</string>
+			<key>Values</key>
+			<array>
+				<string></string>
+				<string>light</string>
+				<string>mediumLight</string>
+				<string>medium</string>
+				<string>mediumDark</string>
+				<string>dark</string>
+			</array>
 		</dict>
 		<dict>
 			<key>FooterText</key>
