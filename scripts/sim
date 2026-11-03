@@ -36,12 +36,17 @@ boot() {
   xcrun simctl install "$1" "$APP"
 }
 
-# Turns on Full Access and Paste from Other Apps, which iOS keeps in TCC's database, restarting the simulator to change them.
+# Turns on Full Access (with paste, Paste from Other Apps too), which iOS keeps in TCC's database, written where Settings
+# writes it; a simulator without them restarts to take them.
 allow() {
   local db=~/Library/Developer/CoreSimulator/Devices/$1/data/Library/TCC/TCC.db
-  [ "$(sqlite3 "$db" "select count(*) from access where client = '$BUNDLE' and auth_value = 2 and service in ('kTCCServiceKeyboardNetwork', 'kTCCServicePasteboard')")" = 2 ] && return
+  local rows="('kTCCServiceKeyboardNetwork', '$BUNDLE'), ('kTCCServiceKeyboardNetwork', '$BUNDLE.keyboard')"
+  [ "${2:-}" = paste ] && rows="$rows, ('kTCCServicePasteboard', '$BUNDLE')"
+  xcrun simctl bootstatus "$1" -b >/dev/null
+  [ "$(sqlite3 "$db" "select count(*) = $(grep -o '(' <<<"$rows" | wc -l) from access where auth_value = 2 and (service, client) in (values $rows)")" = 1 ] && return
   xcrun simctl shutdown "$1"
-  sqlite3 "$db" "insert or replace into access (service, client, client_type, auth_value, auth_reason, auth_version, flags) values ('kTCCServiceKeyboardNetwork', '$BUNDLE', 0, 2, 2, 1, 0), ('kTCCServicePasteboard', '$BUNDLE', 0, 2, 2, 1, 0)"
+  sqlite3 "$db" "insert or replace into access (service, client, client_type, auth_value, auth_reason, auth_version, flags)
+    select column1, column2, 0, 2, 4, 1, 0 from (values $rows)"
   boot "$1"
 }
 
@@ -134,15 +139,6 @@ unfold() {
   sleep 3
 }
 
-# Allow Full Access for Hex on a shut-down simulator, written where Settings writes it.
-fullaccess() {
-  local client
-  for client in $BUNDLE $BUNDLE.keyboard; do
-    sqlite3 ~/Library/Developer/CoreSimulator/Devices/"$1"/data/Library/TCC/TCC.db "insert or replace into access
-      (service, client, client_type, auth_value, auth_reason, auth_version, flags) values ('kTCCServiceKeyboardNetwork', '$client', 0, 2, 4, 1, 0)"
-  done
-}
-
 # Screenshots each keyboard on the iPhone Duo's four screens (cover and open, upright and on its side) in the iOS 27.1
 # simulator, the only one with the Duo: shots/raw/duo/<tag>-<screen>-<keyboard>-<appearance>.png. The open screen
 # comes from unfolding the simulator (scripts/devicehub.c); a reboot folds it again. Open and upright, the screen is
@@ -153,8 +149,8 @@ duo() {
   id=$(ensure "${DUO:-iPhone Duo}" iPhone-Duo)
   for keyboard in ${KEYBOARDS:-system hex}; do
     xcrun simctl shutdown "$id" 2>/dev/null || true
-    [ -n "${LISTENING:-}" ] && fullaccess "$id"
     boot "$id"
+    [ -z "${LISTENING:-}" ] || allow "$id"
     if [ -n "${LISTENING:-}" ] && [ "$keyboard" = hex ]; then
       /usr/bin/python3 scripts/voiceapp.py "$id" "$(xcrun simctl get_app_container "$id" "$BUNDLE" group.com.shahidy.hexkeyboard)" "$([ "$LISTENING" = 1 ] && echo listening || echo "$LISTENING")" &
       app=$!
@@ -219,7 +215,7 @@ duoapp() {
   RUNTIME=com.apple.CoreSimulator.SimRuntime.iOS-27-1
   id=$(ensure "${SIM:-iPhone Duo}" iPhone-Duo)
   boot "$id"
-  allow "$id"
+  allow "$id" paste
   use "$id" hex
   unfold "$id" 0
   group=$(xcrun simctl get_app_container "$id" "$BUNDLE" group.com.shahidy.hexkeyboard)

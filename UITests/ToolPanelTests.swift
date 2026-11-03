@@ -42,6 +42,9 @@ final class ToolPanelTests: XCTestCase {
     }
 
     func testAHeldGifDragsIntoTheMessage() throws {
+        guard FileManager.default.fileExists(atPath: (ProcessInfo.processInfo.environment["SIMULATOR_ROOT"] ?? "") + "/Applications/MobileSMS.app") else {
+            throw XCTSkip("this simulator has no Messages: iOS 27.1, the only one with the iPhone Duo, leaves it out")
+        }
         let messages = XCUIApplication(bundleIdentifier: "com.apple.MobileSMS")
         messages.launch()
         let thread = messages.cells.firstMatch

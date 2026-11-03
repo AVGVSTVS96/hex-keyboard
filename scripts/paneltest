@@ -15,14 +15,7 @@ xcodebuild build-for-testing -project HexKeyboard.xcodeproj -scheme Hex -destina
 scripts/sim boot "$ID"
 scripts/sim use "$ID" hex
 [ -n "${OPEN:-}" ] && scripts/sim unfold "$ID"
-# Full Access, written where Settings › General › Keyboard › Keyboards › Hex › Allow Full Access writes it, since
-# Settings' rows differ between iOS versions. Paste from Other Apps is left for the test to turn on.
-xcrun simctl shutdown "$ID"
-for client in com.shahidy.hexkeyboard com.shahidy.hexkeyboard.keyboard; do
-  sqlite3 ~/Library/Developer/CoreSimulator/Devices/"$ID"/data/Library/TCC/TCC.db "insert or replace into access
-    (service, client, client_type, auth_value, auth_reason, auth_version, flags) values ('kTCCServiceKeyboardNetwork', '$client', 0, 2, 4, 1, 0)"
-done
-scripts/sim boot "$ID"
+scripts/sim allow "$ID"
 for appearance in ${APPEARANCES:-light dark}; do
   xcrun simctl ui "$ID" appearance "$appearance"
   TEST_RUNNER_HEX_SHOTS="$PWD/shots/raw/panels/$slug-${ORIENTATION:-portrait}${COMPACT:+-compact}-$appearance" TEST_RUNNER_HEX_ORIENTATION="${ORIENTATION:-portrait}" TEST_RUNNER_HEX_COMPACT="${COMPACT:-}" \

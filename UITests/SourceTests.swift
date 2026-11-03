@@ -9,7 +9,6 @@ final class SourceTests: XCTestCase {
             throw XCTSkip("Run through scripts/sourcetest")
         }
         continueAfterFailure = false
-        try allowFullAccess()
 
         let linked = XCUIApplication()
         var link = URLComponents(string: "hexkeyboard://source")!

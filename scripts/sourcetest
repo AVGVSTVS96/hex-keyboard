@@ -9,6 +9,7 @@ PORT=${PORT:-2599}
 ID=$(scripts/sim ensure "$NAME" "$TYPE")
 scripts/sim boot "$ID"
 scripts/sim use "$ID" hex
+scripts/sim allow "$ID"
 slug=$(echo "$NAME" | tr 'A-Z ' 'a-z-')
 mkdir -p shots/raw/source build/uitest
 xcodegen generate -q

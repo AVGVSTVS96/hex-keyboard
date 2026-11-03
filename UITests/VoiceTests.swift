@@ -7,7 +7,6 @@ final class VoiceTests: XCTestCase {
         let environment = ProcessInfo.processInfo.environment
         guard let shots = environment["HEX_SHOTS"] else { throw XCTSkip("Run through scripts/voicetest") }
         continueAfterFailure = false
-        try allowFullAccess()
 
         let app = XCUIApplication()
         app.launchArguments = ["-HexFocus", "YES", "-HexOrientation", "portrait", "-HexOneHanded", "off"]

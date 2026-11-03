@@ -14,6 +14,7 @@ xcodebuild build-for-testing -project HexKeyboard.xcodeproj -scheme Hex -destina
   -derivedDataPath build/uitest -quiet
 scripts/sim boot "$ID"
 scripts/sim use "$ID" hex
+scripts/sim allow "$ID"
 group=$(xcrun simctl get_app_container "$ID" com.shahidy.hexkeyboard group.com.shahidy.hexkeyboard)
 for appearance in light dark; do
   xcrun simctl ui "$ID" appearance "$appearance"

@@ -3,7 +3,8 @@
 # in the first free of the Mac's slots, so up to three runs go at once and the rest wait for one to free up. The Mac
 # runs at most three simulators, so one something else has booted (another project's) takes a slot away. Each slot
 # has its own folder (~/Developer/hex-keyboard-slot<n>, where this tree is synced) and its own simulators (hexkb<n> …),
-# shut down when the run ends. Screenshots the command takes are copied back to shots/raw/.
+# shut down when the run ends. Screenshots the command takes are copied back to shots/raw/. scripts/verify tests what
+# landed: for it, main's last commit is synced from its own worktree (../hex-keyboard-main), not this checkout's tree.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 slot='
@@ -45,7 +46,21 @@ MAC
 }
 trap shutdown EXIT
 ssh mac "mkdir -p ~/$dir && rm -rf ~/$dir/shots/raw" </dev/null
-scripts/sync "$dir" >/dev/null
+case " $* " in
+  *" scripts/verify"*)
+    main=../hex-keyboard-main
+    exec 8>"$main.lock"
+    flock 8
+    [ -d "$main" ] || git worktree add -q --detach "$main"
+    git -C "$main" checkout -q -f --detach main
+    key=Packages/HexKeyboard/Sources/KeyboardUI/Resources/Keys/klipy.key
+    [ ! -f "$key" ] || cp "$key" "$main/$key"
+    echo "verify tests main $(git rev-parse --short main)" >&2
+    "$main/scripts/sync" "$dir" >/dev/null
+    exec 8>&-
+    ;;
+  *) scripts/sync "$dir" >/dev/null ;;
+esac
 status=0
 printf '%s\n' "$*" | ssh mac "cd ~/$dir && export SIMPREFIX=hexkb$n DEVELOPER_DIR=\${DEVELOPER_DIR:-/Applications/Xcode-beta.app/Contents/Developer} && zsh -s" || status=$?
 mkdir -p shots/raw
