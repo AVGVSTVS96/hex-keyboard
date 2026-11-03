@@ -35,7 +35,7 @@ struct LayoutTests {
         #expect(phone.moreMenu == [.pick(.left), .pick(.off), .pick(.right), .nextKeyboard, .settings])
         #expect(phone.menu == phone.moreMenu)
         let open = LayoutContext(device: .phone, layer: .letters, showsGlobe: true, isOpen: true)
-        #expect(open.moreMenu == [.nextKeyboard, .settings] && open.menu.isEmpty)
+        #expect(open.moreMenu == [.nextKeyboard, .settings] && open.menu == [.keep, .nextKeyboard, .settings])
         #expect(LayoutContext(device: .phone, layer: .letters).moreMenu == [.pick(.left), .pick(.off), .pick(.right), .settings])
         let pad = LayoutContext(device: .pad, layer: .letters, showsGlobe: true)
         #expect(Layouts.layout(for: pad).keys.contains { $0.action == .nextKeyboard } && pad.moreMenu == [.settings])

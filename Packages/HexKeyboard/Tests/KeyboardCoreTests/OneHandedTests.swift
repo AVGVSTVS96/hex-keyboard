@@ -51,8 +51,24 @@ struct OneHandedTests {
         #expect(context.menu == [.pick(.left), .pick(.off), .pick(.right), .settings])
         let numbers = LayoutContext(device: .phone, layer: .numbers)
         #expect(numbers.menuKey(in: Layouts.layout(for: numbers))?.action == .layer(.letters))
-        #expect(LayoutContext(device: .pad, layer: .letters).menu.isEmpty, "only a phone in portrait narrows for one hand")
-        #expect(LayoutContext(device: .phone, layer: .letters, isLandscape: true).menu.isEmpty)
+        #expect(LayoutContext(device: .pad, layer: .letters).menu.isEmpty, "an iPad's globe is its key")
+        #expect(LayoutContext(device: .phone, layer: .letters, isLandscape: true).menu == [.keep, .settings], "only a phone in portrait narrows for one hand")
+    }
+
+    /// Holding 123 is how Bassim reaches Hex's settings, so it offers them on every iPhone screen; where no layout
+    /// applies, the layout in use comes first; letting go without sliding changes nothing.
+    @Test func holding123OffersHexSettingsOnEveryScreen() {
+        for screen in Duo.Screen.allCases {
+            let context = LayoutContext(device: .phone, layer: .numbers, showsGlobe: true, isLandscape: screen.isLandscape, isOpen: screen.isOpen)
+            #expect(context.menu.suffix(2) == [.nextKeyboard, .settings], "\(screen.name)")
+            #expect(context.menu.contains(context.menuPick), "\(screen.name): the layout in use is there, picked")
+        }
+        var engine = TypingEngine()
+        let document = TestDocument()
+        engine.handle(.down(Key(.layer(.numbers)), tapCount: 1), in: document)
+        let settings = engine.settings
+        engine.handle(.keep, in: document)
+        #expect(engine.layer == .letters && engine.settings == settings)
     }
 
     @Test func pickingAHandBringsTheLettersBack() {

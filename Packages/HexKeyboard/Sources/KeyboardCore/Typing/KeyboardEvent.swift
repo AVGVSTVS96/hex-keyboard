@@ -14,6 +14,9 @@ public enum KeyboardEvent: Hashable, Sendable {
     case split(Bool)
     /// Hex's settings picked from a menu: the app opens on them, and the letters come back for when you return.
     case settings
+    /// The layout in use, picked from the layer key's menu where no other applies: nothing changes, and the letters
+    /// come back, so letting go without sliding is as if the key had only been tapped.
+    case keep
     /// The next keyboard picked from a menu, since an iPhone's keys carry no globe. The letters come back for your return.
     case nextKeyboard
     /// Opens a panel over the bar, or closes it with nil. While one is open, the keys type into its search.

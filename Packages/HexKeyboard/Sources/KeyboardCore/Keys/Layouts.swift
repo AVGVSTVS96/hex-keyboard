@@ -60,9 +60,11 @@ public struct LayoutContext: Hashable, Sendable {
         layoutPicks + (showsGlobe && device == .phone ? [.nextKeyboard] : []) + [.settings]
     }
 
-    /// What holding the layer key offers, left to right, where there are layouts to pick: the More button's items.
+    /// What holding an iPhone's layer key offers, left to right, on every screen: the More button's items, after the
+    /// layout in use where no other applies, so letting go without sliding changes nothing.
     public var menu: [KeyboardEvent] {
-        layoutPicks.isEmpty ? [] : moreMenu
+        guard device == .phone else { return [] }
+        return (layoutPicks.isEmpty ? [.keep] : []) + moreMenu
     }
 
     /// The layouts that apply here.
@@ -74,7 +76,7 @@ public struct LayoutContext: Hashable, Sendable {
 
     /// The layout in use, as the menu offers it.
     public var menuPick: KeyboardEvent {
-        allowsSplit ? .split(isSplit) : .pick(oneHanded)
+        allowsSplit ? .split(isSplit) : allowsOneHanded ? .pick(oneHanded) : .keep
     }
 }
 

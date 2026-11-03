@@ -25,7 +25,7 @@ From top to bottom: 3 of padding (iOS draws its backdrop 4 above the keyboard, s
 - Side inset 6.5, gap between keys 6, gap between rows 11 (9 and 7 in the compact layouts, below).
 - Corners are Raycast's on every theme (Themes, below).
 - Row 2 is centered (a half pitch in on each side). Row 3: shift and delete are 1.3 pitch − 6 wide at the edges; z to m are centered between them.
-- Bottom row: `123` is 0.93 pitch − 6 wide, as on every Raycast theme (measured on the open Duo in portrait and landscape), return is 2.5 pitch − 6 (2 in landscape), space takes the rest. An iPhone's row has no globe, so `123 · emoji · space · return`: Bassim kept hitting it by accident. Where iOS wants a way to the next keyboard (`needsInputModeSwitchKey`, and always on the Duo, which has no system globe bar), the bar's More menu offers Next Keyboard above Hex Settings, as does holding `123` where it offers layouts; App Review asks only for "a method for progressing to the next keyboard" (4.4.1). Face ID iPhones also have iOS's globe in the bar under the keyboard. iPad keeps its globe key.
+- Bottom row: `123` is 0.93 pitch − 6 wide, as on every Raycast theme (measured on the open Duo in portrait and landscape), return is 2.5 pitch − 6 (2 in landscape), space takes the rest. An iPhone's row has no globe, so `123 · emoji · space · return`: Bassim kept hitting it by accident. Where iOS wants a way to the next keyboard (`needsInputModeSwitchKey`, and always on the Duo, which has no system globe bar), the bar's More menu offers Next Keyboard above Hex Settings, as does holding `123`; App Review asks only for "a method for progressing to the next keyboard" (4.4.1). Face ID iPhones also have iOS's globe in the bar under the keyboard. iPad keeps its globe key.
 - The emoji key sits where Apple's does, after `123`, 1.25 pitch − 6 wide (1 in landscape), wider than Raycast's because it's the one Bassim taps most. Beside it return is Raycast's 1.4 pitch − 6 (measured on the open Duo in portrait and landscape), and space takes the rest. Settings › Keys › Emoji Key takes it away, leaving the bar's emoji for the word as the way to emoji; on iPad, which has no room for it in the bottom row, the emoji tool sits in the bar instead.
 - Space carries "hex" in its top trailing corner, in the theme's secondary label color at the key's secondary size, where Raycast's space is blank.
 - Return shows the `return.left` glyph. For go, search, send, join, route, done and next it turns into the prominent key: accent fill, white label (`go`, `search`, `send`, …), semibold 17.
@@ -150,7 +150,7 @@ Slightly folded in portrait with a panel open, the open Duo gives a keyboard onl
 - Pressed key: the pressed fill, plus today's callout above letter keys. Function keys and tools show only the pressed fill.
 - Shift: `shift` off, `shift.fill` on, `capslock.fill` locked. Letters show uppercase while shift is on.
 - The number and symbol layers keep today's keys (`PhoneLayouts`) in this look; `123` reads `ABC` there.
-- Holding `123` still offers the one-handed layouts, as today.
+- Holding `123` opens the bar's … menu in a row on every iPhone screen: the layouts that apply there (Left, Full and Right in portrait, on the Duo only folded; Full and Split on the open Duo in landscape; elsewhere the layout in use, so letting go without sliding changes nothing), Next Keyboard where iOS wants one, and Hex Settings. Bassim reaches Hex's settings this way (Nov 2).
 
 ## Panels
 
