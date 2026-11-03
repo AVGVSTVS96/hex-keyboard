@@ -23,7 +23,7 @@ def publish(listening=False, writing=(), heard=(), waiting=False):
         began = time.time() - 978307200
     status = {"listening": listening, "writing": list(writing), "heard": list(heard)}
     if waiting:
-        status["waiting"] = "Waiting for Parakeet v3"
+        status["waiting"] = "Model loading…"
     if began and (listening or writing):
         status["since"] = began
     with open(f"{group}/Library/dictation.json", "w") as file:

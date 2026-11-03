@@ -79,15 +79,18 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         if contexts.contains(where: { $0.url == HexLink.settings }) { return UIApplication.shared.open(URL(string: UIApplication.openSettingsURLString)!) }
         if contexts.contains(where: { $0.url == HexLink.keyboard }) { return Router.shared.show(.settings) }
         guard let request = contexts.lazy.compactMap({ Dictation.Request($0.url) }).first, let root = window?.rootViewController else { return }
-        Task { await listen(thenOpen: request.host) }
-        guard !(root.presentedViewController is DictationViewController) else { return }
+        let fromHex = request.host == Bundle.main.bundleIdentifier
+        Task { await listen(thenOpen: fromHex ? nil : request.host) }
+        guard !fromHex, !(root.presentedViewController is DictationViewController) else { return }
         root.dismiss(animated: false)
         let dictation = DictationViewController()
         dictation.modalPresentationStyle = .fullScreen
         root.present(dictation, animated: false)
     }
 
-    /// Starts listening while Hex is in front, the only place iOS lets a recording begin, then reopens the app you were typing in.
+    /// Starts listening while Hex is in front, the only place iOS lets a recording begin, then reopens the app you were
+    /// typing in. Dictating in Hex's own field it stays put: iOS quits an app that opens itself, and the quit throws
+    /// away a Parakeet still getting ready.
     private func listen(thenOpen host: String?) async {
         let asked = Date.now
         await Listener.shared.start()

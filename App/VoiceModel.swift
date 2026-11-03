@@ -98,10 +98,10 @@ import UIKit
     /// What dictations wait for while the model gets ready, in a few words for the keyboard's bar; nil once it's ready.
     var waiting: String? {
         switch state {
-        case .downloading(let done): "Downloading \(model.title), \(done.formatted(.percent.precision(.fractionLength(0))))"
-        case .loading: "Waiting for \(model.title)"
+        case .downloading(let done): "Model downloading, \(done.formatted(.percent.precision(.fractionLength(0))))"
+        case .loading: "Model loading…"
         case .ready: nil
-        case .failed: "\(model.title) couldn’t load"
+        case .failed: "Model couldn’t load"
         }
     }
 
