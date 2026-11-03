@@ -2,6 +2,7 @@ EVAL aimShift keyboard=learning after: words=2714 raw=75.5% autocorrect=95.0% to
 EVAL aimShift keyboard=learning per 100 words to 500, then per 500 (raw/final): 65.0%/87.0% 81.0%/95.0% 83.0%/97.0% 76.0%/92.0% 72.0%/95.0% 78.2%/95.8% 74.4%/96.0% 75.2%/94.2% 75.2%/96.4%
 EVAL emoji corpus=chat words=7233 withEmoji=26.7%
 EVAL emoji corpus=phrases words=2714 withEmoji=24.6%
+EVAL missedSpaces keyboard=decoder pairs=500 withTypo=150 readAsSpace=53.6% asLetter: shown=86.6% firstAlternative=79.3%
 EVAL noise=0.0 keyboard=baseline words=2714 raw=100.0% autocorrect=99.9% top3=100.0% next3=9.5% fixed=0 broken=2 ["claus→class", "favourite→favorite"]
 EVAL noise=0.0 keyboard=decoder words=2714 raw=100.0% autocorrect=99.9% top3=100.0% next3=25.1% fixed=0 broken=2 ["ides→sides", "racketball→racquetball"]
 EVAL noise=0.0 keyboard=learning words=2714 raw=100.0% autocorrect=100.0% top3=100.0% next3=25.1% fixed=0 broken=1 ["ides→sides"]
@@ -13,7 +14,7 @@ EVAL noise=0.25 keyboard=decoder words=2714 raw=88.2% autocorrect=97.3% top3=99.
 EVAL noise=0.25 keyboard=learning words=2714 raw=88.8% autocorrect=97.1% top3=98.9% next3=24.3% fixed=228 broken=2 ["ides→idea", "mind→kind"]
 EVAL noise=0.35 keyboard=baseline words=2714 raw=35.1% autocorrect=59.5% top3=62.8% next3=6.5% fixed=664 broken=1 ["claus→class"]
 EVAL noise=0.35 keyboard=decoder words=2714 raw=60.4% autocorrect=88.6% top3=95.1% next3=22.7% fixed=770 broken=5 ["mice→nice", "prayer→prayed", "see→are", "get→her", "so→do"]
-EVAL noise=0.35 keyboard=learning words=2714 raw=61.1% autocorrect=91.1% top3=96.0% next3=23.5% fixed=821 broken=5 ["worm→work", "user→used", "it→if", "so→do", "merger→meter"]
+EVAL noise=0.35 keyboard=learning words=2714 raw=61.1% autocorrect=91.1% top3=95.9% next3=23.5% fixed=821 broken=5 ["worm→work", "user→used", "it→if", "so→do", "merger→meter"]
 EVAL predict corpus=chat user=learning words=7233 top1=16.2% top3=30.3%
 EVAL predict corpus=chat user=new words=7233 top1=11.0% top3=20.2%
 EVAL predict corpus=phrases user=learning words=2714 top1=12.6% top3=25.1%

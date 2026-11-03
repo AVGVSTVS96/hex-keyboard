@@ -236,3 +236,24 @@ struct AutocorrectTests {
         #expect(!Words.isCorrectable(Words.current(in: "a.helo"), in: "a.helo"))
     }
 }
+
+struct MissedSpaceTests {
+    let corrector = Corrector(source: Lexicon(counts: [
+        ("great", 300), ("day", 400), ("the", 1000), ("what", 500), ("given", 80), ("give", 100), ("treat", 40),
+    ].map { (word: $0.0, count: Double($0.1)) }))
+
+    @Test func offersTheTwoWordsAMissedSpaceJoined() {
+        let suggestions = corrector.suggestions(for: TypedWord("freatvday"), correcting: true, guessing: true)
+        #expect(suggestions.map(\.text).contains("great day"))
+        #expect(suggestions.first { $0.text == "great day" }?.kind == .candidate)
+        #expect(corrector.correction(for: TypedWord("freatvday")) == nil)
+    }
+
+    @Test func keepsTheTypedCapital() {
+        #expect(corrector.split(TypedWord("Whatbthe")) == "What the")
+    }
+
+    @Test func leavesARealWordWhole() {
+        #expect(corrector.split(TypedWord("given")) == nil)
+    }
+}

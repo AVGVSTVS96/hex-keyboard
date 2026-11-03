@@ -106,6 +106,64 @@ struct Evaluation {
         }
     }
 
+    /// A thumb that misses the space bar between two words and lands on the row above it ("great day" typed
+    /// "greatvday"): each phrase is typed up to a word pair, the pair with the space's tap drawn wider around the space
+    /// bar until it lands on a letter. Counts the taps the key map already reads as the space, and of those it reads as a letter, how
+    /// often the bar offers the pair, and the pairs whose words have a typo of their own.
+    @Test func missedSpaces() throws {
+        let phrases = try Self.phrases()
+        var user = SimulatedUser(width: Self.width, noise: 0.25, seed: 2027)
+        var thumb = SimulatedUser(width: Self.width, noise: 0.4, seed: 2028)
+        var random = SplitMix64(seed: 2029)
+        var pairs = 0, spaced = 0, shown = 0, first = 0, mistyped = 0
+        for phrase in phrases {
+            let words = phrase.split(separator: " ").map(String.init)
+            guard words.count >= 2 else { continue }
+            let pick = Int(random.next() % UInt64(words.count - 1))
+            var engine = TypingEngine(traits: InputTraits(autocapitalization: .none))
+            let corrector = Corrector(source: Lexicon.english, phrases: .english)
+            corrector.grid = user.grid
+            engine.corrector = corrector
+            let document = Document()
+            engine.suggestionsChanged()
+            func tap(_ character: Character) -> String? {
+                let (x, y) = user.tap(character)
+                return tap(x, y)
+            }
+            func tap(_ x: Double, _ y: Double) -> String? {
+                guard let hit = engine.key(atX: x, y: y, in: user.grid), let label = user.grid.rows[hit.row][hit.key].key.label else { return nil }
+                engine.perform(label == " " ? .space : .character(label), in: document, tap: Tap(x: x, y: y, key: label))
+                return label
+            }
+            for word in words[..<pick] {
+                for character in word + " " { _ = tap(character) }
+            }
+            var space: (Double, Double)?
+            for _ in 0..<500 {
+                let point = thumb.tap(" ")
+                if let label = user.grid.key(atX: point.0, y: point.1)?.label, label.count == 1, label.first!.isLetter { space = point; break }
+            }
+            guard let space else { continue }
+            var typed = ""
+            for character in words[pick] { typed += tap(character) ?? "" }
+            let landed = tap(space.0, space.1)
+            var second = ""
+            for character in words[pick + 1] { second += tap(character) ?? "" }
+            let pair = "\(words[pick]) \(words[pick + 1])"
+            let bar = engine.suggestions.map { $0.text.lowercased() }
+            pairs += 1
+            if typed != words[pick] || second != words[pick + 1] { mistyped += 1 }
+            if landed == " " {
+                spaced += 1
+            } else if bar.contains(pair) {
+                shown += 1
+                if bar.dropFirst().first == pair { first += 1 }
+            }
+        }
+        let share = { (count: Int, of: Int) in String(format: "%.1f%%", 100.0 * Double(count) / Double(max(of, 1))) }
+        print("EVAL missedSpaces keyboard=decoder pairs=\(pairs) withTypo=\(mistyped) readAsSpace=\(share(spaced, pairs)) asLetter: shown=\(share(shown, pairs - spaced)) firstAlternative=\(share(first, pairs - spaced))")
+    }
+
     @Test func biasedThumbs() throws {
         let phrases = try Self.phrases()
         let block = 500
