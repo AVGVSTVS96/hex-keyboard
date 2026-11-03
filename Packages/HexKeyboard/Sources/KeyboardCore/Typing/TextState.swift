@@ -16,15 +16,17 @@ public struct TextState: Hashable, Sendable {
     /// How many characters at the end of `before` the keyboard typed itself: all that automatic edits may replace.
     public private(set) var owned = 0
     public private(set) var isKnown = false
-    /// Whether `before` reaches back to the start of the document: the host once showed an empty context.
-    private var isWhole = false
+    /// How long the host's view was where `before` starts. iOS cuts that view at the start of the text, of a line, or at
+    /// a length; once the keyboard deletes, a view cut at a length slides back over text the keyboard never saw, but it
+    /// never grows. So the host can show text in front of `before` only in a view no longer than this.
+    private var reach = 0
     /// The tails of the states since the host last confirmed one, oldest first: what a late report may still show.
     private var unconfirmed: [Remembered] = []
 
     private struct Remembered: Hashable, Sendable {
         var tail: String
         var after: String?
-        var isWhole: Bool
+        var reach: Int
     }
 
     static let window = 64
@@ -63,15 +65,16 @@ public struct TextState: Hashable, Sendable {
     public mutating func reconcile(before host: String?, after hostAfter: String?) -> Report {
         let host = host ?? ""
         if isKnown, !host.isEmpty, let index = unconfirmed.firstIndex(where: {
-            Self.agree(host, $0.tail, isWhole: $0.isWhole) && Self.agree(after: hostAfter, $0.after)
+            Self.agree(host, $0.tail, reach: $0.reach) && Self.agree(after: hostAfter, $0.after)
         }) {
             unconfirmed.removeFirst(index)
             return .behind
         }
-        if isKnown, Self.agree(host, before, isWhole: isWhole), Self.agree(after: hostAfter, after) {
+        if isKnown, Self.agree(host, before, reach: reach), Self.agree(after: hostAfter, after) {
             if host.count > before.count {
                 owned = min(owned, before.count)
                 before = host
+                reach = host.count
             }
             after = hostAfter
             unconfirmed = []
@@ -81,21 +84,21 @@ public struct TextState: Hashable, Sendable {
         after = hostAfter
         owned = 0
         isKnown = true
-        isWhole = host.isEmpty
+        reach = host.count
         unconfirmed = []
         return .changed
     }
 
     private mutating func remember() {
-        unconfirmed.append(Remembered(tail: String(before.suffix(Self.window)), after: after.map { String($0.prefix(Self.window)) }, isWhole: isWhole))
+        unconfirmed.append(Remembered(tail: String(before.suffix(Self.window)), after: after.map { String($0.prefix(Self.window)) }, reach: reach))
     }
 
-    /// Whether the host's view can be `known`: a window of it, or more of it when `known` doesn't reach the start of
-    /// the document. An empty view is an empty field (a sent message leaves one), never a late report.
-    static func agree(_ host: String, _ known: String, isWhole: Bool) -> Bool {
+    /// Whether the host's view can be `known`: a window of it, or more of it in a view no longer than `reach`. An
+    /// empty view is an empty field (a sent message leaves one), never a late report.
+    static func agree(_ host: String, _ known: String, reach: Int) -> Bool {
         guard !host.isEmpty, !known.isEmpty else { return host.isEmpty && known.isEmpty }
         let shown = host.suffix(window), mine = known.suffix(window)
-        return mine.hasSuffix(shown) || (!isWhole && shown.hasSuffix(mine))
+        return mine.hasSuffix(shown) || (host.count <= reach && shown.hasSuffix(mine))
     }
 
     /// Whether the host's text after the caret can be `known`'s, either cut to a window. A caret tapped back into the

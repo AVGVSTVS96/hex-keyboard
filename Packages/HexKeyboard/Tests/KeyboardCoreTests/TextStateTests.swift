@@ -51,6 +51,35 @@ struct TextStateTests {
         #expect(host.truth.text == "so helo ")
     }
 
+    @Test func appTextEndingLikeAnEarlierStateIsAChange() {
+        var engine = TypingEngine.correcting()
+        let host = ShownHost("hi")
+        engine.documentChanged(host)
+        engine.type(" thre", in: host)
+        host.truth.text = "say hi"
+        host.truth.cursor = 6
+        host.shown = "say hi"
+        #expect(engine.documentChanged(host) == .changed)
+        #expect(engine.text.before == "say hi")
+        engine.type(" ", in: host)
+        #expect(host.truth.text == "say hi ")
+    }
+
+    @Test func aViewCutAtALengthSlidesBackOverDeletedText() {
+        var engine = TypingEngine.correcting()
+        let host = ShownHost("abc def ghi jkl")
+        host.shown = "ghi jkl"
+        engine.documentChanged(host)
+        engine.perform(.delete, in: host)
+        engine.perform(.delete, in: host)
+        engine.type("x", in: host)
+        host.shown = "f ghi j"
+        #expect(engine.documentChanged(host) == .behind)
+        host.shown = " ghi jx"
+        #expect(engine.documentChanged(host) == .current)
+        #expect(engine.text.before == " ghi jx")
+    }
+
     @Test func anEmptyFieldAfterSendingStartsASentence() {
         var engine = TypingEngine.correcting()
         let host = ShownHost()
