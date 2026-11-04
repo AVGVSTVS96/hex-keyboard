@@ -10,6 +10,9 @@ public struct KeyboardSettings: Hashable, Sendable {
     public var sound = true
     /// The emoji key in the bottom row; without it, the bar's emoji for a word are the way to emoji.
     public var emojiKey = true
+    /// The globe key at the far left of an iPhone's bottom row, where iOS wants a way to the next keyboard; without it,
+    /// the keyboard's menu offers Next Keyboard.
+    public var globeKey = true
     /// The emoji and GIF panels as one row that scrolls sideways on every screen, as they are in landscape.
     public var compactPanels = false
     public var oneHanded = OneHanded.off

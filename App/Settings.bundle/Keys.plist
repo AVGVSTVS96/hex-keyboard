@@ -160,6 +160,22 @@
 				<string>button</string>
 			</array>
 		</dict>
+		<dict>
+			<key>FooterText</key>
+			<string>At the far left of the bottom row, on iPhones with no globe under the keyboard, like the Duo. Without it, Next Keyboard is in the keyboard’s menu.</string>
+			<key>Type</key>
+			<string>PSGroupSpecifier</string>
+		</dict>
+		<dict>
+			<key>DefaultValue</key>
+			<true/>
+			<key>Key</key>
+			<string>globeKey</string>
+			<key>Title</key>
+			<string>Globe Key</string>
+			<key>Type</key>
+			<string>PSToggleSwitchSpecifier</string>
+		</dict>
 	</array>
 	<key>Title</key>
 	<string>Layout</string>

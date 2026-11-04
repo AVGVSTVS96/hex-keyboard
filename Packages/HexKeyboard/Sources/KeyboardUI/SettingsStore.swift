@@ -19,6 +19,7 @@ public enum SettingsStore {
         ("predictiveText", \.predictiveText),
         ("sound", \.sound),
         ("emojiKey", \.emojiKey),
+        ("globeKey", \.globeKey),
         ("numberRow", \.numberRow),
         ("split", \.split),
         ("compactPanels", \.compactPanels),

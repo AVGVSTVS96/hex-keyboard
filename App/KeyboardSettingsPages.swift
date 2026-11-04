@@ -251,6 +251,9 @@ struct LayoutSettings: View {
                 ChoiceRow(title: place.title, picked: model.settings.keyboardMenu == place) { model.update { $0.keyboardMenu = place } }
             }
         }
+        Box(footer: "At the far left of the bottom row, on iPhones with no globe under the keyboard, like the Duo. Without it, Next Keyboard is in the keyboard’s menu.") {
+            ToggleRow(title: "Globe Key", isOn: model.binding(\.globeKey))
+        }
     }
 
     static func title(of hand: OneHanded) -> String {

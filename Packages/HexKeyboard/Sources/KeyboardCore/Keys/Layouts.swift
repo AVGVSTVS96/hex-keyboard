@@ -14,9 +14,11 @@ public struct LayoutContext: Hashable, Sendable {
     public var device: DeviceClass
     public var layer: KeyboardLayer
     public var kind: InputKind
-    /// iOS wants a way to the next keyboard: an iPad's keys carry a globe, and an iPhone's menus offer Next Keyboard,
-    /// so a reach for the bottom row never leaves Hex.
+    /// iOS wants a way to the next keyboard: an iPad's keys carry a globe, and an iPhone's either do (`showsGlobeKey`)
+    /// or its menus offer Next Keyboard.
     public var showsGlobe: Bool
+    /// The globe key at the far left of an iPhone's bottom row, away from `123` and emoji, so it's never hit for them.
+    public var showsGlobeKey: Bool
     /// Wider than tall.
     public var isLandscape: Bool
     /// The iPhone Duo open, on its inner screen, whose keys are half again as wide as folded, on its cover.
@@ -31,7 +33,7 @@ public struct LayoutContext: Hashable, Sendable {
     public var keySpacing = KeySpacing.standard
     public var keyboardMenu: KeyboardMenu
 
-    public init(device: DeviceClass, layer: KeyboardLayer, kind: InputKind = .text, showsGlobe: Bool = false, isLandscape: Bool = false, isOpen: Bool = false, oneHanded: OneHanded = .off, isSplit: Bool = false, showsEmoji: Bool = false, showsNumberRow: Bool = false, keyboardMenu: KeyboardMenu = .both) {
+    public init(device: DeviceClass, layer: KeyboardLayer, kind: InputKind = .text, showsGlobe: Bool = false, isLandscape: Bool = false, isOpen: Bool = false, oneHanded: OneHanded = .off, isSplit: Bool = false, showsEmoji: Bool = false, showsGlobeKey: Bool = false, showsNumberRow: Bool = false, keyboardMenu: KeyboardMenu = .both) {
         self.device = device
         self.layer = layer
         self.kind = kind
@@ -41,6 +43,7 @@ public struct LayoutContext: Hashable, Sendable {
         self.oneHanded = oneHanded
         self.isSplit = isSplit
         self.showsEmoji = showsEmoji && device == .phone
+        self.showsGlobeKey = showsGlobeKey && showsGlobe && device == .phone
         self.showsNumberRow = showsNumberRow && device == .phone && layer == .letters
         self.keyboardMenu = device == .phone ? keyboardMenu : .button
         if !allowsOneHanded { self.oneHanded = .off }
@@ -52,7 +55,7 @@ public struct LayoutContext: Hashable, Sendable {
         self.init(
             device: device, layer: layer, kind: kind, showsGlobe: showsGlobe, isLandscape: screen.width > screen.height,
             isOpen: Duo.isOpen(short: min(screen.width, screen.height)), oneHanded: settings.oneHanded, isSplit: settings.split,
-            showsEmoji: settings.emojiKey, showsNumberRow: settings.numberRow, keyboardMenu: settings.keyboardMenu
+            showsEmoji: settings.emojiKey, showsGlobeKey: settings.globeKey, showsNumberRow: settings.numberRow, keyboardMenu: settings.keyboardMenu
         )
         keySpacing = settings.keySpacing
     }
@@ -72,10 +75,10 @@ public struct LayoutContext: Hashable, Sendable {
     }
 
     /// What the bar's More button offers, top to bottom: the layouts that apply here (one hand or the other on an
-    /// iPhone in portrait, Full and Split on the open Duo in landscape), the next keyboard where an iPhone needs one,
-    /// then Hex's settings.
+    /// iPhone in portrait, Full and Split on the open Duo in landscape), the next keyboard where an iPhone needs one
+    /// and its keys carry no globe, then Hex's settings.
     public var moreMenu: [KeyboardEvent] {
-        layoutPicks + (showsGlobe && device == .phone ? [.nextKeyboard] : []) + [.settings]
+        layoutPicks + (showsGlobe && device == .phone && !showsGlobeKey ? [.nextKeyboard] : []) + [.settings]
     }
 
     /// What holding an iPhone's layer key offers, left to right, on every screen: the More button's items, after the

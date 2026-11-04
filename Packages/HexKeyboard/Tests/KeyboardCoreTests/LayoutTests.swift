@@ -28,7 +28,28 @@ struct LayoutTests {
         #expect(KeyboardMetrics.for(.phone, width: 402, height: 874).fitted(screen: 402, window: 402) == KeyboardMetrics.for(.phone, width: 402, height: 874))
     }
 
-    /// An iPhone's keys carry no globe to hit by accident: its menus offer the next keyboard where iOS wants one.
+    /// Where iOS wants a way to the next keyboard, an iPhone's globe sits left of 123, away from the emoji key, and
+    /// leaves the menu; with Settings' Globe Key off, the menu offers it instead.
+    @Test func thePhonesGlobeSitsLeftOf123OrInTheMenu() {
+        var settings = KeyboardSettings()
+        let duo = { LayoutContext(device: .phone, layer: .letters, showsGlobe: true, screen: Size(width: 466, height: 678), settings: settings) }
+        for layer in KeyboardLayer.allCases {
+            var context = duo()
+            context.layer = layer
+            let row = Layouts.layout(for: context).rows.last!.compactMap { if case .key(let key) = $0 { key.action } else { nil } }
+            #expect(row.prefix(3) == [.nextKeyboard, .layer(layer == .letters ? .numbers : .letters), .emoji], "\(layer)")
+        }
+        #expect(!duo().moreMenu.contains(.nextKeyboard))
+        settings.globeKey = false
+        #expect(!Layouts.layout(for: duo()).keys.contains { $0.action == .nextKeyboard } && duo().moreMenu.contains(.nextKeyboard))
+        settings.globeKey = true
+        settings.split = true
+        let split = LayoutContext(device: .phone, layer: .letters, showsGlobe: true, screen: Size(width: 951, height: 669), settings: settings)
+        #expect(split.isSplit && Layouts.layout(for: split).rows.last!.first == .key(Key(.nextKeyboard)))
+        let faceID = LayoutContext(device: .phone, layer: .letters, screen: Size(width: 402, height: 874), settings: KeyboardSettings())
+        #expect(!Layouts.layout(for: faceID).keys.contains { $0.action == .nextKeyboard }, "iOS draws its own globe under the keys")
+    }
+
     @Test func theNextKeyboardIsInAPhonesMenusAndAPadsKeys() {
         let phone = LayoutContext(device: .phone, layer: .letters, showsGlobe: true)
         #expect(!Layouts.layout(for: phone).keys.contains { $0.action == .nextKeyboard })
