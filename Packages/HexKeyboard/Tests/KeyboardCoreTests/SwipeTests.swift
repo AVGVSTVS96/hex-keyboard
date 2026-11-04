@@ -5,7 +5,7 @@ import Testing
 private let resources = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
     .appendingPathComponent("Sources/KeyboardUI/Resources")
 
-private func resource(_ name: String) -> Bytes {
+func resource(_ name: String) -> Bytes {
     Bytes([UInt8](try! Data(contentsOf: resources.appendingPathComponent(name))))
 }
 
@@ -77,6 +77,37 @@ struct SwipeTests {
         try check(Reference(contentsOf: URL(fileURLWithPath: ProcessInfo.processInfo.environment["SWIPE_REFERENCE"]!)))
     }
 
+    @Test func readsTheLettersOfAKeyGridInTheEncodersFrame() throws {
+        let layout = try #require(SwipeLayout(grid: .standard))
+        let reference = try Reference(contentsOf: URL(fileURLWithPath: #filePath).deletingLastPathComponent().appendingPathComponent("swipe.reference"))
+        for (mine, theirs) in zip(layout.centers, reference.layout.centers) {
+            #expect(abs(mine.x - theirs.x) < 0.01 && abs(mine.y - theirs.y) < 0.01)
+        }
+    }
+
+    @Test func picksTheWordOfARealSwipeFromTheLexicon() throws {
+        let reference = try Reference(contentsOf: URL(fileURLWithPath: #filePath).deletingLastPathComponent().appendingPathComponent("swipe.reference"))
+        let lexicon = Lexicon(counts: [("in", 100.0), ("inn", 1), ("on", 100), ("mother", 10), ("mouthed", 10), ("Brahma's", 1), ("Brahms", 1), ("is", 100)] as [(word: String, count: Double)])
+        let expected = ["Brahma's", "in", "mother"]
+        for (item, word) in zip(reference.swipes, expected) {
+            #expect(swipe.decode(item.path, on: reference.layout, in: lexicon).first?.word == word)
+        }
+    }
+
+    @Test func swipesThroughLettersFindTheirWordWithoutTheApostrophe() throws {
+        let layout = try #require(SwipeLayout(grid: .standard))
+        let lexicon = Lexicon(counts: [("I'm", 10.0), ("in", 10), ("on", 10), ("it's", 10), ("its", 5), ("he'll", 10), ("hell", 1), ("the", 10), ("then", 10)] as [(word: String, count: Double)])
+        for (letters, word) in [("im", "I'm"), ("its", "it's"), ("hell", "he'll"), ("the", "the"), ("then", "then")] {
+            let path = layout.path(through: letters)
+            #expect(swipe.decode(path, on: layout, in: lexicon).first?.word == word, "\(letters)")
+        }
+    }
+
+    @Test func aPathOfOnePointHasNoWords() throws {
+        let layout = try #require(SwipeLayout(grid: .standard))
+        #expect(swipe.decode([SwipePoint(x: 1, y: 1, time: 0)], on: layout, in: Lexicon(counts: [("in", 1.0)] as [(word: String, count: Double)])).isEmpty)
+    }
+
     /// A swipe whose duration lands on the middle of two 60 Hz step counts can round the other way than Python does,
     /// moving its input: those are left out.
     func check(_ reference: Reference) throws {
@@ -96,5 +127,21 @@ struct SwipeTests {
         print("SWIPE parity swipes=\(perSwipe.count)/\(reference.swipes.count) per-swipe max |dP|: encoder \(summary(perSwipe.map(\.encoderP))), decoder \(summary(perSwipe.map(\.decoderP))); |d ln P| above -12: encoder \(summary(perSwipe.map(\.encoder))), decoder \(summary(perSwipe.map(\.decoder)))")
         #expect(perSwipe.count * 100 >= reference.swipes.count * 95)
         #expect(perSwipe.allSatisfy { $0.encoderP < 1e-3 && $0.decoderP < 1e-3 })
+    }
+}
+
+extension SwipeLayout {
+    /// A finger moving straight from the center of each key to the next at 0.8 key boxes a second, in the keyboard's points.
+    func path(through letters: String) -> [SwipePoint] {
+        let waypoints = letters.utf8.map { centers[Int($0) - 97] }.map { (x: frame.x + $0.x * frame.width, y: frame.y + $0.y * frame.height) }
+        var path = [SwipePoint(x: waypoints[0].x, y: waypoints[0].y, time: 0)]
+        for (from, to) in zip(waypoints, waypoints.dropFirst()) {
+            let steps = max(Int((((to.x - from.x) / frame.width) * ((to.x - from.x) / frame.width) + ((to.y - from.y) / frame.height) * ((to.y - from.y) / frame.height)).squareRoot() * 12), 2)
+            for step in 1...steps {
+                let t = Double(step) / Double(steps)
+                path.append(SwipePoint(x: from.x + (to.x - from.x) * t, y: from.y + (to.y - from.y) * t, time: path.last!.time + 1.0 / 60))
+            }
+        }
+        return path
     }
 }
