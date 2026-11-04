@@ -7,8 +7,8 @@ struct ModelSettings: View {
     private let voice = VoiceModel.shared
 
     var body: some View {
-        Box(footer: "What you say is written on this iPhone and never leaves it. A dictation made while a Parakeet gets ready is written once it’s ready.") {
-            ForEach(VoiceModel.Model.allCases, id: \.self) { choice in
+        Box(footer: "Everything you say is written down on this iPhone and never leaves it. What you dictate while a Parakeet gets ready is written once it’s ready, in the order you said it.") {
+            ForEach([VoiceModel.Model.v3, .ultra, .apple], id: \.self) { choice in
                 ChoiceRow(title: choice.title, detail: choice.detail, picked: choice == voice.model) {
                     voice.pick(choice)
                 } extra: {
@@ -51,34 +51,70 @@ struct ModelSettings: View {
     }
 }
 
-/// The words and punctuation Hex types for what you say, each style and each level of editing shown by how it types
-/// the same words with everything else as picked.
+/// The words and punctuation iikb types for what you say: a preview of the same words as picked, then each style and
+/// each level of editing shown by how it types them with everything else as picked.
 struct WritingSettings: View {
     private static let said = "So, let's send it to Sam tonight."
     private static let rambled = "Um, I think the the plan works."
+    private static let preview = "Um, so I think the the plan works, let's send it to Sam tonight."
     private let model = SettingsModel.shared
 
-    private func typed(_ said: String, _ change: (inout DictationWriting) -> Void) -> String {
+    private func typed(_ said: String, _ change: (inout DictationWriting) -> Void = { _ in }) -> String {
         var writing = model.settings.dictation
         change(&writing)
-        return "“\(writing.typed(said, lexicon: .english))”"
+        return writing.typed(said, lexicon: .english)
     }
 
     var body: some View {
-        Box(header: "Style", footer: "A style sets punctuation, as Wispr Flow’s do. Capitals follow Auto-Capitalization in Keyboard › Typing, as typing’s do, and very casual has none.") {
+        WritingPreview(said: Self.preview, typed: typed(Self.preview))
+        Box(header: "Style", footer: "A style sets the punctuation. Capitals follow Auto-Capitalization in Keyboard › Typing; very casual has none.") {
             ForEach(DictationStyle.allCases, id: \.self) { style in
-                ChoiceRow(title: style.title, detail: typed(Self.said) { $0.style = style }, picked: model.settings.dictationStyle == style) {
-                    model.update { $0.dictationStyle = style }
+                ChoiceRow(title: style.title, detail: "“\(typed(Self.said) { $0.style = style })”", picked: model.settings.dictationStyle == style) {
+                    withAnimation(.snappy(duration: 0.25)) { model.update { $0.dictationStyle = style } }
                 }
             }
         }
         Box(header: "Editing", footer: "Clean also takes back what you cancel with “scratch that”. Transcripts keep what the model wrote.") {
             ForEach(DictationEditing.allCases, id: \.self) { editing in
-                ChoiceRow(title: editing.title, detail: typed(Self.rambled) { $0.editing = editing }, picked: model.settings.dictationEditing == editing) {
-                    model.update { $0.dictationEditing = editing }
+                ChoiceRow(title: editing.title, detail: "“\(typed(Self.rambled) { $0.editing = editing })”", picked: model.settings.dictationEditing == editing) {
+                    withAnimation(.snappy(duration: 0.25)) { model.update { $0.dictationEditing = editing } }
                 }
             }
+        }
+        Box {
             ToggleRow(title: "Lists", detail: "“One, eggs, two, milk” is typed as a numbered list. First, second works too.", isOn: model.binding(\.dictationLists))
+        }
+    }
+}
+
+/// What you say over what iikb types for it, as picked, so a change shows at once.
+private struct WritingPreview: View {
+    let said: String
+    let typed: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            line("You say", said, primary: false)
+            Rectangle().fill(Color.hexDivider).frame(height: 1)
+            line("iikb types", typed, primary: true)
+                .contentTransition(.opacity)
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.hexCard, in: .rect(cornerRadius: HexStyle.cardRadius, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: HexStyle.cardRadius, style: .continuous).strokeBorder(Color.hexEdge))
+        .accessibilityElement(children: .combine)
+    }
+
+    private func line(_ title: String, _ text: String, primary: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.footnote.weight(.medium))
+                .foregroundStyle(Color.hexSecondary)
+            Text(text)
+                .font(primary ? .title3.weight(.medium) : .body)
+                .foregroundStyle(primary ? Color.primary : Color.hexSecondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 }

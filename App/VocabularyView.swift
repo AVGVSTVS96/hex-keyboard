@@ -20,84 +20,104 @@ import SwiftUI
     }
 }
 
-/// The words the voice model gets wrong, each with what it writes instead.
+/// The words the voice model gets wrong, each with what it writes instead, under Add Word.
 struct VocabularyView: View {
     private let store = VoiceVocabulary.shared
     @State private var editing: Edited?
-    @State private var adding = false
+
+    /// Each word with its place in the vocabulary, in alphabetical order.
+    private var words: [(index: Int, term: Vocabulary.Term)] {
+        store.vocabulary.terms.enumerated()
+            .map { (index: $0.offset, term: $0.element) }
+            .sorted { $0.term.term.localizedStandardCompare($1.term.term) == .orderedAscending }
+    }
 
     var body: some View {
-        List {
-            Section {
-                Button("Add Word", systemImage: "plus") { adding = true }
-                ForEach(Array(store.vocabulary.terms.enumerated()), id: \.offset) { index, term in
-                    Button { editing = Edited(index: index) } label: {
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(term.term)
-                                .foregroundStyle(.primary)
-                            if !term.heardAs.isEmpty {
-                                Text(term.heardAs.joined(separator: ", "))
-                                    .font(.footnote)
-                                    .foregroundStyle(Color.hexSecondary)
+        VStack(alignment: .leading, spacing: 28) {
+            Box(footer: "iikb types each word as you spell it here, in place of what the voice model wrote, or of the same word with other spaces, hyphens or capitals. Only whole words change.") {
+                ActionRow(title: "Add Word", symbol: "plus") { editing = Edited(index: nil) }
+            }
+            if !words.isEmpty {
+                Box(header: words.count == 1 ? "1 Word" : "\(words.count.formatted()) Words") {
+                    ForEach(words, id: \.index) { word in
+                        Button { editing = Edited(index: word.index) } label: { row(word.term) }
+                            .buttonStyle(.plain)
+                            .contextMenu {
+                                Button("Delete", systemImage: "trash", role: .destructive) { delete(word.index) }
                             }
-                        }
                     }
                 }
-                .onDelete { offsets in
-                    var terms = store.vocabulary.terms
-                    terms.remove(atOffsets: offsets)
-                    store.set(terms)
-                }
-            } footer: {
-                Text("iikb types each word as you spell it here, in place of what the voice model wrote, or of the same word with other spaces, hyphens or capitals. Only whole words change.")
             }
-            .listRowBackground(Color.hexCard)
-        }
-        .scrollContentBackground(.hidden)
-        .sheet(isPresented: $adding) {
-            TermEditor(term: Vocabulary.Term("")) { store.set(store.vocabulary.terms + [$0]) }
         }
         .sheet(item: $editing) { edited in
-            TermEditor(term: store.vocabulary.terms[edited.index]) { term in
+            TermEditor(term: edited.index.map { store.vocabulary.terms[$0] } ?? Vocabulary.Term(""), isNew: edited.index == nil) { term in
                 var terms = store.vocabulary.terms
-                terms[edited.index] = term
+                if let index = edited.index { terms[index] = term } else { terms.append(term) }
                 store.set(terms)
+            } delete: {
+                if let index = edited.index { delete(index) }
             }
         }
+    }
+
+    private func row(_ term: Vocabulary.Term) -> some View {
+        HStack(spacing: 12) {
+            RowText(title: term.term, detail: term.heardAs.isEmpty ? nil : "Written as " + term.heardAs.joined(separator: ", "))
+            Image(systemName: "chevron.right")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(Color.hexSecondary)
+                .accessibilityHidden(true)
+        }
+        .row()
+    }
+
+    private func delete(_ index: Int) {
+        var terms = store.vocabulary.terms
+        guard terms.indices.contains(index) else { return }
+        terms.remove(at: index)
+        store.set(terms)
     }
 
     private struct Edited: Identifiable {
-        let index: Int
-        var id: Int { index }
+        let index: Int?
+        var id: Int { index ?? -1 }
     }
 }
 
+/// A word and what the voice model writes for it, as a form like Add Source's.
 private struct TermEditor: View {
     @State var term: Vocabulary.Term
+    let isNew: Bool
     let save: (Vocabulary.Term) -> Void
+    let delete: () -> Void
     @State private var heardAs = ""
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section("Word") {
+            Column {
+                Box(header: "Word", footer: "Spelled and capitalized as iikb should type it.") {
                     TextField("Claude", text: $term.term)
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.never)
+                        .row()
                 }
-                Section {
+                Box(header: "Written Instead", footer: "What the voice model writes when you say it, separated by commas. Leave it empty to fix only spaces, hyphens and capitals.") {
                     TextField("clawed, clod", text: $heardAs)
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.never)
-                } header: {
-                    Text("Written Instead")
-                } footer: {
-                    Text("What the voice model writes when you say it, separated by commas.")
+                        .row()
+                }
+                if !isNew {
+                    Box {
+                        ActionRow(title: "Delete Word", role: .destructive) {
+                            delete()
+                            dismiss()
+                        }
+                    }
                 }
             }
-            .navigationTitle(term.term.isEmpty ? "New Word" : term.term)
-            .navigationBarTitleDisplayMode(.inline)
+            .pushedPage(isNew ? "Add Word" : "Edit Word")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
@@ -111,6 +131,8 @@ private struct TermEditor: View {
                 }
             }
         }
+        .presentationDetents([.medium, .large])
+        .presentationBackground(Color.hexPage)
         .onAppear { heardAs = term.heardAs.joined(separator: ", ") }
     }
 }

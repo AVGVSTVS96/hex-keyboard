@@ -249,9 +249,9 @@ open, landscape 951 × 669       open, portrait 669 × 951      folded 466 × 67
     - **Typing**, what typing does to your text: Auto-Capitalization, Auto-Correction, Predictive Text; Smart Punctuation, Enable Caps Lock, "." Shortcut; where Text Replacements come from.
     - **Sound & Haptics**, how a press feels: Character Preview (None, Detached, Attached, each drawn), Key Haptics with a Strength slider of seven stops, Standard in the middle, which it keeps while haptics are off, Sound, and Allow Full Access when Hex hasn't seen it.
   - **Voice Typing**.
-    - **Voice Model**: each with a line on what it costs and, for the picked one, its download, getting ready, or why it failed with Try Again.
-    - **Writing Style**: Style (Wispr Flow's four) and Editing (As Said, Light, Clean), each choice showing the same words as it types them with everything else as picked, and Lists.
-    - **Dictionary**: Add Word at the top, then the words the model gets wrong, each with what it writes instead.
+    - **Voice Model**: Parakeet v3, Parakeet Ultra and Apple, each with a line on what it costs and, for the picked one, its download, getting ready, or why it failed with Try Again.
+    - **Writing Style**: a card of what you say over what iikb types for it as picked, which changes as you pick; then Style (Wispr Flow's four) and Editing (As Said, Light, Clean), each choice showing the same words as it types them with everything else as picked, and Lists.
+    - **Dictionary**: Add Word at the top, then the words the model gets wrong in alphabetical order, each with what it writes instead; a word opens a form like Add Source's, with Delete Word, and holding one offers Delete.
     - **Keep Mic On**: how long the mic stays on after a dictation.
   - **iikb**.
     - **Sources**: Add Source and a tapped source open a form, name, https address and secure token, that says what's wrong before Save.

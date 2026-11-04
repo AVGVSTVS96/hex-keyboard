@@ -153,25 +153,21 @@ struct SettingsContent: View {
     var top: CGFloat = 8
 
     var body: some View {
-        if page == .dictionary {
-            VocabularyView()
-        } else {
-            Column(top: top) {
-                if page.showsKeyboard { TryPreview() }
-                switch page {
-                case .theme: ThemeSettings()
-                case .layout: LayoutSettings()
-                case .typing: TypingSettings()
-                case .feedback: FeedbackSettings()
-                case .model: ModelSettings()
-                case .writing: WritingSettings()
-                case .dictionary: EmptyView()
-                case .mic: MicSettings()
-                case .sources: SourcesPage()
-                case .access: SetupPage()
-                case .privacy: PrivacyPage()
-                case .about: AboutPage()
-                }
+        Column(top: top) {
+            if page.showsKeyboard { TryPreview() }
+            switch page {
+            case .theme: ThemeSettings()
+            case .layout: LayoutSettings()
+            case .typing: TypingSettings()
+            case .feedback: FeedbackSettings()
+            case .model: ModelSettings()
+            case .writing: WritingSettings()
+            case .dictionary: VocabularyView()
+            case .mic: MicSettings()
+            case .sources: SourcesPage()
+            case .access: SetupPage()
+            case .privacy: PrivacyPage()
+            case .about: AboutPage()
             }
         }
     }
