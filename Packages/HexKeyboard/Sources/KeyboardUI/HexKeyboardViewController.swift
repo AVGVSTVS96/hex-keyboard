@@ -157,6 +157,7 @@ open class HexKeyboardViewController: UIInputViewController {
 
     override open func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        isShown = true
         KeyboardHost.appeared()
         updateHost()
         keyboard = .random(in: 1 ... .max)
@@ -209,6 +210,7 @@ open class HexKeyboardViewController: UIInputViewController {
 
     override open func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
+        isShown = false
         engine.endSession()
         engine.handle(.panel(nil), in: document)
         haptics.stop()
@@ -321,6 +323,7 @@ open class HexKeyboardViewController: UIInputViewController {
     }
 
     private func render() {
+        guard isShown else { return }
         tellSources(.keyboard)
         noteTyping()
         let device = device
@@ -398,10 +401,14 @@ open class HexKeyboardViewController: UIInputViewController {
     }
 
     private var ranking = false
+    /// From viewWillAppear to viewWillDisappear. Once the keyboard goes away the text document proxy is torn down while
+    /// this controller lives on, and reading it then crashes, so a ranking job or load that finishes later draws nothing.
+    private var isShown = false
     /// What the More menu was made from, so it's made again only when that changes.
     private var shownMore: [KeyboardEvent] = []
 
     private func renderSuggestions() {
+        guard isShown else { return }
         guard engine.suggestionsAreStale else {
             return suggestionBar.update(engine.suggestions, emoji: engine.emojiSuggestions, enabled: engine.showsSuggestions, theme: theme)
         }
