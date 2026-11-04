@@ -27,7 +27,7 @@ final class SuggestionBar: UIView {
     private var tools: [ToolButton] = []
     private let more = MoreButton(type: .system)
     private let mic = MicButton()
-    private let cancel = UIButton(configuration: .filled())
+    private let cancel = CancelButton()
     private let waveform = Waveform()
     private let notice = UILabel()
     private var emojiBeside = false
@@ -59,11 +59,6 @@ final class SuggestionBar: UIView {
         addSubview(strip)
         mic.addAction(UIAction { [unowned self] _ in onMic() }, for: .touchUpInside)
         mic.onHold = { [unowned self] in onMicHold() }
-        cancel.configuration?.image = UIImage(systemName: "xmark", withConfiguration: UIImage.SymbolConfiguration(pointSize: 14, weight: .semibold))
-        cancel.configuration?.cornerStyle = .capsule
-        cancel.configuration?.contentInsets = .zero
-        cancel.accessibilityIdentifier = "hex.cancel"
-        cancel.accessibilityLabel = "Cancel Dictation"
         cancel.addAction(UIAction { [unowned self] _ in onCancel() }, for: .touchUpInside)
         addSubview(waveform)
         addSubview(cancel)
@@ -111,8 +106,7 @@ final class SuggestionBar: UIView {
     /// the dictations recorded and still to be written, and `waitingFor` what they wait for while the model gets ready.
     func update(mic: MicButton.Phase, recorded: Double, saved: [Double], waitingFor: String?, notice: String?, theme: KeyboardTheme) {
         self.mic.show(mic, theme: theme)
-        cancel.configuration?.baseBackgroundColor = theme.candidatePill.ui
-        cancel.configuration?.baseForegroundColor = theme.label.ui
+        cancel.paint(theme)
         waveform.show(mic, recorded: recorded, saved: saved, waitingFor: waitingFor, theme: theme)
         self.notice.text = notice
         self.notice.textColor = theme.candidate.ui
@@ -159,7 +153,7 @@ final class SuggestionBar: UIView {
         let quiet = !enabled || noticed || recording
         notice.isHidden = !noticed || recording
         waveform.isHidden = !recording
-        cancel.isHidden = mic.phase != .listening
+        cancel.shows = mic.phase == .listening
         slots.forEach { $0.isHidden = quiet }
         strip.isHidden = quiet || emoji.isEmpty
         emoji.forEach { $0.isHidden = quiet }
@@ -186,7 +180,9 @@ final class SuggestionBar: UIView {
             tools: tools.count, more: !more.isHidden, maximumSlot: maximumSlotWidth
         )
         mic.frame = CGRect(layout.mic)
-        cancel.frame = CGRect(layout.cancel)
+        let cancelPlace = CGRect(layout.cancel)
+        cancel.bounds.size = cancelPlace.size
+        cancel.center = CGPoint(x: cancelPlace.midX, y: cancelPlace.midY)
         for (tool, frame) in zip(tools, layout.tools) { tool.frame = CGRect(frame) }
         if let cell = layout.more.map({ CGRect($0) }) {
             more.frame = cell
@@ -377,6 +373,70 @@ final class MicButton: UIControl {
         let voice = phase == .listening ? levels[levels.count - 1] : 0
         halo.alpha = phase == .listening ? 0.16 + 0.14 * voice : 0
         halo.transform = phase == .listening ? CGAffineTransform(scaleX: 1.04 + 0.2 * voice, y: 1.04 + 0.2 * voice) : .identity
+    }
+}
+
+/// The cancel button beside the waveform while you dictate: an x in a round pill, which grows in with the waveform and
+/// shrinks away when the dictation ends, and gives under your finger as the mic does.
+private final class CancelButton: UIControl {
+    private let face = UIView()
+    private let glyph = UIImageView(image: UIImage(systemName: "xmark", withConfiguration: UIImage.SymbolConfiguration(pointSize: 14, weight: .semibold)))
+
+    var shows = false {
+        didSet {
+            guard shows != oldValue else { return }
+            isUserInteractionEnabled = shows
+            accessibilityElementsHidden = !shows
+            let apply = {
+                self.alpha = self.shows ? 1 : 0
+                self.transform = self.shows ? .identity : CGAffineTransform(scaleX: 0.8, y: 0.8)
+            }
+            if window != nil { settle(apply) } else { apply() }
+        }
+    }
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        accessibilityIdentifier = "hex.cancel"
+        accessibilityLabel = "Cancel Dictation"
+        isAccessibilityElement = true
+        accessibilityTraits = .button
+        face.isUserInteractionEnabled = false
+        glyph.contentMode = .center
+        addSubview(face)
+        face.addSubview(glyph)
+        alpha = 0
+        transform = CGAffineTransform(scaleX: 0.8, y: 0.8)
+        isUserInteractionEnabled = false
+        accessibilityElementsHidden = true
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    func paint(_ theme: KeyboardTheme) {
+        face.backgroundColor = theme.candidatePill.ui
+        glyph.tintColor = theme.label.ui
+    }
+
+    override var isHighlighted: Bool {
+        didSet {
+            guard isHighlighted != oldValue else { return }
+            UIView.animate(springDuration: isHighlighted ? 0.16 : 0.3, bounce: 0, options: [.beginFromCurrentState, .allowUserInteraction]) {
+                self.face.transform = self.isHighlighted ? CGAffineTransform(scaleX: 0.92, y: 0.92) : .identity
+            }
+        }
+    }
+
+    override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
+        bounds.insetBy(dx: -6, dy: -4).contains(point)
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        face.bounds = bounds
+        face.center = CGPoint(x: bounds.midX, y: bounds.midY)
+        face.layer.cornerRadius = bounds.height / 2
+        glyph.frame = bounds
     }
 }
 
