@@ -29,7 +29,7 @@ final class DictationViewController: UIViewController {
         cancel.configuration?.title = "Cancel"
         cancel.addAction(UIAction { [unowned self] _ in
             guard Listener.shared.isListening || Listener.shared.isWriting else { return dismiss(animated: true) }
-            Listener.shared.cancel()
+            Listener.shared.cancelAll()
         }, for: .touchUpInside)
 
         let buttons = UIStackView(arrangedSubviews: [cancel, done])

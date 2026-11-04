@@ -48,6 +48,7 @@ import UIKit
                 Task { await Listener.shared.start() }
             },
             Dictation.observe(.stop) { keyboard in Task { await Listener.shared.turnMicOff(in: keyboard) } },
+            Dictation.observe(.cancel) { Listener.shared.cancel() },
         ]
     }
 
@@ -91,14 +92,20 @@ import UIKit
         _ = await tail?.value
     }
 
-    /// Types nothing: the dictation being recorded, and any still being written, are kept in Transcripts only.
+    /// Types nothing of the dictation being recorded: it's kept in Transcripts only.
     func cancel() {
-        for take in writing { take.typed = false }
-        guard let take = recording, tail == nil else { return publish() }
+        guard let take = recording, tail == nil else { return }
         let sound = microphone.cut()
         recording = nil
         take.typed = false
         write(take, Task { sound })
+    }
+
+    /// Types nothing: the dictation being recorded, and any still being written, are kept in Transcripts only.
+    func cancelAll() {
+        for take in writing { take.typed = false }
+        cancel()
+        publish()
     }
 
     private func write(_ take: Take, _ sound: Task<[Float], Never>) {
@@ -186,7 +193,7 @@ import UIKit
     private func publish() {
         var status = Dictation.Status()
         status.listening = isListening
-        status.writing = writing.map(\.recorded)
+        status.writing = writing.filter(\.typed).map(\.recorded)
         status.waiting = VoiceModel.shared.waiting
         Dictation.publish(status)
         onChange?()

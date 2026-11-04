@@ -3,12 +3,13 @@ import KeyboardCore
 
 /// Apple's three suggestions with the word's emoji (as many as fit, and the rest a swipe left away), a round mic at the
 /// right end that starts and stops dictation, and the tools at the left end, all placed by `BarLayout`. While the app
-/// listens, the suggestions give way to a waveform of your voice and the time so far.
+/// listens, the suggestions give way to a cancel button and a waveform of your voice with the time so far.
 final class SuggestionBar: UIView {
     var onSelect: (Suggestion) -> Void = { _ in }
     var onEmoji: (String) -> Void = { _ in }
     var onMic: () -> Void = {}
     var onMicHold: () -> Void = {}
+    var onCancel: () -> Void = {}
     var onNotice: () -> Void = {}
     var onTool: (Panel) -> Void = { _ in }
     var maximumSlotWidth = CGFloat.infinity { didSet { setNeedsLayout() } }
@@ -26,6 +27,7 @@ final class SuggestionBar: UIView {
     private var tools: [ToolButton] = []
     private let more = MoreButton(type: .system)
     private let mic = MicButton()
+    private let cancel = UIButton(configuration: .filled())
     private let waveform = Waveform()
     private let notice = UILabel()
     private var emojiBeside = false
@@ -54,7 +56,14 @@ final class SuggestionBar: UIView {
         addSubview(strip)
         mic.addAction(UIAction { [unowned self] _ in onMic() }, for: .touchUpInside)
         mic.onHold = { [unowned self] in onMicHold() }
+        cancel.configuration?.image = UIImage(systemName: "xmark", withConfiguration: UIImage.SymbolConfiguration(pointSize: 14, weight: .semibold))
+        cancel.configuration?.cornerStyle = .capsule
+        cancel.configuration?.contentInsets = .zero
+        cancel.accessibilityIdentifier = "hex.cancel"
+        cancel.accessibilityLabel = "Cancel Dictation"
+        cancel.addAction(UIAction { [unowned self] _ in onCancel() }, for: .touchUpInside)
         addSubview(waveform)
+        addSubview(cancel)
         addSubview(mic)
         notice.isHidden = true
         notice.font = .systemFont(ofSize: 15)
@@ -99,6 +108,8 @@ final class SuggestionBar: UIView {
     /// the dictations recorded and still to be written, and `waitingFor` what they wait for while the model gets ready.
     func update(mic: MicButton.Phase, recorded: Double, saved: [Double], waitingFor: String?, notice: String?, theme: KeyboardTheme) {
         self.mic.show(mic, theme: theme)
+        cancel.configuration?.baseBackgroundColor = theme.candidatePill.ui
+        cancel.configuration?.baseForegroundColor = theme.label.ui
         waveform.show(mic, recorded: recorded, saved: saved, waitingFor: waitingFor, theme: theme)
         self.notice.text = notice
         self.notice.textColor = theme.candidate.ui
@@ -145,6 +156,7 @@ final class SuggestionBar: UIView {
         let quiet = !enabled || noticed || recording
         notice.isHidden = !noticed || recording
         waveform.isHidden = !recording
+        cancel.isHidden = mic.phase != .listening
         slots.forEach { $0.isHidden = quiet }
         strip.isHidden = quiet || emoji.isEmpty
         emoji.forEach { $0.isHidden = quiet }
@@ -171,6 +183,7 @@ final class SuggestionBar: UIView {
             tools: tools.count, more: !more.isHidden, maximumSlot: maximumSlotWidth
         )
         mic.frame = CGRect(layout.mic)
+        cancel.frame = CGRect(layout.cancel)
         for (tool, frame) in zip(tools, layout.tools) { tool.frame = CGRect(frame) }
         if let cell = layout.more.map({ CGRect($0) }) {
             more.frame = cell
@@ -201,7 +214,7 @@ final class SuggestionBar: UIView {
         for (index, divider) in dividers.enumerated() {
             divider.frame = CGRect(x: slots[index].frame.maxX - 0.5, y: row.midY - 14, width: 1, height: 28)
         }
-        waveform.frame = row.insetBy(dx: 4, dy: 0)
+        waveform.frame = CGRect(x: layout.waveformMinX, y: row.minY, width: layout.maxX - layout.waveformMinX, height: row.height).insetBy(dx: 4, dy: 0)
         notice.frame = row.insetBy(dx: 4, dy: 0)
     }
 }

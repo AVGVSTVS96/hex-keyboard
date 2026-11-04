@@ -61,11 +61,12 @@ struct BarLayoutTests {
                 if let first = layout.tools.first {
                     #expect(first.y == layout.mic.y && first.width == layout.mic.width, "\(label): tools are the mic's size")
                 }
+                #expect(layout.cancel.y == layout.mic.y && layout.cancel.width == layout.mic.width, "\(label): cancel is the mic's size")
             }
         }
     }
 
-    /// Tools, suggestions, emoji and mic sit in order, apart, inside the bar.
+    /// Tools, suggestions (or cancel and the waveform), emoji and mic sit in order, apart, inside the bar.
     @Test func nothingOverlaps() {
         for screen in Self.screens {
             for (_, layout, label) in layouts(screen) {
@@ -89,6 +90,8 @@ struct BarLayoutTests {
                     #expect(layout.slots[2].x + layout.slots[2].width <= layout.emoji.x + 0.001, "\(label)")
                 }
                 #expect(layout.maxX + BarLayout.gap <= layout.mic.x + 0.001 && layout.mic.x + layout.mic.width <= screen.window, "\(label)")
+                #expect(near(layout.cancel.x, layout.minX) && near(layout.waveformMinX, layout.cancel.x + layout.cancel.width + BarLayout.gap), "\(label): cancel, then the waveform")
+                #expect(layout.maxX - layout.waveformMinX >= 100, "\(label): the waveform has room (\(layout.maxX - layout.waveformMinX))")
             }
         }
     }

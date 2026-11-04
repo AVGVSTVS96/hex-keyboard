@@ -3,13 +3,16 @@
 /// corner. The tools mirror it at the left, round cells the mic's size, after the More button, half as wide, at the far
 /// left. Between them the three suggestions share the bar, or on a phone's bar wide enough take what they need and
 /// leave the rest to the word's emoji, beside them rather than in the third one's place. Neither depends on the emoji,
-/// so the suggestions never move as you type, as Apple's don't.
+/// so the suggestions never move as you type, as Apple's don't. While you dictate, the cancel button, the mic's size,
+/// takes the start of that span and the waveform the rest.
 public struct BarLayout: Hashable, Sendable {
     public var mic: Rect
     public var tools: [Rect]
     public var more: Rect?
-    /// The suggestions' and the waveform's span.
+    /// The suggestions' span.
     public var minX, maxX: Double
+    public var cancel: Rect
+    public var waveformMinX: Double
     public var slots: [Rect]
     /// The emoji's place: beside the suggestions where the bar has room for them, else the third suggestion's.
     public var emoji: Rect
@@ -39,6 +42,8 @@ public struct BarLayout: Hashable, Sendable {
         self.tools = (0..<tools).map { Rect(x: start + Double($0) * (side + Self.gap), y: y, width: side, height: side) }
         minX = self.tools.last.map { $0.x + $0.width + Self.gap } ?? start
         maxX = mic.x - Self.gap
+        cancel = Rect(x: minX, y: y, width: side, height: side)
+        waveformMinX = minX + side + Self.gap
         let span = maxX - minX
         emojiBeside = maximumSlot == .infinity && span - 3 * Self.slotWidth >= 2 * Self.emojiPitch
         let slot = emojiBeside ? Self.slotWidth : min(span / 3, maximumSlot)

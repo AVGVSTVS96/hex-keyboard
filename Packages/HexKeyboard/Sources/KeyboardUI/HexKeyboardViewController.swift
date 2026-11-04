@@ -100,6 +100,10 @@ open class HexKeyboardViewController: UIInputViewController {
             feedback(.other)
             Dictation.send(.stop, from: keyboard)
         }
+        suggestionBar.onCancel = { [unowned self] in
+            feedback(.other)
+            Dictation.send(.cancel)
+        }
         engine.defersSuggestions = true
         keyboardView.onEvent = { [unowned self] in handle($0) }
         suggestionBar.onSelect = { [unowned self] in

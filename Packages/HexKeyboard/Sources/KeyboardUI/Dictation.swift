@@ -11,7 +11,7 @@ public enum Dictation {
     /// are still being written down, and has them typed in the order you said them.
     public struct Status: Codable, Equatable, Sendable {
         public var listening = false
-        /// How long each dictation the app has recorded and is still writing down is, in seconds, oldest first.
+        /// How long each dictation the app has recorded and is still writing down to type is, in seconds, oldest first.
         public var writing: [Double] = []
         /// What those dictations wait for while the model gets ready, in a few words; nil once it's ready.
         public var waiting: String?
@@ -42,6 +42,8 @@ public enum Dictation {
         case start = "com.shahidy.hexkeyboard.dictation.start"
         /// The keyboard wants the microphone off, with what was said so far typed, carrying its `keyboard` as `finish` does.
         case stop = "com.shahidy.hexkeyboard.dictation.stop"
+        /// The keyboard wants the dictation being recorded thrown away: never typed, kept only in Transcripts.
+        case cancel = "com.shahidy.hexkeyboard.dictation.cancel"
         /// A keyboard appeared, carrying its `keyboard` in the state, so any other still listening (one whose app
         /// ended without it disappearing) stops, and only the keyboard you see takes what the app leaves.
         case appeared = "com.shahidy.hexkeyboard.dictation.appeared"
