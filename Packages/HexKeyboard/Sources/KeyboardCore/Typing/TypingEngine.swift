@@ -220,7 +220,8 @@ public struct TypingEngine {
         if typing.letters.isEmpty, let pending {
             let head = Substring(text.before).dropLast(while: { !Words.isWordCharacter($0) })
             if head.hasSuffix(pending.word) {
-                corrector?.forget(pending.word, after: Words.previous(before: Words.current(in: String(head)), in: String(head)))
+                let context = Words.context(before: Words.current(in: String(head)), in: String(head))
+                corrector?.forget(pending.word, after: context.previous, earlier: context.earlier)
             }
             self.pending = nil
         }

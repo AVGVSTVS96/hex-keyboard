@@ -13,20 +13,31 @@ public struct TypingMemory: Codable, Hashable, Sendable {
 
     public init() {}
 
-    public mutating func record(_ word: String, after previous: String?) {
+    /// Counts a word after the word before it and, when `earlier` is known, after the two before it.
+    public mutating func record(_ word: String, after previous: String?, earlier: String? = nil) {
         let word = Words.plain(word), previous = previous.map(Words.plain)
         counts[word, default: 0] += 1
         total += 1
-        if let previous { following[previous, default: [:]][word, default: 0] += 1 }
+        for context in Self.contexts(previous, earlier) { following[context, default: [:]][word, default: 0] += 1 }
         if counts.count > Self.capacity { forgetRarest() }
     }
 
-    public mutating func forget(_ word: String, after previous: String?) {
+    public mutating func forget(_ word: String, after previous: String?, earlier: String? = nil) {
         let word = Words.plain(word), previous = previous.map(Words.plain)
         guard let count = counts[word] else { return }
         counts[word] = count > 1 ? count - 1 : nil
         total -= 1
-        if let previous, let next = following[previous]?[word] { following[previous]?[word] = next > 1 ? next - 1 : nil }
+        for context in Self.contexts(previous, earlier) {
+            if let next = following[context]?[word] { following[context]?[word] = next > 1 ? next - 1 : nil }
+        }
+    }
+
+    /// The keys `following` counts a word under: the word before it, and the two before it joined by a space, which no
+    /// word contains.
+    static func contexts(_ previous: String?, _ earlier: String?) -> [String] {
+        guard let previous else { return [] }
+        guard let earlier, !previous.isEmpty else { return [previous] }
+        return [previous, Words.plain(earlier) + " " + previous]
     }
 
     /// Counts what you type right after a space, so a second space (the "." shortcut) is as likely as you make it.

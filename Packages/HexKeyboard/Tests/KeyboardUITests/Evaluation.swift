@@ -123,7 +123,7 @@ struct Evaluation {
                 guard words.count > spaces else { continue }
                 let pick = Int(random.next() % UInt64(words.count - spaces))
                 var engine = TypingEngine(traits: InputTraits(autocapitalization: .none))
-                let corrector = Corrector(source: Lexicon.english, phrases: .english)
+                let corrector = Corrector(source: Lexicon.english, network: .english)
                 corrector.grid = user.grid
                 engine.corrector = corrector
                 let document = Document()
@@ -247,7 +247,7 @@ struct Session {
         #else
         let source: any CandidateSource = Lexicon.english
         #endif
-        let corrector = Corrector(source: source, phrases: keyboard == .baseline ? nil : .english)
+        let corrector = Corrector(source: source, network: keyboard == .baseline ? nil : .english)
         corrector.grid = grid
         engine.corrector = corrector
     }
@@ -295,7 +295,7 @@ struct Prediction {
     var words = 0, first = 0, topThree = 0
 
     init() {
-        engine.corrector = Corrector(source: Lexicon.english, phrases: .english)
+        engine.corrector = Corrector(source: Lexicon.english, network: .english)
     }
 
     mutating func type(_ phrase: [String]) {

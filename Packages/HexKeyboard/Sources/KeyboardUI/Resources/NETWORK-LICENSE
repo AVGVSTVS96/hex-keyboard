@@ -1,0 +1,9 @@
+en.network is trained by scripts/network from these sources. iikb's own code is MIT (see LICENSE at the repository root);
+the weights inside en.network are derived from them.
+
+WildChat-4.8M and WildChat-1M by the Allen Institute for AI, https://huggingface.co/datasets/allenai/WildChat-4.8M,
+released under the Open Data Commons Attribution License (ODC-By) v1.0, https://opendatacommons.org/licenses/by/1-0/
+
+SODA by the Allen Institute for AI, https://huggingface.co/datasets/allenai/soda, released under the Creative Commons
+Attribution 4.0 International License (CC BY 4.0), https://creativecommons.org/licenses/by/4.0/
+

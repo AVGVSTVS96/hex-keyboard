@@ -1,6 +1,6 @@
 public final class Corrector {
     public let source: any CandidateSource
-    public let phrases: Phrases?
+    public let network: Network?
     public var replacements: [String: String] = [:]
     public var names: [String: String] = [:]
     /// What you've taught it, changed only through `record`, `forget` and `changeMemory`, which change it in place: a
@@ -19,6 +19,8 @@ public final class Corrector {
     private var rankings: [Ranking: [Candidate]] = [:]
     private var keyShares: [String: [Double]] = [:]
     private var generation = 0
+    private var reading: (tokens: [Int], state: Network.State, next: Network.Next)?
+    private var unknown: Double?
 
     private struct Ranking: Hashable {
         var typed: TypedWord
@@ -27,16 +29,18 @@ public final class Corrector {
     }
 
     /// With a `Lexicon` as its source, the corrector decodes your taps against your own touch model and words;
-    /// any other source (like `UITextChecker`) only corrects spelling. `Phrases` tell it what words follow which.
-    public init(source: any CandidateSource, phrases: Phrases? = nil) {
+    /// any other source (like `UITextChecker`) only corrects spelling. The `Network` tells it what words come next.
+    public init(source: any CandidateSource, network: Network? = nil) {
         self.source = source
-        self.phrases = phrases
+        self.network = network
         self.lexicon = source as? Lexicon
     }
 
     /// A corrector with the same words, touches and grid, and caches of its own.
     func snapshot() -> Corrector {
-        let copy = Corrector(source: source, phrases: phrases)
+        let copy = Corrector(source: source, network: network)
+        copy.reading = reading
+        copy.unknown = unknown
         copy.replacements = replacements
         copy.names = names
         copy.memory = memory
@@ -51,6 +55,8 @@ public final class Corrector {
 
     /// Keeps what a snapshot ranked, if this corrector's words, touches and grid haven't changed since.
     func adopt(_ snapshot: Corrector) {
+        reading = snapshot.reading ?? reading
+        unknown = unknown ?? snapshot.unknown
         guard snapshot.generation == generation else { return }
         rankings.merge(snapshot.rankings) { mine, _ in mine }
         keyShares.merge(snapshot.keyShares) { mine, _ in mine }
@@ -58,9 +64,9 @@ public final class Corrector {
     }
 
     /// Counts a word you kept, after the one before it.
-    public func record(_ word: String, after previous: String?) {
+    public func record(_ word: String, after previous: String?, earlier: String? = nil) {
         let total = memory.total
-        memory.record(word, after: previous)
+        memory.record(word, after: previous, earlier: earlier)
         if let app {
             if memory.apps == nil { memory.apps = [:] }
             memory.apps?[app, default: AppWords()].record(Words.plain(word), after: previous.map(Words.plain))
@@ -69,9 +75,9 @@ public final class Corrector {
     }
 
     /// Takes back one count of a word you didn't keep after all.
-    public func forget(_ word: String, after previous: String?) {
+    public func forget(_ word: String, after previous: String?, earlier: String? = nil) {
         let total = memory.total
-        memory.forget(word, after: previous)
+        memory.forget(word, after: previous, earlier: earlier)
         if let app { memory.apps?[app]?.forget(Words.plain(word), after: previous.map(Words.plain)) }
         recount(word, by: -1, since: total)
     }
@@ -135,7 +141,8 @@ public final class Corrector {
         return Words.matchCase(guess, to: text)
     }
 
-    func suggestions(for word: TypedWord, correcting: Bool, applying: Bool = true, guessing: Bool) -> [Suggestion] {
+    /// `context` is the text before the word, when known.
+    func suggestions(for word: TypedWord, context: String? = nil, correcting: Bool, applying: Bool = true, guessing: Bool) -> [Suggestion] {
         let typed = Substring(word.text)
         var seen: Set<String> = [word.text.lowercased()]
         var alternatives: [Suggestion] = []
@@ -156,7 +163,7 @@ public final class Corrector {
         let lower = word.text.lowercased()
         add(names.filter { $0.key.count > lower.count && $0.key.hasPrefix(lower) }.values.sorted(), as: .candidate)
         if lexicon != nil {
-            add(ranked(word).filter { !$0.isLiteral }.map(\.word), as: .candidate)
+            add(completions(for: word, context: context), as: .candidate)
         } else {
             add(memory.completions(for: word.text), as: .candidate)
             add(source.completions(for: word.text), as: .candidate)
@@ -167,12 +174,13 @@ public final class Corrector {
 
     func predictions(after previous: String?, earlier: String?, context: String) -> [Suggestion] {
         var seen: Set<String> = []
-        var words = (previous.map(memory.predictions(after:)) ?? []) + source.predictions(after: context)
+        var words = TypingMemory.contexts(previous, earlier).reversed().flatMap(memory.predictions(after:)) + source.predictions(after: context)
         if let lexicon {
-            let model = languageModel(lexicon)
-            let phrased = phrases?.next(after: previous, earlier: earlier).map { lexicon.canonical($0) ?? $0 } ?? []
-            words = (words + phrased + lexicon.mostFrequent(count: 6))
-                .map { ($0, model.logPrediction($0, after: previous, earlier: earlier)) }
+            let expected = expected(after: context)
+            let predict = languageModel(lexicon).predictor(after: previous, earlier: earlier, expected: expected)
+            let likeliest = (expected?.likeliest(12) ?? []).map { lexicon.canonical($0) ?? $0 }
+            words = (words + likeliest + lexicon.mostFrequent(count: 6))
+                .map { ($0, predict($0)) }
                 .sorted { $0.1 > $1.1 }
                 .map(\.0)
         }
@@ -180,6 +188,48 @@ public final class Corrector {
             .filter { seen.insert($0.lowercased()).inserted }
             .prefix(3)
             .map { Suggestion($0, .candidate) }
+    }
+
+    /// What the word you're typing may become, likeliest first: the decoder's readings of your taps and the words likely
+    /// to come next, each scored by your taps and by the next-word model. `context` is the text before the word.
+    func completions(for typed: TypedWord, context: String?) -> [String] {
+        guard let lexicon else { return [] }
+        let earlier = context.flatMap { Words.context(before: $0[$0.endIndex...], in: $0).earlier }
+        let expected = context.flatMap(expected(after:))
+        let predict = languageModel(lexicon).predictor(after: typed.previous, earlier: earlier, expected: expected)
+        let taps = evidence(for: typed, touches: memory.touches)
+        let literal = typed.text.lowercased()
+        var fits = Dictionary(ranked(typed).filter { !$0.isLiteral }.map { ($0.word, $0.logLikelihood) }) { first, _ in first }
+        let following = TypingMemory.contexts(typed.previous, earlier).flatMap(memory.predictions(after:))
+            + (expected?.likeliest(24, startingWith: typed.text) ?? []).map { lexicon.canonical($0) ?? $0 }
+        for word in following where fits[word] == nil && word.lowercased() != literal {
+            fits[word] = Decoder.logLikelihood(of: word, given: taps, touches: memory.touches, on: grid, completing: true)
+        }
+        return fits.filter { $0.value > -.infinity }
+            .map { ($0.key, $0.value + predict($0.key)) }
+            .sorted { $0.1 != $1.1 ? $0.1 > $1.1 : $0.0 < $1.0 }
+            .map(\.0)
+    }
+
+    /// What the network expects after `text`. It goes on from what it read for the text before when this text only adds
+    /// to it, up to twice `Network.window` tokens, as long as the windows it learned from, and otherwise reads the last
+    /// `Network.window` tokens afresh.
+    func expected(after text: String) -> Network.Next? {
+        guard let network, let lexicon else { return nil }
+        let tokens = network.tokens(before: text)
+        if let reading, reading.tokens == tokens { return reading.next }
+        let state = if let reading, tokens.count <= 2 * Network.window, tokens.starts(with: reading.tokens) {
+            network.read(tokens[reading.tokens.count...], from: reading.state)
+        } else {
+            network.read(tokens.suffix(Network.window), from: network.start)
+        }
+        let unknown = unknown ?? 1 - (Network.specials.count..<network.words).reduce(0) {
+            $0 + (lexicon.logProbability(of: network.spelling(of: $1)).map(Math.exp) ?? 0)
+        }
+        self.unknown = unknown
+        let next = Network.Next(network: network, logProbabilities: network.logProbabilities(at: state), unknown: max(unknown, .ulpOfOne))
+        reading = (tokens, state, next)
+        return next
     }
 
     /// The words Check Spelling underlines: words with no digits that aren't in the lexicon (nor its possessive),
@@ -309,7 +359,7 @@ extension Corrector {
     func languageModel(_ lexicon: Lexicon) -> LanguageModel {
         let novel = novel ?? LanguageModel.novel(in: memory, lexicon: lexicon)
         self.novel = novel
-        return LanguageModel(lexicon: lexicon, memory: memory, phrases: phrases, novel: novel, app: app.flatMap { memory.apps?[$0] })
+        return LanguageModel(lexicon: lexicon, memory: memory, novel: novel, app: app.flatMap { memory.apps?[$0] })
     }
 }
 

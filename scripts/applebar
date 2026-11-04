@@ -1,0 +1,16 @@
+#!/bin/bash
+# Runs on the Mac. Types a file of segments through Apple's keyboard and records its bar: scripts/applebar in.txt out.txt [first count]
+set -euo pipefail
+cd "$(dirname "$0")/.."
+ID=$(scripts/sim ensure "iPhone 17" iPhone-17)
+scripts/sim boot "$ID"
+scripts/sim use "$ID" system
+for key in KeyboardAutocorrection KeyboardAutocapitalization; do xcrun simctl spawn "$ID" defaults write com.apple.Preferences "$key" -bool NO; done
+xcrun simctl spawn "$ID" defaults write com.apple.Preferences KeyboardPrediction -bool YES
+xcrun simctl shutdown "$ID"
+scripts/sim boot "$ID"
+xcodegen generate -q
+xcodebuild build-for-testing -project HexKeyboard.xcodeproj -scheme Hex -destination "id=$ID" -derivedDataPath build/uitest -quiet
+TEST_RUNNER_HEX_APPLEBAR_IN="$1" TEST_RUNNER_HEX_APPLEBAR_OUT="$2" TEST_RUNNER_HEX_APPLEBAR_FIRST="${3:-0}" TEST_RUNNER_HEX_APPLEBAR_COUNT="${4:-}" \
+  xcodebuild test-without-building -project HexKeyboard.xcodeproj -scheme Hex -destination "id=$ID" \
+  -derivedDataPath build/uitest -only-testing:HexUITests/AppleBar 2>&1 | grep -E "error:|failed|Executed" || true

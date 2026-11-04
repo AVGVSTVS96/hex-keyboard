@@ -1,7 +1,0 @@
-#!/bin/sh
-# Rebuilds Packages/HexKeyboard/Sources/KeyboardUI/Resources/en.phrases (see scripts/phrases.py for the source).
-# Needs build/lexicon/words.tsv from scripts/lexicon.
-set -e
-cd "$(dirname "$0")/.."
-nice -n 19 uv run --no-project python3 scripts/phrases.py build/lexicon/words.tsv build/phrases
-scripts/tool PhrasesBuilder build/phrases/contexts.tsv Packages/HexKeyboard/Sources/KeyboardUI/Resources/en.phrases

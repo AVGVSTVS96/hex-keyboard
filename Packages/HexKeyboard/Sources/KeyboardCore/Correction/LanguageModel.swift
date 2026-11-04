@@ -7,18 +7,16 @@
 struct LanguageModel {
     let lexicon: Lexicon
     let memory: TypingMemory
-    let phrases: Phrases?
     let novelty: Double
     let app: AppWords?
 
     static let spellingLogProbability = -Math.log(Double(Lexicon.alphabet))
 
     /// `novel` is `novel(in:lexicon:)`, when the caller keeps it counted.
-    init(lexicon: Lexicon, memory: TypingMemory, phrases: Phrases? = nil, novel: Int? = nil, app: AppWords? = nil) {
+    init(lexicon: Lexicon, memory: TypingMemory, novel: Int? = nil, app: AppWords? = nil) {
         self.app = app
         self.lexicon = lexicon
         self.memory = memory
-        self.phrases = phrases
         let novel = novel ?? Self.novel(in: memory, lexicon: lexicon)
         novelty = (Double(novel) + 1) / (Double(memory.total) + 2)
     }
@@ -29,28 +27,34 @@ struct LanguageModel {
     }
 
     func logProbability(_ word: String, after previous: String?) -> Double {
-        Math.log(probability(word, after: previous, earlier: nil, phrased: false))
+        Math.log(probability(word, after: previous, earlier: nil, over: unigram(word)))
     }
 
-    /// The same with the corpus's phrases under your next-word counts, for the word you'll type next. Corrections
-    /// leave them out: a phrase table keeps only each context's likeliest words, so it would push every other word down.
+    /// The same for the word you'll type next, after both words before it, with what the network `expected` from the
+    /// text before under your next-word counts. Corrections leave the network out: its vocabulary is the corpus's
+    /// commonest words, so it would push the rest down.
     /// `previous` is "" at a sentence's start and nil when unknown; `earlier` is the word before it, read the same way.
-    func logPrediction(_ word: String, after previous: String?, earlier: String?) -> Double {
-        Math.log(probability(word, after: previous, earlier: earlier, phrased: true))
+    func predictor(after previous: String?, earlier: String?, expected: Network.Next?) -> (String) -> Double {
+        { word in
+            let below = unigram(word)
+            return Math.log(probability(word, after: previous, earlier: earlier, over: expected?.probability(of: word, below: below) ?? below))
+        }
     }
 
-    private func probability(_ word: String, after previous: String?, earlier: String?, phrased: Bool) -> Double {
-        var p = lexical(word)
-        if memory.total > 0 {
-            let types = Double(memory.counts.count)
-            p = (Double(memory.count(of: word)) + types * p) / (Double(memory.total) + types)
-        }
-        if phrased, let phrases { p = phrases.probability(of: word, after: previous, earlier: earlier, below: p) }
-        if let previous {
-            let (count, total, types) = memory.count(of: word, after: previous)
+    private func probability(_ word: String, after previous: String?, earlier: String?, over corpus: Double) -> Double {
+        var p = corpus
+        for context in TypingMemory.contexts(previous, earlier) {
+            let (count, total, types) = memory.count(of: word, after: context)
             if total > 0 { p = (Double(count) + Double(types) * p) / Double(total + types) }
         }
         return app?.probability(of: word, after: previous, below: p) ?? p
+    }
+
+    private func unigram(_ word: String) -> Double {
+        let p = lexical(word)
+        guard memory.total > 0 else { return p }
+        let types = Double(memory.counts.count)
+        return (Double(memory.count(of: word)) + types * p) / (Double(memory.total) + types)
     }
 
     func lexical(_ word: String) -> Double {

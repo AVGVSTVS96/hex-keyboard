@@ -5,8 +5,8 @@ extension Lexicon {
     public static let english = Lexicon(bytes: .mapped("en", "lexicon"))!
 }
 
-extension Phrases {
-    static let english = Phrases(bytes: .mapped("en", "phrases"))!
+extension Network {
+    static let english = Network(bytes: .mapped("en", "network"))!
 }
 
 extension Bytes {

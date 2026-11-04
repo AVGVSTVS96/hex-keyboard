@@ -110,7 +110,7 @@ extension TypingEngine {
         let text = self.text.before
         let (word, tail) = suggested
         guard text[..<word.startIndex] == suggestionsBefore else { return }
-        let previous = Words.previous(before: word, in: text)
+        let context = Words.context(before: word, in: text)
         let whole = suggestion.kind == .revert ? String(word) : reachEnd(of: word, tail: tail, in: document)
         switch suggestion.kind {
         case .revert:
@@ -125,7 +125,7 @@ extension TypingEngine {
             write(suggestion.text, replacing: whole.count, in: document)
             hold(suggestion.text, typed: whole)
         }
-        if !suggestion.text.contains(" ") { corrector?.record(pending?.word ?? suggestion.text, after: previous) }
+        if !suggestion.text.contains(" ") { corrector?.record(pending?.word ?? suggestion.text, after: context.previous, earlier: context.earlier) }
         revert = nil
         typing = WordTaps()
         spaceAfterPick(in: document)
@@ -229,14 +229,15 @@ extension TypingEngine {
         let word = Words.current(in: text)
         guard !word.isEmpty else { return }
         var final = String(word), typedText = final
-        var previous = Words.previous(before: word, in: text)
+        var context = Words.context(before: word, in: text)
         let owned = self.text.owned
         guard correcting, owned >= word.count, Words.isCorrectable(word, in: text) else {
-            return settle(final, typed: final, after: previous, ending: ending)
+            return settle(final, typed: final, after: context, ending: ending)
         }
-        let typed = TypedWord(final, taps: typing.letters, previous: previous)
+        let typed = TypedWord(final, taps: typing.letters, previous: context.previous)
         if let stray, owned >= word.count + stray.swallowed.count, text.dropLast(word.count).hasSuffix(stray.swallowed),
-           case let before = Words.current(in: String(text.dropLast(word.count + stray.swallowed.count))).lowercased(),
+           case let head = String(text.dropLast(word.count + stray.swallowed.count)),
+           case let before = Words.current(in: head).lowercased(),
            let joined = corrector.joined(nil, space: stray.tap, TypedWord(final.lowercased(), taps: typing.letters, previous: before)).map(written) {
             write(stray.restored + joined, replacing: word.count + stray.swallowed.count, in: document)
             revert = Revert(original: stray.swallowed + final, replacement: stray.restored + joined)
@@ -244,35 +245,35 @@ extension TypingEngine {
             typing.letters = [stray.tap] + typing.letters
             final = joined
             typedText = joined
-            previous = before
+            context = (before, Words.previous(before: Words.current(in: head), in: head))
         } else if let pending, owned >= pending.word.count + 1 + word.count, let join = join(typed, after: pending, in: text) {
             write(join.word, replacing: pending.word.count + 1 + word.count, in: document)
             revert = Revert(original: "\(pending.word) \(final)", replacement: join.word)
-            corrector.forget(pending.word, after: join.previous)
+            corrector.forget(pending.word, after: join.context.previous, earlier: join.context.earlier)
             typing.letters = pending.taps + [join.space] + typing.letters
             self.pending = nil
             final = join.word
             typedText = join.word
-            previous = join.previous
+            context = join.context
         } else if let correction = corrector.correction(for: typed).map(written) {
             write(correction, replacing: word.count, in: document)
             revert = Revert(original: final, replacement: correction)
             final = correction
         }
-        settle(final, typed: typedText, after: previous, ending: ending)
+        settle(final, typed: typedText, after: context, ending: ending)
     }
 
     /// You left the word in progress as it stands, by sending it or putting the keyboard away, so it's kept as typed.
     mutating func keepWord(in text: TextState) {
         let word = Words.current(in: text.before)
         if !word.isEmpty, text.owned >= word.count {
-            settle(String(word), typed: String(word), after: Words.previous(before: word, in: text.before), ending: nil)
+            settle(String(word), typed: String(word), after: Words.context(before: word, in: text.before), ending: nil)
         }
         learnPending()
     }
 
-    private mutating func settle(_ word: String, typed: String, after previous: String?, ending: Tap?) {
-        if !word.contains(" ") { corrector?.record(word, after: previous) }
+    private mutating func settle(_ word: String, typed: String, after context: (previous: String?, earlier: String?), ending: Tap?) {
+        if !word.contains(" ") { corrector?.record(word, after: context.previous, earlier: context.earlier) }
         hold(word, typed: typed, ending: ending)
     }
 
@@ -287,16 +288,16 @@ extension TypingEngine {
     }
 
     /// Whether the space between the last word and this one was really a letter you missed ("a out" → "about").
-    private func join(_ typed: TypedWord, after pending: PendingWord, in text: String) -> (word: String, space: Tap, previous: String?)? {
+    private func join(_ typed: TypedWord, after pending: PendingWord, in text: String) -> (word: String, space: Tap, context: (previous: String?, earlier: String?))? {
         guard let corrector, let space = pending.ending, pending.taps.count == pending.typed.count else { return nil }
         let head = String(text.dropLast(typed.text.count))
         guard head.hasSuffix(pending.word + " ") else { return nil }
         let firstText = Words.current(in: String(head.dropLast()))
         guard firstText == pending.word[...] else { return nil }
-        let before = Words.previous(before: firstText, in: String(head.dropLast()))
-        let first = TypedWord(pending.typed, taps: pending.taps, previous: before)
+        let context = Words.context(before: firstText, in: String(head.dropLast()))
+        let first = TypedWord(pending.typed, taps: pending.taps, previous: context.previous)
         guard let joined = corrector.joined(first, space: space, TypedWord(typed.text, taps: typed.taps, previous: pending.word.lowercased())) else { return nil }
-        return (written(Words.matchCase(joined, to: Substring(pending.typed))), space, before)
+        return (written(Words.matchCase(joined, to: Substring(pending.typed))), space, context)
     }
 
     /// A second space right after a word: whether the first one was really the word's last letter ("jo" → "job").
@@ -306,13 +307,13 @@ extension TypingEngine {
         let text = self.text.before
         let head = String(text.dropLast())
         guard text.hasSuffix(pending.word + " "), Words.current(in: head) == pending.word[...] else { return false }
-        let previous = Words.previous(before: Words.current(in: head), in: head)
-        guard let joined = corrector.joined(TypedWord(pending.typed, taps: pending.taps, previous: previous), space: end, nil) else { return false }
+        let context = Words.context(before: Words.current(in: head), in: head)
+        guard let joined = corrector.joined(TypedWord(pending.typed, taps: pending.taps, previous: context.previous), space: end, nil) else { return false }
         let word = written(Words.matchCase(joined, to: Substring(pending.typed)))
         write(word + " ", replacing: pending.word.count + 1, in: document)
         revert = Revert(original: pending.word + ".", replacement: word, trailing: " ")
-        corrector.forget(pending.word, after: previous)
-        corrector.record(word, after: previous)
+        corrector.forget(pending.word, after: context.previous, earlier: context.earlier)
+        corrector.record(word, after: context.previous, earlier: context.earlier)
         corrector.changeMemory { $0.unrecordSpaceAfterSpace(keepingKey: false) }
         self.pending = PendingWord(word: word, typed: word, taps: pending.taps + [end], retyped: pending.retyped, ending: space)
         return true
@@ -340,7 +341,8 @@ extension TypingEngine {
         let current = Words.current(in: text.before)
         let inProgress = current == pending.word[...]
         guard inProgress || !Substring(text.before).dropLast(while: { !Words.isWordCharacter($0) }).hasSuffix(pending.word) else { return }
-        corrector?.forget(pending.word, after: Words.previous(before: current, in: text.before))
+        let context = Words.context(before: current, in: text.before)
+        corrector?.forget(pending.word, after: context.previous, earlier: context.earlier)
         if inProgress, pending.taps.count == pending.word.count {
             typing.letters = pending.taps
             typing.retyped = pending.retyped
@@ -380,7 +382,8 @@ extension TypingEngine {
         } else {
             let line = suggestionsBefore + whole
             let correcting = traits.allowsCorrection && Words.isCorrectable(Words.current(in: line), in: line)
-            suggestions = corrector.suggestions(for: typed, correcting: correcting, applying: settings.autoCorrection && isTyping, guessing: true)
+            suggestions = corrector.suggestions(for: typed, context: suggestionsBefore, correcting: correcting,
+                                                applying: settings.autoCorrection && isTyping, guessing: true)
         }
     }
 }

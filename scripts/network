@@ -1,0 +1,7 @@
+#!/bin/sh
+# Rebuilds Packages/HexKeyboard/Sources/KeyboardUI/Resources/en.network (see scripts/network.py for the corpus and model).
+# Downloads about 17 GB into build/network and trains on the GPU if there is one (about an hour on an M1 Max).
+set -e
+cd "$(dirname "$0")/.."
+nice -n 19 uv run --no-project --with pyarrow --with numpy --with torch python3 scripts/network.py build/network
+scripts/tool NetworkBuilder build/network/vocab.txt build/network/weights.f32 Packages/HexKeyboard/Sources/KeyboardUI/Resources/en.network

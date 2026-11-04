@@ -21,7 +21,7 @@ else
   mkdir -p "$pkg/Sources/KeyboardUI/Resources" "$pkg/Tests/KeyboardUITests"
   ln -sfn "$src/Sources/KeyboardCore" "$pkg/Sources/KeyboardCore"
   ln -sf "$src/Sources/KeyboardUI/Lexicon+English.swift" "$pkg/Sources/KeyboardUI/"
-  for file in en.lexicon en.phrases emoji.txt emoji-search.txt; do ln -sf "$src/Sources/KeyboardUI/Resources/$file" "$pkg/Sources/KeyboardUI/Resources/"; done
+  for file in en.lexicon en.network emoji.txt emoji-search.txt; do ln -sf "$src/Sources/KeyboardUI/Resources/$file" "$pkg/Sources/KeyboardUI/Resources/"; done
   for file in Evaluation.swift phrases.txt chat.txt; do ln -sf "$src/Tests/KeyboardUITests/$file" "$pkg/Tests/KeyboardUITests/"; done
   cat > "$pkg/Package.swift" <<'SWIFT'
 // swift-tools-version: 6.2
@@ -29,7 +29,7 @@ import PackageDescription
 
 let package = Package(name: "Eval", targets: [
     .target(name: "KeyboardCore"),
-    .target(name: "KeyboardUI", dependencies: ["KeyboardCore"], resources: [.copy("Resources/en.lexicon"), .copy("Resources/en.phrases"), .copy("Resources/emoji.txt"), .copy("Resources/emoji-search.txt")], swiftSettings: [.defaultIsolation(MainActor.self)]),
+    .target(name: "KeyboardUI", dependencies: ["KeyboardCore"], resources: [.copy("Resources/en.lexicon"), .copy("Resources/en.network"), .copy("Resources/emoji.txt"), .copy("Resources/emoji-search.txt")], swiftSettings: [.defaultIsolation(MainActor.self)]),
     .testTarget(name: "KeyboardUITests", dependencies: ["KeyboardUI"], resources: [.copy("phrases.txt"), .copy("chat.txt")]),
 ])
 SWIFT

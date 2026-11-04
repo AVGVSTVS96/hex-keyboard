@@ -11,9 +11,9 @@ let package = Package(
     targets: [
         .target(name: "KeyboardCore"),
         .target(name: "KeyboardArbiter"),
-        .target(name: "KeyboardUI", dependencies: ["KeyboardCore", "KeyboardArbiter"], exclude: ["Resources/LEXICON-LICENSE"], resources: [.copy("Resources/en.lexicon"), .copy("Resources/en.phrases"), .copy("Resources/emoji.txt"), .copy("Resources/emoji-search.txt"), .copy("Resources/Keys")], swiftSettings: [.defaultIsolation(MainActor.self)]),
+        .target(name: "KeyboardUI", dependencies: ["KeyboardCore", "KeyboardArbiter"], exclude: ["Resources/LEXICON-LICENSE", "Resources/NETWORK-LICENSE"], resources: [.copy("Resources/en.lexicon"), .copy("Resources/en.network"), .copy("Resources/emoji.txt"), .copy("Resources/emoji-search.txt"), .copy("Resources/Keys")], swiftSettings: [.defaultIsolation(MainActor.self)]),
         .executableTarget(name: "LexiconBuilder", dependencies: ["KeyboardCore"], path: "Tools/LexiconBuilder"),
-        .executableTarget(name: "PhrasesBuilder", dependencies: ["KeyboardCore"], path: "Tools/PhrasesBuilder"),
+        .executableTarget(name: "NetworkBuilder", dependencies: ["KeyboardCore"], path: "Tools/NetworkBuilder"),
         .testTarget(name: "KeyboardCoreTests", dependencies: ["KeyboardCore"]),
         .testTarget(name: "KeyboardUITests", dependencies: ["KeyboardUI"], resources: [.copy("phrases.txt"), .copy("chat.txt"), .copy("klipy.json")]),
     ]
