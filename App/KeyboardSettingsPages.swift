@@ -228,6 +228,9 @@ struct LayoutSettings: View {
         Box(header: "Key Spacing", footer: "Less space between the keys makes them bigger. The keyboard stays the same size.") {
             StopSlider(title: "Space Between Keys", label: "Key Spacing", level: model.binding(\.keySpacing), levels: KeySpacing.allCases, name: \.title, ends: ("Bigger Keys", "More Space"))
         }
+        Box(header: "Key Roundness", footer: "How round the keys' corners are, from square to nearly a pill.") {
+            StopSlider(title: "Corners", label: "Key Roundness", level: model.binding(\.keyRoundness), levels: KeyRoundness.allCases, name: \.title, ends: ("Sharper", "Rounder"))
+        }
         Box(header: "Rows") {
             ToggleRow(title: "Number Row", detail: "1 to 0 above the letters. The keyboard grows upward.", isOn: model.binding(\.numberRow))
         }

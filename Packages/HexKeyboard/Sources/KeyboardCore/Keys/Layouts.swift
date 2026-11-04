@@ -31,6 +31,7 @@ public struct LayoutContext: Hashable, Sendable {
     /// A row of digits above an iPhone's letters.
     public var showsNumberRow: Bool
     public var keySpacing = KeySpacing.standard
+    public var keyRoundness = KeyRoundness.standard
     public var keyboardMenu: KeyboardMenu
 
     public init(device: DeviceClass, layer: KeyboardLayer, kind: InputKind = .text, showsGlobe: Bool = false, isLandscape: Bool = false, isOpen: Bool = false, oneHanded: OneHanded = .off, isSplit: Bool = false, showsEmoji: Bool = false, showsGlobeKey: Bool = false, showsNumberRow: Bool = false, keyboardMenu: KeyboardMenu = .both) {
@@ -58,6 +59,7 @@ public struct LayoutContext: Hashable, Sendable {
             showsEmoji: settings.emojiKey, showsGlobeKey: settings.globeKey, showsNumberRow: settings.numberRow, keyboardMenu: settings.keyboardMenu
         )
         keySpacing = settings.keySpacing
+        keyRoundness = settings.keyRoundness
     }
 
     /// Like Apple's, only an iPhone in portrait narrows its keys for one hand, and on the Duo only folded.

@@ -57,7 +57,7 @@ enum LaunchOptions {
     }
 
     /// `-HexTheme mechanical -HexThemeAppearance dark -HexCharacterPreview detached -HexNumberRow YES -HexSkinTone medium
-    /// -HexKeySpacing tightest` set the keyboard's look for screenshots.
+    /// -HexKeySpacing tighter -HexKeyRoundness rounder` set the keyboard's look for screenshots.
     static func applyLook() {
         var settings = SettingsStore.load()
         if let theme = defaults.string(forKey: "HexTheme").flatMap(ThemeName.init) { settings.theme = theme }
@@ -66,6 +66,7 @@ enum LaunchOptions {
         if defaults.object(forKey: "HexNumberRow") != nil { settings.numberRow = defaults.bool(forKey: "HexNumberRow") }
         if let tone = defaults.string(forKey: "HexSkinTone") { settings.skinTone = SkinTone(rawValue: tone) }
         if let spacing = defaults.string(forKey: "HexKeySpacing").flatMap(KeySpacing.init) { settings.keySpacing = spacing }
+        if let roundness = defaults.string(forKey: "HexKeyRoundness").flatMap(KeyRoundness.init) { settings.keyRoundness = roundness }
         if settings != SettingsStore.load() { SettingsStore.save(settings) }
     }
 

@@ -42,12 +42,12 @@ struct SpacingTests {
     }
 
     @Test func theGapsAreAShareOfStandardsWithStandardInTheMiddle() {
-        #expect(KeySpacing.allCases[KeySpacing.allCases.count / 2] == .standard)
+        #expect(KeySpacing.allCases.count == 5 && KeySpacing.allCases[KeySpacing.allCases.count / 2] == .standard)
         #expect(KeySpacing.standard.share == 1)
         let metrics = KeyboardMetrics.for(.phone, width: 402, height: 874)
-        let tightest = metrics.spaced(.tightest, rows: 4), roomiest = metrics.spaced(.roomiest, rows: 4)
-        #expect(tightest.keyGap == metrics.keyGap / 4 && tightest.rowGap == metrics.rowGap / 4)
-        #expect(roomiest.keyGap == metrics.keyGap * 7 / 4 && roomiest.rowGap == metrics.rowGap * 7 / 4)
-        #expect(roomiest.keyHeight > 30, "the roomiest keys stay big enough to hit")
+        let tighter = metrics.spaced(.tighter, rows: 4), roomier = metrics.spaced(.roomier, rows: 4)
+        #expect(tighter.keyGap == metrics.keyGap / 2 && tighter.rowGap == metrics.rowGap / 2)
+        #expect(roomier.keyGap == metrics.keyGap * 3 / 2 && roomier.rowGap == metrics.rowGap * 3 / 2)
+        #expect(roomier.keyHeight > 30, "the roomiest keys stay big enough to hit")
     }
 }

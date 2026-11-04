@@ -19,6 +19,7 @@ public struct KeyboardSettings: Hashable, Sendable {
     /// The open Duo's keys in two halves in landscape, as Apple's More button's Split picks.
     public var split = false
     public var keySpacing = KeySpacing.standard
+    public var keyRoundness = KeyRoundness.standard
     /// Where the menu of layouts, Next Keyboard and iikb Settings opens: holding 123, the bar's menu button, or both.
     public var keyboardMenu = KeyboardMenu.both
     public var theme = ThemeName.standard
@@ -106,26 +107,44 @@ public enum HapticFeedback: String, CaseIterable, Hashable, Sendable {
 }
 
 /// The space between the keys, which sets the keycaps' size: the keyboard and each key's place stay as they are, and
-/// the keycaps take what the gaps give up. Standard, in the middle, is iikb's own, with three steps tighter and three
+/// the keycaps take what the gaps give up. Standard, in the middle, is iikb's own, with two steps tighter and two
 /// roomier.
 public enum KeySpacing: String, CaseIterable, Hashable, Sendable {
-    case tightest, tighter, tight, standard, roomy, roomier, roomiest
+    case tighter, tight, standard, roomy, roomier
 
     public var title: String {
         switch self {
-        case .tightest: "Tightest"
         case .tighter: "Tighter"
         case .tight: "Tight"
         case .standard: "Standard"
         case .roomy: "Roomy"
         case .roomier: "Roomier"
-        case .roomiest: "Roomiest"
         }
     }
 
-    /// A share of the standard gaps: a quarter of them at Tightest, seven quarters at Roomiest.
+    /// A share of the standard gaps: half of them at Tighter, three halves at Roomier.
     public var share: Double {
-        Double(Self.allCases.firstIndex(of: self)! + 1) / 4
+        Double(Self.allCases.firstIndex(of: self)! + 2) / 4
+    }
+}
+
+/// How round the keys' corners are, as a share of the theme's own: Standard, in the middle, keeps them, Sharper has none
+/// and Rounder doubles them.
+public enum KeyRoundness: String, CaseIterable, Hashable, Sendable {
+    case sharper, sharp, standard, round, rounder
+
+    public var title: String {
+        switch self {
+        case .sharper: "Sharper"
+        case .sharp: "Sharp"
+        case .standard: "Standard"
+        case .round: "Round"
+        case .rounder: "Rounder"
+        }
+    }
+
+    public var share: Double {
+        Double(Self.allCases.firstIndex(of: self)!) / 2
     }
 }
 

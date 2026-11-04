@@ -17,6 +17,7 @@ public struct KeyboardMetrics: Hashable, Sendable {
     public var topInset: Double
     public var bottomInset: Double
     public var cornerRadius: Double
+    public var roundness = KeyRoundness.standard
     public var letterSize: Double
     public var labelSize: Double
     public var secondarySize: Double
@@ -74,6 +75,7 @@ extension KeyboardMetrics {
     public static func `for`(_ context: LayoutContext, screen: Size, window: Double, style: KeyboardStyle) -> KeyboardMetrics {
         var metrics = Self.for(context.device, width: screen.width, height: screen.height, style: style, oneHanded: context.oneHanded, split: context.isSplit)
         if context.device == .phone, !context.isLandscape { metrics = metrics.fitted(screen: screen.width, window: window) }
+        metrics.roundness = context.keyRoundness
         return metrics.spaced(context.keySpacing, rows: Layouts.layout(for: context).rows.count)
     }
 
@@ -88,6 +90,11 @@ extension KeyboardMetrics {
         metrics.keyHeight -= down * Double(rows - 1) / Double(rows)
         metrics.numberRowHeight -= down * Double(rows - 1) / Double(rows)
         return metrics
+    }
+
+    /// A key's corners at `radius` as the roundness has them, never rounder than a pill of the smallest key.
+    public func rounded(_ radius: Double, key: Size) -> Double {
+        roundness == .standard ? radius : min(radius * roundness.share, min(key.width, key.height) / 2)
     }
 
     public static func phone(width: Double, style: KeyboardStyle = .ios26) -> KeyboardMetrics {

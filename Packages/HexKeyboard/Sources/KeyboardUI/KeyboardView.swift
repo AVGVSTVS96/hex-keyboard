@@ -121,12 +121,12 @@ final class KeyboardView: UIView {
     }
 
     /// The metrics keys and their callouts are drawn with: the theme's corners, sized from the narrowest key of the top
-    /// row, a letter or a digit.
+    /// row, a letter or a digit, as round as the roundness setting has them.
     var keyMetrics: KeyboardMetrics {
         var metrics = metrics
-        if let shape = theme.keyShape, let width = grid.rows.first?.map(\.frame.width).min() {
-            metrics.cornerRadius = shape.cornerRadius(letterWidth: width)
-        }
+        guard let width = grid.rows.first?.map(\.frame.width).min() else { return metrics }
+        if let shape = theme.keyShape { metrics.cornerRadius = shape.cornerRadius(letterWidth: width) }
+        metrics.cornerRadius = metrics.rounded(metrics.cornerRadius, key: Size(width: width, height: metrics.keyHeight))
         return metrics
     }
 
