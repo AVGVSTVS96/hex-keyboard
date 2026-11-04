@@ -1,0 +1,42 @@
+#!/bin/sh
+# Runs on the Mac (ssh mac sh -s <sha1> < scripts/resign): signs ~/Developer/hex-keyboard-phone/Hex.app and its keyboard
+# with the Mac's identity whose certificate has that SHA-1, each with the entitlements its embedded profile grants. The
+# free team holds one development certificate, and when it's the Mac's, xtool provisions for it but can't sign with it,
+# since its key stays in the Mac's login keychain. That keychain opens only in the login session, never over ssh, so the
+# signing runs there as a one-off launch agent, which no one sees.
+set -eu
+identity=$1
+dir=$(mktemp -d /tmp/hexkb-resign.XXXXXX)
+cat > "$dir/run" <<RUN
+#!/bin/sh
+cd "\$HOME/Developer/hex-keyboard-phone"
+for bundle in Hex.app/PlugIns/*.appex Hex.app; do
+  security cms -D -i "\$bundle/embedded.mobileprovision" > "$dir/profile.plist" || exit 1
+  /usr/bin/python3 -c '
+import plistlib, sys
+granted = plistlib.load(open(sys.argv[1], "rb"))["Entitlements"]
+keys = ("application-identifier", "com.apple.developer.team-identifier", "get-task-allow", "com.apple.security.application-groups")
+entitlements = {k: granted[k] for k in keys if k in granted}
+entitlements["keychain-access-groups"] = [granted["application-identifier"]]
+plistlib.dump(entitlements, open(sys.argv[2], "wb"))' "$dir/profile.plist" "$dir/entitlements.plist" || exit 1
+  codesign -f -s $identity --entitlements "$dir/entitlements.plist" --generate-entitlement-der "\$bundle" || exit 1
+done
+codesign --verify --deep --strict Hex.app
+RUN
+chmod +x "$dir/run"
+label=com.shahidy.hexkeyboard.resign
+cat > "$dir/agent.plist" <<PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict><key>Label</key><string>$label</string>
+<key>ProgramArguments</key><array><string>/bin/sh</string><string>-c</string><string>$dir/run > $dir/out 2>&amp;1; echo \$? > $dir/status</string></array>
+<key>RunAtLoad</key><true/></dict></plist>
+PLIST
+launchctl bootout "gui/$(id -u)/$label" 2>/dev/null || true
+launchctl bootstrap "gui/$(id -u)" "$dir/agent.plist"
+while [ ! -f "$dir/status" ]; do sleep 1; done
+launchctl bootout "gui/$(id -u)/$label" 2>/dev/null || true
+cat "$dir/out"
+status=$(cat "$dir/status")
+rm -rf "$dir"
+exit "$status"

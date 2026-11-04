@@ -1,6 +1,9 @@
 #!/bin/sh
-# Builds Hex on this Linux box with xtool and signs it for the free team's devices (its one development certificate
-# lives with xtool here), then installs it through the Mac on the iPhone the Mac reaches, by cable or Wi-Fi, once no
+# Builds Hex on this Linux box with xtool and provisions it for the free team's devices. The team holds one development
+# certificate, and it's the Mac's: xtool's identity (~/.config/xtool/data/<team>) holds that certificate with a stand-in key,
+# so xtool makes the profiles for it, and scripts/resign signs on the Mac, whose login keychain has the real key.
+# Never let xtool revoke a certificate to make its own: that breaks what the Mac signs (stdin is closed, so it can't ask).
+# Then it installs it through the Mac on the iPhone the Mac reaches, by cable or Wi-Fi, once no
 # dictation is going on there: Hex writes a dictation's recording as it's heard, so one written in the last 10 seconds
 # is still going. It backs up the phone's iikb data here first (scripts/backup), and won't install without that backup.
 # Then it starts Hex in the background, so Parakeet compiles for the new install right away.
@@ -50,7 +53,7 @@ keys=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")/Packa
 [ -f "$keys/backup.key" ] || { echo "$keys/backup.key is missing, so this build wouldn't back up the iPhone's iikb data (docs/backup.md)" >&2; exit 1; }
 cp "$keys"/*.key "$build/Packages/HexKeyboard/Sources/KeyboardUI/Resources/Keys/"
 cd "$build"
-TURN=phone xtool dev build -c release --sign
+TURN=phone xtool dev build -c release --sign < /dev/null
 for binary in xtool/Hex.app/Hex xtool/Hex.app/PlugIns/Keyboard.appex/Keyboard; do
   sdk=$(llvm-otool -l "$binary" | awk '/LC_BUILD_VERSION/ {b=1} b && $1 == "sdk" {print $2; exit}')
   [ "$(printf '%s\n27.1\n' "$sdk" | sort -V | head -1)" = 27.1 ] || {
@@ -59,6 +62,13 @@ for binary in xtool/Hex.app/Hex xtool/Hex.app/PlugIns/Keyboard.appex/Keyboard; d
   }
 done
 rsync -a --delete xtool/Hex.app/ mac:Developer/hex-keyboard-phone/Hex.app/
+identity=$(python3 -c "
+import glob, hashlib, os, plistlib
+path = max(glob.glob(os.path.expanduser('~/.config/xtool/data/??????????')), key=os.path.getmtime)
+print(hashlib.sha1(plistlib.load(open(path, 'rb'))['certificate']).hexdigest().upper())")
+if ssh mac security find-identity -v -p codesigning | grep -q "$identity"; then
+  ssh mac sh -s "$identity" < scripts/resign
+fi
 dictating() {
   ssh mac sh -s "$phone" <<'MAC'
 xcrun devicectl device info files --device "$1" --domain-type appDataContainer --domain-identifier com.shahidy.hexkeyboard \
