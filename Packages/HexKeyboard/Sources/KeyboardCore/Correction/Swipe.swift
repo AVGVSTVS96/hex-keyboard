@@ -12,7 +12,7 @@ public final class Swipe: Sendable {
     static let dataOffset = 16
     static let inputSteps = 64, steps = 32, letters = 26, classes = 27, hidden = 128, wide = 256
     static let coefficients = 64, frequencies = 8, blocks = 5, dilations = [1, 2, 3, 5, 8], kernel = 7
-    static let decoderBlocks = 8, decoderWidth = 256, bottleneck = 64, memory = 15, decoderInputs = 92
+    static let decoderBlocks = 8, decoderWidth = 256, bottleneck = 64, memory = 15, decoderInputs = 92, headWidth = 32
 
     struct Entry {
         let name: String

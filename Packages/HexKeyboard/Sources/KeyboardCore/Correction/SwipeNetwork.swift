@@ -17,12 +17,10 @@ extension Swipe {
             let joint = encode(x: x, y: y, layout: layout, scratch, raw)
             let out = refined ? refine(joint, scratch, raw) : joint
             return Emissions(values: (0..<Self.steps).flatMap { step in
-                (0..<Self.classes).map { out[step * (refined ? Self.padded27 : Self.decoderInputs) + $0] }
+                (0..<Self.classes).map { out[step * (refined ? Self.headWidth : Self.decoderInputs) + $0] }
             })
         }
     }
-
-    static let padded27 = 32
 
     final class Scratch {
         static let capacity = 160_000
@@ -195,11 +193,11 @@ extension Swipe {
             swap(&x, &next)
         }
         Kernel.layerNorm(x, steps: steps, width: width, vector("decoder.output_norm_weight"), vector("decoder.output_norm_bias"))
-        let out = scratch.take(steps * Self.padded27)
+        let out = scratch.take(steps * Self.headWidth)
         Kernel.matmul(x, rows: steps, inputs: width, tensor("decoder.ctc_head_weight", in: raw),
-                      tensor("decoder.ctc_head_bias", in: raw), outputs: Self.padded27, into: out)
+                      tensor("decoder.ctc_head_bias", in: raw), outputs: Self.headWidth, into: out)
         for t in 0..<steps {
-            let row = out + t * Self.padded27
+            let row = out + t * Self.headWidth
             for k in 0..<Self.classes { row[k] += joint[t * Self.decoderInputs + k] }
             let high = (0..<Self.classes).map { row[$0] }.max()!
             var total: Float = 0
