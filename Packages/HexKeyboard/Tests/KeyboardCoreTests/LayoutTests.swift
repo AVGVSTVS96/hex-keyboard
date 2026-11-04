@@ -41,7 +41,7 @@ struct LayoutTests {
         #expect(Layouts.layout(for: pad).keys.contains { $0.action == .nextKeyboard } && pad.moreMenu == [.settings])
     }
 
-    /// The menu opens from holding 123, the bar's … button, or both, as Settings picks; an iPad, with no hold menu,
+    /// The menu opens from holding 123, the bar's menu button, or both, as Settings picks; an iPad, with no hold menu,
     /// always keeps its button.
     @Test func theKeyboardMenuOpensWhereSettingsPutIt() {
         var settings = KeyboardSettings()

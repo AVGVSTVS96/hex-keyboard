@@ -43,8 +43,7 @@ final class SuggestionBar: UIView {
             addSubview(slot)
         }
         dividers.forEach(addSubview)
-        more.setImage(UIImage(systemName: "ellipsis"), for: .normal)
-        more.transform = CGAffineTransform(rotationAngle: .pi / 2)
+        more.setImage(UIImage(systemName: "square.grid.2x2.fill", withConfiguration: UIImage.SymbolConfiguration(pointSize: 19, weight: .semibold)), for: .normal)
         more.showsMenuAsPrimaryAction = true
         more.isHidden = true
         more.accessibilityIdentifier = "hex.more"
@@ -122,7 +121,7 @@ final class SuggestionBar: UIView {
         tools.forEach { $0.theme = theme }
     }
 
-    /// The More button at the far left, before the tools, its dots upright.
+    /// The More button at the far left, before the tools.
     func update(more menu: UIMenu?) {
         more.menu = menu
         if more.isHidden != (menu == nil) {
@@ -173,8 +172,7 @@ final class SuggestionBar: UIView {
         mic.frame = CGRect(layout.mic)
         for (tool, frame) in zip(tools, layout.tools) { tool.frame = CGRect(frame) }
         if let cell = layout.more.map({ CGRect($0) }) {
-            more.bounds = CGRect(x: 0, y: 0, width: cell.height, height: cell.width)
-            more.center = CGPoint(x: cell.midX, y: cell.midY)
+            more.frame = cell
         }
         for (slot, frame) in zip(slots, layout.slots) {
             let minX = CGFloat(frame.x).rounded(scale: scale), maxX = CGFloat(frame.x + frame.width).rounded(scale: scale)
@@ -604,8 +602,8 @@ extension CGRect {
     }
 }
 
-/// The More button, its dots upright: turned a quarter, so its bounds' top faces the tools and its bottom the screen's
-/// edge. Its cell is half the mic's width; taps in the gap before the tools and toward the edge still reach it.
+/// The More button, a grid of four rounded squares. Its cell is half the mic's width; taps in the gap before the tools
+/// and toward the edge still reach it.
 private final class MoreButton: UIButton {
     override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
         bounds.inset(by: UIEdgeInsets(top: -BarLayout.gap / 2, left: -4, bottom: -12, right: -4)).contains(point)

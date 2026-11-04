@@ -246,7 +246,7 @@ struct LayoutSettings: View {
                 ChoiceRow(title: Self.title(of: hand), picked: model.oneHanded == hand) { model.oneHanded = hand }
             }
         }
-        Box(header: "Keyboard Menu", footer: "Where to open layouts, Next Keyboard and iikb Settings: hold 123 and slide, or tap … above the keys.") {
+        Box(header: "Keyboard Menu", footer: "Where to open layouts, Next Keyboard and iikb Settings: hold 123 and slide, or tap the menu button above the keys.") {
             ForEach(KeyboardMenu.allCases, id: \.self) { place in
                 ChoiceRow(title: place.title, picked: model.settings.keyboardMenu == place) { model.update { $0.keyboardMenu = place } }
             }

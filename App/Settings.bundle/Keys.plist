@@ -134,7 +134,7 @@
 		</dict>
 		<dict>
 			<key>FooterText</key>
-			<string>Where to open layouts, Next Keyboard and iikb Settings: hold 123 and slide, or tap … above the keys.</string>
+			<string>Where to open layouts, Next Keyboard and iikb Settings: hold 123 and slide, or tap the menu button above the keys.</string>
 			<key>Type</key>
 			<string>PSGroupSpecifier</string>
 		</dict>
@@ -149,7 +149,7 @@
 			<array>
 				<string>Both</string>
 				<string>Hold 123</string>
-				<string>… Button</string>
+				<string>Menu Button</string>
 			</array>
 			<key>Type</key>
 			<string>PSMultiValueSpecifier</string>
