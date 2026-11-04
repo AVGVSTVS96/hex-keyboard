@@ -46,6 +46,9 @@ final class SuggestionBar: UIView {
         }
         dividers.forEach(addSubview)
         more.setImage(UIImage(systemName: "square.grid.2x2.fill", withConfiguration: UIImage.SymbolConfiguration(pointSize: 19, weight: .semibold)), for: .normal)
+        more.imageView?.contentMode = .scaleAspectFit
+        more.contentHorizontalAlignment = .fill
+        more.contentVerticalAlignment = .fill
         more.showsMenuAsPrimaryAction = true
         more.isHidden = true
         more.accessibilityIdentifier = "hex.more"
