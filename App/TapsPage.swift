@@ -354,25 +354,90 @@ private struct Figure: View {
     }
 }
 
+/// How often your letters land on the key you meant, large, over a meter of it and how your last taps compare, then
+/// how many taps it's learned from and how far you aim from the keys' centers.
 private struct Numbers: View {
     let summary: TapSummary
 
+    /// How many points your last taps land on target above or below all of them, once it's a whole point.
+    private var trend: Int? {
+        guard let lately = summary.lately else { return nil }
+        let points = Int(((lately.share - summary.onTarget) * 100).rounded())
+        return points == 0 ? nil : points
+    }
+
     var body: some View {
-        let figures = [
-            Figure(value: summary.taps.formatted(), label: "taps"),
-            Figure(value: TapMapPalette.percent(summary.onTarget), label: "on target"),
-            Figure(value: summary.lately.map { TapMapPalette.percent($0.share) } ?? "–", label: summary.lately.map { "last \($0.count.formatted()) taps" } ?? "lately"),
-            Figure(value: String(format: "%.1f pt", summary.offCenter), label: "off center"),
-        ]
         Card {
-            ViewThatFits(in: .horizontal) {
-                HStack(alignment: .top, spacing: 12) { ForEach(figures.indices, id: \.self) { figures[$0].frame(minWidth: 92) } }
-                Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 18) {
-                    GridRow { figures[0]; figures[1] }
-                    GridRow { figures[2]; figures[3] }
+            VStack(alignment: .leading, spacing: 4) {
+                Text("On target")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(Color.hexSecondary)
+                HStack(alignment: .firstTextBaseline, spacing: 10) {
+                    Text(TapMapPalette.percent(summary.onTarget))
+                        .font(.display(52))
+                        .tracking(-0.03 * 52)
+                        .contentTransition(.numericText())
+                    if let trend { TrendChip(points: trend) }
+                    Spacer(minLength: 0)
+                }
+                .accessibilityElement(children: .combine)
+            }
+            Meter(share: summary.onTarget)
+            Text(caption)
+                .font(.footnote)
+                .foregroundStyle(Color.hexSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Rectangle().fill(Color.hexDivider).frame(height: 1)
+            HStack(alignment: .top, spacing: 12) {
+                Figure(value: summary.taps.formatted(), label: summary.taps == 1 ? "tap learned" : "taps learned", size: 24)
+                Figure(value: String(format: "%.1f pt", summary.offCenter), label: "aim off center", size: 24)
+            }
+        }
+    }
+
+    private var caption: String {
+        let share = "Letter taps that land on the key you meant."
+        guard let lately = summary.lately else { return share }
+        return share + " Your last \(lately.count.formatted()): \(TapMapPalette.percent(lately.share))."
+    }
+}
+
+/// A share as a thin bar, the part on target in blue and the rest in orange.
+private struct Meter: View {
+    let share: Double
+
+    var body: some View {
+        GeometryReader { proxy in
+            let width = proxy.size.width
+            HStack(spacing: 2) {
+                if share >= 0.995 {
+                    Capsule().fill(TapColor.aim.gradient)
+                } else {
+                    Capsule().fill(TapColor.aim.gradient).frame(width: max(width * share - 1, 4))
+                    Capsule().fill(TapColor.miss.opacity(0.85))
                 }
             }
         }
+        .frame(height: 8)
+        .padding(.top, 6)
+        .accessibilityHidden(true)
+    }
+}
+
+/// How your last taps compare: green and up when they land more often, orange and down when less.
+private struct TrendChip: View {
+    let points: Int
+
+    var body: some View {
+        let up = points > 0
+        Text("\(up ? "+" : "−")\(abs(points)) lately")
+            .font(.footnote.weight(.semibold))
+            .monospacedDigit()
+            .foregroundStyle(up ? Color.green : TapColor.miss)
+            .padding(.horizontal, 9)
+            .padding(.vertical, 4)
+            .background((up ? Color.green : TapColor.miss).opacity(0.14), in: .capsule)
+            .accessibilityLabel(up ? "Up \(points) points lately" : "Down \(-points) points lately")
     }
 }
 
@@ -396,18 +461,25 @@ private struct Legend: View {
                     item(.aim, color: .blue, "Where you aim")
                 }
             case .accuracy:
-                scale(from: "On target", to: "25% missed") {
-                    (0 ..< 8).map { TapColor.miss.opacity(Double($0) / 7 * 0.85) }
+                scale(from: "1% missed", to: "25%") {
+                    (0 ..< 8).map { TapColor.miss.opacity(0.12 + Double($0) / 7 * 0.73) }
                 }
             }
-            if !hasSelection {
-                Text("Tap a key to see it up close.")
-                    .font(.footnote)
-                    .foregroundStyle(Color.hexSecondary)
-            }
+            Text(hasSelection ? about : about + " Tap a key to see it up close.")
+                .font(.footnote)
+                .foregroundStyle(Color.hexSecondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .font(.caption)
         .foregroundStyle(Color.hexSecondary)
+    }
+
+    private var about: String {
+        switch mode {
+        case .heat: "Where your thumbs land most."
+        case .aim: "Each key’s last taps, and where you aim for it."
+        case .accuracy: hasSelection ? "Where the picked key’s taps land." : "How often each key’s taps land on another."
+        }
     }
 
     private func scale(from start: String, to end: String, colors: () -> [Color]) -> some View {
@@ -445,10 +517,12 @@ private struct MapView: UIViewRepresentable {
     func makeUIView(context: Context) -> TapMapView {
         let map = TapMapView()
         map.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        map.layer.borderWidth = 1
         return map
     }
 
     func updateUIView(_ map: TapMapView, context: Context) {
+        map.layer.borderColor = HexStyle.edge.resolvedColor(with: map.traitCollection).cgColor
         map.onSelect = { select($0?.key) }
         if context.coordinator.revision != revision {
             context.coordinator.revision = revision
@@ -699,7 +773,7 @@ private struct Thumbs: View {
     let summary: TapSummary
 
     var body: some View {
-        Card(header: "How your thumbs pull", footer: "Arrows are drawn \(Int(TapPullView.magnification))× their length.") {
+        Card(header: "How your thumbs pull", footer: "Each arrow runs from a key’s center to where you aim for it, drawn \(Int(TapPullView.magnification))× as long.") {
             Drawing(make: { TapPullView() }, update: { $0.show(board.aims, keys: board.keys, size: board.size) }) { width in
                 board.size.height * min(1, width / board.size.width)
             }
@@ -773,7 +847,7 @@ private struct Misses: View {
 
     var body: some View {
         if !shown.isEmpty {
-            Card(header: "Misses by key") {
+            Card(header: "Misses by key", footer: "Each letter’s taps that land on another key, most missed first.") {
                 chart
                 VStack(spacing: 0) {
                     ForEach(shown.prefix(3), id: \.key) { miss in
@@ -787,12 +861,23 @@ private struct Misses: View {
 
     private var chart: some View {
         let peak = max(shown.first?.share ?? 0, 0.05)
-        return Chart(shown, id: \.key) { miss in
-            BarMark(x: .value("Key", TapMapPalette.name(of: miss.key)), y: .value("Missed", miss.share), width: .fixed(9))
-                .foregroundStyle(TapColor.miss.opacity(selected == nil || selected == miss.key ? 0.9 : 0.3))
-                .clipShape(UnevenRoundedRectangle(topLeadingRadius: 3, topTrailingRadius: 3, style: .continuous))
+        let typical = 1 - summary.onTarget
+        return Chart {
+            ForEach(shown, id: \.key) { miss in
+                BarMark(x: .value("Key", TapMapPalette.name(of: miss.key)), y: .value("Missed", miss.share), width: .ratio(0.62))
+                    .foregroundStyle(TapColor.miss.opacity(selected == nil || selected == miss.key ? 0.9 : 0.3).gradient)
+                    .clipShape(UnevenRoundedRectangle(topLeadingRadius: 3, topTrailingRadius: 3, style: .continuous))
+            }
+            RuleMark(y: .value("All letters", typical))
+                .foregroundStyle(Color.hexSecondary.opacity(0.7))
+                .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
+                .annotation(position: .top, alignment: .leading, spacing: 2) {
+                    Text("all letters \(TapMapPalette.percent(typical))")
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(Color.hexSecondary)
+                }
         }
-        .chartYScale(domain: 0 ... peak)
+        .chartYScale(domain: 0 ... max(peak, typical * 1.4))
         .chartYAxis {
             AxisMarks(position: .trailing, values: .automatic(desiredCount: 3)) { value in
                 AxisGridLine(stroke: StrokeStyle(lineWidth: 1)).foregroundStyle(Color.hexDivider)
