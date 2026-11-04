@@ -30,3 +30,12 @@ EVAL thumbs keyboard=decoder total: words=5428 raw=83.3% autocorrect=95.2% top3=
 EVAL thumbs keyboard=learning per 500 words (raw/final): 89.4%/96.6% 88.0%/97.0% 90.4%/97.2% 90.4%/97.8% 90.4%/97.4% 87.8%/97.4% 89.4%/97.4% 90.6%/98.2% 89.2%/97.6% 93.6%/99.2%
 EVAL thumbs keyboard=learning total: words=5428 raw=90.1% autocorrect=97.7% top3=98.6% next3=34.9% fixed=418 broken=5 ["ides→sides", "tire→tore", "house→ouse", "bus→busc", "ides→sides"]
 EVAL thumbs learned centers: m=(-0.41,+0.10) b=(-0.00,+0.57) o=(-0.44,+0.09) e=(+0.00,+0.09)
+EVAL swipe swipes=48355 inLexicon=96.89%
+EVAL swipe encoder lexicon=ours top1=88.61 top3=94.32 top10=95.70
+EVAL swipe encoder lexicon=forced at -25.5 top1=89.35 top3=95.55 top10=97.68
+EVAL swipe encoder lexicon=forced at -18.0 top1=90.57 top3=96.88 top10=98.62
+EVAL swipe encoder lexicon=forced at -12.0 top1=91.41 top3=97.34 top10=98.74
+EVAL swipe encoder+decoder lexicon=ours top1=90.71 top3=95.28 top10=96.19
+EVAL swipe encoder+decoder lexicon=forced at -25.5 top1=91.98 top3=97.19 top10=98.76
+EVAL swipe encoder+decoder lexicon=forced at -18.0 top1=92.82 top3=97.99 top10=99.17
+EVAL swipe encoder+decoder lexicon=forced at -12.0 top1=93.44 top3=98.28 top10=99.23

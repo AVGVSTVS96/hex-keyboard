@@ -1,0 +1,28 @@
+#!/bin/bash
+# FUTO Swipe's weights as iikb's en.swipe (SWIPE-LICENSE beside it), and the checks of it that run here on Linux:
+#   scripts/swipe [build]     rebuild Packages/HexKeyboard/Sources/KeyboardUI/Resources/en.swipe: downloads FUTO's two
+#                             models (4 MB), reads their weights with scripts/swipe.py and packs them with Tools/SwipeBuilder
+#   scripts/swipe data        download swipe.futo.org's test and validation splits (570 MB) as compact files for scripts/eval swipe
+#   scripts/swipe parity [n]  ExecuTorch's own output for n real test swipes (default 200) against KeyboardCore's, in SwipeTests
+# SWIPE_DATA is where downloads go (default build/swipe); keep it on disk, not in /tmp, which is memory.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+export SWIPE_DATA=${SWIPE_DATA:-build/swipe}
+mkdir -p "$SWIPE_DATA"
+swipepy() { uv run --no-project --python 3.12 --with executorch --with numpy --with torch python3 scripts/swipe.py "$@" 2>&1 | grep -v -E "^W[0-9]{4}|Warn|regex|cpuinfo"; }
+case "${1:-build}" in
+  build)
+    swipepy extract "$SWIPE_DATA"
+    scripts/tool SwipeBuilder "$SWIPE_DATA/weights.txt" "$SWIPE_DATA/weights.f32" Packages/HexKeyboard/Sources/KeyboardUI/Resources/en.swipe
+    ;;
+  data)
+    swipepy data "$SWIPE_DATA" test
+    swipepy data "$SWIPE_DATA" dev
+    ;;
+  parity)
+    swipepy extract "$SWIPE_DATA"
+    swipepy data "$SWIPE_DATA" test
+    swipepy reference "$SWIPE_DATA" test "${2:-200}"
+    SWIPE_REFERENCE="$SWIPE_DATA/test.reference" scripts/coretest --filter SwipeTests
+    ;;
+esac

@@ -11,9 +11,10 @@ let package = Package(
     targets: [
         .target(name: "KeyboardCore"),
         .target(name: "KeyboardArbiter"),
-        .target(name: "KeyboardUI", dependencies: ["KeyboardCore", "KeyboardArbiter"], exclude: ["Resources/LEXICON-LICENSE", "Resources/NETWORK-LICENSE"], resources: [.copy("Resources/en.lexicon"), .copy("Resources/en.network"), .copy("Resources/emoji.txt"), .copy("Resources/emoji-search.txt"), .copy("Resources/Keys")], swiftSettings: [.defaultIsolation(MainActor.self)]),
+        .target(name: "KeyboardUI", dependencies: ["KeyboardCore", "KeyboardArbiter"], exclude: ["Resources/LEXICON-LICENSE", "Resources/NETWORK-LICENSE"], resources: [.copy("Resources/en.lexicon"), .copy("Resources/en.network"), .copy("Resources/en.swipe"), .copy("Resources/SWIPE-LICENSE"), .copy("Resources/emoji.txt"), .copy("Resources/emoji-search.txt"), .copy("Resources/Keys")], swiftSettings: [.defaultIsolation(MainActor.self)]),
         .executableTarget(name: "LexiconBuilder", dependencies: ["KeyboardCore"], path: "Tools/LexiconBuilder"),
         .executableTarget(name: "NetworkBuilder", dependencies: ["KeyboardCore"], path: "Tools/NetworkBuilder"),
+        .executableTarget(name: "SwipeBuilder", dependencies: ["KeyboardCore"], path: "Tools/SwipeBuilder"),
         .testTarget(name: "KeyboardCoreTests", dependencies: ["KeyboardCore"]),
         .testTarget(name: "KeyboardUITests", dependencies: ["KeyboardUI"], resources: [.copy("phrases.txt"), .copy("chat.txt"), .copy("klipy.json")]),
     ]
