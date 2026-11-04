@@ -43,26 +43,53 @@ struct BarLayoutTests {
     }
 
     private func near(_ a: Double, _ b: Double) -> Bool { abs(a - b) < 0.001 }
-    private func center(_ key: (minX: Double, maxX: Double)) -> Double { (key.minX + key.maxX) / 2 }
 
-    /// The More button and the tools are each centered over one of the first keys, all the same size; the mic is centered over
-    /// the last key and the bar, and cancel, the mic's size, over the key after the tools.
-    @Test func theBarSitsOnTheKeys() {
+    /// Every button is the same circle, centered in the bar and in proportion with it, with as much room on its sides as
+    /// above and below where the keys are wider than the bar is tall: the More button and the tools from the first key's
+    /// left edge, then cancel's place, one pitch apart, and the mic as far in from the last key's right edge.
+    @Test func theButtonsAreOneSizeEvenlySpaced() {
         for screen in Self.screens {
             for (metrics, layout, keys, label) in layouts(screen) {
-                let cells = (layout.more.map { [$0] } ?? []) + layout.tools
-                for (index, cell) in cells.enumerated() {
-                    #expect(near(cell.midX, center(keys[index])) && cell.width <= keys[index].maxX - keys[index].minX + 0.001, "\(label): cell \(index) is centered over its key")
-                    #expect(near(cell.width, cells[0].width), "\(label): every cell is the same size")
-                    #expect(cell.y == metrics.toolbar.top && cell.height == metrics.toolbar.bar, "\(label)")
+                let toolbar = metrics.toolbar
+                let leading = (layout.more.map { [$0] } ?? []) + layout.tools + [layout.cancel]
+                for button in leading + (layout.mic.map { [$0] } ?? []) {
+                    #expect(button.width == toolbar.button && button.height == toolbar.button, "\(label): one size")
+                    #expect(near(button.midY, toolbar.top + toolbar.bar / 2), "\(label): centered in the bar")
+                }
+                #expect(toolbar.glyph < toolbar.button && toolbar.button < toolbar.bar, "\(label): glyphs inside the buttons, the buttons inside the bar")
+                #expect(toolbar.button / toolbar.bar > 0.65 && toolbar.button / toolbar.bar < 0.8, "\(label): the buttons in proportion with the bar")
+                let key = keys[0].maxX - keys[0].minX
+                let side = (min(max(key, toolbar.button), toolbar.bar) - toolbar.button) / 2
+                #expect(side >= 0 && near(leading[0].x - keys[0].minX, side), "\(label): the first button as far from the first key's edge as from the bar's (\(side))")
+                for (before, after) in zip(leading, leading.dropFirst()) {
+                    #expect(near(after.midX - before.midX, layout.pitch), "\(label): one pitch apart")
                 }
                 guard let mic = layout.mic else { Issue.record("\(label): no mic"); continue }
-                #expect(near(mic.midX, center(keys[keys.count - 1])) && mic.width == metrics.toolbar.mic, "\(label): the mic over the last key")
-                #expect(near(mic.midY, metrics.toolbar.top + metrics.toolbar.bar / 2) && mic.width < metrics.toolbar.bar, "\(label): centered in the bar, smaller than it")
-                #expect(near(layout.cancel.midX, center(keys[cells.count])) && near(layout.cancel.midY, mic.midY), "\(label): cancel over the key after the tools")
-                #expect(layout.cancel.width == mic.width, "\(label): cancel is the mic's size")
+                #expect(near(keys[keys.count - 1].maxX - (mic.x + mic.width), side), "\(label): the mic as far in from the last key's edge")
             }
         }
+    }
+
+    /// Folded, as in Bassim's photo, the mic sits evenly in its corner: as far from the screen's edge as from the top of
+    /// the keyboard's backdrop.
+    @Test func theMicSitsEvenlyInItsCorner() {
+        for screen in [Self.screens[0]] {
+            for (metrics, layout, _, label) in layouts(screen) {
+                guard let mic = layout.mic else { continue }
+                let right = (screen.width - screen.window) / 2 + screen.window - (mic.x + mic.width)
+                let above = Toolbar.backdropAbove + mic.y
+                #expect(abs(right - above) <= 1, "\(label): \(right) to the edge, \(above) to the top")
+            }
+        }
+    }
+
+    /// The buttons keep their size and spacing whatever the keys' width, so on the open Duo's wide keys the tools never
+    /// spread out with them.
+    @Test func theButtonsKeepTheirRhythmOnWideKeys() {
+        let folded = layouts(Self.screens[0]).first { $0.label.hasSuffix("2 tools and More") }!
+        let open = layouts(Self.screens[2]).first { $0.label.hasSuffix("2 tools and More") }!
+        #expect(folded.metrics.toolbar == open.metrics.toolbar && near(folded.layout.pitch, open.layout.pitch))
+        #expect(open.layout.pitch < open.keys[1].minX - open.keys[0].minX - 20, "closer than the open Duo's keys")
     }
 
     /// Tools, suggestions and mic sit in order, apart, inside the bar; while you dictate, cancel, then the
@@ -82,8 +109,8 @@ struct BarLayoutTests {
                     #expect(layout.slots[2].x + layout.slots[2].width <= layout.emoji.x + 0.001, "\(label)")
                 }
                 guard let mic = layout.mic else { continue }
-                #expect(near(layout.maxX + BarLayout.gap, mic.x) && mic.x + mic.width <= screen.window, "\(label)")
-                #expect(layout.cancel.x + layout.cancel.width <= layout.recording.x && near(layout.recording.x + layout.recording.width, mic.x + mic.width), "\(label): cancel, then the recording to the mic's edge")
+                #expect(layout.maxX + BarLayout.gap <= mic.x && mic.x + mic.width <= screen.window + 0.001, "\(label)")
+                #expect(near(layout.recording.x - layout.cancel.x, layout.pitch) && near(layout.recording.x + layout.recording.width, mic.x + mic.width), "\(label): cancel, then the recording to the mic's edge")
                 #expect(layout.recording.height == mic.height && near(layout.recording.midY, mic.midY), "\(label): the recording is the mic grown")
                 #expect(layout.recording.width >= 150, "\(label): the recording has room (\(layout.recording.width))")
             }

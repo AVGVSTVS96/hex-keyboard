@@ -32,8 +32,8 @@ final class SuggestionBar: UIView {
     private let dividers = (0..<2).map { _ in UIView() }
     private var emoji: [EmojiPick] = []
     private let strip = ButtonScrollView()
-    private var tools: [ToolButton] = []
-    private let more = MoreButton(type: .system)
+    private var tools: [(panel: Panel, button: BarButton)] = []
+    private let more = BarButton("More", draw: Panel.moreGlyph)
     private let mic = MicButton()
     private let cancel = CancelButton()
     private let waveform = Waveform()
@@ -53,11 +53,9 @@ final class SuggestionBar: UIView {
             addSubview(slot)
         }
         dividers.forEach(addSubview)
-        more.setImage(Panel.moreGlyph, for: .normal)
         more.showsMenuAsPrimaryAction = true
         more.isHidden = true
         more.accessibilityIdentifier = "hex.more"
-        more.accessibilityLabel = "More"
         addSubview(more)
         strip.alwaysBounceHorizontal = false
         strip.accessibilityIdentifier = "hex.suggestion.emoji"
@@ -101,7 +99,7 @@ final class SuggestionBar: UIView {
         }
         self.emoji.forEach { $0.theme = theme }
         dividers.forEach { $0.backgroundColor = theme.candidateDivider.ui }
-        more.tintColor = theme.label.ui
+        more.theme = theme
         refresh()
     }
 
@@ -127,16 +125,17 @@ final class SuggestionBar: UIView {
     /// The tools at the bar's left, where there's no pill row for them.
     func update(tools panels: [Panel], theme: KeyboardTheme) {
         if panels != tools.map(\.panel) {
-            tools.forEach { $0.removeFromSuperview() }
+            tools.forEach { $0.button.removeFromSuperview() }
             tools = panels.map { panel in
-                let tool = ToolButton(panel: panel)
+                let tool = BarButton(panel.title, draw: panel.icon)
+                tool.accessibilityIdentifier = "hex.tool.\(panel)"
                 tool.addAction(UIAction { [unowned self] _ in onTool(panel) }, for: .touchUpInside)
                 addSubview(tool)
-                return tool
+                return (panel, tool)
             }
             setNeedsLayout()
         }
-        tools.forEach { $0.theme = theme }
+        tools.forEach { $0.button.theme = theme }
     }
 
     /// The More button at the far left, before the tools.
@@ -203,10 +202,13 @@ final class SuggestionBar: UIView {
         mic.bounds.size = micPlace.size
         mic.center = CGPoint(x: micPlace.midX, y: micPlace.midY)
         placeCancel(CGRect(layout.cancel), behind: layout.mic.map { CGRect($0) })
-        for (tool, frame) in zip(tools, layout.tools) { tool.frame = CGRect(frame) }
-        if let cell = layout.more.map({ CGRect($0) }) {
-            more.frame = cell
-        }
+        let around = (layout.pitch - toolbar.button) / 2
+        let reach = UIEdgeInsets(
+            top: -(toolbar.top + (toolbar.bar - toolbar.button) / 2), left: -around,
+            bottom: -(toolbar.bar - toolbar.button) / 2, right: -around
+        )
+        for (tool, frame) in zip(tools, layout.tools) { tool.button.place(CGRect(frame), glyph: toolbar.glyph, reach: reach) }
+        if let frame = layout.more { more.place(CGRect(frame), glyph: toolbar.glyph, reach: reach) }
         for (slot, frame) in zip(slots, layout.slots) {
             let minX = CGFloat(frame.x).rounded(scale: scale), maxX = CGFloat(frame.x + frame.width).rounded(scale: scale)
             slot.frame = CGRect(x: minX, y: frame.y, width: maxX - minX, height: frame.height)
@@ -271,6 +273,7 @@ final class MicButton: UIControl {
     private let dot = UIView()
     private let spinner = UIActivityIndicatorView(style: .medium)
     private var theme = KeyboardTheme.lightCurrent
+    private var glyphSide: CGFloat = 0
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -324,9 +327,13 @@ final class MicButton: UIControl {
         }
     }
 
+    /// The glyph in proportion with the circle (15 points in a 28 one, the stop 12), and no bigger than 17 and 13 in
+    /// the Record Key's key.
     private var symbol: UIImage? {
         let listening = phase == .listening
-        return UIImage(systemName: listening ? "stop.fill" : "waveform", withConfiguration: UIImage.SymbolConfiguration(pointSize: listening ? 13 : 17, weight: .semibold))
+        let side = min(bounds.width, bounds.height) > 0 ? min(bounds.width, bounds.height) : 28
+        let size = min((side * (listening ? 0.43 : 0.54)).rounded(), listening ? 13 : 17)
+        return UIImage(systemName: listening ? "stop.fill" : "waveform", withConfiguration: UIImage.SymbolConfiguration(pointSize: size, weight: .semibold))
     }
 
     private func refresh() {
@@ -352,6 +359,10 @@ final class MicButton: UIControl {
         face.layer.cornerRadius = corner ?? bounds.height / 2
         let side = min(bounds.width, bounds.height)
         let end = CGRect(x: bounds.width > bounds.height * 1.5 ? bounds.width - side : (bounds.width - side) / 2, y: (bounds.height - side) / 2, width: side, height: side)
+        if glyphSide != side {
+            glyphSide = side
+            glyph.image = symbol
+        }
         glyph.frame = end
         spinner.center = CGPoint(x: end.midX, y: end.midY)
         spinner.transform = CGAffineTransform(scaleX: 0.75, y: 0.75)
@@ -366,7 +377,7 @@ final class MicButton: UIControl {
 /// mic does. `SuggestionBar` moves it, out of the mic and back.
 private final class CancelButton: UIControl {
     private let face = UIView()
-    private let glyph = UIImageView(image: UIImage(systemName: "xmark", withConfiguration: UIImage.SymbolConfiguration(pointSize: 13, weight: .semibold)))
+    private let glyph = UIImageView(image: UIImage(systemName: "xmark", withConfiguration: UIImage.SymbolConfiguration(pointSize: 12, weight: .semibold)))
 
     var shows = false {
         didSet {
@@ -848,13 +859,5 @@ extension CGRect {
     func rounded(scale: CGFloat) -> CGRect {
         let left = minX.rounded(scale: scale), top = minY.rounded(scale: scale)
         return CGRect(x: left, y: top, width: maxX.rounded(scale: scale) - left, height: maxY.rounded(scale: scale) - top)
-    }
-}
-
-/// The More button, a grid of four rounded squares. Its cell is half the mic's width; taps in the gap before the tools
-/// and toward the edge still reach it.
-private final class MoreButton: UIButton {
-    override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
-        bounds.inset(by: UIEdgeInsets(top: -BarLayout.gap / 2, left: -4, bottom: -12, right: -4)).contains(point)
     }
 }

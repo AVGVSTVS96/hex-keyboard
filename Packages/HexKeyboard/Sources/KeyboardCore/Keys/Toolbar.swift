@@ -1,11 +1,10 @@
 /// What sits above the keys (docs/design.md): the bar, with the tools at its left, or a panel's results and search row
-/// in its place. The keys' `topInset` is the gap under it. On iPhones the bar has `gap` above it and below it; the mic, a
-/// circle smaller than the bar so it sits in proportion with the tools beside it, is centered in it (`BarLayout`).
+/// in its place. The keys' `topInset` is the gap under it. On iPhones the bar has `gap` above it and below it. Its
+/// buttons, the mic and the tools alike, are circles of one size in proportion with it, centered in it (`BarLayout`).
 public struct Toolbar: Hashable, Sendable {
     /// Padding above the bar, or above a panel's results.
     public var top: Double
     public var bar: Double
-    public var mic: Double
     public var results: Double
     public var field: Double
 
@@ -21,15 +20,20 @@ public struct Toolbar: Hashable, Sendable {
     /// reach of 17 above the keys types the key reached for, never a suggestion, a tool or a panel's button.
     public static let topRowReach = 10.0
 
-    public init(top: Double, bar: Double, mic: Double, results: Double, field: Double) {
+    public init(top: Double, bar: Double, results: Double, field: Double) {
         self.top = top
         self.bar = bar
-        self.mic = mic
         self.results = results
         self.field = field
     }
 
     public var height: Double { top + bar }
+    /// The side of each of the bar's buttons, the mic's filled circle and the tools' pressed one: about three quarters of
+    /// the bar, an even number of points so it centers on whole ones (28 in a 38 bar, 24 in a 32).
+    public var button: Double { 2 * (bar * 0.37).rounded() }
+    /// The side of the square every tool's glyph is drawn to fit, its longer side on it, so they read as one size (18 in
+    /// a 38 bar, 16 in a 32).
+    public var glyph: Double { 2 * (bar * 0.24).rounded() }
     public var panelHeight: Double { top + results + Self.fieldGap + field }
     /// Where height is short, a panel's results are one row.
     public var isCompact: Bool { results < Self.phone.results }
@@ -59,14 +63,14 @@ public struct Toolbar: Hashable, Sendable {
         return toolbar
     }
 
-    static let phone = Toolbar(top: gap - backdropAbove, bar: 38, mic: 32, results: 136, field: 40)
+    static let phone = Toolbar(top: gap - backdropAbove, bar: 38, results: 136, field: 40)
     static let compactResults = 46.0
     static let compactField = 34.0
 
     static func compact(bar: Double, backdropAbove: Double = backdropAbove) -> Toolbar {
-        Toolbar(top: gap - backdropAbove, bar: bar, mic: bar - 6, results: compactResults, field: compactField)
+        Toolbar(top: gap - backdropAbove, bar: bar, results: compactResults, field: compactField)
     }
 
     /// iPad, where iOS draws its own bar above the keyboard.
-    static let pad = Toolbar(top: 0, bar: 36, mic: 30, results: compactResults, field: compactField)
+    static let pad = Toolbar(top: 0, bar: 36, results: compactResults, field: compactField)
 }

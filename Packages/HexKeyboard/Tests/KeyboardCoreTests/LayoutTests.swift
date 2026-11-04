@@ -193,7 +193,7 @@ struct LayoutTests {
         let side = KeyboardMetrics.for(.phone, width: 951, height: 669)
         #expect(side.toolbar.isCompact && side.margin == .none && side.toolbar.bar == cover.toolbar.bar)
         let folded = KeyboardMetrics.for(.phone, width: 678, height: 466)
-        #expect(folded.toolbar.isCompact && folded.toolbar.bar == 32 && folded.toolbar.mic == 26 && folded.topInset == 7)
+        #expect(folded.toolbar.isCompact && folded.toolbar.bar == 32 && folded.toolbar.button == 24 && folded.topInset == 7)
         let landscape = KeyboardMetrics.for(.phone, width: 874, height: 402)
         #expect(landscape.toolbar.isCompact && landscape.margin == .none && landscape.topInset == 7)
         #expect(KeyboardMetrics.for(.pad, width: 834, height: 1194).toolbar.isCompact)
