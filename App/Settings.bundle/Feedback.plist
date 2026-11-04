@@ -8,34 +8,6 @@
 	<array>
 		<dict>
 			<key>FooterText</key>
-			<string>What shows above your thumb as you press a key: the letter in a bubble of its own, or the key grown up into it, as on Apple’s keyboard.</string>
-			<key>Type</key>
-			<string>PSGroupSpecifier</string>
-		</dict>
-		<dict>
-			<key>DefaultValue</key>
-			<string>attached</string>
-			<key>Key</key>
-			<string>characterPreviewStyle</string>
-			<key>Title</key>
-			<string>Character Preview</string>
-			<key>Titles</key>
-			<array>
-				<string>None</string>
-				<string>Detached</string>
-				<string>Attached</string>
-			</array>
-			<key>Type</key>
-			<string>PSMultiValueSpecifier</string>
-			<key>Values</key>
-			<array>
-				<string>none</string>
-				<string>detached</string>
-				<string>attached</string>
-			</array>
-		</dict>
-		<dict>
-			<key>FooterText</key>
 			<string>Each key taps back, as Apple’s keyboard does, once iikb has Full Access.</string>
 			<key>Type</key>
 			<string>PSGroupSpecifier</string>

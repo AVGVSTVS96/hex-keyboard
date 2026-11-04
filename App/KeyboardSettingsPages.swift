@@ -196,6 +196,7 @@ struct TypingSettings: View {
     private let model = SettingsModel.shared
 
     var body: some View {
+        CharacterPreviewPicker()
         Box(footer: "Predictive Text shows three suggestions above the keys, and the next word before you type it.") {
             ToggleRow(title: "Auto-Capitalization", isOn: model.binding(\.autoCapitalization))
             ToggleRow(title: "Auto-Correction", isOn: model.binding(\.autoCorrection))
@@ -267,6 +268,36 @@ struct LayoutSettings: View {
         case .off: "Off"
         case .left: "Left"
         case .right: "Right"
+        }
+    }
+}
+
+/// What shows above a key as you press it, each choice drawn.
+private struct CharacterPreviewPicker: View {
+    private let model = SettingsModel.shared
+
+    var body: some View {
+        Box(header: "Character Preview") {
+            HStack(alignment: .bottom, spacing: 0) {
+                ForEach(CharacterPreview.allCases, id: \.self) { preview in
+                    Button {
+                        model.update { $0.characterPreview = preview }
+                    } label: {
+                        VStack(spacing: 10) {
+                            PreviewDrawing(preview: preview)
+                            Text(preview.title).font(.subheadline)
+                            Radio(picked: model.settings.characterPreview == preview)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .contentShape(.rect)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(preview.title)
+                    .accessibilityAddTraits(model.settings.characterPreview == preview ? [.isSelected, .isButton] : .isButton)
+                }
+            }
+            .padding(.vertical, 18)
+            .padding(.horizontal, 8)
         }
     }
 }
@@ -435,28 +466,6 @@ struct FeedbackSettings: View {
     }
 
     var body: some View {
-        Box(header: "Character Preview") {
-            HStack(alignment: .bottom, spacing: 0) {
-                ForEach(CharacterPreview.allCases, id: \.self) { preview in
-                    Button {
-                        model.update { $0.characterPreview = preview }
-                    } label: {
-                        VStack(spacing: 10) {
-                            PreviewDrawing(preview: preview)
-                            Text(preview.title).font(.subheadline)
-                            Radio(picked: model.settings.characterPreview == preview)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .contentShape(.rect)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(preview.title)
-                    .accessibilityAddTraits(model.settings.characterPreview == preview ? [.isSelected, .isButton] : .isButton)
-                }
-            }
-            .padding(.vertical, 18)
-            .padding(.horizontal, 8)
-        }
         Box(header: "Touch and Sound", footer: status.fullAccess ? "Standard is Apple’s keyboard’s own tap. Each step taps as you pick it." : "Haptics need Allow Full Access.") {
             ToggleRow(title: "Key Haptics", isOn: hapticsOn)
             if model.settings.haptics != .off {
