@@ -9,6 +9,10 @@ extension Network {
     static let english = Network(bytes: .mapped("en", "network"))!
 }
 
+extension Swipe {
+    public static let english = Swipe(bytes: .mapped("en", "swipe"))!
+}
+
 extension Bytes {
     /// A resource mapped into memory, read in place.
     static func mapped(_ name: String, _ type: String) -> Bytes {

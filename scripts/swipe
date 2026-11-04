@@ -1,0 +1,10 @@
+#!/bin/sh
+# Rebuilds Packages/HexKeyboard/Sources/KeyboardUI/Resources/en.swipe from FUTO Swipe's published models (SWIPE-LICENSE
+# beside it): downloads them (6 MB), reads their weights with scripts/swipe.py and packs them with Tools/SwipeBuilder.
+# SWIPE_DATA is where downloads go (default build/swipe), and must be on disk, not in /tmp, which is memory.
+set -e
+cd "$(dirname "$0")/.."
+data=${SWIPE_DATA:-build/swipe}
+mkdir -p "$data"
+uv run --no-project --python 3.12 --with executorch --with numpy --with torch python3 scripts/swipe.py extract "$data"
+scripts/tool SwipeBuilder "$data/weights.txt" "$data/weights.f32" Packages/HexKeyboard/Sources/KeyboardUI/Resources/en.swipe
