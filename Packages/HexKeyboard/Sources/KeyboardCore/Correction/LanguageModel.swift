@@ -9,11 +9,13 @@ struct LanguageModel {
     let memory: TypingMemory
     let phrases: Phrases?
     let novelty: Double
+    let app: AppWords?
 
     static let spellingLogProbability = -Math.log(Double(Lexicon.alphabet))
 
     /// `novel` is `novel(in:lexicon:)`, when the caller keeps it counted.
-    init(lexicon: Lexicon, memory: TypingMemory, phrases: Phrases? = nil, novel: Int? = nil) {
+    init(lexicon: Lexicon, memory: TypingMemory, phrases: Phrases? = nil, novel: Int? = nil, app: AppWords? = nil) {
+        self.app = app
         self.lexicon = lexicon
         self.memory = memory
         self.phrases = phrases
@@ -48,7 +50,7 @@ struct LanguageModel {
             let (count, total, types) = memory.count(of: word, after: previous)
             if total > 0 { p = (Double(count) + Double(types) * p) / Double(total + types) }
         }
-        return p
+        return app?.probability(of: word, after: previous, below: p) ?? p
     }
 
     func lexical(_ word: String) -> Double {

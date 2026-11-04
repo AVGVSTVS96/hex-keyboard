@@ -36,8 +36,7 @@ public struct EmojiCatalog: Sendable {
 
     /// Emoji you've used first, most used first, then everyone's order.
     private func ranked(_ shown: [String], history: EmojiHistory) -> [String] {
-        let used = shown.compactMap { emoji in history.scores[emoji].map { (emoji, $0) } }.sorted { $0.1 > $1.1 }.map(\.0)
-        return used + shown.filter { history.scores[$0] == nil }
+        history.ranked(shown)
     }
 }
 
@@ -95,9 +94,7 @@ public struct EmojiSearch: Sendable {
     }
 
     private func ranked(_ tier: [String], history: EmojiHistory) -> [String] {
-        let tier = tier.map { toned($0, history: history) }
-        let used = tier.filter { history.scores[$0] != nil }.sorted { history.scores[$0]! > history.scores[$1]! }
-        return used + tier.filter { history.scores[$0] == nil }
+        history.ranked(tier.map { toned($0, history: history) })
     }
 
     /// What the panel shows for `query`: each word of it must start a word of the emoji's name or keywords. Emoji that
@@ -136,6 +133,20 @@ public struct EmojiHistory: Codable, Hashable, Sendable {
     /// The tone emoji take until you pick another for one (Settings › Keys), not kept with the history.
     public var skinTone: SkinTone?
     private var weight = 1.0
+    public var app: String?
+    private var apps: [String: [String: Double]]?
+
+    private var local: [String: Double] { app.flatMap { apps?[$0] } ?? [:] }
+
+    func ranked(_ emoji: [String]) -> [String] {
+        let local = local
+        return emoji.enumerated().sorted { a, b in
+            let first = local[a.element, default: 0], second = local[b.element, default: 0]
+            if first != second { return first > second }
+            let sharedFirst = scores[a.element, default: 0], sharedSecond = scores[b.element, default: 0]
+            return sharedFirst != sharedSecond ? sharedFirst > sharedSecond : a.offset < b.offset
+        }.map(\.element)
+    }
 
     static let growth = 1.1
     static let capacity = 60
@@ -148,18 +159,24 @@ public struct EmojiHistory: Codable, Hashable, Sendable {
 
     /// What you pick most, filled out with everyone's common picks.
     public var frequent: [String] {
-        let used = scores.sorted { $0.value != $1.value ? $0.value > $1.value : $0.key < $1.key }.map(\.key)
-        let starters = Self.starters.map { tones[$0] ?? $0 }.filter { scores[$0] == nil }
+        let used = ranked(Set(scores.keys).union(local.keys).sorted())
+        let starters = Self.starters.map { tones[$0] ?? $0 }.filter { !used.contains($0) }
         return Array((used + starters).prefix(Self.shown))
     }
 
     /// `base` is the emoji's untoned version, when `emoji` was picked among its skin tones.
     public mutating func use(_ emoji: String, base: String? = nil) {
         if let base { tones[base] = emoji }
+        if let app {
+            if apps == nil { apps = [:] }
+            apps?[app, default: [:]][emoji, default: 0] += weight
+            if let local = apps?[app], local.count > Self.capacity, let least = local.min(by: { $0.value < $1.value })?.key { apps?[app]?[least] = nil }
+        }
         scores[emoji, default: 0] += weight
         weight *= Self.growth
         if weight > 1e12 {
             scores = scores.mapValues { $0 / weight }
+            apps = apps?.mapValues { $0.mapValues { $0 / weight } }
             weight = 1
         }
         if scores.count > Self.capacity, let least = scores.min(by: { $0.value < $1.value })?.key { scores[least] = nil }
@@ -167,10 +184,11 @@ public struct EmojiHistory: Codable, Hashable, Sendable {
 }
 
 extension EmojiHistory {
-    private enum CodingKeys: String, CodingKey { case scores, tones, weight }
+    private enum CodingKeys: String, CodingKey { case scores, tones, weight, apps }
 
     public init(from decoder: any Swift.Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
+        apps = try container.decodeIfPresent([String: [String: Double]].self, forKey: .apps)
         scores = try container.decode([String: Double].self, forKey: .scores)
         tones = try container.decodeIfPresent([String: String].self, forKey: .tones) ?? [:]
         weight = try container.decode(Double.self, forKey: .weight)

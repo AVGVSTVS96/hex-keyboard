@@ -7,6 +7,7 @@ public struct TypingMemory: Codable, Hashable, Sendable {
     public private(set) var spacesAfterSpace = 0
     public private(set) var keysAfterSpace = 0
     public var touches = TouchModel()
+    public var apps: [String: AppWords]?
 
     static let capacity = 20_000
 

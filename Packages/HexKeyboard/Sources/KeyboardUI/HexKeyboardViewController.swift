@@ -30,6 +30,7 @@ open class HexKeyboardViewController: UIInputViewController {
     private lazy var gifPanel: GifPanel? = Klipy.shared.map { klipy in
         let panel = GifPanel(klipy: klipy)
         panel.fullAccess = { [unowned self] in hasFullAccess }
+        panel.app = { [unowned self] in hostApp }
         panel.onCopied = { [unowned self] in clipboard.skip(changeCount: $0) }
         panel.onTurnOn = { [unowned self] in open(HexLink.settings) }
         panel.changed = { [unowned self] in render() }
@@ -58,6 +59,7 @@ open class HexKeyboardViewController: UIInputViewController {
     private let haptics = KeyHaptics()
     private let clipboard = ClipboardStore(backup: ClipboardStore.own)
     private let sources = Sources()
+    private var hostApp: String?
 
     override open func loadView() {
         inputView = KeyboardInputView(frame: .zero, inputViewStyle: .default)
@@ -144,6 +146,7 @@ open class HexKeyboardViewController: UIInputViewController {
     override open func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         KeyboardHost.appeared()
+        updateHost()
         keyboard = .random(in: 1 ... .max)
         MemoryStore.refresh { [weak self] memory in
             self?.engine.corrector?.changeMemory { $0 = memory }
@@ -151,6 +154,7 @@ open class HexKeyboardViewController: UIInputViewController {
             self?.render()
         }
         engine.emojiHistory = MemoryStore.loadEmoji()
+        engine.emojiHistory.app = hostApp
         loadSettings()
         if hasFullAccess { clipboard.catchUp() }
         if observers.isEmpty {
@@ -178,6 +182,8 @@ open class HexKeyboardViewController: UIInputViewController {
 
     override open func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
+        updateHost()
+        syncWithDocument()
         if hapticsEnabled { haptics.start() }
         stopSystemGesturesDelayingTouches()
         TouchTrace.shared.watch(view.window)
@@ -217,13 +223,22 @@ open class HexKeyboardViewController: UIInputViewController {
     }
 
     override open func selectionDidChange(_ textInput: UITextInput?) {
-        KeyboardHost.harvest()
+        updateHost()
         syncWithDocument()
     }
 
     override open func textDidChange(_ textInput: UITextInput?) {
-        KeyboardHost.harvest()
+        updateHost()
         syncWithDocument()
+    }
+
+    private func updateHost() {
+        let app = KeyboardHost.app(of: self)
+        guard app != hostApp else { return }
+        engine.changeApp(app)
+        hostApp = app
+        engine.emojiHistory.app = app
+        engine.suggestionsChanged()
     }
 
     private func syncWithDocument() {
@@ -266,13 +281,13 @@ open class HexKeyboardViewController: UIInputViewController {
         guard hasFullAccess, !textDocumentProxy.isPrivate, let field = textDocumentProxy.field else { return }
         sources.observe(FieldUpdate(
             field: field, before: engine.text.before, after: engine.text.after ?? "", by: author, traits: engine.traits,
-            at: Date().timeIntervalSince1970
+            at: Date().timeIntervalSince1970, app: hostApp
         ))
     }
 
     private var hint: String? {
         guard hasFullAccess, let field = textDocumentProxy.field else { return nil }
-        return sources.hint(for: field)
+        return sources.hint(for: field, app: hostApp)
     }
 
     private func render() {
@@ -423,7 +438,8 @@ open class HexKeyboardViewController: UIInputViewController {
         micIsOn = Dictation.micIsOn
         if micIsOn { return Dictation.send(.start) }
         render()
-        open(Dictation.Request(host: KeyboardHost.app(of: self)).url)
+        updateHost()
+        open(Dictation.Request(host: hostApp).url)
     }
 
     /// Opens a link from the keyboard. Apps can't be opened from a keyboard through public API, so this goes through

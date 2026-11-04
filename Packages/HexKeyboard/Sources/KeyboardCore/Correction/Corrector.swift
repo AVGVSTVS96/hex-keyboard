@@ -6,6 +6,9 @@ public final class Corrector {
     /// What you've taught it, changed only through `record`, `forget` and `changeMemory`, which change it in place: a
     /// property observer here would copy all of it on every change.
     public private(set) var memory = TypingMemory()
+    public var app: String? {
+        didSet { if app != oldValue { forgetRankings() } }
+    }
     public var grid = KeyGrid.standard {
         didSet { if !grid.isSame(as: oldValue) { forgetRankings() } }
     }
@@ -35,6 +38,7 @@ public final class Corrector {
         copy.replacements = replacements
         copy.names = names
         copy.memory = memory
+        copy.app = app
         copy.grid = grid
         copy.novel = novel
         copy.rankings = rankings
@@ -53,6 +57,10 @@ public final class Corrector {
     public func record(_ word: String, after previous: String?) {
         let total = memory.total
         memory.record(word, after: previous)
+        if let app {
+            if memory.apps == nil { memory.apps = [:] }
+            memory.apps?[app, default: AppWords()].record(Words.plain(word), after: previous.map(Words.plain))
+        }
         recount(word, by: 1, since: total)
     }
 
@@ -60,6 +68,7 @@ public final class Corrector {
     public func forget(_ word: String, after previous: String?) {
         let total = memory.total
         memory.forget(word, after: previous)
+        if let app { memory.apps?[app]?.forget(Words.plain(word), after: previous.map(Words.plain)) }
         recount(word, by: -1, since: total)
     }
 
@@ -256,7 +265,7 @@ extension Corrector {
     func languageModel(_ lexicon: Lexicon) -> LanguageModel {
         let novel = novel ?? LanguageModel.novel(in: memory, lexicon: lexicon)
         self.novel = novel
-        return LanguageModel(lexicon: lexicon, memory: memory, phrases: phrases, novel: novel)
+        return LanguageModel(lexicon: lexicon, memory: memory, phrases: phrases, novel: novel, app: app.flatMap { memory.apps?[$0] })
     }
 }
 

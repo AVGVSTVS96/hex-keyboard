@@ -25,7 +25,7 @@ struct SourcesPage: View {
                     }
                 }
             }
-            Box(footer: "A source is a service you run that iikb tells what you type. With Full Access on, each one gets the text of the field you’re typing in, never passwords or codes, and can answer with a hint above the keys. Tap a hint to hide it.") {
+            Box(footer: "A source is a service you run that iikb tells what you type. With Full Access on, each one gets the app’s bundle ID and the text of the field you’re typing in, never passwords or codes, and can answer with a hint above the keys. Tap a hint to hide it.") {
                 ActionRow(title: "Add Source", symbol: "plus") { adding = true }
             }
         }
@@ -166,10 +166,10 @@ struct PrivacyPage: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 28) {
             Box(header: "What Leaves This iPhone") {
-                Label("What you type, say and copy stays here.", systemImage: "iphone").row()
-                Label("iikb goes online only to download its voice model once, search GIFs, and reach the sources you add.", systemImage: "network").row()
+                Label("Learned words, app-specific language and emoji choices, dictations and clipboard history stay here.", systemImage: "iphone").row()
+                Label("iikb goes online to download its voice model, search GIFs, and send the field’s text and app ID to sources you add.", systemImage: "network").row()
             }
-            Box(footer: "iikb forgets the words it learned from your typing and where your thumbs land on each key. Your Dictionary stays.") {
+            Box(footer: "iikb forgets the words it learned across apps and within each app, and where your thumbs land on each key. Your Dictionary stays.") {
                 ActionRow(title: "Reset Learned Words and Taps", role: .destructive) { confirmsReset = true }
             }
             Box(footer: transcripts.all.isEmpty ? "You haven’t dictated anything yet." : "Deletes all \(transcripts.all.count.formatted()) dictations and their sound from this iPhone.") {

@@ -104,12 +104,6 @@ extension TypingEngine {
         return KeyFaceContext(device: device, layer: layer, kind: traits.kind, shift: shift, returnKind: traits.returnKind, returnEnabled: returnEnabled)
     }
 
-    /// Learns from the last words you kept, the one in progress too. Call when the keyboard goes away.
-    public mutating func endSession() {
-        keepWord(in: text)
-        typing = WordTaps()
-    }
-
     /// A suggestion takes the place of the whole word around the caret, and the caret ends after it and one space.
     public mutating func accept(_ suggestion: Suggestion, in document: some TextDocument) {
         attach(document)

@@ -23,6 +23,7 @@ final class GifPanel: UIView, PanelContent, UIScrollViewDelegate {
     private let klipy: Klipy
     private var search = GifSearch()
     private var recents = GifRecents()
+    var app: () -> String? = { nil }
     private var showsRecents = false
     private var query: String?
     private var shown: GifSearch.Results?
@@ -78,7 +79,7 @@ final class GifPanel: UIView, PanelContent, UIScrollViewDelegate {
         if self.query != nil, !query.isEmpty { showsRecents = false }
         self.query = query
         notice = nil
-        if fullAccess(), let request = search.want(showsRecents ? .recents(recents.slugs) : GifSearch.feed(for: query)) { fetch(request) }
+        if fullAccess(), let request = search.want(showsRecents ? .recents(recents.slugs(in: app())) : GifSearch.feed(for: query)) { fetch(request) }
         refresh()
     }
 
@@ -141,7 +142,7 @@ final class GifPanel: UIView, PanelContent, UIScrollViewDelegate {
     }
 
     private func sent(_ gif: Gif) {
-        recents.use(Klipy.base(gif.id))
+        recents.use(Klipy.base(gif.id), app: app())
         Self.save(recents)
         klipy.shared(gif, search: query ?? "")
     }

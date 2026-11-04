@@ -1,6 +1,6 @@
 # Sources
 
-A source is a web service iikb tells what you type. It sees the text of the field you're typing in, in any app, and can answer with a hint that iikb shows above the keys in place of the suggestions. Tapping the hint hides it until the source answers with a different one.
+A source is a web service iikb tells what you type. It sees the app’s bundle ID and the text of the field you're typing in, in any app, and can answer with a hint that iikb shows above the keys in place of the suggestions. Tapping the hint hides it until the source answers with a different one.
 
 ```
 you type ──► iikb ──POST the field──► your source
@@ -24,6 +24,7 @@ hexkeyboard://source?name=Example&url=https%3A%2F%2Fexample.com%2Fhex&token=secr
 
 ```json
 {
+  "app": "com.apple.MobileSMS",
   "field": "6F1C2D0E-8A3B-4C5D-9E7F-0123456789AB",
   "before": "Running late, be there",
   "after": "",
@@ -34,6 +35,7 @@ hexkeyboard://source?name=Example&url=https%3A%2F%2Fexample.com%2Fhex&token=secr
 }
 ```
 
+- `app`: the host app’s bundle ID, available when the keyboard appears, before you type. An empty string means the private lookup could not identify it; iikb never guesses from the field or a previously opened app.
 - `field`: the text field, from iOS's `documentIdentifier`. It stays the same while the field stays open, and changes when the app opens it again (Messages gives a conversation a new one each time you open it).
 - `before`, `after`: the text before and after the caret, as the keyboard knows it. Apps show a keyboard a window of the text, so in a long document these may not reach its start or end.
 - `by`: who changed the text last. `keyboard` is you typing. `app` is the app: the keyboard opening in a new field (always the field's first update), a sent message clearing it, a paste, the caret moving.
@@ -55,29 +57,34 @@ A `2xx` with JSON:
 
 `{}`, `{"hint": null}` or an empty body clears the hint. A hint belongs to the field it was answered for, and stays until the source answers again. iikb ignores keys it doesn't know, so a source can be written once and keep working as iikb learns more answers.
 
-## What a source can't see
+## Which app you're typing in
 
-iOS has no public way to tell a keyboard which app it's in, which conversation a field belongs to, or anything on the screen beyond the field's text and its keyboard settings. As of iOS 27:
+iikb identifies the host app when the keyboard appears, before you type, and checks again on UIKit’s appearance, text and selection events. `KeyboardHost` matches the keyboard’s host process ID to the bundle ID reported by UIKit’s keyboard arbiter. This is private API: iOS 26.4 stopped exposing the host through the keyboard’s own properties, and an unavailable or unmatched arbiter result means unknown.
 
-- Apps can describe a conversation to the keyboard (`UIConversationContext`, iOS 18.4), but iOS keeps it for its own keyboard: a third-party keyboard reads `nil` and is never told it changed, even in an app that sets it.
-- A keyboard's own ways to learn its host app stopped working in iOS 26.4. iikb still finds the app through a private UIKit path (`KeyboardHost`, UIKit's keyboard arbiter), from the moment the keyboard appears, before you type. Only voice typing uses it so far, to send you back to the app; updates to sources don't carry it yet.
+The same app identity serves:
 
-So for now a source learns the app from Shortcuts (below), and who a message was for after it's sent (an `app` update that empties the field right after the text you sent), or from outside the keyboard.
+- **Sources:** every field update carries `app`. A new app identity triggers an update even when the text has not changed, and hints belong to both their app and field.
+- **Suggestions and autocorrect:** words and word pairs you keep are counted for that app as well as globally. App-specific counts rank completions, correction candidates and next-word suggestions, backing off to your shared language and then the lexicon. A new or unknown app keeps the shared behavior. Correctly typed words keep the same touch-evidence protection.
+- **Emoji:** the bar and panel put emoji you choose in this app first, with shared favorites underneath. Skin-tone preferences stay shared.
+- **GIF recents:** GIFs shared in this app come first, followed by your other recent GIFs. The app ID is used locally; it is not sent to KLIPY.
+- **Voice typing:** the keyboard passes the same identity to the recording app so it can return you to the right app.
 
-### Which app you're in, before you type
+App-specific learning stays on the phone. Reset Learned Words and Taps also clears the per-app word counts. Touch calibration, explicit kept spellings, text replacements, voice writing settings and skin tones remain shared preferences. Field behavior follows the traits iOS reports, rather than guesses based on an app’s name. Clipboard entries have no app-of-origin label: the app where the keyboard reads the clipboard does not establish where something was copied.
 
-Shortcuts can tell a source when you open an app, before the keyboard comes up. In Shortcuts › Automation, make one automation per app: **App**, pick the app, **Is Opened**, **Run Immediately**, with one action, **Get Contents of URL** to your source, method `POST`, JSON body `app` = the app's name (and your token as an `Authorization` header). Add one more for all of them, **Is Closed**, that posts `app` as an empty text. The source then knows the app until you leave it. `sources/record.ts` understands these posts; a source of your own decides what to do with them.
+An app ID does not identify a conversation, recipient or web page. iOS exposes only the text around the caret and field traits to a third-party keyboard. `UIConversationContext` (iOS 18.4) remains unavailable to it, even when the host sets it. An `app` update emptying the field after typing is evidence that its text was sent, not who received it.
+
+Shortcuts automations are no longer needed for keyboard updates. `sources/record.ts` still accepts an app-only `{ "app": "…" }` POST from an automation for activity outside the keyboard; a keyboard update’s own `app` takes precedence, including an empty value.
 
 ## A record of what you type
 
-`sources/record.ts` is a source that keeps a log: one JSON line for each message you send, and for each field you leave with text you typed, with when it was, the kind of field, and the app when Shortcuts told it.
+`sources/record.ts` is a source that keeps a log: one JSON line for each message you send, and for each field you leave with text you typed, with when it was, the kind of field, and the bundle ID sent by the keyboard.
 
 ```sh
 RECORD_TOKEN=secret bun sources/record.ts --port 2590 --out ~/record.jsonl
 ```
 
 ```json
-{"at":"2026-10-20T07:13:02.120Z","event":"sent","text":"On my way","app":"Messages","kind":"text","returnKey":"default"}
+{"at":"2026-10-20T07:13:02.120Z","event":"sent","text":"On my way","app":"com.apple.MobileSMS","kind":"text","returnKey":"default"}
 ```
 
 It listens on `127.0.0.1`; put it behind `https` on your own devices, for example with `tailscale serve --bg --set-path /record 2590`, and add it with the token.

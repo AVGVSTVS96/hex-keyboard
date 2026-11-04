@@ -325,6 +325,22 @@ public struct TypingEngine {
         suggestionsChanged()
     }
 
+    /// Learns from the last words you kept, the one in progress too. Call when the keyboard goes away.
+    public mutating func endSession() {
+        keepWord(in: text)
+        text = TextState()
+        typing = WordTaps()
+    }
+
+    /// Finish learning in the old app before adopting another host’s field and language.
+    public mutating func changeApp(_ app: String?) {
+        guard corrector?.app != app else { return }
+        endSession()
+        forgetWord()
+        corrector?.app = app
+        suggestionsChanged()
+    }
+
     /// The host's `textDidChange` or `selectionDidChange`. A report showing the keyboard's own edits, even late, changes
     /// nothing; anything else replaces what the engine knows and forgets the word in progress. An emptied field was
     /// sent, so its last words were kept, the one in progress too.

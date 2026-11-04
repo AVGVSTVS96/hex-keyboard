@@ -104,12 +104,24 @@ public struct GifSearch: Sendable {
 /// fetches them again by slug.
 public struct GifRecents: Codable, Hashable, Sendable {
     public private(set) var slugs: [String] = []
+    private var apps: [String: [String]]?
+
+    public func slugs(in app: String?) -> [String] {
+        let local = app.flatMap { apps?[$0] } ?? []
+        return Array((local + slugs.filter { !local.contains($0) }).prefix(Self.capacity))
+    }
 
     static let capacity = 50
 
     public init() {}
 
-    public mutating func use(_ slug: String) {
+    public mutating func use(_ slug: String, app: String? = nil) {
+        if let app {
+            if apps == nil { apps = [:] }
+            var local = apps?[app] ?? []
+            local.removeAll { $0 == slug }
+            apps?[app] = Array(([slug] + local).prefix(Self.capacity))
+        }
         slugs.removeAll { $0 == slug }
         slugs.insert(slug, at: 0)
         slugs = Array(slugs.prefix(Self.capacity))

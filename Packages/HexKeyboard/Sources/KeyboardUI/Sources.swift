@@ -70,8 +70,8 @@ final class Sources {
         }
     }
 
-    func hint(for field: String) -> String? {
-        feeds.lazy.compactMap { $0.hint(for: field) }.first
+    func hint(for field: String, app: String? = nil) -> String? {
+        feeds.lazy.compactMap { $0.hint(for: field, app: app) }.first
     }
 
     func dismissHint() {
@@ -95,6 +95,7 @@ final class Sources {
     }
 
     nonisolated private struct Request: Encodable {
+        let app: String
         let field: String
         let before: String
         let after: String
@@ -104,6 +105,7 @@ final class Sources {
         let at: String
 
         init(_ update: FieldUpdate) {
+            app = update.app ?? ""
             field = update.field
             before = update.before
             after = update.after

@@ -9,6 +9,7 @@ import { parseArgs } from "node:util";
 
 /** What Hex sends as you type. */
 export interface Update {
+  readonly app?: string | null;
   readonly field: string;
   readonly before: string;
   readonly after: string;
@@ -56,14 +57,16 @@ const entry = ({ update, app }: NonNullable<State["last"]>, event: Entry["event"
 export const record = (state: State, input: Update | AppOpened): { state: State; entry: Entry | null } => {
   if (!("field" in input)) return { state: { ...state, app: input.app }, entry: null };
   const { last, typed, app } = state;
+  const host = "app" in input ? input.app ?? "" : app;
+  const sameField = last?.update.field === input.field && (!("app" in input) || !("app" in last.update) || last.app === host);
   const settled = last !== null && typed && text(last.update) !== "";
-  const sent = settled && last.update.field === input.field && input.by === "app" && text(input) === "";
-  const left = settled && last.update.field !== input.field;
+  const sent = settled && sameField && input.by === "app" && text(input) === "";
+  const left = settled && !sameField;
 
   return {
     state: {
-      last: { update: input, app },
-      typed: input.by === "keyboard" || (!sent && last?.update.field === input.field && typed),
+      last: { update: input, app: host },
+      typed: input.by === "keyboard" || (!sent && sameField && typed),
       app,
     },
     entry: sent ? entry(last, "sent") : left ? entry(last, "typed") : null,

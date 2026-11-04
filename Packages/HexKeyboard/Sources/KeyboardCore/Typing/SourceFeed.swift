@@ -8,6 +8,7 @@ public struct FieldUpdate: Hashable, Sendable {
         case app
     }
 
+    public var app: String?
     public var field: String
     public var before: String
     public var after: String
@@ -16,7 +17,8 @@ public struct FieldUpdate: Hashable, Sendable {
     /// Seconds since 1970.
     public var at: Double
 
-    public init(field: String, before: String, after: String, by: Author, traits: InputTraits, at: Double = 0) {
+    public init(field: String, before: String, after: String, by: Author, traits: InputTraits, at: Double = 0, app: String? = nil) {
+        self.app = app
         self.field = field
         self.before = before
         self.after = after
@@ -26,7 +28,7 @@ public struct FieldUpdate: Hashable, Sendable {
     }
 
     func shows(_ other: FieldUpdate) -> Bool {
-        field == other.field && before == other.before && after == other.after
+        app == other.app && field == other.field && before == other.before && after == other.after
     }
 }
 
@@ -39,8 +41,8 @@ public struct SourceFeed: Sendable {
     private var latest: FieldUpdate?
     private var waiting: [FieldUpdate] = []
     private var link = Link.ready
-    private var hint: (field: String, text: String)?
-    private var dismissed: String?
+    private var hint: (app: String?, field: String, text: String)?
+    private var dismissed: (app: String?, field: String, text: String)?
 
     public init() {}
 
@@ -49,7 +51,7 @@ public struct SourceFeed: Sendable {
     public mutating func observe(_ update: FieldUpdate) {
         guard latest.map(update.shows) != true else { return }
         var update = update
-        if update.field != latest?.field { update.by = .app }
+        if update.app != latest?.app || update.field != latest?.field { update.by = .app }
         latest = update
         if link == .down { link = .ready }
         if update.by == .keyboard, waiting.last?.by == .keyboard {
@@ -69,8 +71,8 @@ public struct SourceFeed: Sendable {
     /// The source answered `update`: its hint stands until it answers again.
     public mutating func answered(_ update: FieldUpdate, hint text: String?) {
         link = .ready
-        hint = text.map { (update.field, $0) }
-        if text != dismissed { dismissed = nil }
+        hint = text.map { (update.app, update.field, $0) }
+        if text != dismissed?.text || update.app != dismissed?.app || update.field != dismissed?.field { dismissed = nil }
     }
 
     /// The source couldn't be reached with `update`. It keeps its place, unless newer typing already stands in for it,
@@ -82,13 +84,13 @@ public struct SourceFeed: Sendable {
     }
 
     /// The hint for `field`, unless you dismissed it.
-    public func hint(for field: String) -> String? {
-        guard let hint, hint.field == field, hint.text != dismissed else { return nil }
+    public func hint(for field: String, app: String? = nil) -> String? {
+        guard let hint, hint.app == app, hint.field == field, hint.text != dismissed?.text else { return nil }
         return hint.text
     }
 
     /// Hides the hint until the source answers with a different one.
     public mutating func dismissHint() {
-        dismissed = hint?.text
+        dismissed = hint
     }
 }
