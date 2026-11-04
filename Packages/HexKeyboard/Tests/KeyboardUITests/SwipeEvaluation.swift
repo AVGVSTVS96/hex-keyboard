@@ -112,7 +112,6 @@ extension Evaluation {
     func swipe() throws {
         let layout = Self.layout, model = Swipe.english
         let swipes = Swipes(items: try Swipes("test", limit: Int(ProcessInfo.processInfo.environment["SWIPE_LIMIT"] ?? "") ?? .max).placed(on: layout))
-        let clock = ContinuousClock()
         let targets = Set(swipes.items.map(\.word))
         let ours = Lexicon.english
         let inLexicon = swipes.items.count { ours.logProbability(of: $0.word) != nil }
@@ -120,11 +119,10 @@ extension Evaluation {
         for refined in [false, true] {
             let emissions = Self.parallel(swipes.items.count) { model.emissions(of: swipes.items[$0].path, on: layout, refined: refined)! }
             for (name, lexicon) in [("ours", ours)] + [25.5, 18.0, 12.0].map({ ("forced at -\($0)", Self.lexicon(adding: targets, at: $0)) }) {
-                let start = clock.now
                 let ranked = Self.parallel(swipes.items.count) { Swipe.rank(emissions[$0], in: lexicon, refined ? .refined : .encoderOnly, limit: 10).map { $0.word.lowercased() } }
                 var accuracy = Accuracy()
                 for (item, words) in zip(swipes.items, ranked) { accuracy.add(words, item.word) }
-                print("EVAL swipe \(refined ? "encoder+decoder" : "encoder") lexicon=\(name) \(accuracy.summary) (\(clock.now - start))")
+                print("EVAL swipe \(refined ? "encoder+decoder" : "encoder") lexicon=\(name) \(accuracy.summary)")
             }
         }
     }
