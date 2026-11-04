@@ -225,20 +225,26 @@ final class TapMarksView: UIView {
         }
     }
 
-    /// A share of taps on each key: misses tinted by how many, the key that was meant in the accent color.
+    /// With no key picked, each key tinted by the share of its taps that land elsewhere, that share under its name once
+    /// it's 1% or more; with one picked, the share of its taps on each key, the key itself in the accent color.
     private func drawShares(_ shares: [(key: Key, share: Double)], target: Key?) {
         let byKey = Dictionary(shares.map { ($0.key, $0.share) }) { first, _ in first }
         for (key, frame) in keys {
-            guard let share = byKey[key], share >= 0.005 || target == nil else {
+            guard let share = byKey[key] else {
                 label(key, in: frame, share: nil, emphasized: false)
                 continue
             }
             let isTarget = key == target
             let miss = target == nil ? 1 - share : isTarget ? 0 : share
-            let color = isTarget ? tintColor.withAlphaComponent(0.3) : TapMapPalette.miss.withAlphaComponent(min(miss / 0.25, 1) * 0.85)
+            let shown = target == nil ? miss : share
+            guard isTarget || shown >= (target == nil ? 0.01 : 0.005) else {
+                label(key, in: frame, share: nil, emphasized: false)
+                continue
+            }
+            let color = isTarget ? tintColor.withAlphaComponent(0.3) : TapMapPalette.miss.withAlphaComponent(0.12 + min(miss / 0.25, 1) * 0.73)
             color.setFill()
             UIBezierPath(roundedRect: CGRect(frame), cornerRadius: 8).fill()
-            label(key, in: frame, share: share, emphasized: miss >= 0.125)
+            label(key, in: frame, share: shown, emphasized: miss >= 0.125)
         }
     }
 
@@ -253,8 +259,8 @@ final class TapMarksView: UIView {
             return
         }
         name.draw(at: CGPoint(x: rect.minX + 5, y: rect.minY + 3))
-        let number = NSAttributedString(string: TapMapPalette.percent(share, sign: false), attributes: [
-            .font: UIFont.monospacedDigitSystemFont(ofSize: 15, weight: emphasized ? .semibold : .regular),
+        let number = NSAttributedString(string: TapMapPalette.percent(share), attributes: [
+            .font: UIFont.monospacedDigitSystemFont(ofSize: 13, weight: emphasized ? .semibold : .medium),
             .foregroundColor: UIColor.label,
         ])
         let size = number.size()

@@ -1,11 +1,15 @@
 import UIKit
 import KeyboardCore
 
-/// How densely taps land across the keyboard: each key's learned Gaussian, weighted by its taps, summed, drawn on one
-/// blue ramp that darkens (light) or brightens (dark) with density, on a square-root scale so rare keys still show, and
-/// full at the densest 0.5%, so the space bar's narrow, crowded spot doesn't leave every letter faint.
+/// How densely taps land across the keyboard: each key's learned Gaussian, weighted by its taps, summed, drawn on a
+/// ramp from indigo through the system blue to cyan, which ends near white in dark and deepens to navy in light, on a
+/// square-root scale so rare keys still show, and full at the densest 0.5%, so the space bar's narrow, crowded spot
+/// doesn't leave every letter faint.
 public enum TapHeat {
     static let pixelsPerPoint = 2.0
+
+    private static let dark: [(Double, Double, Double)] = [(52, 40, 170), (10, 110, 255), (64, 200, 255), (226, 246, 255)]
+    private static let light: [(Double, Double, Double)] = [(150, 200, 255), (10, 122, 255), (36, 64, 214), (24, 22, 120)]
 
     public static func color(at value: Double, isDark: Bool) -> UIColor {
         let (r, g, b, a) = rgba(at: value, isDark: isDark)
@@ -14,10 +18,13 @@ public enum TapHeat {
 
     static func rgba(at value: Double, isDark: Bool) -> (Double, Double, Double, Double) {
         let v = min(max(value, 0), 1)
-        let low: (Double, Double, Double) = isDark ? (0, 88, 220) : (90, 170, 255)
-        let high: (Double, Double, Double) = isDark ? (178, 224, 255) : (0, 48, 176)
-        let mix = { (a: Double, b: Double) in (a + (b - a) * v) / 255 }
-        return (mix(low.0, high.0), mix(low.1, high.1), mix(low.2, high.2), min(1, v * 1.6) * 0.94)
+        let stops = isDark ? dark : light
+        let position = v * Double(stops.count - 1)
+        let index = min(Int(position), stops.count - 2)
+        let t = position - Double(index)
+        let (low, high) = (stops[index], stops[index + 1])
+        let mix = { (a: Double, b: Double) in (a + (b - a) * t) / 255 }
+        return (mix(low.0, high.0), mix(low.1, high.1), mix(low.2, high.2), min(1, v * 1.8) * 0.95)
     }
 
     static func image(of aims: [Aim], size: CGSize, isDark: Bool) -> CGImage? {
