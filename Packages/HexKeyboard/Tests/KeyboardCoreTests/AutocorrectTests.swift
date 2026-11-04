@@ -136,6 +136,49 @@ struct AutocorrectTests {
         #expect(document.text == "so hello ")
     }
 
+    @Test func correctsASelectedWord() throws {
+        var engine = TypingEngine.correcting()
+        let document = TestDocument("so helo world")
+        document.select("helo")
+        engine.documentChanged(document)
+        let hello = try #require(engine.suggestions.first { $0.text == "hello" })
+        #expect(hello.kind == .candidate)
+        engine.accept(hello, in: document)
+        #expect(document.text == "so hello world")
+    }
+
+    @Test func keepsASelectedWordTappedAsTyped() {
+        var engine = TypingEngine.correcting()
+        let document = TestDocument("so helo world")
+        document.select("helo")
+        engine.documentChanged(document)
+        engine.accept(engine.suggestions[0], in: document)
+        #expect(document.text == "so helo world")
+        #expect(document.cursor == 8)
+    }
+
+    @Test func aNewWordTypedInFrontOfAnotherIsRankedAlone() {
+        var engine = TypingEngine.correcting()
+        let document = TestDocument("I world")
+        document.cursor = 2
+        engine.documentChanged(document)
+        engine.type("hel", in: document)
+        #expect(engine.suggestions.map(\.text).contains("help"))
+        engine.accept(engine.suggestions.first { $0.text == "help" }!, in: document)
+        #expect(document.text == "I help world")
+    }
+
+    @Test func aWordYouGoBackIntoIsRankedWhole() {
+        var engine = TypingEngine.correcting()
+        let document = TestDocument("so helo world")
+        document.cursor = 5
+        engine.documentChanged(document)
+        let hello = engine.suggestions.first { $0.text == "hello" }
+        #expect(hello?.kind == .candidate)
+        engine.accept(hello!, in: document)
+        #expect(document.text == "so hello world")
+    }
+
     @Test func expandsTextReplacements() {
         var engine = TypingEngine.correcting()
         engine.corrector?.setReplacements([("omw", "On my way!")])
@@ -240,7 +283,32 @@ struct AutocorrectTests {
 struct MissedSpaceTests {
     let corrector = Corrector(source: Lexicon(counts: [
         ("great", 300), ("day", 400), ("the", 1000), ("what", 500), ("given", 80), ("give", 100), ("treat", 40),
+        ("i", 900), ("also", 300), ("updated", 60), ("update", 80), ("done", 200), ("ok", 100),
     ].map { (word: $0.0, count: Double($0.1)) }))
+
+    @Test func readsEveryMissedSpaceInARun() {
+        #expect(corrector.split(TypedWord("inalsonuodated", previous: "done")) == "i also updated")
+    }
+
+    @Test func offersTheWordsOfASelectedRun() throws {
+        var engine = TypingEngine()
+        engine.corrector = corrector
+        let document = TestDocument("done freatvday ok")
+        document.select("freatvday")
+        engine.documentChanged(document)
+        let pair = try #require(engine.suggestions.first { $0.text == "great day" })
+        engine.accept(pair, in: document)
+        #expect(document.text == "done great day ok")
+    }
+
+    @Test func offersTheWordsOfARunBeforeTheCaret() {
+        var engine = TypingEngine()
+        engine.corrector = corrector
+        let document = TestDocument("done inalsonuodated ok")
+        document.cursor = 5
+        engine.documentChanged(document)
+        #expect(engine.suggestions.map(\.text).contains("i also updated"))
+    }
 
     @Test func offersTheTwoWordsAMissedSpaceJoined() {
         let suggestions = corrector.suggestions(for: TypedWord("freatvday"), correcting: true, guessing: true)

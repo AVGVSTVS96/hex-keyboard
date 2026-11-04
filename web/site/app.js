@@ -69,6 +69,7 @@ const advance = (step) => {
 const textDocument = {
   before: () => field.value.slice(0, field.selectionStart),
   after: () => field.value.slice(field.selectionEnd),
+  selected: () => field.value.slice(field.selectionStart, field.selectionEnd),
   insert(text) {
     field.setRangeText(text, field.selectionStart, field.selectionEnd, "end");
     spell.editing = true;

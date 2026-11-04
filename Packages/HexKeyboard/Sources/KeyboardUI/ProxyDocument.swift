@@ -12,6 +12,8 @@ final class ProxyDocument: TextDocument {
 
     var textAfterInput: String? { proxy().documentContextAfterInput }
 
+    var selectedText: String? { proxy().selectedText }
+
     func insert(_ text: String) { proxy().insertText(text) }
 
     func deleteBackward(_ count: Int) {

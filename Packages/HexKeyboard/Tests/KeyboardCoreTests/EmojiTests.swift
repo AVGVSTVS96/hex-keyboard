@@ -32,6 +32,17 @@ struct EmojiTests {
         #expect(catalog.suggestions(for: "dog", history: history) == ["🐕", "🌭", "🐶"])
     }
 
+    @Test func anEmojiTakesTheWholeWordYouWentBackInto() {
+        var engine = TypingEngine()
+        engine.emojiCatalog = catalog
+        let document = TestDocument("i love pizza now")
+        document.cursor = 9
+        engine.documentChanged(document)
+        #expect(engine.emojiSuggestions == ["🍕"])
+        engine.accept(emoji: "🍕", in: document)
+        #expect(document.text == "i love 🍕 now")
+    }
+
     @Test func anEmojiFromTheBarTakesTheWordsPlaceOrFollowsIt() {
         var engine = TypingEngine()
         engine.emojiCatalog = catalog

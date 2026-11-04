@@ -104,16 +104,14 @@ extension TypingEngine {
         return KeyFaceContext(device: device, layer: layer, kind: traits.kind, shift: shift, returnKind: traits.returnKind, returnEnabled: returnEnabled)
     }
 
-    /// A suggestion takes the place of the whole word around the caret, and the caret ends after it and one space.
+    /// A suggestion takes the place of the word the bar is for, and the caret ends after it and one space.
     public mutating func accept(_ suggestion: Suggestion, in document: some TextDocument) {
         attach(document)
         let text = self.text.before
-        let word = Words.current(in: text)
+        let (word, tail) = suggested
         guard text[..<word.startIndex] == suggestionsBefore else { return }
         let previous = Words.previous(before: word, in: text)
-        let tail = suggestion.kind == .revert ? "" : (self.text.after ?? "").prefix(while: Words.isWordCharacter)
-        if !tail.isEmpty { moveCaret(by: tail.count, in: document) }
-        let whole = word + tail
+        let whole = suggestion.kind == .revert ? String(word) : reachEnd(of: word, tail: tail, in: document)
         switch suggestion.kind {
         case .revert:
             guard let revert, revert.isOffered(before: text), self.text.owned >= revert.replacement.count else { return }
@@ -121,39 +119,62 @@ extension TypingEngine {
             corrector?.changeMemory { $0.keep(revert.original) }
             pending?.word = revert.original
         case .literal:
-            corrector?.changeMemory { $0.keep(String(whole)) }
-            hold(String(whole), typed: String(whole))
+            corrector?.changeMemory { $0.keep(whole) }
+            hold(whole, typed: whole)
         case .correction, .candidate:
             write(suggestion.text, replacing: whole.count, in: document)
-            hold(suggestion.text, typed: String(whole))
+            hold(suggestion.text, typed: whole)
         }
         if !suggestion.text.contains(" ") { corrector?.record(pending?.word ?? suggestion.text, after: previous) }
         revert = nil
         typing = WordTaps()
-        if self.text.after?.first == " " {
+        spaceAfterPick(in: document)
+        refreshShift()
+        suggestionsChanged()
+    }
+
+    /// An emoji from the suggestion bar: it takes the place of the word the bar is for, or follows the word just typed.
+    public mutating func accept(emoji: String, in document: some TextDocument) {
+        attach(document)
+        let (word, tail) = suggested
+        guard text.before[..<word.startIndex] == suggestionsBefore else { return }
+        emojiHistory.use(emoji)
+        learnPending()
+        revert = nil
+        typing = WordTaps()
+        write(emoji, replacing: reachEnd(of: word, tail: tail, in: document).count, in: document)
+        spaceAfterPick(in: document)
+        refreshShift()
+        suggestionsChanged()
+    }
+
+    /// Steps over the space after a word picked from the bar, or types one.
+    private mutating func spaceAfterPick(in document: some TextDocument) {
+        if text.after?.first == " " {
             moveCaret(by: 1, in: document)
             lastSpace = nil
         } else {
             write(" ", in: document)
             lastSpace = .picked
         }
-        refreshShift()
-        suggestionsChanged()
     }
 
-    /// An emoji from the suggestion bar: it takes the place of the word being typed, or follows the word just typed.
-    public mutating func accept(emoji: String, in document: some TextDocument) {
-        attach(document)
+    /// Whether the keyboard typed the word before the caret, or the space before it, rather than you went back there.
+    var isTyping: Bool { text.owned >= max(Words.current(in: text.before).count, 1) }
+
+    /// The word the bar is for, which a tap on it replaces: the word before the caret, then the selection and the rest of
+    /// its word, or the rest of a word you went back to, but not text you're typing a new word in front of.
+    var suggested: (word: Substring, tail: String) {
         let word = Words.current(in: text.before)
-        guard text.before[..<word.startIndex] == suggestionsBefore else { return }
-        emojiHistory.use(emoji)
-        learnPending()
-        revert = nil
-        typing = WordTaps()
-        write(emoji + " ", replacing: word.count, in: document)
-        lastSpace = .picked
-        refreshShift()
-        suggestionsChanged()
+        return (word, isTyping ? "" : text.selected + (text.after ?? "").prefix(while: Words.isWordCharacter))
+    }
+
+    /// Puts the caret at the end of the word the bar is for, typing the selection over itself, and returns the word.
+    private mutating func reachEnd(of word: Substring, tail: String, in document: some TextDocument) -> String {
+        let selected = text.selected
+        if !selected.isEmpty { write(selected, in: document) }
+        if tail.count > selected.count { moveCaret(by: tail.count - selected.count, in: document) }
+        return String(word) + tail
     }
 
     /// Marks the suggestions out of date: ranks them now, or leaves them for a `SuggestionJob`. The key map is made now
@@ -327,18 +348,19 @@ extension TypingEngine {
         emojiSuggestions = []
         guard panel == nil else { return suggestions = [] }
         let text = self.text.before
-        let word = Words.current(in: text)
-        guard showsSuggestions else { return suggestions = [] }
+        let (word, tail) = suggested
+        guard showsSuggestions, self.text.selected.allSatisfy(Words.isWordCharacter) else { return suggestions = [] }
         suggestionsBefore = String(text[..<word.startIndex])
-        let named = word.isEmpty && text.hasSuffix(" ") ? Words.current(in: String(text.dropLast())) : word
+        let whole = word + tail
+        let named = whole.isEmpty && text.hasSuffix(" ") ? Words.current(in: String(text.dropLast())) : whole
         emojiSuggestions = emojiCatalog?.suggestions(for: String(named), history: emojiHistory, limit: 30) ?? []
         guard let corrector else { return suggestions = [] }
-        let typed = TypedWord(String(word), taps: typing.letters, previous: Words.previous(before: word, in: text))
+        let typed = TypedWord(String(whole), taps: tail.isEmpty ? typing.letters : [], previous: Words.previous(before: word, in: text))
         defer { suggestions = suggestions.map { Suggestion(written($0.text), $0.kind) } }
         if let revert, revert.isOffered(before: text) {
             let completions = corrector.suggestions(for: typed, correcting: false, guessing: false).dropFirst()
             suggestions = [Suggestion(revert.original, .revert)] + completions
-        } else if word.isEmpty {
+        } else if whole.isEmpty {
             let context = Words.context(before: word, in: text)
             suggestions = corrector.predictions(after: context.previous, earlier: context.earlier, context: text).map { prediction in
                 var prediction = prediction
@@ -350,8 +372,9 @@ extension TypingEngine {
                 return prediction
             }
         } else {
-            let correcting = traits.allowsCorrection && Words.isCorrectable(word, in: text)
-            suggestions = corrector.suggestions(for: typed, correcting: correcting, applying: settings.autoCorrection, guessing: true)
+            let line = suggestionsBefore + whole
+            let correcting = traits.allowsCorrection && Words.isCorrectable(Words.current(in: line), in: line)
+            suggestions = corrector.suggestions(for: typed, correcting: correcting, applying: settings.autoCorrection && isTyping, guessing: true)
         }
     }
 }

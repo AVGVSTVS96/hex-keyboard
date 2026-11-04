@@ -163,6 +163,7 @@ final class WebDocument: TextDocument {
 
     var textBeforeInput: String? { object.before!().string }
     var textAfterInput: String? { object.after!().string }
+    var selectedText: String? { object.selected!().string }
     func insert(_ text: String) { _ = object.insert!(text) }
     func deleteBackward(_ count: Int) { _ = object.deleteBackward!(count) }
     func moveCursor(by offset: Int) { _ = object.moveCursor!(offset) }

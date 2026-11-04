@@ -13,11 +13,14 @@ public struct TextState: Hashable, Sendable {
 
     public private(set) var before = ""
     public private(set) var after: String?
+    /// The text the host has selected between `before` and `after`, which the next edit replaces. The keyboard never
+    /// selects, so only a report sets it.
+    public private(set) var selected = ""
     /// How many characters at the end of `before` the keyboard typed itself: all that automatic edits may replace.
     public private(set) var owned = 0
     public private(set) var isKnown = false
     /// The field holds nothing, as after a message is sent.
-    public var isEmpty: Bool { before.isEmpty && (after ?? "").isEmpty }
+    public var isEmpty: Bool { before.isEmpty && selected.isEmpty && (after ?? "").isEmpty }
     /// How long the host's view was where `before` starts. iOS cuts that view at the start of the text, of a line, or at
     /// a length; once the keyboard deletes, a view cut at a length slides back over text the keyboard never saw, but it
     /// never grows. So the host can show text in front of `before` only in a view no longer than this.
@@ -28,6 +31,7 @@ public struct TextState: Hashable, Sendable {
     private struct Remembered: Hashable, Sendable {
         var tail: String
         var after: String?
+        var selected: String
         var reach: Int
     }
 
@@ -37,12 +41,15 @@ public struct TextState: Hashable, Sendable {
 
     public mutating func insert(_ text: String) {
         remember()
+        selected = ""
         before += text
         owned += text.count
     }
 
     public mutating func deleteBackward(_ count: Int) {
         remember()
+        let count = selected.isEmpty ? count : count - 1
+        selected = ""
         before.removeLast(min(count, before.count))
         owned = max(owned - count, 0)
     }
@@ -50,7 +57,10 @@ public struct TextState: Hashable, Sendable {
     public mutating func moveCursor(by offset: Int) {
         remember()
         owned = 0
-        if offset < 0, -offset <= before.count {
+        if !selected.isEmpty {
+            selected = ""
+            isKnown = false
+        } else if offset < 0, -offset <= before.count {
             after = String(before.suffix(-offset)) + (after ?? "")
             before.removeLast(-offset)
         } else if offset > 0, let after, offset <= after.count {
@@ -64,15 +74,15 @@ public struct TextState: Hashable, Sendable {
     /// The same text can recur (type a letter, delete it), so a late report matches the earliest state it could be,
     /// and only the states before that one are dropped.
     @discardableResult
-    public mutating func reconcile(before host: String?, after hostAfter: String?) -> Report {
-        let host = host ?? ""
+    public mutating func reconcile(before host: String?, after hostAfter: String?, selected hostSelected: String? = nil) -> Report {
+        let host = host ?? "", hostSelected = hostSelected ?? ""
         if isKnown, !host.isEmpty, let index = unconfirmed.firstIndex(where: {
-            Self.agree(host, $0.tail, reach: $0.reach) && Self.agree(after: hostAfter, $0.after)
+            Self.agree(host, $0.tail, reach: $0.reach) && Self.agree(after: hostAfter, $0.after) && hostSelected == $0.selected
         }) {
             unconfirmed.removeFirst(index)
             return .behind
         }
-        if isKnown, Self.agree(host, before, reach: reach), Self.agree(after: hostAfter, after) {
+        if isKnown, hostSelected == selected, Self.agree(host, before, reach: reach), Self.agree(after: hostAfter, after) {
             if host.count > before.count {
                 owned = min(owned, before.count)
                 before = host
@@ -84,6 +94,7 @@ public struct TextState: Hashable, Sendable {
         }
         before = host
         after = hostAfter
+        selected = hostSelected
         owned = 0
         isKnown = true
         reach = host.count
@@ -92,7 +103,7 @@ public struct TextState: Hashable, Sendable {
     }
 
     private mutating func remember() {
-        unconfirmed.append(Remembered(tail: String(before.suffix(Self.window)), after: after.map { String($0.prefix(Self.window)) }, reach: reach))
+        unconfirmed.append(Remembered(tail: String(before.suffix(Self.window)), after: after.map { String($0.prefix(Self.window)) }, selected: selected, reach: reach))
     }
 
     /// Whether the host's view can be `known`: a window of it, or more of it in a view no longer than `reach`. An

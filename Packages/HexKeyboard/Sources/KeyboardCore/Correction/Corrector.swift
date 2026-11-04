@@ -304,30 +304,59 @@ extension Corrector {
 }
 
 extension Corrector {
-    /// The two words a word's taps spell if one of its taps meant the space bar ("freatvday" → "great day"), each word
-    /// read from its own taps, so either may hold a typo of its own, when the pair is likelier than every reading of the
-    /// taps as one word. A thumb that misses the space bar lands on the row above it, so only those taps are read as
-    /// spaces.
+    /// The words a word's taps spell if some of them meant the space bar ("freatvday" → "great day", "inalsonuodated" →
+    /// "i also updated"), each read from its own taps after the word before it, so any may hold a typo of its own, when
+    /// they're likelier than every reading of the taps as one word. A thumb that misses the space bar lands on the row
+    /// above it, so only those taps are read as spaces. Only the likeliest words up to each such tap go on, so each word
+    /// is read once and stays cached as the taps after it come in.
     func split(_ typed: TypedWord) -> String? {
         guard let lexicon, typed.text.count >= 3, typed.taps.isEmpty || typed.taps.count == typed.text.count,
               let spaceRow = grid.index(of: " ")?.row, !isKnown(typed) else { return nil }
         let letters = Array(typed.text), taps = evidence(for: typed, touches: memory.touches), keys = memory.touches.layout(grid)
-        func meant(_ text: ArraySlice<Character>, taps: ArraySlice<Tap>, after previous: String?) -> Candidate? {
-            ranked(TypedWord(String(text), taps: Array(taps), previous: previous)).first {
+        func meant(_ range: Range<Int>, after previous: String?) -> Candidate? {
+            ranked(TypedWord(String(letters[range]), taps: typed.taps.isEmpty ? [] : Array(typed.taps[range]), previous: previous)).first {
                 !$0.isCompletion && (lexicon.isWord($0.word) || memory.count(of: $0.word) > 1 || memory.isKept($0.word))
             }
         }
-        let whole = ranked(typed).first { !$0.isCompletion }?.logPosterior ?? -.infinity
-        var best: (words: String, score: Double)?
-        for index in 1..<(letters.count - 1) where grid.index(of: String(letters[index]).lowercased())?.row == spaceRow - 1 {
-            guard let point = taps[index].point, let asSpace = keys.logLikelihood(x: point.x, y: point.y, for: " "),
-                  let first = meant(letters[..<index], taps: typed.taps.isEmpty ? [] : typed.taps[..<index], after: typed.previous),
-                  let second = meant(letters[(index + 1)...], taps: typed.taps.isEmpty ? [] : typed.taps[(index + 1)...], after: first.word.lowercased())
-            else { continue }
-            let score = first.logPosterior + asSpace + second.logPosterior
-            if score > best?.score ?? -.infinity { best = ("\(first.word) \(second.word)", score) }
+        /// A tap known only by its letter, as in a word you went back to, may have landed anywhere on its key, so the
+        /// space bar's share of that key is weighed against the letter's own.
+        func asSpace(_ point: Tap) -> Double? {
+            guard typed.taps.isEmpty, let frame = grid.frame(of: point.key), let own = keys.logLikelihood(x: point.x, y: point.y, for: point.key) else {
+                return keys.logLikelihood(x: point.x, y: point.y, for: " ")
+            }
+            let cell = grid.cell(of: frame), steps = 5
+            var space = -Double.infinity, letter = -Double.infinity
+            for i in 0..<steps {
+                for j in 0..<steps {
+                    let x = cell.x + (Double(i) + 0.5) * cell.width / Double(steps), y = cell.y + (Double(j) + 0.5) * cell.height / Double(steps)
+                    space = Math.logSumExp(space, keys.logLikelihood(x: x, y: y, for: " ") ?? -.infinity)
+                    letter = Math.logSumExp(letter, keys.logLikelihood(x: x, y: y, for: point.key) ?? -.infinity)
+                }
+            }
+            return own + space - letter
         }
+        let spaces: [(index: Int, logLikelihood: Double)] = (1..<(letters.count - 1)).compactMap { index in
+            guard grid.index(of: String(letters[index]).lowercased())?.row == spaceRow - 1, let point = taps[index].point,
+                  let asSpace = asSpace(point) else { return nil }
+            return (index, asSpace)
+        }
+        guard !spaces.isEmpty else { return nil }
+        var runs: [Int: (words: [String], score: Double)] = [0: ([], 0)]
+        var best: (words: [String], score: Double)?
+        for start in [0] + spaces.map({ $0.index + 1 }) {
+            guard let run = runs[start] else { continue }
+            for end in spaces.filter({ $0.index > start }) + [(letters.count, 0)] {
+                guard let word = meant(start..<end.index, after: run.words.last?.lowercased() ?? typed.previous) else { continue }
+                let words = run.words + [word.word], score = run.score + word.logPosterior + end.logLikelihood
+                if end.index == letters.count {
+                    if !run.words.isEmpty, score > best?.score ?? -.infinity { best = (words, score) }
+                } else if score > runs[end.index + 1]?.score ?? -.infinity {
+                    runs[end.index + 1] = (words, score)
+                }
+            }
+        }
+        let whole = ranked(typed).first { !$0.isCompletion }?.logPosterior ?? -.infinity
         guard let best, best.score > whole else { return nil }
-        return Words.matchCase(best.words, to: Substring(typed.text))
+        return Words.matchCase(best.words.joined(separator: " "), to: Substring(typed.text))
     }
 }

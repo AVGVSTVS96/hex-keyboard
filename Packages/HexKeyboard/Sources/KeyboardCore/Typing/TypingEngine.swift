@@ -351,13 +351,13 @@ public struct TypingEngine {
     @discardableResult
     public mutating func documentChanged(_ document: some TextDocument) -> TextState.Report {
         let known = text
-        let report = text.reconcile(before: document.textBeforeInput, after: document.textAfterInput)
+        let report = text.reconcile(before: document.textBeforeInput, after: document.textAfterInput, selected: document.selectedText)
         if report == .changed {
             if text.isEmpty, !sessionEnded { keepWord(in: known) }
             sessionEnded = false
             forgetWord()
         }
-        if report == .changed || text.before != known.before {
+        if report == .changed || text.before != known.before || text.after != known.after || text.selected != known.selected {
             refreshShift()
             suggestionsChanged()
         }
@@ -391,7 +391,7 @@ public struct TypingEngine {
     /// Reads the host once, the first time the engine meets it.
     mutating func attach(_ document: some TextDocument) {
         guard !text.isKnown else { return }
-        text.reconcile(before: document.textBeforeInput, after: document.textAfterInput)
+        text.reconcile(before: document.textBeforeInput, after: document.textAfterInput, selected: document.selectedText)
     }
 
     private mutating func forgetWord() {
