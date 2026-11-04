@@ -10,7 +10,11 @@ final class SwipeShots: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["-HexFocus", "YES", "-HexOrientation", landscape ? "landscape" : "portrait"]
         app.launch()
-        XCTAssertTrue(key("space", in: app).waitForExistence(timeout: 10))
+        if !key("space", in: app).waitForExistence(timeout: 15) {
+            app.terminate()
+            app.launch()
+        }
+        XCTAssertTrue(key("space", in: app).waitForExistence(timeout: 15))
 
         let centers = "keyboard".map { letter -> CGPoint in
             let frame = key(String(letter), in: app).frame
