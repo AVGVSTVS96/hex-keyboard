@@ -1,9 +1,8 @@
 #!/bin/sh
 # Builds Hex on this Linux box with xtool and provisions it for the free team's devices. The team holds one development
-# certificate, and it's the Mac's: xtool's identity (~/.config/xtool/data/<team>) is a stand-in, a key of its own and a
-# self-signed certificate with the Mac's serial number, which is how xtool matches it to the team's, so xtool makes the
-# profiles for the Mac's certificate and signs with the stand-in, and scripts/resign signs again on the Mac, whose login
-# keychain has the real key.
+# certificate, and it's the Mac's: xtool's identity (~/.config/xtool/data/<team>) holds that certificate without its
+# key, so xtool (Bassim's fork) makes the profiles for it and signs ad hoc, and scripts/resign signs on the Mac, whose
+# login keychain has the key.
 # Never let xtool revoke a certificate to make its own: that breaks what the Mac signs (stdin is closed, so it can't ask).
 # Then it installs it through the Mac on the iPhone the Mac reaches, by cable or Wi-Fi, once no
 # dictation is going on there: Hex writes a dictation's recording as it's heard, so one written in the last 10 seconds
