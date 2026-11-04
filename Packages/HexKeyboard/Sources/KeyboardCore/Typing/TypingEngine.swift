@@ -40,6 +40,7 @@ public struct TypingEngine {
     private var shiftHold: ShiftHold?
     /// Delete went down with text in the panel's search, so holding it empties the search and stops there.
     private var deleteHeldInSearch = false
+    private var sessionEnded = false
     var typing = WordTaps()
     var pending: PendingWord?
     var stray: StraySpace?
@@ -327,16 +328,19 @@ public struct TypingEngine {
 
     /// Learns from the last words you kept, the one in progress too. Call when the keyboard goes away.
     public mutating func endSession() {
+        guard !sessionEnded else { return }
         keepWord(in: text)
-        text = TextState()
         typing = WordTaps()
+        sessionEnded = true
     }
 
     /// Finish learning in the old app before adopting another host’s field and language.
     public mutating func changeApp(_ app: String?) {
         guard corrector?.app != app else { return }
         endSession()
+        text = TextState()
         forgetWord()
+        sessionEnded = false
         corrector?.app = app
         suggestionsChanged()
     }
@@ -349,7 +353,8 @@ public struct TypingEngine {
         let known = text
         let report = text.reconcile(before: document.textBeforeInput, after: document.textAfterInput)
         if report == .changed {
-            if text.isEmpty { keepWord(in: known) }
+            if text.isEmpty, !sessionEnded { keepWord(in: known) }
+            sessionEnded = false
             forgetWord()
         }
         if report == .changed || text.before != known.before {
@@ -371,6 +376,7 @@ public struct TypingEngine {
     /// The one way text changes: deletes `count` characters before the caret, then inserts `string`, in the host and
     /// in `text` alike.
     mutating func write(_ string: String, replacing count: Int = 0, in document: some TextDocument) {
+        sessionEnded = false
         lineGoal = nil
         if count > 0 {
             document.deleteBackward(count)

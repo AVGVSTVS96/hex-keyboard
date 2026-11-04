@@ -58,7 +58,7 @@ export const record = (state: State, input: Update | AppOpened): { state: State;
   if (!("field" in input)) return { state: { ...state, app: input.app }, entry: null };
   const { last, typed, app } = state;
   const host = "app" in input ? input.app ?? "" : app;
-  const sameField = last?.update.field === input.field && (!("app" in input) || !("app" in last.update) || last.app === host);
+  const sameField = last?.update.field === input.field && (!("app" in input) || !("app" in last.update) || !last.app || !host || last.app === host);
   const settled = last !== null && typed && text(last.update) !== "";
   const sent = settled && sameField && input.by === "app" && text(input) === "";
   const left = settled && !sameField;
