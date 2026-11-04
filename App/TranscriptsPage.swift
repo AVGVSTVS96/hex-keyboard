@@ -59,12 +59,14 @@ struct TranscriptsPage: View {
                         }
                     }
                 }
+                MicSwitchItem()
             }
             .navigationDestination(for: Transcript.ID.self) { id in
                 if let transcript = store.all.first(where: { $0.id == id }) {
                     TranscriptDetail(transcript: transcript, beside: false)
                         .navigationTitle("Transcript")
                         .navigationBarTitleDisplayMode(.inline)
+                        .toolbar { MicSwitchItem() }
                 }
             }
             .confirmationDialog("Delete all \(store.all.count) transcripts from this iPhone?", isPresented: $confirmsDeleteAll, titleVisibility: .visible) {

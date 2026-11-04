@@ -29,6 +29,7 @@ struct TapsPage: View {
                 if model.layouts.count > 1 {
                     ToolbarItem(placement: .topBarTrailing) { screens }
                 }
+                MicSwitchItem()
             }
         }
         .onAppear {

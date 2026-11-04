@@ -69,6 +69,7 @@ struct ClipboardPage: View {
                         }
                     }
                 }
+                MicSwitchItem()
             }
             .confirmationDialog(clearTitle, isPresented: $confirmsClear, titleVisibility: .visible) {
                 Button("Clear History", role: .destructive) {
