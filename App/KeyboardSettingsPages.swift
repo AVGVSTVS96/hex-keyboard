@@ -257,6 +257,9 @@ struct LayoutSettings: View {
         Box(footer: "At the far left of the bottom row, on iPhones with no globe under the keyboard, like the Duo. Without it, Next Keyboard is in the keyboard’s menu.") {
             ToggleRow(title: "Globe Key", isOn: model.binding(\.globeKey))
         }
+        Box(footer: "The record button at the far left of the bottom row, left of 123, in the globe’s place, instead of at the right of the bar. The globe goes to the keyboard’s menu.") {
+            ToggleRow(title: "Record Key", isOn: model.binding(\.micKey))
+        }
     }
 
     static func title(of hand: OneHanded) -> String {

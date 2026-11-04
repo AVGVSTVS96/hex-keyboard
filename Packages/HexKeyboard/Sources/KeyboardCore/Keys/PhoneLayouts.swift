@@ -39,11 +39,11 @@ enum PhoneLayouts {
         ])
     }
 
-    /// Each half five keys wide: the globe, layer and emoji keys and a space bar on the left, a space bar, the field's
+    /// Each half five keys wide: the globe or the record button, layer and emoji keys and a space bar on the left, a space bar, the field's
     /// own keys and return on the right.
     private static func splitBottomRow(_ context: LayoutContext, layerKey: KeyboardLayer) -> [RowItem] {
         let character = { (value: String) in RowItem.key(Key(.character(value))) }
-        let leading = (context.showsGlobeKey ? [Key(.nextKeyboard)] : []) + [Key(.layer(layerKey))]
+        let leading = (context.showsMicKey ? [Key(.dictate)] : context.showsGlobeKey ? [Key(.nextKeyboard)] : []) + [Key(.layer(layerKey))]
             + (context.showsEmoji ? [Key(.emoji)] : [])
         let leadingSpan = leading.compactMap(\.width.span).reduce(0, +)
         let trailing: [RowItem] = switch context.kind {
@@ -94,11 +94,12 @@ enum PhoneLayouts {
     /// Return beside the emoji key, as wide as Raycast's on the open Duo in portrait and landscape.
     private static let raycastReturn = KeyWidth.pitch(1.4)
 
-    /// The globe, as wide as Raycast's, the layer key, the emoji key in every field (it's the one Bassim taps most),
+    /// The globe, as wide as Raycast's, or the record button in its place, the layer key, the emoji key in every field (it's the one Bassim taps most),
     /// space, the field's own keys and return.
     private static func bottomRow(_ context: LayoutContext, layerKey: KeyboardLayer) -> [RowItem] {
         let side = context.isLandscape ? 2.0 : 2.5
-        let leading: [RowItem] = (context.showsGlobeKey ? [.key(Key(.nextKeyboard, width: .pitch(0.93)))] : [])
+        let first = context.showsMicKey ? Key(.dictate, width: .pitch(0.93)) : context.showsGlobeKey ? Key(.nextKeyboard, width: .pitch(0.93)) : nil
+        let leading: [RowItem] = (first.map { [.key($0)] } ?? [])
             + [.key(Key(.layer(layerKey), width: .pitch(side / 2)))]
             + (context.showsEmoji ? [.key(Key(.emoji, width: .pitch(side / 2)))] : [])
         let space = RowItem.key(Key(.space, width: .fill))

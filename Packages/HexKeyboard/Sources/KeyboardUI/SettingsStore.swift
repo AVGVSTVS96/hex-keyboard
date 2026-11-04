@@ -20,6 +20,7 @@ public enum SettingsStore {
         ("sound", \.sound),
         ("emojiKey", \.emojiKey),
         ("globeKey", \.globeKey),
+        ("micKey", \.micKey),
         ("numberRow", \.numberRow),
         ("split", \.split),
         ("compactPanels", \.compactPanels),

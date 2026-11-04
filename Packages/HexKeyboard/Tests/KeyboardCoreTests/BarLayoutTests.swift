@@ -35,14 +35,9 @@ struct BarLayoutTests {
         let keys = grid.rows[0].map { (minX: $0.frame.x, maxX: $0.frame.x + $0.frame.width) }
         // An iPhone's emoji open from the key beside space, so its bar has two tools at most.
         return Array(0...(screen.device == .phone ? 2 : 3)).flatMap { tools in
-            [false, true].flatMap { more in
-                [false, true].map { micOff in
-                    let layout = BarLayout(
-                        metrics.toolbar, keys: keys, tools: tools, more: more, micOff: micOff,
-                        maximumSlot: screen.device == .phone ? .infinity : 154.5
-                    )
-                    return (metrics, layout, keys, "\(screen.name), \(tools) tools\(more ? " and More" : "")\(micOff ? ", mic on" : "")")
-                }
+            [false, true].map { more in
+                let layout = BarLayout(metrics.toolbar, keys: keys, tools: tools, more: more, maximumSlot: screen.device == .phone ? .infinity : 154.5)
+                return (metrics, layout, keys, "\(screen.name), \(tools) tools\(more ? " and More" : "")")
             }
         }
     }
@@ -51,7 +46,7 @@ struct BarLayoutTests {
     private func center(_ key: (minX: Double, maxX: Double)) -> Double { (key.minX + key.maxX) / 2 }
 
     /// The More button and the tools are each centered over one of the first keys, all the same size; the mic is centered over
-    /// the last key and the bar, mic off over the key before it, and cancel over the key after the tools.
+    /// the last key and the bar, and cancel, the mic's size, over the key after the tools.
     @Test func theBarSitsOnTheKeys() {
         for screen in Self.screens {
             for (metrics, layout, keys, label) in layouts(screen) {
@@ -64,16 +59,13 @@ struct BarLayoutTests {
                 guard let mic = layout.mic else { Issue.record("\(label): no mic"); continue }
                 #expect(near(mic.midX, center(keys[keys.count - 1])) && mic.width == metrics.toolbar.mic, "\(label): the mic over the last key")
                 #expect(near(mic.midY, metrics.toolbar.top + metrics.toolbar.bar / 2) && mic.width < metrics.toolbar.bar, "\(label): centered in the bar, smaller than it")
-                if let off = layout.micOff {
-                    #expect(near(off.midX, center(keys[keys.count - 2])) && near(off.midY, mic.midY), "\(label): mic off over the key before")
-                }
                 #expect(near(layout.cancel.midX, center(keys[cells.count])) && near(layout.cancel.midY, mic.midY), "\(label): cancel over the key after the tools")
-                #expect(layout.cancel.width == metrics.toolbar.pill && layout.cancel.width < mic.width, "\(label)")
+                #expect(layout.cancel.width == mic.width, "\(label): cancel is the mic's size")
             }
         }
     }
 
-    /// Tools, suggestions, mic off and mic sit in order, apart, inside the bar; while you dictate, cancel, then the
+    /// Tools, suggestions and mic sit in order, apart, inside the bar; while you dictate, cancel, then the
     /// recording to the mic's edge.
     @Test func nothingOverlaps() {
         for screen in Self.screens {
@@ -90,8 +82,7 @@ struct BarLayoutTests {
                     #expect(layout.slots[2].x + layout.slots[2].width <= layout.emoji.x + 0.001, "\(label)")
                 }
                 guard let mic = layout.mic else { continue }
-                #expect(layout.maxX + BarLayout.gap <= (layout.micOff ?? mic).x + 0.001 && mic.x + mic.width <= screen.window, "\(label) maxX \(layout.maxX) mic \(mic) off \(String(describing: layout.micOff)) keys \(keys.suffix(2))")
-                if let off = layout.micOff { #expect(off.x + off.width <= mic.x, "\(label)") }
+                #expect(near(layout.maxX + BarLayout.gap, mic.x) && mic.x + mic.width <= screen.window, "\(label)")
                 #expect(layout.cancel.x + layout.cancel.width <= layout.recording.x && near(layout.recording.x + layout.recording.width, mic.x + mic.width), "\(label): cancel, then the recording to the mic's edge")
                 #expect(layout.recording.height == mic.height && near(layout.recording.midY, mic.midY), "\(label): the recording is the mic grown")
                 #expect(layout.recording.width >= 150, "\(label): the recording has room (\(layout.recording.width))")
@@ -102,9 +93,9 @@ struct BarLayoutTests {
     /// With the mic in the bottom row, the bar has no mic, and the suggestions and the recording run to the last key.
     @Test func withoutTheMicTheBarRunsToTheLastKey() {
         for (metrics, _, keys, label) in layouts(Self.screens[0]) {
-            let layout = BarLayout(metrics.toolbar, keys: keys, tools: 2, more: true, mic: false, micOff: true)
-            #expect(layout.mic == nil && layout.micOff == nil, "\(label)")
-            #expect(near(layout.maxX, keys[keys.count - 1].maxX) && near(layout.recording.x + layout.recording.width, keys[keys.count - 1].maxX), "\(label)")
+            let layout = BarLayout(metrics.toolbar, keys: keys, tools: 2, more: true, mic: false)
+            #expect(layout.mic == nil && near(layout.maxX, keys[keys.count - 1].maxX), "\(label): the suggestions run to the last key")
+            #expect(near(layout.recording.x + layout.recording.width, keys[keys.count - 1].maxX), "\(label): and so does the recording")
         }
     }
 

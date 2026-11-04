@@ -75,7 +75,7 @@ public struct TypingEngine {
             layer = target
             suggestionsChanged()
             return
-        case .nextKeyboard, .dismiss, .emoji:
+        case .nextKeyboard, .dictate, .dismiss, .emoji:
             return
         case .character, .space, .return, .tab, .delete:
             break

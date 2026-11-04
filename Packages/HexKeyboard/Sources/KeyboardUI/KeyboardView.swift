@@ -6,6 +6,13 @@ final class KeyboardView: UIView {
     var onGrid: (KeyGrid) -> Void = { _ in }
     var resolve: (KeyGrid, CGPoint) -> (row: Int, key: Int)? = { grid, point in grid.index(atX: point.x, y: point.y) }
     var globeTarget: ((UIControl) -> Void)?
+    /// The record button, placed over the record key where the layout has one, in the key's shape.
+    var micKey: MicButton? {
+        didSet {
+            oldValue?.removeFromSuperview()
+            setNeedsLayout()
+        }
+    }
     /// How far the space bar trackpad's finger travels to move the caret one character, -1 left or 1 right: the width
     /// of the character it crosses.
     var advance: (Int) -> CGFloat = { _ in HostLayout.width(of: nil) }
@@ -103,6 +110,13 @@ final class KeyboardView: UIView {
                 view.frame = CGRect(key.frame).rounded(scale: scale)
                 view.layoutIfNeeded()
                 if view.key.action == .nextKeyboard { globes.next()?.frame = view.frame }
+                if view.key.action == .dictate, let micKey {
+                    view.isHidden = true
+                    if micKey.superview !== self { addSubview(micKey) }
+                    micKey.corner = metrics.cornerRadius
+                    micKey.bounds.size = view.frame.size
+                    micKey.center = CGPoint(x: view.frame.midX, y: view.frame.midY)
+                }
             }
         }
         if case let (glyph, pointsRight)? = grid.expander {

@@ -6,8 +6,6 @@ public struct Toolbar: Hashable, Sendable {
     public var top: Double
     public var bar: Double
     public var mic: Double
-    /// The round buttons beside the mic: cancel while you dictate, and turning the microphone off while it's kept on.
-    public var pill: Double { mic - 4 }
     public var results: Double
     public var field: Double
 

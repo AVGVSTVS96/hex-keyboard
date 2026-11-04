@@ -13,6 +13,8 @@ public struct KeyboardSettings: Hashable, Sendable {
     /// The globe key at the far left of an iPhone's bottom row, where iOS wants a way to the next keyboard; without it,
     /// the keyboard's menu offers Next Keyboard.
     public var globeKey = true
+    /// The record button at the far left of an iPhone's bottom row, in the globe's place, instead of at the bar's right.
+    public var micKey = false
     /// The emoji and GIF panels as one row that scrolls sideways on every screen, as they are in landscape.
     public var compactPanels = false
     public var oneHanded = OneHanded.off

@@ -12,6 +12,9 @@ public enum KeyAction: Hashable, Sendable {
     case tab
     case layer(KeyboardLayer)
     case nextKeyboard
+    /// The record button, in the globe's place where Settings puts it there: the keyboard's mic, which draws and
+    /// handles it, so the engine never sees it.
+    case dictate
     case dismiss
     /// Opens the emoji panel, or closes it when it's open.
     case emoji

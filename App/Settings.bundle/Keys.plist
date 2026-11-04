@@ -176,6 +176,22 @@
 			<key>Type</key>
 			<string>PSToggleSwitchSpecifier</string>
 		</dict>
+		<dict>
+			<key>FooterText</key>
+			<string>The record button at the far left of the bottom row, left of 123, in the globe’s place, instead of at the right of the bar. The globe goes to the keyboard’s menu.</string>
+			<key>Type</key>
+			<string>PSGroupSpecifier</string>
+		</dict>
+		<dict>
+			<key>DefaultValue</key>
+			<false/>
+			<key>Key</key>
+			<string>micKey</string>
+			<key>Title</key>
+			<string>Record Key</string>
+			<key>Type</key>
+			<string>PSToggleSwitchSpecifier</string>
+		</dict>
 	</array>
 	<key>Title</key>
 	<string>Layout</string>

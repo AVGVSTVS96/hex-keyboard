@@ -1,15 +1,13 @@
 /// Where the bar's parts go, on every screen from one rule: they sit on the top row's keys. The More button and the
-/// tools are centered over the first keys, each a key wide (up to a bit more than the bar is tall, where keys are wide),
-/// so they're the same size, as far apart as the keys and in line with them; the mic is a circle over the last key, and while the app keeps the microphone on, a button that turns it
-/// off sits over the key before. Between them the three suggestions share the bar, or on a phone's bar wide enough take
-/// what they need and leave the rest to the word's emoji, beside them rather than in the third one's place. Neither
-/// depends on the emoji, so the suggestions never move as you type, as Apple's don't. While you dictate, the cancel
-/// button sits over the key after the tools, and the recording, a capsule the mic grows into, spans from the next key
-/// to the mic's edge. Where the mic sits in the bottom row instead, the bar has none, and the recording runs to the
-/// last key's edge.
+/// tools are centered over the first keys, each a key wide (up to a bit more than the bar is tall, where keys are
+/// wide), so they're the same size, as far apart as the keys and in line with them, and the mic is a circle over the
+/// last key. Between them the three suggestions share the bar, or on a phone's bar wide enough take what they need and
+/// leave the rest to the word's emoji, beside them rather than in the third one's place. Neither depends on the emoji,
+/// so the suggestions never move as you type, as Apple's don't. While you dictate, the recording, a capsule the mic
+/// grows into, spans from the key after the tools' next to the mic's edge, or to the last key's where the mic sits in
+/// the bottom row, and the cancel button, a circle the mic's size, sits over the key between.
 public struct BarLayout: Hashable, Sendable {
     public var mic: Rect?
-    public var micOff: Rect?
     public var tools: [Rect]
     public var more: Rect?
     /// The suggestions' span.
@@ -31,7 +29,7 @@ public struct BarLayout: Hashable, Sendable {
     /// (Apple's iPad), the three are centered in their span.
     public init(
         _ toolbar: Toolbar, keys: [(minX: Double, maxX: Double)], tools: Int, more: Bool = false, mic: Bool = true,
-        micOff: Bool = false, maximumSlot: Double = .infinity
+        maximumSlot: Double = .infinity
     ) {
         let row = (y: toolbar.top, height: toolbar.bar)
         let keys = keys.isEmpty ? [(minX: 0.0, maxX: 0.0)] : keys
@@ -50,11 +48,10 @@ public struct BarLayout: Hashable, Sendable {
         let used = first + tools
         let last = keys.count - 1
         self.mic = mic ? round(toolbar.mic, over: last) : nil
-        self.micOff = mic && micOff ? round(toolbar.pill, over: last - 1) : nil
         let lastCell = (self.tools.last ?? self.more).map { $0.x + $0.width }
         minX = lastCell.map { $0 + Self.gap } ?? key(0).minX
-        maxX = ((self.micOff ?? self.mic)?.x ?? key(last).maxX + Self.gap) - Self.gap
-        cancel = round(toolbar.pill, over: used)
+        maxX = self.mic.map { $0.x - Self.gap } ?? key(last).maxX
+        cancel = round(toolbar.mic, over: used)
         let height = toolbar.mic
         recording = Rect(
             x: key(used + 1).minX, y: row.y + (row.height - height) / 2,

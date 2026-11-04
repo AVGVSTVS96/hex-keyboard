@@ -15,6 +15,8 @@ open class HexKeyboardViewController: UIInputViewController {
     /// What the app told you about a dictation, until you tap it or a key.
     private var voiceNotice: String?
     private let suggestionBar = SuggestionBar()
+    /// The record button in the bottom row, where Settings › Layout › Record Key puts it in the globe's place.
+    private let keyMic = MicButton()
     private let panelView = PanelView()
     private let toolbarView = UIView()
     private var toolbar = KeyboardMetrics.phone(width: 390).toolbar
@@ -127,7 +129,13 @@ open class HexKeyboardViewController: UIInputViewController {
         keyboardView.onGrid = { [unowned self] grid in
             engine.use(grid)
             suggestionBar.keys = (grid.rows.first ?? []).map { (minX: $0.frame.x, maxX: $0.frame.x + $0.frame.width) }
+            let keyed = grid.rows.joined().contains { $0.key.action == .dictate }
+            suggestionBar.micInBar = !keyed
+            keyMic.isHidden = !keyed
         }
+        keyMic.addAction(UIAction { [unowned self] _ in suggestionBar.onMic() }, for: .touchUpInside)
+        keyMic.onHold = { [unowned self] in suggestionBar.onMicOff() }
+        keyboardView.micKey = keyMic
         keyboardView.advance = { [unowned self] step in HostLayout.width(of: engine.character(crossedBy: step)) }
         keyboardView.globeTarget = { [unowned self] control in
             control.addTarget(self, action: #selector(handleInputModeList(from:with:)), for: .allTouchEvents)
@@ -348,6 +356,7 @@ open class HexKeyboardViewController: UIInputViewController {
         suggestionBar.maximumSlotWidth = device == .phone ? .infinity : 154.5
         suggestionBar.update(tools: tools, theme: theme)
         suggestionBar.update(mic: mic, recorded: recorded, saved: dictation.writing, waitingFor: dictation.waiting, notice: voiceNotice ?? hint, theme: theme)
+        keyMic.show(mic, theme: theme)
         if panel != nil { panelView.show(query: engine.query, theme: theme, metrics: metrics) }
     }
 
@@ -410,6 +419,8 @@ open class HexKeyboardViewController: UIInputViewController {
             return dismissKeyboard()
         case .trigger(let key) where key.action == .nextKeyboard:
             return advanceToNextInputMode()
+        case .trigger(let key) where key.action == .dictate:
+            return toggleVoice()
         case .type:
             TouchTrace.shared.mark("typed")
         case .oneHanded(let hand), .pick(let hand):

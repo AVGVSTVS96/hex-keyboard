@@ -9,7 +9,7 @@ final class SuggestionBar: UIView {
     var onSelect: (Suggestion) -> Void = { _ in }
     var onEmoji: (String) -> Void = { _ in }
     var onMic: () -> Void = {}
-    /// Holding the mic, or the button beside it while the app keeps the microphone on, turns the microphone off.
+    /// Holding the mic turns the microphone off.
     var onMicOff: () -> Void = {}
     var onCancel: () -> Void = {}
     var onNotice: () -> Void = {}
@@ -20,6 +20,15 @@ final class SuggestionBar: UIView {
         didSet { if !keys.elementsEqual(oldValue, by: ==) { setNeedsLayout() } }
     }
     var toolbar = KeyboardMetrics.phone(width: 390).toolbar { didSet { if toolbar != oldValue { setNeedsLayout() } } }
+    /// Whether the mic sits at the bar's right, or in the bottom row (Settings › Layout › Record Key), where the bar
+    /// has none and the recording runs as the bar's own waveform.
+    var micInBar = true {
+        didSet {
+            guard micInBar != oldValue else { return }
+            mic.isHidden = !micInBar
+            setNeedsLayout()
+        }
+    }
 
     private let slots = (0..<3).map { SuggestionSlot(index: $0) }
     private let dividers = (0..<2).map { _ in UIView() }
@@ -28,8 +37,7 @@ final class SuggestionBar: UIView {
     private var tools: [ToolButton] = []
     private let more = MoreButton(type: .system)
     private let mic = MicButton()
-    private let cancel = PillButton(symbol: "xmark", size: 12, label: "Cancel Dictation", identifier: "hex.cancel")
-    private let micOff = PillButton(symbol: "mic.slash", size: 14, label: "Turn Mic Off", identifier: "hex.micoff")
+    private let cancel = CancelButton()
     private let waveform = Waveform()
     private let notice = UILabel()
     private var emojiBeside = false
@@ -58,10 +66,8 @@ final class SuggestionBar: UIView {
         addSubview(strip)
         mic.addAction(UIAction { [unowned self] _ in onMic() }, for: .touchUpInside)
         mic.onHold = { [unowned self] in onMicOff() }
-        micOff.addAction(UIAction { [unowned self] _ in onMicOff() }, for: .touchUpInside)
         cancel.addAction(UIAction { [unowned self] _ in onCancel() }, for: .touchUpInside)
         addSubview(cancel)
-        addSubview(micOff)
         addSubview(mic)
         addSubview(waveform)
         notice.isHidden = true
@@ -109,8 +115,7 @@ final class SuggestionBar: UIView {
         let grows = (mic == .listening) != (self.mic.phase == .listening)
         self.mic.show(mic, theme: theme)
         cancel.paint(theme)
-        micOff.paint(theme)
-        waveform.show(mic, recorded: recorded, saved: saved, waitingFor: waitingFor, tint: mic == .listening ? .white : theme.label.ui, theme: theme)
+        waveform.show(mic, recorded: recorded, saved: saved, waitingFor: waitingFor, tint: mic == .listening && micInBar ? .white : theme.label.ui, theme: theme)
         self.notice.text = notice
         self.notice.textColor = theme.candidate.ui
         noticed = notice != nil
@@ -150,6 +155,19 @@ final class SuggestionBar: UIView {
         waveform.hear(level, recorded: recorded)
     }
 
+    /// While you dictate, the cancel button sits in its place, before the recording. Otherwise it waits shrunk behind
+    /// the mic, so as the mic grows into the recording it splits off the capsule's leading edge and rides out to its
+    /// place on the same spring, and slides back in when the recording ends, with no fade. Where the mic sits in the
+    /// bottom row, it fades in and out in its place.
+    private func placeCancel(_ place: CGRect, behind mic: CGRect?) {
+        let listening = self.mic.phase == .listening
+        let waiting = mic.map { CGPoint(x: $0.midX, y: $0.midY) }
+        cancel.bounds.size = place.size
+        cancel.center = listening ? CGPoint(x: place.midX, y: place.midY) : waiting ?? CGPoint(x: place.midX, y: place.midY)
+        cancel.transform = listening ? .identity : CGAffineTransform(scaleX: waiting == nil ? 0.9 : 0.5, y: waiting == nil ? 0.9 : 0.5)
+        cancel.alpha = listening || waiting != nil ? 1 : 0
+    }
+
     @objc private func tapNotice() {
         onNotice()
     }
@@ -161,10 +179,6 @@ final class SuggestionBar: UIView {
         notice.isHidden = !noticed || recording
         waveform.isHidden = !recording
         cancel.shows = mic.phase == .listening
-        if micOff.shows != (mic.phase == .on) {
-            micOff.shows = mic.phase == .on
-            setNeedsLayout()
-        }
         slots.forEach { $0.isHidden = quiet }
         strip.isHidden = quiet || emoji.isEmpty
         emoji.forEach { $0.isHidden = quiet }
@@ -187,17 +201,11 @@ final class SuggestionBar: UIView {
         super.layoutSubviews()
         let scale = traitCollection.displayScale
         guard !keys.isEmpty else { return }
-        let layout = BarLayout(toolbar, keys: keys, tools: tools.count, more: !more.isHidden, micOff: micOff.shows, maximumSlot: maximumSlotWidth)
+        let layout = BarLayout(toolbar, keys: keys, tools: tools.count, more: !more.isHidden, mic: micInBar, maximumSlot: maximumSlotWidth)
         let micPlace = CGRect(mic.phase == .listening ? layout.recording : layout.mic ?? layout.recording)
         mic.bounds.size = micPlace.size
         mic.center = CGPoint(x: micPlace.midX, y: micPlace.midY)
-        let cancelPlace = CGRect(layout.cancel)
-        cancel.bounds.size = cancelPlace.size
-        cancel.center = CGPoint(x: cancelPlace.midX, y: cancelPlace.midY)
-        if let off = layout.micOff.map({ CGRect($0) }) {
-            micOff.bounds.size = off.size
-            micOff.center = CGPoint(x: off.midX, y: off.midY)
-        }
+        placeCancel(CGRect(layout.cancel), behind: layout.mic.map { CGRect($0) })
         for (tool, frame) in zip(tools, layout.tools) { tool.frame = CGRect(frame) }
         if let cell = layout.more.map({ CGRect($0) }) {
             more.frame = cell
@@ -259,6 +267,8 @@ final class MicButton: UIControl {
     enum Phase { case off, on, listening, writing }
 
     var onHold: () -> Void = {}
+    /// The face's corner radius, where it takes a key's shape; otherwise round.
+    var corner: CGFloat? { didSet { setNeedsLayout() } }
     private(set) var phase = Phase.off
     private let face = UIView()
     private let glyph = UIImageView()
@@ -349,55 +359,46 @@ final class MicButton: UIControl {
         bounds.insetBy(dx: -6, dy: -6).contains(point)
     }
 
-    /// The glyph, spinner and dot sit in the square at the right end, which is the whole button while it's a circle.
+    /// The glyph, spinner and dot sit in the square at the right end of the capsule, or in the middle of a circle or key.
     override func layoutSubviews() {
         super.layoutSubviews()
         face.frame = bounds
-        face.layer.cornerRadius = bounds.height / 2
-        let end = CGRect(x: bounds.width - bounds.height, y: 0, width: bounds.height, height: bounds.height)
+        face.layer.cornerRadius = corner ?? bounds.height / 2
+        let side = min(bounds.width, bounds.height)
+        let end = CGRect(x: bounds.width > bounds.height * 1.5 ? bounds.width - side : (bounds.width - side) / 2, y: (bounds.height - side) / 2, width: side, height: side)
         glyph.frame = end
         spinner.center = CGPoint(x: end.midX, y: end.midY)
         spinner.transform = CGAffineTransform(scaleX: 0.75, y: 0.75)
-        let side: CGFloat = 6
-        dot.bounds = CGRect(x: 0, y: 0, width: side, height: side)
-        dot.center = CGPoint(x: end.maxX - side / 2 - end.width * 0.04, y: end.width * 0.04 + side / 2)
-        dot.layer.cornerRadius = side / 2
+        let dotSide: CGFloat = 6
+        dot.bounds = CGRect(x: 0, y: 0, width: dotSide, height: dotSide)
+        dot.center = CGPoint(x: end.maxX - dotSide / 2 - end.width * 0.04, y: end.minY + end.width * 0.04 + dotSide / 2)
+        dot.layer.cornerRadius = dotSide / 2
     }
 }
 
-/// A round pill a little smaller than the mic for what goes beside it: cancel while you dictate, and turning the microphone off while
-/// the app keeps it on. It grows in when its moment comes and shrinks away after, and gives under your finger as the
-/// mic does.
-private final class PillButton: UIControl {
+/// The cancel button beside the recording: an x in a gray circle the mic's size, which gives under your finger as the
+/// mic does. `SuggestionBar` moves it, out of the mic and back.
+private final class CancelButton: UIControl {
     private let face = UIView()
-    private let glyph = UIImageView()
+    private let glyph = UIImageView(image: UIImage(systemName: "xmark", withConfiguration: UIImage.SymbolConfiguration(pointSize: 13, weight: .semibold)))
 
     var shows = false {
         didSet {
-            guard shows != oldValue else { return }
             isUserInteractionEnabled = shows
             accessibilityElementsHidden = !shows
-            let apply = {
-                self.alpha = self.shows ? 1 : 0
-                self.transform = self.shows ? .identity : CGAffineTransform(scaleX: 0.8, y: 0.8)
-            }
-            if window != nil { settle(apply) } else { apply() }
         }
     }
 
-    init(symbol: String, size: CGFloat, label: String, identifier: String) {
-        super.init(frame: .zero)
-        glyph.image = UIImage(systemName: symbol, withConfiguration: UIImage.SymbolConfiguration(pointSize: size, weight: .medium))
-        accessibilityIdentifier = identifier
-        accessibilityLabel = label
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        accessibilityIdentifier = "hex.cancel"
+        accessibilityLabel = "Cancel Dictation"
         isAccessibilityElement = true
         accessibilityTraits = .button
         face.isUserInteractionEnabled = false
         glyph.contentMode = .center
         addSubview(face)
         face.addSubview(glyph)
-        alpha = 0
-        transform = CGAffineTransform(scaleX: 0.8, y: 0.8)
         isUserInteractionEnabled = false
         accessibilityElementsHidden = true
     }
@@ -413,13 +414,13 @@ private final class PillButton: UIControl {
         didSet {
             guard isHighlighted != oldValue else { return }
             UIView.animate(springDuration: isHighlighted ? 0.16 : 0.3, bounce: 0, options: [.beginFromCurrentState, .allowUserInteraction]) {
-                self.face.transform = self.isHighlighted ? CGAffineTransform(scaleX: 0.92, y: 0.92) : .identity
+                self.face.transform = self.isHighlighted ? CGAffineTransform(scaleX: 0.9, y: 0.9) : .identity
             }
         }
     }
 
     override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
-        bounds.insetBy(dx: -6, dy: -4).contains(point)
+        bounds.insetBy(dx: -6, dy: -6).contains(point)
     }
 
     override func layoutSubviews() {
@@ -486,7 +487,8 @@ private final class Waveform: UIView {
 
     /// `lengths` are the saved dictations' lengths in seconds, oldest first, and `waitingFor` what they wait for.
     func show(_ phase: MicButton.Phase, recorded: Double, saved lengths: [Double], waitingFor: String?, tint: UIColor, theme: KeyboardTheme) {
-        let started = phase == .listening && (self.phase == .off || self.phase == .on)
+        let started = phase == .listening && self.phase != .listening
+        let stopped = phase != .listening && self.phase == .listening
         if phase != .listening, phase != .writing { heard = 0 }
         if phase != .listening, self.phase == .listening { freeze() }
         self.phase = phase
@@ -503,15 +505,22 @@ private final class Waveform: UIView {
         if restacked { restack(lengths, animated: wasWaiting && waiting) }
         for chip in chips { chip.paint(theme) }
         tick()
+        guard window != nil else { return place() }
         if started {
             UIView.performWithoutAnimation {
                 for view in [time, track] {
                     view.alpha = 0
-                    view.transform = CGAffineTransform(translationX: 8, y: 0)
+                    view.transform = CGAffineTransform(translationX: 24, y: 0)
                 }
             }
+            UIView.animate(springDuration: 0.4, bounce: 0, initialSpringVelocity: 0, delay: 0.06, options: [.beginFromCurrentState, .allowUserInteraction]) { self.place() }
+        } else if stopped {
+            UIView.animate(withDuration: 0.12, delay: 0, options: [.curveEaseOut, .beginFromCurrentState, .allowUserInteraction]) { self.place() }
+        } else if wasWaiting != waiting || (waiting && restacked) {
+            settle { self.place() }
+        } else {
+            place()
         }
-        if window != nil, started || wasWaiting != waiting || (waiting && restacked) { settle { self.place() } } else { place() }
     }
 
     /// Everything where the state puts it: the bars with the time, or the cards, and what they wait for.

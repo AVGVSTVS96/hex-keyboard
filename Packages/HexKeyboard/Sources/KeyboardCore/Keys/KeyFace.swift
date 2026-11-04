@@ -84,6 +84,8 @@ extension KeyFace {
             self.init(content: small ? .smallText(title) : .text(title), alignment: edge)
         case .nextKeyboard:
             self.init(content: .symbol("globe"), alignment: edge)
+        case .dictate:
+            self.init(content: .symbol("waveform"), alignment: edge)
         case .dismiss:
             self.init(content: .symbol("keyboard.chevron.compact.down"), alignment: edge)
         case .emoji:

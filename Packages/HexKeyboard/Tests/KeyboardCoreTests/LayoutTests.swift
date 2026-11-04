@@ -50,6 +50,24 @@ struct LayoutTests {
         #expect(!Layouts.layout(for: faceID).keys.contains { $0.action == .nextKeyboard }, "iOS draws its own globe under the keys")
     }
 
+    /// With Settings' Record Key on, the record button takes the globe's place left of 123, split or not, on every
+    /// iPhone, and the globe goes to the menu.
+    @Test func theRecordKeyTakesTheGlobesPlace() {
+        var settings = KeyboardSettings()
+        settings.micKey = true
+        for (width, height) in [(466.0, 678.0), (402, 874), (951, 669)] {
+            for split in [false, true] {
+                settings.split = split
+                let context = LayoutContext(device: .phone, layer: .letters, showsGlobe: true, screen: Size(width: width, height: height), settings: settings)
+                let row = Layouts.layout(for: context).rows.last!.compactMap { if case .key(let key) = $0 { key.action } else { nil } }
+                #expect(row.prefix(2) == [.dictate, .layer(.numbers)] && !row.contains(.nextKeyboard), "\(width)×\(height)\(split ? " split" : "")")
+                #expect(context.moreMenu.contains(.nextKeyboard), "\(width)×\(height)")
+            }
+        }
+        let pad = LayoutContext(device: .pad, layer: .letters, showsGlobe: true, screen: Size(width: 834, height: 1194), settings: settings)
+        #expect(!Layouts.layout(for: pad).keys.contains { $0.action == .dictate }, "an iPad keeps its mic in the bar")
+    }
+
     @Test func theNextKeyboardIsInAPhonesMenusAndAPadsKeys() {
         let phone = LayoutContext(device: .phone, layer: .letters, showsGlobe: true)
         #expect(!Layouts.layout(for: phone).keys.contains { $0.action == .nextKeyboard })

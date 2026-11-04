@@ -9,7 +9,7 @@ final class VoiceTests: XCTestCase {
         continueAfterFailure = false
 
         let app = XCUIApplication()
-        app.launchArguments = ["-HexFocus", "YES", "-HexOrientation", "portrait", "-HexOneHanded", "off"]
+        app.launchArguments = ["-HexFocus", "YES", "-HexOrientation", "portrait", "-HexOneHanded", "off", "-HexMicKey", "NO"]
         app.launch()
         if !key("space", in: app).waitForExistence(timeout: 10) {
             app.terminate()
@@ -60,6 +60,34 @@ final class VoiceTests: XCTestCase {
         mic.press(forDuration: 0.8)
         XCTAssertTrue(wait(for: mic, label: "Dictate", value: nil), "holding the mic turns the microphone off, and a dictation the app left unfinished when it ended doesn't hold the mic")
         try shot("\(shots)-off")
+    }
+
+    /// With Settings › Layout › Record Key on, the same mic sits left of 123 in the globe's place. Starting and stopping
+    /// from it is the bar's mic's test above; the stand-in app answers one test per run.
+    func testTheRecordKeySitsLeftOf123() throws {
+        let environment = ProcessInfo.processInfo.environment
+        guard let shots = environment["HEX_SHOTS"] else { throw XCTSkip("Run through scripts/voicetest") }
+        continueAfterFailure = false
+
+        let app = XCUIApplication()
+        app.launchArguments = ["-HexFocus", "YES", "-HexOrientation", "portrait", "-HexOneHanded", "off", "-HexMicKey", "YES"]
+        app.launch()
+        if !key("space", in: app).waitForExistence(timeout: 10) {
+            app.terminate()
+            app.launch()
+        }
+        XCTAssertTrue(key("space", in: app).waitForExistence(timeout: 10), "iikb is not the active keyboard")
+        let mic = app.buttons["hex.mic"]
+        XCTAssertTrue(mic.waitForExistence(timeout: 5))
+        let numbers = key("numbers", in: app)
+        try shot("\(shots)-key-on")
+        XCTAssertTrue(wait { numbers.exists && abs(mic.frame.midY - numbers.frame.midY) < 2 && mic.frame.maxX <= numbers.frame.minX + 1 }, "the mic sits left of 123: \(mic.frame), 123 \(numbers.frame)")
+        XCTAssertFalse(app.keys.matching(identifier: "hex.next keyboard").firstMatch.exists, "in the globe's place")
+
+        XCTAssertEqual(mic.label, "Dictate", "it's the same mic, ready to dictate")
+        app.terminate()
+        app.launchArguments = ["-HexFocus", "YES", "-HexMicKey", "NO"]
+        app.launch()
     }
 
     private func wait(for element: XCUIElement, label: String, value: String?) -> Bool {
