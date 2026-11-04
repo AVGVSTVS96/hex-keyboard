@@ -10,11 +10,20 @@
 # nothing is built or installed, sparing it the Neural Engine compile, unless --reinstall (which renews the signing).
 # Its build doesn't wait for a turn (~/.local/bin/turn): installs go out the moment main is ready, one at a time by
 # this script's own lock, and a build that waited for a turn while holding it could wait on runs queued behind it.
+# Installs go out at most once every 10 minutes: a run soon after the last install waits out the rest, then installs
+# main as it is by then, so builds that finish meanwhile land as one batch and the runs queued behind it find their
+# build already on the iPhone. --now skips the wait.
 set -e
 cd "$(dirname "$0")/.."
 build=../hex-keyboard-build
 exec 9>"$build.lock"
 flock 9
+stamp=$build.installed
+wait=$(( ${PHONE_EVERY:-600} - $(date +%s) + $(stat -c %Y "$stamp" 2>/dev/null || echo 0) ))
+if [ "$wait" -gt 0 ] && [ "${1:-}" != --now ]; then
+  echo "the last install was under 10 minutes ago, so this one installs main as it is in ${wait}s, with whatever lands meanwhile" >&2
+  sleep "$wait"
+fi
 [ -d "$build" ] || git worktree add -q --detach "$build"
 commit=$(git rev-parse --short main)
 number=$(git rev-list --count main)
@@ -68,4 +77,5 @@ scripts/backup "$phone"
 ssh mac xcrun devicectl device install app --device "$phone" Developer/hex-keyboard-phone/Hex.app
 ssh mac xcrun devicectl device process launch --no-activate --device "$phone" com.shahidy.hexkeyboard >/dev/null ||
   echo "Hex is installed but didn't start, so Parakeet gets ready at the next dictation instead" >&2
+touch "$stamp"
 echo "build $number (main $commit) is on the iPhone"
