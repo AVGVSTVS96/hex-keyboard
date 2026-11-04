@@ -4,7 +4,7 @@
  * lays it out, and deletes nothing: a file sent again with other contents moves the one it replaces to
  * <dir>/versions/<time>/.
  *
- *   BACKUP_TOKEN=secret bun server/backup.ts [--port 2591] [--dir ~/.local/share/hex-keyboard/backup]
+ *   BACKUP_TOKEN=secret bun server/backup.ts [--port 2592] [--dir ~/.local/share/hex-keyboard/backup]
  *
  * GET /         every file it holds, as { "app/transcripts.jsonl": [size, modified], … }, times in seconds
  * PUT /<name>   a file, with its modification time in X-Modified
@@ -69,7 +69,7 @@ export const backup =
 if (import.meta.main) {
   const { values } = parseArgs({
     options: {
-      port: { type: "string", default: "2591" },
+      port: { type: "string", default: "2592" },
       dir: { type: "string", default: join(homedir(), ".local/share/hex-keyboard/backup") },
     },
   });

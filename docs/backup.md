@@ -36,7 +36,7 @@ files against the server when it opens and says whether they're all there.
 
 `server/backup.ts` keeps what it's sent in `~/.local/share/hex-keyboard/backup/mirror`, with the modification time it was
 sent with. A file sent with other contents moves the one it replaces to `versions/<time>/`; nothing is ever deleted.
-It runs as the user service `hex-keyboard-backup` (dotfiles), on port 2591 behind `tailscale serve` at `/backup`, so
+It runs as the user service `hex-keyboard-backup` (dotfiles), on port 2592 behind `tailscale serve` at `/backup`, so
 only the tailnet reaches it, and takes requests with the token in `~/.config/hex-keyboard/backup.env`.
 
 A build gets the server from `Packages/HexKeyboard/Sources/KeyboardUI/Resources/Keys/backup.key`, kept out of git: the
