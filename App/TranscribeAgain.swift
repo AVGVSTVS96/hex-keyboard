@@ -14,16 +14,7 @@ struct RecordingSection: View {
             Box(footer: kept ? "iikb keeps the sound of each dictation on this iPhone, so it can be shared as a voice memo or written again with \(VoiceModel.shared.model.title)." : nil) {
                 if let mic = transcript.mic { Fact(title: "Microphone", value: mic) }
                 if kept {
-                    ShareLink(item: Memo(transcript), preview: SharePreview("Recording")) {
-                        HStack {
-                            Text("Share Recording")
-                            Spacer()
-                            Image(systemName: "square.and.arrow.up").font(.subheadline.weight(.semibold))
-                        }
-                        .foregroundStyle(Color.blue)
-                        .row()
-                    }
-                    .buttonStyle(.plain)
+                    ActionRow(title: "Share Recording", symbol: "square.and.arrow.up") { share() }
                     ActionRow(title: writing ? VoiceModel.shared.state == .ready ? "Transcribing Again…" : "Transcribing Again once \(VoiceModel.shared.model.title) is ready…" : "Transcribe Again", symbol: "arrow.clockwise") { Task { await write() } }
                         .disabled(writing)
                 }
@@ -44,6 +35,26 @@ struct RecordingSection: View {
         }
     }
 
+    private func share() {
+        failure = nil
+        let words = transcript.text.split(whereSeparator: \.isWhitespace).prefix(6).joined(separator: " ").filter { !"/:".contains($0) }
+        do {
+            let memo = try Recording.memo(Transcripts.shared.recording(of: transcript.id), named: words.isEmpty ? "iikb Recording" : words)
+            let sheet = UIActivityViewController(activityItems: [memo], applicationActivities: nil)
+            sheet.completionWithItemsHandler = { _, _, _, _ in try? FileManager.default.removeItem(at: memo.deletingLastPathComponent()) }
+            let window = UIApplication.shared.connectedScenes.compactMap { ($0 as? UIWindowScene)?.keyWindow }.first
+            var top = window?.rootViewController
+            while let presented = top?.presentedViewController { top = presented }
+            if let view = top?.view {
+                sheet.popoverPresentationController?.sourceView = view
+                sheet.popoverPresentationController?.sourceRect = CGRect(x: view.bounds.midX, y: view.bounds.midY, width: 0, height: 0)
+            }
+            top?.present(sheet, animated: true)
+        } catch {
+            failure = error.localizedDescription
+        }
+    }
+
     private func write() async {
         writing = true
         failure = nil
@@ -53,21 +64,5 @@ struct RecordingSection: View {
         } catch {
             failure = error.localizedDescription
         }
-    }
-}
-
-/// A transcript's recording to share as a voice memo, named for its first words.
-nonisolated struct Memo: Transferable {
-    let recording: URL
-    let name: String
-
-    @MainActor init(_ transcript: Transcript) {
-        recording = Transcripts.shared.recording(of: transcript.id)
-        let words = transcript.text.split(whereSeparator: \.isWhitespace).prefix(6).joined(separator: " ").filter { !"/:".contains($0) }
-        name = words.isEmpty ? "iikb Recording" : words
-    }
-
-    static var transferRepresentation: some TransferRepresentation {
-        FileRepresentation(exportedContentType: .mpeg4Audio) { SentTransferredFile(try Recording.memo($0.recording, named: $0.name)) }
     }
 }
