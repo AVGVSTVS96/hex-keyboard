@@ -18,14 +18,13 @@ final class SwipeTests: XCTestCase {
     }
 
     func testASwipeTypesItsWordAndTheBarOffersOthers() throws {
-        try swipe("hello")
-        XCTAssertEqual(settled().lowercased(), "hello")
+        try swipe("world")
+        XCTAssertEqual(settled().lowercased(), "world")
         XCTAssertTrue(suggestion(1).waitForExistence(timeout: 5))
-        let middle = suggestion(1).label
-        XCTAssertEqual(middle.lowercased(), "hello", "the bar's middle slot is the swiped word")
-        let other = [0, 2].map { suggestion($0).label }.first { !$0.isEmpty }
-        let alternative = try XCTUnwrap(other, "no alternative offered")
-        suggestion(alternative == suggestion(0).label ? 0 : 2).tap()
+        XCTAssertEqual(suggestion(1).label.lowercased(), "world", "the bar's middle slot is the swiped word")
+        let others = [0, 2].filter { suggestion($0).exists }.map { suggestion($0).label }
+        let alternative = try XCTUnwrap(others.first, "no alternative offered")
+        suggestion(suggestion(0).exists && suggestion(0).label == alternative ? 0 : 2).tap()
         XCTAssertEqual(settled().trimmingCharacters(in: .whitespaces).lowercased(), alternative.lowercased())
     }
 
@@ -37,9 +36,9 @@ final class SwipeTests: XCTestCase {
     }
 
     func testASwipeAfterAWordFollowsASpace() throws {
-        try swipe("hello")
         try swipe("world")
-        XCTAssertEqual(settled().lowercased(), "hello world")
+        try swipe("keyboard")
+        XCTAssertEqual(settled().lowercased(), "world keyboard")
     }
 
     func testATapThatWandersStaysATap() throws {

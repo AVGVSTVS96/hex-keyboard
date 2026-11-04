@@ -36,10 +36,10 @@ extension KeyboardView {
             }
         }
 
-        /// The path with its times, which the simulator's synthesized touches lack: they arrive all at once, so a path
-        /// sampled faster than a screen can (twice the 120 Hz of ProMotion) is timed as one sampled at 120 Hz.
+        /// The path with its times, which the simulator's synthesized touches lack: every sample but the last carries the
+        /// time the finger went down, so the path is timed as one sampled at 120 Hz.
         var timed: [SwipePoint] {
-            guard let last = path.last, last.time < Double(path.count - 1) / 240 else { return path }
+            guard path.count > 2, path.dropLast().allSatisfy({ $0.time == 0 }) else { return path }
             return path.enumerated().map { SwipePoint(x: $1.x, y: $1.y, time: Double($0) / 120) }
         }
     }
