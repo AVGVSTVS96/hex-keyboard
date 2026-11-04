@@ -250,7 +250,7 @@ open, landscape 951 × 669       open, portrait 669 × 951      folded 466 × 67
     - **Sound & Haptics**, how a press feels: Key Haptics with a Strength slider of seven stops, Standard in the middle, which it keeps while haptics are off, and Allow Full Access when Hex hasn't seen it; then Sound.
   - **Voice Typing**.
     - **Voice Model**: Parakeet v3, Parakeet Ultra and Apple, each with a line on what it costs and, for the picked one, its download, getting ready, or why it failed with Try Again.
-    - **Writing Style**: a card of what you say over what iikb types for it as picked, which changes as you pick; then Style (Wispr Flow's four) and Editing (As Said, Light, Clean), each choice showing the same words as it types them with everything else as picked, and Lists.
+    - **Writing Style**: a card of what you say over what iikb types for it as picked, which changes as you pick; then Style (Wispr Flow's four), Editing (As Said, Light, Clean) and Lists (Numbered, Bulleted, Off), each choice showing the same words as it types them with everything else as picked.
     - **Dictionary**: Add Word at the top, then the words the model gets wrong in alphabetical order, each with what it writes instead; a word opens a form like Add Source's, with Delete Word, and holding one offers Delete.
     - **Keep Mic On**: how long the mic stays on after a dictation.
   - **iikb**.
