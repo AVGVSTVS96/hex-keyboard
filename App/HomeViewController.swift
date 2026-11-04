@@ -198,6 +198,7 @@ private struct MicSwitch: View {
                 .contentTransition(.symbolEffect(.replace))
                 .accessibilityHidden(true)
             Toggle("Microphone", isOn: Binding(get: { on }, set: flip))
+                .toggleStyle(.switch)
                 .labelsHidden()
                 .tint(.blue)
                 .accessibilityIdentifier("home-mic")
