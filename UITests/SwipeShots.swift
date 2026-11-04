@@ -1,7 +1,7 @@
 import XCTest
 
 /// Swipes a word and screenshots the trail as the finger lifts and the bar a moment later: HEX_SHOTS is the file prefix,
-/// HEX_SWIPE_ORIENTATION (portrait, landscape) the screen's.
+/// HEX_SWIPE_ORIENTATION (portrait, landscape) the screen's, HEX_SWIPE_OPEN set for the open Duo's display.
 final class SwipeShots: XCTestCase {
     func testSwipeAndShoot() throws {
         let environment = ProcessInfo.processInfo.environment
@@ -34,9 +34,11 @@ final class SwipeShots: XCTestCase {
         let record = XCSynthesizedEventRecord(name: "keyboard", interfaceOrientation: landscape ? .landscapeRight : .portrait)
         record.add(finger)
         try record.synthesize()
-        try XCUIScreen.main.screenshot().pngRepresentation.write(to: URL(fileURLWithPath: "\(prefix)-trail.png"))
+        let screen = (environment["HEX_SWIPE_OPEN"] ?? "").isEmpty ? XCUIScreen.main : XCUIScreen.screens.max { $0.screenshot().image.size.width < $1.screenshot().image.size.width }!
+        Thread.sleep(forTimeInterval: 0.12)
+        try screen.screenshot().pngRepresentation.write(to: URL(fileURLWithPath: "\(prefix)-trail.png"))
         Thread.sleep(forTimeInterval: 1.5)
-        try XCUIScreen.main.screenshot().pngRepresentation.write(to: URL(fileURLWithPath: "\(prefix)-bar.png"))
+        try screen.screenshot().pngRepresentation.write(to: URL(fileURLWithPath: "\(prefix)-bar.png"))
     }
 
     private func key(_ name: String, in app: XCUIApplication) -> XCUIElement {
