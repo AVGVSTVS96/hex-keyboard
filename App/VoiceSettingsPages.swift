@@ -65,18 +65,22 @@ struct WritingSettings: View {
         return writing.typed(said, lexicon: .english)
     }
 
+    private func quoted(_ said: String, _ change: (inout DictationWriting) -> Void) -> String {
+        "“" + typed(said, change) + "”"
+    }
+
     var body: some View {
         WritingPreview(said: Self.preview, typed: typed(Self.preview))
         Box(header: "Style", footer: "A style sets the punctuation. Capitals follow Auto-Capitalization in Keyboard › Typing; very casual has none.") {
             ForEach(DictationStyle.allCases, id: \.self) { style in
-                ChoiceRow(title: style.title, detail: "“\(typed(Self.said) { $0.style = style })”", picked: model.settings.dictationStyle == style) {
+                ChoiceRow(title: style.title, detail: quoted(Self.said) { $0.style = style }, picked: model.settings.dictationStyle == style) {
                     withAnimation(.snappy(duration: 0.25)) { model.update { $0.dictationStyle = style } }
                 }
             }
         }
         Box(header: "Editing", footer: "Clean also takes back what you cancel with “scratch that”. Transcripts keep what the model wrote.") {
             ForEach(DictationEditing.allCases, id: \.self) { editing in
-                ChoiceRow(title: editing.title, detail: "“\(typed(Self.rambled) { $0.editing = editing })”", picked: model.settings.dictationEditing == editing) {
+                ChoiceRow(title: editing.title, detail: quoted(Self.rambled) { $0.editing = editing }, picked: model.settings.dictationEditing == editing) {
                     withAnimation(.snappy(duration: 0.25)) { model.update { $0.dictationEditing = editing } }
                 }
             }
