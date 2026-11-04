@@ -80,6 +80,21 @@ nonisolated enum Recording {
         }
     }
 
+    /// The recording at `url` as a voice memo named `name`: AAC in a .m4a, as Voice Memos keeps its own.
+    static func memo(_ url: URL, named name: String) throws -> URL {
+        let samples = try read(url)
+        guard !samples.isEmpty, let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(samples.count)) else { throw CocoaError(.fileReadCorruptFile) }
+        buffer.frameLength = buffer.frameCapacity
+        buffer.floatChannelData![0].update(from: samples, count: samples.count)
+        let folder = URL.temporaryDirectory.appending(path: UUID().uuidString)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let memo = folder.appending(path: "\(name).m4a")
+        let file = try AVAudioFile(forWriting: memo, settings: [AVFormatIDKey: kAudioFormatMPEG4AAC, AVSampleRateKey: 16_000, AVNumberOfChannelsKey: 1], commonFormat: .pcmFormatFloat32, interleaved: false)
+        try file.write(from: buffer)
+        file.close()
+        return memo
+    }
+
     /// A recording `write` saved.
     static func read(_ url: URL) throws -> [Float] {
         let data = try Data(contentsOf: url)
