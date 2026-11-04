@@ -175,4 +175,24 @@ struct SwipeTypingTests {
             #expect(abs(layout.centers[v].x * box.width + box.x - copy.midX) < 0.001)
         }
     }
+
+    /// What a swipe costs the main thread, from the touch lifting to the word typed: `swift test -c release --filter decodeCost`.
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["SWIPE_LATENCY"] != nil))
+    func decodeCost() {
+        var (engine, document) = engine()
+        let words = ["hello", "world", "help", "the", "come", "home", "about"]
+        let paths = words.map { path($0) }
+        let clock = ContinuousClock()
+        var milliseconds: [Double] = []
+        for round in 0..<10 {
+            for path in paths {
+                let start = clock.now
+                engine.handle(.swipe(path), in: document)
+                let spent = clock.now - start
+                if round > 0 { milliseconds.append(Double(spent.components.seconds) * 1000 + Double(spent.components.attoseconds) / 1e15) }
+            }
+        }
+        milliseconds.sort()
+        print("EVAL latency swipe engine ms: median \(milliseconds[milliseconds.count / 2]) p95 \(milliseconds[milliseconds.count * 95 / 100])")
+    }
 }
