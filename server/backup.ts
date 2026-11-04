@@ -8,6 +8,8 @@
  *
  * GET /         every file it holds, as { "app/transcripts.jsonl": [size, modified], … }, times in seconds
  * PUT /<name>   a file, with its modification time in X-Modified
+ * GET /mac/<name>  a file the Mac sent, with its time in Last-Modified, for the app's Stats (docs/stats.md); the
+ *               iPhone's own files are never read back out, so its token can't take them
  */
 import { mkdir, readdir, rename, rm, stat, utimes } from "node:fs/promises";
 import { homedir } from "node:os";
@@ -43,6 +45,11 @@ export const backup =
     if (request.method === "GET" && name === "") return Response.json(await held(mirror));
 
     const file = join(mirror, name);
+    if (request.method === "GET") {
+      const sent = Bun.file(file);
+      if (!file.startsWith(join(mirror, "mac") + sep) || !(await sent.exists())) return new Response(null, { status: 404 });
+      return new Response(sent, { headers: { "last-modified": new Date((await stat(file)).mtimeMs).toUTCString() } });
+    }
     const modified = Number(request.headers.get("x-modified"));
     if (request.method !== "PUT" || !file.startsWith(mirror + sep) || !Number.isSafeInteger(modified)) return new Response(null, { status: 400 });
 

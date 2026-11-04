@@ -54,3 +54,17 @@ test("takes nothing without the token, outside its folder, or without a time", a
   expect((await send("DELETE", "/app/x")).status).toBe(400);
   expect(await held()).toEqual({});
 });
+
+test("gives back only what the Mac sent, with the time it was sent with", async () => {
+  const { send } = await server();
+  await send("PUT", "/mac/typing-stats.json", "{}", 1_762_000_123);
+  await send("PUT", "/app/transcripts.jsonl", "private");
+  const mac = await send("GET", "/backup/mac/typing-stats.json");
+  expect(mac.status).toBe(200);
+  expect(await mac.text()).toBe("{}");
+  expect(new Date(mac.headers.get("last-modified")!).getTime()).toBe(1_762_000_123_000);
+  expect((await send("GET", "/app/transcripts.jsonl")).status).toBe(404);
+  expect((await send("GET", "/mac/..%2Fapp/transcripts.jsonl")).status).toBe(404);
+  expect((await send("GET", "/mac/missing.json")).status).toBe(404);
+  expect((await send("GET", "/mac/typing-stats.json", undefined, 0, "wrong")).status).toBe(401);
+});
