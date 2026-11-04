@@ -44,9 +44,7 @@ public final class KeyboardPreviewView: UIView {
         keyboard.update(layout: keys.layout, signature: "preview", metrics: keys.metrics, faces: keys.faces, theme: theme)
         let metrics = keys.metrics
         bar.toolbar = metrics.toolbar
-        bar.topInset = CGFloat(metrics.topInset)
-        bar.screenInset = CGFloat(max((self.screen.width - keys.width) / 2, 0))
-        bar.block = (CGFloat(metrics.margin.leading + metrics.sideInset), CGFloat(keys.width - metrics.margin.trailing - metrics.sideInset))
+        bar.keys = (KeyGrid(keys.layout, width: keys.width, metrics: metrics.grid).rows.first ?? []).map { (minX: $0.frame.x, maxX: $0.frame.x + $0.frame.width) }
         bar.update(tools: [.gif, .clipboard], theme: theme)
         bar.update(more: keys.context.showsMoreButton ? UIMenu(children: []) : nil)
         bar.update(mic: .off, recorded: 0, saved: [], waitingFor: nil, notice: nil, theme: theme)

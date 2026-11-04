@@ -141,7 +141,7 @@ extension KeyboardMetrics {
             keyHeight: 27.33, numberRowHeight: 0,
             topInset: Toolbar.gap, bottomInset: 4, cornerRadius: 9,
             letterSize: 20, labelSize: 15.5, secondarySize: 11, symbolSize: 19,
-            letterOffset: -1, toolbar: .compact(mic: 34)
+            letterOffset: -1, toolbar: .compact(bar: 34)
         )
     }
 
@@ -177,7 +177,7 @@ extension KeyboardMetrics {
             metrics.letterSize = 23.5
             metrics.labelSize = 18.5
             metrics.symbolSize = 19.5
-            metrics.toolbar = .compact(mic: 32)
+            metrics.toolbar = .compact(bar: 32)
         case .openLandscape:
             metrics.sideInset = 4.5
             metrics.keyGap = 6
@@ -187,7 +187,7 @@ extension KeyboardMetrics {
             metrics.letterSize = 28.5
             metrics.labelSize = 22
             metrics.symbolSize = 23
-            metrics.toolbar = .compact(mic: 38, backdropAbove: Toolbar.openWideBackdropAbove)
+            metrics.toolbar = .compact(bar: 38, backdropAbove: Toolbar.openWideBackdropAbove)
             if split { metrics.columns = Self.splitColumns }
         }
         return metrics

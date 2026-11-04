@@ -2,22 +2,23 @@ import UIKit
 import KeyboardCore
 
 /// Apple's three suggestions with the word's emoji (as many as fit, and the rest a swipe left away), a round mic at the
-/// right end that starts and stops dictation, and the tools at the left end, all placed by `BarLayout`. While the app
-/// listens, the suggestions give way to a cancel button and a waveform of your voice with the time so far.
+/// right end that starts and stops dictation, and the tools at the left end, all placed on the top row's keys by
+/// `BarLayout`. While the app listens, the mic grows into a red capsule over the suggestions holding the time so far and
+/// the waveform of your voice, with a cancel button before it.
 final class SuggestionBar: UIView {
     var onSelect: (Suggestion) -> Void = { _ in }
     var onEmoji: (String) -> Void = { _ in }
     var onMic: () -> Void = {}
-    var onMicHold: () -> Void = {}
+    /// Holding the mic, or the button beside it while the app keeps the microphone on, turns the microphone off.
+    var onMicOff: () -> Void = {}
     var onCancel: () -> Void = {}
     var onNotice: () -> Void = {}
     var onTool: (Panel) -> Void = { _ in }
     var maximumSlotWidth = CGFloat.infinity { didSet { setNeedsLayout() } }
-    /// The keys block's edges.
-    var block = (minX: CGFloat(0), maxX: CGFloat(0)) { didSet { if block != oldValue { setNeedsLayout() } } }
-    /// How far the screen reaches past each side of the keyboard's window, and the gap from the bar to the keys.
-    var screenInset = CGFloat(0) { didSet { if screenInset != oldValue { setNeedsLayout() } } }
-    var topInset = CGFloat(0) { didSet { if topInset != oldValue { setNeedsLayout() } } }
+    /// The top row's keys, left to right, as their edges.
+    var keys: [(minX: Double, maxX: Double)] = [] {
+        didSet { if !keys.elementsEqual(oldValue, by: ==) { setNeedsLayout() } }
+    }
     var toolbar = KeyboardMetrics.phone(width: 390).toolbar { didSet { if toolbar != oldValue { setNeedsLayout() } } }
 
     private let slots = (0..<3).map { SuggestionSlot(index: $0) }
@@ -27,7 +28,8 @@ final class SuggestionBar: UIView {
     private var tools: [ToolButton] = []
     private let more = MoreButton(type: .system)
     private let mic = MicButton()
-    private let cancel = CancelButton()
+    private let cancel = PillButton(symbol: "xmark", size: 12, label: "Cancel Dictation", identifier: "hex.cancel")
+    private let micOff = PillButton(symbol: "mic.slash", size: 14, label: "Turn Mic Off", identifier: "hex.micoff")
     private let waveform = Waveform()
     private let notice = UILabel()
     private var emojiBeside = false
@@ -45,10 +47,7 @@ final class SuggestionBar: UIView {
             addSubview(slot)
         }
         dividers.forEach(addSubview)
-        more.setImage(UIImage(systemName: "square.grid.2x2.fill", withConfiguration: UIImage.SymbolConfiguration(pointSize: 19, weight: .semibold)), for: .normal)
-        more.imageView?.contentMode = .scaleAspectFit
-        more.contentHorizontalAlignment = .fill
-        more.contentVerticalAlignment = .fill
+        more.setImage(Panel.moreGlyph, for: .normal)
         more.showsMenuAsPrimaryAction = true
         more.isHidden = true
         more.accessibilityIdentifier = "hex.more"
@@ -58,11 +57,13 @@ final class SuggestionBar: UIView {
         strip.accessibilityIdentifier = "hex.suggestion.emoji"
         addSubview(strip)
         mic.addAction(UIAction { [unowned self] _ in onMic() }, for: .touchUpInside)
-        mic.onHold = { [unowned self] in onMicHold() }
+        mic.onHold = { [unowned self] in onMicOff() }
+        micOff.addAction(UIAction { [unowned self] _ in onMicOff() }, for: .touchUpInside)
         cancel.addAction(UIAction { [unowned self] _ in onCancel() }, for: .touchUpInside)
-        addSubview(waveform)
         addSubview(cancel)
+        addSubview(micOff)
         addSubview(mic)
+        addSubview(waveform)
         notice.isHidden = true
         notice.font = .systemFont(ofSize: 15)
         notice.textAlignment = .center
@@ -105,13 +106,20 @@ final class SuggestionBar: UIView {
     /// `recorded` is how many seconds the app has recorded, for the time beside the waveform; `saved` are the lengths of
     /// the dictations recorded and still to be written, and `waitingFor` what they wait for while the model gets ready.
     func update(mic: MicButton.Phase, recorded: Double, saved: [Double], waitingFor: String?, notice: String?, theme: KeyboardTheme) {
+        let grows = (mic == .listening) != (self.mic.phase == .listening)
         self.mic.show(mic, theme: theme)
         cancel.paint(theme)
-        waveform.show(mic, recorded: recorded, saved: saved, waitingFor: waitingFor, theme: theme)
+        micOff.paint(theme)
+        waveform.show(mic, recorded: recorded, saved: saved, waitingFor: waitingFor, tint: mic == .listening ? .white : theme.label.ui, theme: theme)
         self.notice.text = notice
         self.notice.textColor = theme.candidate.ui
         noticed = notice != nil
         refresh()
+        guard grows, window != nil else { return }
+        setNeedsLayout()
+        UIView.animate(springDuration: mic == .listening ? 0.45 : 0.35, bounce: mic == .listening ? 0.12 : 0, options: [.beginFromCurrentState, .allowUserInteraction]) {
+            self.layoutIfNeeded()
+        }
     }
 
     /// The tools at the bar's left, where there's no pill row for them.
@@ -139,7 +147,6 @@ final class SuggestionBar: UIView {
     }
 
     func hear(_ level: Float, recorded: Double) {
-        mic.hear(level)
         waveform.hear(level, recorded: recorded)
     }
 
@@ -154,6 +161,10 @@ final class SuggestionBar: UIView {
         notice.isHidden = !noticed || recording
         waveform.isHidden = !recording
         cancel.shows = mic.phase == .listening
+        if micOff.shows != (mic.phase == .on) {
+            micOff.shows = mic.phase == .on
+            setNeedsLayout()
+        }
         slots.forEach { $0.isHidden = quiet }
         strip.isHidden = quiet || emoji.isEmpty
         emoji.forEach { $0.isHidden = quiet }
@@ -175,14 +186,18 @@ final class SuggestionBar: UIView {
     override func layoutSubviews() {
         super.layoutSubviews()
         let scale = traitCollection.displayScale
-        let layout = BarLayout(
-            toolbar, width: bounds.width, screenInset: screenInset, block: (block.minX, block.maxX), topInset: topInset,
-            tools: tools.count, more: !more.isHidden, maximumSlot: maximumSlotWidth
-        )
-        mic.frame = CGRect(layout.mic)
+        guard !keys.isEmpty else { return }
+        let layout = BarLayout(toolbar, keys: keys, tools: tools.count, more: !more.isHidden, micOff: micOff.shows, maximumSlot: maximumSlotWidth)
+        let micPlace = CGRect(mic.phase == .listening ? layout.recording : layout.mic ?? layout.recording)
+        mic.bounds.size = micPlace.size
+        mic.center = CGPoint(x: micPlace.midX, y: micPlace.midY)
         let cancelPlace = CGRect(layout.cancel)
         cancel.bounds.size = cancelPlace.size
         cancel.center = CGPoint(x: cancelPlace.midX, y: cancelPlace.midY)
+        if let off = layout.micOff.map({ CGRect($0) }) {
+            micOff.bounds.size = off.size
+            micOff.center = CGPoint(x: off.midX, y: off.midY)
+        }
         for (tool, frame) in zip(tools, layout.tools) { tool.frame = CGRect(frame) }
         if let cell = layout.more.map({ CGRect($0) }) {
             more.frame = cell
@@ -213,7 +228,10 @@ final class SuggestionBar: UIView {
         for (index, divider) in dividers.enumerated() {
             divider.frame = CGRect(x: slots[index].frame.maxX - 0.5, y: row.midY - 14, width: 1, height: 28)
         }
-        waveform.frame = CGRect(x: layout.waveformMinX, y: row.minY, width: layout.maxX - layout.waveformMinX, height: row.height).insetBy(dx: 4, dy: 0)
+        let end = layout.mic.map { CGFloat($0.x) - 6 } ?? CGFloat(layout.recording.x + layout.recording.width)
+        let start = CGFloat(layout.recording.x) + 14
+        waveform.bounds.size = CGSize(width: max(end - start, 0), height: row.height)
+        waveform.center = CGPoint(x: (start + end) / 2, y: row.midY)
         notice.frame = row.insetBy(dx: 4, dy: 0)
     }
 }
@@ -234,21 +252,16 @@ private func settle(bounce: CGFloat = 0, _ changes: @escaping () -> Void, comple
 }
 
 /// The bar's mic: a round button, white on dark and black on light, with a green dot while the app keeps the
-/// microphone on. While it listens it turns record red and five white bars inside trace your voice, newest on the
-/// right, as the red pill before the Raycast look did, under a red halo that swells as you talk; while the app writes a
-/// dictation down a spinner takes the glyph's place, and a tap still starts the next one. Tap to start or stop, hold to
-/// turn the microphone off.
+/// microphone on. While it listens it turns record red and grows into a capsule over the suggestions, which holds the
+/// waveform, with a white stop where the mic was; while the app writes a dictation down a spinner takes the glyph's
+/// place, and a tap still starts the next one. Tap to start or stop, hold to turn the microphone off.
 final class MicButton: UIControl {
     enum Phase { case off, on, listening, writing }
 
     var onHold: () -> Void = {}
     private(set) var phase = Phase.off
     private let face = UIView()
-    private let halo = UIView()
-    private let circle = UIView()
     private let glyph = UIImageView()
-    private let bars = (0..<5).map { _ in UIView() }
-    private var levels = [CGFloat](repeating: 0, count: 5)
     private let dot = UIView()
     private let spinner = UIActivityIndicatorView(style: .medium)
     private var theme = KeyboardTheme.lightCurrent
@@ -259,14 +272,12 @@ final class MicButton: UIControl {
         isAccessibilityElement = true
         accessibilityTraits = .button
         face.isUserInteractionEnabled = false
-        addSubview(face)
-        for view in [halo, circle, glyph, dot, spinner] as [UIView] { face.addSubview(view) }
-        for bar in bars {
-            bar.backgroundColor = .white
-            face.addSubview(bar)
+        face.layer.cornerCurve = .continuous
+        for view in [face, glyph, dot, spinner] as [UIView] {
+            view.isUserInteractionEnabled = false
+            addSubview(view)
         }
         glyph.contentMode = .center
-        glyph.image = UIImage(systemName: "waveform", withConfiguration: UIImage.SymbolConfiguration(pointSize: 20, weight: .semibold))
         dot.backgroundColor = UIColor(red: 0x30 / 255, green: 0xD1 / 255, blue: 0x58 / 255, alpha: 1)
         spinner.hidesWhenStopped = false
         let hold = UILongPressGestureRecognizer(target: self, action: #selector(held))
@@ -276,11 +287,13 @@ final class MicButton: UIControl {
 
     required init?(coder: NSCoder) { fatalError() }
 
+    /// Pressed, it gives by the same 3 points whatever its width.
     override var isHighlighted: Bool {
         didSet {
             guard isHighlighted != oldValue else { return }
+            let scale = isHighlighted ? 1 - 6 / max(bounds.width, 1) : 1
             UIView.animate(springDuration: isHighlighted ? 0.16 : 0.3, bounce: 0, options: [.beginFromCurrentState, .allowUserInteraction]) {
-                self.face.transform = self.isHighlighted ? CGAffineTransform(scaleX: 0.92, y: 0.92) : .identity
+                self.transform = CGAffineTransform(scaleX: scale, y: scale)
             }
         }
     }
@@ -295,36 +308,33 @@ final class MicButton: UIControl {
         case .writing: "Writing"
         case .off, .listening: nil
         }
-        if phase != .listening { levels = levels.map { _ in 0 } }
         if phase == .writing { spinner.startAnimating() }
         if changed, window != nil {
+            UIView.transition(with: glyph, duration: 0.2, options: [.transitionCrossDissolve, .beginFromCurrentState, .allowUserInteraction]) {
+                self.glyph.image = self.symbol
+            }
             settle({ self.refresh() }) { _ in if self.phase != .writing { self.spinner.stopAnimating() } }
         } else {
+            glyph.image = symbol
             if phase != .writing { spinner.stopAnimating() }
             refresh()
         }
     }
 
-    /// Each level enters on the right and pushes the older ones left, so the bars trace your voice.
-    func hear(_ level: Float) {
-        guard phase == .listening else { return }
-        levels = Array(levels.dropFirst()) + [loudness(level)]
-        follow { self.layoutVoice() }
+    private var symbol: UIImage? {
+        let listening = phase == .listening
+        return UIImage(systemName: listening ? "stop.fill" : "waveform", withConfiguration: UIImage.SymbolConfiguration(pointSize: listening ? 13 : 17, weight: .semibold))
     }
 
     private func refresh() {
-        let recording = phase == .listening
-        glyph.tintColor = theme.micGlyph.ui
-        glyph.alpha = phase == .listening || phase == .writing ? 0 : 1
-        glyph.transform = glyph.alpha == 0 ? CGAffineTransform(scaleX: 0.8, y: 0.8) : .identity
-        circle.backgroundColor = recording ? theme.record.ui : theme.mic.ui
-        halo.backgroundColor = theme.record.ui
-        bars.forEach { $0.alpha = recording ? 1 : 0 }
+        let listening = phase == .listening
+        glyph.tintColor = listening ? .white : theme.micGlyph.ui
+        glyph.alpha = phase == .writing ? 0 : 1
+        face.backgroundColor = listening ? theme.record.ui : theme.mic.ui
         dot.alpha = phase == .on ? 1 : 0
         dot.transform = phase == .on ? .identity : CGAffineTransform(scaleX: 0.5, y: 0.5)
         spinner.color = theme.micGlyph.ui
         spinner.alpha = phase == .writing ? 1 : 0
-        layoutVoice()
     }
 
     @objc private func held(_ gesture: UILongPressGestureRecognizer) {
@@ -336,51 +346,31 @@ final class MicButton: UIControl {
 
     /// The circle is smaller than a fingertip; taps a little around it still reach it.
     override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
-        bounds.insetBy(dx: -6, dy: -4).contains(point)
+        bounds.insetBy(dx: -6, dy: -6).contains(point)
     }
 
+    /// The glyph, spinner and dot sit in the square at the right end, which is the whole button while it's a circle.
     override func layoutSubviews() {
         super.layoutSubviews()
-        face.bounds = bounds
-        face.center = CGPoint(x: bounds.midX, y: bounds.midY)
-        for view in [halo, circle] {
-            view.bounds = bounds
-            view.center = face.center
-            view.layer.cornerRadius = bounds.width / 2
-        }
-        glyph.frame = bounds
-        spinner.center = face.center
-        spinner.transform = CGAffineTransform(scaleX: 16 / 20, y: 16 / 20)
+        face.frame = bounds
+        face.layer.cornerRadius = bounds.height / 2
+        let end = CGRect(x: bounds.width - bounds.height, y: 0, width: bounds.height, height: bounds.height)
+        glyph.frame = end
+        spinner.center = CGPoint(x: end.midX, y: end.midY)
+        spinner.transform = CGAffineTransform(scaleX: 0.75, y: 0.75)
         let side: CGFloat = 6
         dot.bounds = CGRect(x: 0, y: 0, width: side, height: side)
-        dot.center = CGPoint(x: bounds.maxX - side / 2 - bounds.width * 0.08, y: bounds.width * 0.08 + side / 2)
+        dot.center = CGPoint(x: end.maxX - side / 2 - end.width * 0.04, y: end.width * 0.04 + side / 2)
         dot.layer.cornerRadius = side / 2
-        layoutVoice()
-    }
-
-    /// The bars, 3 wide and 2.5 apart, and the halo, which grows with the newest level.
-    private func layoutVoice() {
-        let scale = traitCollection.displayScale
-        let width: CGFloat = 3, gap: CGFloat = 2.5
-        let total = CGFloat(bars.count) * width + CGFloat(bars.count - 1) * gap
-        let tallest = (bounds.height * 0.42).rounded(scale: scale)
-        for (index, bar) in bars.enumerated() {
-            let height = (width + (tallest - width) * levels[index]).rounded(scale: scale)
-            let x = ((bounds.width - total) / 2 + CGFloat(index) * (width + gap)).rounded(scale: scale)
-            bar.frame = CGRect(x: x, y: ((bounds.height - height) / 2).rounded(scale: scale), width: width, height: height)
-            bar.layer.cornerRadius = width / 2
-        }
-        let voice = phase == .listening ? levels[levels.count - 1] : 0
-        halo.alpha = phase == .listening ? 0.16 + 0.14 * voice : 0
-        halo.transform = phase == .listening ? CGAffineTransform(scaleX: 1.04 + 0.2 * voice, y: 1.04 + 0.2 * voice) : .identity
     }
 }
 
-/// The cancel button beside the waveform while you dictate: an x in a round pill, which grows in with the waveform and
-/// shrinks away when the dictation ends, and gives under your finger as the mic does.
-private final class CancelButton: UIControl {
+/// A round pill a little smaller than the mic for what goes beside it: cancel while you dictate, and turning the microphone off while
+/// the app keeps it on. It grows in when its moment comes and shrinks away after, and gives under your finger as the
+/// mic does.
+private final class PillButton: UIControl {
     private let face = UIView()
-    private let glyph = UIImageView(image: UIImage(systemName: "xmark", withConfiguration: UIImage.SymbolConfiguration(pointSize: 14, weight: .semibold)))
+    private let glyph = UIImageView()
 
     var shows = false {
         didSet {
@@ -395,10 +385,11 @@ private final class CancelButton: UIControl {
         }
     }
 
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        accessibilityIdentifier = "hex.cancel"
-        accessibilityLabel = "Cancel Dictation"
+    init(symbol: String, size: CGFloat, label: String, identifier: String) {
+        super.init(frame: .zero)
+        glyph.image = UIImage(systemName: symbol, withConfiguration: UIImage.SymbolConfiguration(pointSize: size, weight: .medium))
+        accessibilityIdentifier = identifier
+        accessibilityLabel = label
         isAccessibilityElement = true
         accessibilityTraits = .button
         face.isUserInteractionEnabled = false
@@ -448,7 +439,8 @@ private final class CancelButton: UIControl {
 /// front with its length and the rest peeking out behind it, beside what the model is doing; each lifts away as its
 /// dictation is typed, and the next steps forward.
 private final class Waveform: UIView {
-    private static let pitch: CGFloat = 6
+    private static let pitch: CGFloat = 5
+    private static let barWidth: CGFloat = 2.5
     private let time = UILabel()
     private let track = UIView()
     private let strip = UIView()
@@ -469,6 +461,8 @@ private final class Waveform: UIView {
     /// Stopped, with every dictation saved and waiting for the model: their cards take the bars' place.
     private var waiting = false
     private var theme = KeyboardTheme.lightCurrent
+    /// The time's, the bars' and the count's color: white on the mic's red, or the label's where the mic isn't in the bar.
+    private var tint = UIColor.white
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -491,19 +485,20 @@ private final class Waveform: UIView {
     required init?(coder: NSCoder) { fatalError() }
 
     /// `lengths` are the saved dictations' lengths in seconds, oldest first, and `waitingFor` what they wait for.
-    func show(_ phase: MicButton.Phase, recorded: Double, saved lengths: [Double], waitingFor: String?, theme: KeyboardTheme) {
+    func show(_ phase: MicButton.Phase, recorded: Double, saved lengths: [Double], waitingFor: String?, tint: UIColor, theme: KeyboardTheme) {
         let started = phase == .listening && (self.phase == .off || self.phase == .on)
         if phase != .listening, phase != .writing { heard = 0 }
         if phase != .listening, self.phase == .listening { freeze() }
         self.phase = phase
         self.recorded = recorded
         self.theme = theme
+        if phase == .listening { self.tint = tint }
         showsWords = waitingFor != nil && !lengths.isEmpty
         let wasWaiting = waiting
         waiting = phase == .writing && !lengths.isEmpty && (showsWords || waiting)
         words.text = waiting ? waitingFor : "\(lengths.count) saved"
-        words.textColor = theme.candidate.ui
-        time.textColor = theme.candidate.ui
+        words.textColor = waiting ? theme.candidate.ui : self.tint.withAlphaComponent(0.85)
+        time.textColor = self.tint.withAlphaComponent(0.85)
         let restacked = lengths != self.lengths
         if restacked { restack(lengths, animated: wasWaiting && waiting) }
         for chip in chips { chip.paint(theme) }
@@ -522,7 +517,7 @@ private final class Waveform: UIView {
     /// Everything where the state puts it: the bars with the time, or the cards, and what they wait for.
     private func place() {
         for view in [time, track] {
-            view.alpha = waiting ? 0 : phase == .writing ? 0.4 : 1
+            view.alpha = phase == .listening ? 1 : 0
             view.transform = .identity
         }
         words.alpha = showsWords ? 1 : 0
@@ -542,7 +537,7 @@ private final class Waveform: UIView {
         lastRecorded = recorded
         let loud = loudness(level)
         let last = bars.last?.level ?? 0
-        let level = loud > last ? loud : last + (loud - last) / 2
+        let level = last + (loud - last) * (loud > last ? 0.7 : 0.35)
         let bar = bars.count > fits + 1 ? bars.removeFirst().view : newBar()
         bars.append((bar, level))
         self.heard += 1
@@ -560,11 +555,11 @@ private final class Waveform: UIView {
     }
 
     private var fits: Int { Int(track.bounds.width / Self.pitch) }
-    private var slid: CGAffineTransform { CGAffineTransform(translationX: track.bounds.width - CGFloat(heard) * Self.pitch + 3, y: 0) }
+    private var slid: CGAffineTransform { CGAffineTransform(translationX: track.bounds.width - CGFloat(heard) * Self.pitch + Self.barWidth, y: 0) }
 
     private func newBar() -> UIView {
         let bar = UIView()
-        bar.layer.cornerRadius = 1.5
+        bar.layer.cornerRadius = Self.barWidth / 2
         strip.addSubview(bar)
         return bar
     }
@@ -585,14 +580,14 @@ private final class Waveform: UIView {
 
     private func frame(of index: Int) -> CGRect {
         let scale = traitCollection.displayScale
-        let tallest = min(bounds.height - 12, 24)
-        let height = (3 + (tallest - 3) * bars[index].level).rounded(scale: scale)
+        let tallest = min(bounds.height - 18, 20)
+        let height = (Self.barWidth + (tallest - Self.barWidth) * bars[index].level).rounded(scale: scale)
         let number = heard - bars.count + index
-        return CGRect(x: CGFloat(number) * Self.pitch, y: ((bounds.height - height) / 2).rounded(scale: scale), width: 3, height: height)
+        return CGRect(x: CGFloat(number) * Self.pitch, y: ((bounds.height - height) / 2).rounded(scale: scale), width: Self.barWidth, height: height)
     }
 
     private func color(_ level: CGFloat) -> UIColor {
-        theme.label.ui.withAlphaComponent(0.35 + 0.65 * level)
+        tint.withAlphaComponent(0.45 + 0.55 * level)
     }
 
     /// The saved dictations' cards, keeping the ones still waiting: when the oldest are typed they lift away, and a

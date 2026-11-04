@@ -40,15 +40,15 @@ From top to bottom: 3 of padding (iOS draws its backdrop 4 above the keyboard, s
 
 ### The bar
 
-- The mic's height: 38, or 32 to 34 where height is short. Three suggestion slots of equal width share what the tools and the mic leave, 4 from each, divided by 1pt lines 28 tall.
-- Where everything goes comes from one rule (`BarLayout`): the mic sits 7 from the top of the backdrop, 7 from the keys and 7 from the keyboard's side, or in line with the keys' right edge where they sit further in (landscape, the open Duo, one-handed). The tools mirror it at the left. So no screen can crowd the mic into the keyboard's corner, and `BarLayoutTests` checks it on every screen.
+- The bar is 38 tall, or 32 to 34 where height is short. Everything in it sits on the top row's keys (`BarLayout`, from the keys' own frames): the More button and the tools are centered over the first keys, each a key wide (up to 1.25 × the bar's height where keys are wide), so they're the same size, as far apart as the keys and in line with them; their glyphs are drawn about 18 across or tall. The mic is a circle 6 smaller than the bar (32 on an iPhone), centered over the last key, so it sits in proportion with the tools. Three suggestion slots of equal width share what's between them, 4 from each, divided by 1pt lines 28 tall.
+- One rule places everything on every screen, one-handed and split included, and `BarLayoutTests` checks it on each: the keys' columns. Nothing crowds the keyboard's corner, because the keys don't.
 - The mic is a circle at the bar's right end. Dark: white circle, black glyph. Light: black circle, white glyph. It is always there.
 - Where an iPhone's bar has room for three suggestions of 130 and two emoji more (the open Duo, and the folded Duo in landscape), the three are 130 wide from the bar's left and the word's emoji sit in the rest, as many as fit; with or without emoji the suggestions stay where they are, as Apple's never move while you type. Elsewhere the last slot gives way to the word's emoji when it has some (`EmojiCatalog`; none beats a wrong one): the ones picked for the word, then every emoji whose name or keywords hold the word, up to 30, 36 apart. As many as fit show, centered when they all do; the rest are a swipe left away.
 - What the slots hold and what a tap does doesn't change (`SuggestionBar`, Apple's three suggestions, a quoted middle when it will autocorrect).
 
 ### The tools
 
-- GIF and Clipboard (and, on iPad with the emoji key on, Emoji) are round cells the mic's size at the bar's left end, 4 apart, in the label color, before the suggestions. Each opens its panel (section "Panels").
+- GIF and Clipboard (and, on iPad with the emoji key on, Emoji) sit over the keys after the More button (Raycast's four rounded squares), in the label color, before the suggestions. Each opens its panel (section "Panels").
 - Nothing AI goes here.
 
 ### Where taps land
@@ -67,9 +67,9 @@ Behavior is what `MicButton` does today; only its look changes.
 | State | Look |
 |---|---|
 | Microphone off (the app isn't holding it) | Circle with the `waveform` glyph. Tap opens the app to dictate. |
-| Microphone kept on (Keep Mic On) | Same circle, plus a 6pt green (`#30D158`) dot at its top right. Tap starts dictating in place. |
-| Recording | The three suggestion slots become one live waveform in the label color (bars 3 wide, 3 apart, each as bright as it was loud, fading out to the left) with the elapsed time `0:07` at its left in secondary 15, tabular figures. Each level the app publishes enters at the right edge and the bars glide left one place, linearly, in the time the app took to hear it, so the waveform scrolls at the recording's own speed. The mic turns record red with five white bars inside (3 wide, 2.5 apart) tracing your voice, newest on the right, as the red pill before the Raycast look did, under a record-red halo (16 to 30% opaque) that swells up to 1.24× with your voice. Tap stops and inserts. Hold turns the microphone off, as today. |
-| Writing (after stop, until the text lands) | Waveform holds still where it was at 40% opacity; the mic's circle shows a 16pt spinner in its glyph's color in place of the glyph. A tap starts the next dictation. Dictations waiting for the model stack as cards: the next to be typed in front with its length, up to three more peeking out 5 to its right, each 10% smaller and fainter, beside what the model is doing. A new one slides in from the mic's side; one typed lifts away and the next steps forward. |
+| Microphone kept on (Keep Mic On) | Same circle, plus a 6pt green (`#30D158`) dot at its top right. Tap starts dictating in place. Over the key before it, a round pill 4 smaller than the mic (`mic.slash`, the suggestion pill's gray) turns the microphone off with a tap, as holding the mic does. |
+| Recording | The mic turns record red and grows, with a spring, into a capsule from the key after the cancel button to its own right edge: the old red pill's feel at the bar's scale, and the only waveform. Inside, in white: the elapsed time `0:07` (15, tabular figures), the waveform (bars 2.5 wide, 5 apart, each as bright as it was loud, fading out to the left; each level the app publishes enters at the right edge and the bars glide left one place, linearly, in the time the app took to hear it, so the waveform scrolls at the recording's own speed), and a `stop.fill` where the mic was. Before it, over the key after the tools, a gray pill with an `xmark` throws the dictation away. Tap stops and inserts. Hold turns the microphone off, as today. |
+| Writing (after stop, until the text lands) | The capsule shrinks back into the circle, which shows a 16pt spinner in its glyph's color. A tap starts the next dictation. Dictations waiting for the model stack as cards: the next to be typed in front with its length, up to three more peeking out 5 to its right, each 10% smaller and fainter, beside what the model is doing. A new one slides in from the mic's side; one typed lifts away and the next steps forward. |
 
 ### Colors
 

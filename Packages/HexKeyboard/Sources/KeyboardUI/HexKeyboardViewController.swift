@@ -96,7 +96,7 @@ open class HexKeyboardViewController: UIInputViewController {
             render()
         }
         sources.onHint = { [unowned self] in render() }
-        suggestionBar.onMicHold = { [unowned self] in
+        suggestionBar.onMicOff = { [unowned self] in
             feedback(.other)
             Dictation.send(.stop, from: keyboard)
         }
@@ -124,7 +124,10 @@ open class HexKeyboardViewController: UIInputViewController {
             self?.render()
         }
         keyboardView.resolve = { [unowned self] grid, point in engine.key(atX: point.x, y: point.y, in: grid) }
-        keyboardView.onGrid = { [unowned self] in engine.use($0) }
+        keyboardView.onGrid = { [unowned self] grid in
+            engine.use(grid)
+            suggestionBar.keys = (grid.rows.first ?? []).map { (minX: $0.frame.x, maxX: $0.frame.x + $0.frame.width) }
+        }
         keyboardView.advance = { [unowned self] step in HostLayout.width(of: engine.character(crossedBy: step)) }
         keyboardView.globeTarget = { [unowned self] control in
             control.addTarget(self, action: #selector(handleInputModeList(from:with:)), for: .allTouchEvents)
@@ -341,9 +344,6 @@ open class HexKeyboardViewController: UIInputViewController {
         panelView.isHidden = panel == nil
         suggestionBar.isHidden = panel != nil
         panelView.block = block
-        suggestionBar.block = block
-        suggestionBar.screenInset = max((screenSize.width - width) / 2, 0)
-        suggestionBar.topInset = metrics.topInset
         suggestionBar.toolbar = toolbar
         suggestionBar.maximumSlotWidth = device == .phone ? .infinity : 154.5
         suggestionBar.update(tools: tools, theme: theme)

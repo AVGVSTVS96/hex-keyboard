@@ -1,17 +1,19 @@
 /// What sits above the keys (docs/design.md): the bar, with the tools at its left, or a panel's results and search row
-/// in its place. The keys' `topInset` is the gap under it. On iPhones the bar is the mic's height, with `gap` above it,
-/// below it and beside it (`BarLayout`).
+/// in its place. The keys' `topInset` is the gap under it. On iPhones the bar has `gap` above it and below it; the mic, a
+/// circle smaller than the bar so it sits in proportion with the tools beside it, is centered in it (`BarLayout`).
 public struct Toolbar: Hashable, Sendable {
     /// Padding above the bar, or above a panel's results.
     public var top: Double
     public var bar: Double
     public var mic: Double
+    /// The round buttons beside the mic: cancel while you dictate, and turning the microphone off while it's kept on.
+    public var pill: Double { mic - 4 }
     public var results: Double
     public var field: Double
 
     public static let fieldGap = 6.0
-    /// The space around the mic: to the top of the keyboard's backdrop, to the keys, and to the keyboard's side
-    /// where the keys reach it. With it, the keyboard is as tall as Apple's with its suggestions (iPhone Duo, iOS 27.1).
+    /// The space above the bar, to the top of the keyboard's backdrop, and below it, to the keys. With it, the keyboard is
+    /// as tall as Apple's with its suggestions (iPhone Duo, iOS 27.1).
     public static let gap = 7.0
     /// iOS draws the keyboard's backdrop this far above the keyboard's own top (iPhone Duo, iOS 27.1 simulator), and
     /// further on the open Duo in landscape.
@@ -59,14 +61,14 @@ public struct Toolbar: Hashable, Sendable {
         return toolbar
     }
 
-    static let phone = Toolbar(top: gap - backdropAbove, bar: 38, mic: 38, results: 136, field: 40)
+    static let phone = Toolbar(top: gap - backdropAbove, bar: 38, mic: 32, results: 136, field: 40)
     static let compactResults = 46.0
     static let compactField = 34.0
 
-    static func compact(mic: Double, backdropAbove: Double = backdropAbove) -> Toolbar {
-        Toolbar(top: gap - backdropAbove, bar: mic, mic: mic, results: compactResults, field: compactField)
+    static func compact(bar: Double, backdropAbove: Double = backdropAbove) -> Toolbar {
+        Toolbar(top: gap - backdropAbove, bar: bar, mic: bar - 6, results: compactResults, field: compactField)
     }
 
     /// iPad, where iOS draws its own bar above the keyboard.
-    static let pad = Toolbar(top: 0, bar: 36, mic: 34, results: compactResults, field: compactField)
+    static let pad = Toolbar(top: 0, bar: 36, mic: 30, results: compactResults, field: compactField)
 }

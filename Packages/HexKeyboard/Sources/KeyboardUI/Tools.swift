@@ -32,7 +32,7 @@ final class ToolButton: UIControl {
         backgroundColor = isHighlighted ? theme.candidatePill.ui : .clear
     }
 
-    /// The cell is the mic's size; taps in the gaps around it still reach it.
+    /// The cell is a key wide; taps in the gaps around it still reach it.
     override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
         bounds.insetBy(dx: -BarLayout.gap / 2, dy: -4).contains(point)
     }
@@ -53,14 +53,30 @@ extension Panel {
         }
     }
 
+    /// The tools' glyphs, and the More button's, drawn the same size: about 18 points across or tall.
     var icon: UIImage? {
-        let configuration = UIImage.SymbolConfiguration(pointSize: 22, weight: .regular)
+        let configuration = UIImage.SymbolConfiguration(pointSize: 18, weight: .regular)
         switch self {
         case .emoji: return UIImage(systemName: "face.smiling", withConfiguration: configuration)
         case .gif: return Self.gifGlyph
         case .clipboard: return UIImage(systemName: "list.clipboard", withConfiguration: configuration)
         }
     }
+
+    /// Raycast's four rounded squares, for the More button, a little narrower than the GIF glyph.
+    static let moreGlyph: UIImage = {
+        let size = CGSize(width: 22, height: 22), side: CGFloat = 7, gap: CGFloat = 2.4
+        return UIGraphicsImageRenderer(size: size).image { _ in
+            let origin = (size.width - 2 * side - gap) / 2
+            UIColor.black.setFill()
+            for row in 0..<2 {
+                for column in 0..<2 {
+                    let square = CGRect(x: origin + CGFloat(column) * (side + gap), y: origin + CGFloat(row) * (side + gap), width: side, height: side)
+                    UIBezierPath(roundedRect: square, cornerRadius: 2).fill()
+                }
+            }
+        }.withRenderingMode(.alwaysTemplate)
+    }()
 
     /// GIF has no SF Symbol: a rounded rect with "GIF" in it (docs/design.md).
     static let gifGlyph: UIImage = {
