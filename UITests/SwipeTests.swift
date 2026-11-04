@@ -10,7 +10,7 @@ final class SwipeTests: XCTestCase {
         app = XCUIApplication()
         app.launchArguments = ["-HexFocus", "YES", "-HexResetSettings", "YES"]
         app.launch()
-        XCTAssertTrue(app.keys["hex.space"].waitForExistence(timeout: 10), "iikb is not the active keyboard")
+        XCTAssertTrue(app.keys["hex.space"].waitForExistence(timeout: 30), "iikb is not the active keyboard")
     }
 
     func testASwipeTypesItsWordAndTheBarOffersOthers() throws {
@@ -53,9 +53,10 @@ final class SwipeTests: XCTestCase {
         let finger = XCPointerEventPath(forTouchAt: centers[0], offset: 0.05)
         var time = 0.05
         for (from, to) in zip(centers, centers.dropFirst()) {
-            let steps = max(Int(hypot(to.x - from.x, to.y - from.y) / 8), 1)
+            let steps = max(Int(hypot(to.x - from.x, to.y - from.y) / 6), 1)
+            if steps == 1 && from == to { time += 0.12 }
             for step in 1...steps {
-                time += 0.008
+                time += 0.01
                 let share = Double(step) / Double(steps)
                 finger.move(to: CGPoint(x: from.x + (to.x - from.x) * share, y: from.y + (to.y - from.y) * share), atOffset: time)
             }

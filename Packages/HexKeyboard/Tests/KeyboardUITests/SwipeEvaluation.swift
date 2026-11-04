@@ -108,6 +108,7 @@ extension Evaluation {
         }
 
         func percent(_ count: Int) -> String { String(format: "%.2f", 100 * Double(count) / Double(max(total, 1))) }
+        var topThree: String { "top1=\(percent(first)) top3=\(percent(three))" }
         var summary: String { "top1=\(percent(first)) top3=\(percent(three)) top10=\(percent(ten))" }
     }
 
@@ -229,9 +230,9 @@ extension Evaluation {
         let stride = max(all.count / limit, 1)
         let dev = read((0..<min(limit, all.count)).map { all[$0 * stride] })
         var best = (alpha: 0.0, lambda: base.lambda, beta: base.beta), bestValue = 0.0
-        for alpha in [0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.3] {
-            for lambda in [0.1, 0.15, 0.2, 0.31] {
-                for beta in [0.727, 0.85, 1.0, 1.2, 1.4] {
+        for alpha in [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.65, 0.8] {
+            for lambda in [0, 0.03, 0.06, 0.1, 0.15, 0.31] {
+                for beta in [0.5, 0.6, 0.727, 0.85, 1.0] {
                     let result = accuracy(dev, alpha: alpha, lambda: lambda, beta: beta)
                     let value = Double(result.first + result.three) / Double(result.total)
                     if value > bestValue { (best, bestValue) = ((alpha, lambda, beta), value) }
@@ -239,10 +240,10 @@ extension Evaluation {
             }
         }
         let tuned = accuracy(dev, alpha: best.alpha, lambda: best.lambda, beta: best.beta)
-        print("EVAL swipe context dev=\(dev.count) none: \(accuracy(dev, alpha: 0, lambda: base.lambda, beta: base.beta).summary) | alpha=\(best.alpha) lambda=\(best.lambda) beta=\(best.beta): \(tuned.summary)")
+        print("EVAL swipe context dev=\(dev.count) none: \(accuracy(dev, alpha: 0, lambda: base.lambda, beta: base.beta).topThree) | alpha=\(best.alpha) lambda=\(best.lambda) beta=\(best.beta): \(tuned.topThree)")
 
         let test = read(try Swipes("test").placed(on: layout))
-        print("EVAL swipe context test=\(test.count) none: \(accuracy(test, alpha: 0, lambda: base.lambda, beta: base.beta).summary)")
-        print("EVAL swipe context test=\(test.count) alpha=\(best.alpha) lambda=\(best.lambda) beta=\(best.beta): \(accuracy(test, alpha: best.alpha, lambda: best.lambda, beta: best.beta).summary)")
+        print("EVAL swipe context test=\(test.count) none: \(accuracy(test, alpha: 0, lambda: base.lambda, beta: base.beta).topThree)")
+        print("EVAL swipe context test=\(test.count) alpha=\(best.alpha) lambda=\(best.lambda) beta=\(best.beta): \(accuracy(test, alpha: best.alpha, lambda: best.lambda, beta: best.beta).topThree)")
     }
 }

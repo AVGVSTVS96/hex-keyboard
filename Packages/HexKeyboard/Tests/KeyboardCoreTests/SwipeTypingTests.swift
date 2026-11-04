@@ -16,9 +16,11 @@ private func path(_ word: String, on grid: KeyGrid = .standard) -> [SwipePoint] 
     return points
 }
 
+private let vocabulary = Lexicon(counts: [("hello", 50), ("world", 30), ("the", 1000), ("a", 800), ("I'm", 100), ("men", 20), ("come", 30), ("home", 30), ("about", 40), ("hell", 5)].map { (word: $0.0, count: Double($0.1)) })
+
 private func engine() -> (engine: TypingEngine, document: TestDocument) {
     var engine = TypingEngine()
-    engine.corrector = Corrector(source: testLexicon)
+    engine.corrector = Corrector(source: vocabulary)
     engine.settings.autoCapitalization = false
     engine.swipeModel = swipe
     let document = TestDocument()

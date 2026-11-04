@@ -42,19 +42,18 @@ extension TypingEngine {
               let emissions = model.emissions(of: path, on: layout) else { return nil }
         var found = Swipe.rank(emissions, in: lexicon, .withContext, limit: 10)
         if let own = ownWords(corrector, besides: lexicon) {
-            let prior = Swipe.Scoring.withContext.lambda * (Math.log(Double(own.count)) - Swipe.Scoring.ownLogProbability)
-            found += Swipe.rank(emissions, in: own.lexicon, .withContext, limit: 3).map { Swipe.Candidate(word: $0.word, score: $0.score + prior) }
+            found += Swipe.rank(emissions, in: own, .withContext, limit: 3)
         }
         return found.isEmpty ? nil : found
     }
 
-    private mutating func ownWords(_ corrector: Corrector, besides lexicon: Lexicon) -> (lexicon: Lexicon, count: Int)? {
+    private mutating func ownWords(_ corrector: Corrector, besides lexicon: Lexicon) -> Lexicon? {
         let words = Set((Array(corrector.memory.familiar) + Array(corrector.names.values)).filter { word in
             word.utf8.allSatisfy { Lexicon.index(of: Lexicon.fold($0)) != nil } && lexicon.logProbability(of: word) == nil
         })
         guard !words.isEmpty else { return nil }
         if ownedWords?.words != words { ownedWords = (words, Lexicon(counts: words.map { (word: $0, count: 1.0) })) }
-        return ownedWords.map { ($0.lexicon, words.count) }
+        return ownedWords?.lexicon
     }
 
     /// The swipe's word while it's still the last thing typed.
@@ -87,11 +86,10 @@ extension Corrector {
 
 extension Swipe.Scoring {
     /// How much the sentence counts against the swipe, as a multiple of ln P(word | the words before it).
-    static let contextWeight = 0.65
-    /// Where a word you taught the keyboard sits in the lexicon's scale, whatever its spelling's prior.
-    static let ownLogProbability = -12.0
-    /// `refined` with the language model in the score: it takes over some of what the lexicon's prior did.
-    static let withContext = refined
+    static let contextWeight = 0.4
+    /// `refined` with the language model in the score, tuned on the validation split (`scripts/eval swipeContext`): the
+    /// model's own word frequencies replace the lexicon's prior, so λ is nothing, and a word's length counts for more.
+    static let withContext = Swipe.Scoring(gamma: refined.gamma, lambda: 0, beta: 0.85, pruneGamma: refined.pruneGamma, pruneBeta: refined.pruneBeta)
 }
 
 extension KeyGrid {
