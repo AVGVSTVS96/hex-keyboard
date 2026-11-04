@@ -26,7 +26,7 @@ private func engine(reading words: [(word: String, score: Double)]) -> (engine: 
     return (engine, source, document)
 }
 
-struct SwipeTests {
+struct SwipeTypingTests {
     @Test func aSwipeTypesItsWordAndTheNextOneFollowsAfterASpace() {
         var (engine, source, document) = engine(reading: [("hello", -1)])
         let typed = engine.handle(.swipe(path), in: document)
