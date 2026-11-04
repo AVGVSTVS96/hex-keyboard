@@ -225,7 +225,7 @@ public enum TapGlyph {
 extension TapGlyph: Equatable {}
 
 /// Every key's aim as an arrow from its center, drawn `magnification` times longer than it is, so the pattern of
-/// how each thumb pulls across the keyboard shows.
+/// how each thumb pulls across the keyboard shows; short arrows are faint, so the keys that pull stand out.
 public final class TapPullView: UIView {
     public static let magnification = 4.0
     private var aims: [Aim] = []
@@ -285,7 +285,7 @@ public final class TapPullView: UIView {
                 arrow.move(to: end)
                 arrow.addLine(to: CGPoint(x: end.x + head * cos(angle + side), y: end.y + head * sin(angle + side)))
             }
-            tintColor.setStroke()
+            tintColor.withAlphaComponent(0.4 + 0.6 * min(1, length / 24)).setStroke()
             arrow.lineWidth = 2
             arrow.lineCapStyle = .round
             arrow.lineJoinStyle = .round
