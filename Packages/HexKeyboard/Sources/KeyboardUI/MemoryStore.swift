@@ -6,7 +6,10 @@ import notify
 /// App Group. The app resets it by sharing a new reset token through `SettingsStore`; the keyboard starts over when the
 /// token it sees differs from the one its memory was saved under.
 /// With Full Access the keyboard also shares its touch model through the group, for the app to show.
-public enum MemoryStore {
+///
+/// Each keyboard view controller has a store of its own, since what it knows of the file belongs with the memory it
+/// holds: iOS makes a new controller each time the keyboard comes up, often in a process whose last one read the file.
+public final class MemoryStore {
     nonisolated private struct Saved: Codable {
         var resets: Int
         var memory: TypingMemory
@@ -34,10 +37,10 @@ public enum MemoryStore {
         var resets: Int?
     }
 
-    /// The version this process's memory was read from; none until its first read lands.
-    @MainActor private static var base: Version?
-    /// The version this process last saved, kept on `queue`.
-    nonisolated(unsafe) private static var written: Version?
+    /// The version this keyboard's memory was read from; none until its first read lands, or while the file can't be read.
+    private var base: Version?
+    /// The version this keyboard last saved, kept on `queue`.
+    nonisolated(unsafe) private var written: Version?
 
     /// Reads and writes the file in turn, off the main thread: at 20,000 words each takes a tenth of a second.
     nonisolated static let queue = DispatchQueue(label: "com.shahidy.hexkeyboard.memory", qos: .userInitiated)
@@ -46,35 +49,38 @@ public enum MemoryStore {
         try? url.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate
     }
 
-    /// Hands `use` the saved memory when it isn't the one this process has: on the first appearance, after another
-    /// app's keyboard saved, or after the app reset it.
-    @MainActor static func refresh(_ use: @escaping @MainActor (TypingMemory) -> Void) {
-        let base = base, resets = resets
-        queue.async {
-            let version = Version(modified: modified, resets: resets)
+    /// Hands `use` the saved memory when it isn't the one this keyboard has: on its first appearance, after another
+    /// app's keyboard saved, or after the app reset it. A file that's there but can't be read is never handed over.
+    func refresh(_ use: @escaping @MainActor (TypingMemory) -> Void) {
+        let base = base, resets = Self.resets
+        Self.queue.async { [self] in
+            let version = Version(modified: Self.modified, resets: resets)
             guard version != base, version != written else { return }
-            let saved = try? JSONDecoder().decode(Saved.self, from: Data(contentsOf: url))
-            let memory = saved.flatMap { $0.resets == resets ?? $0.resets ? $0.memory : nil } ?? TypingMemory()
+            var memory = TypingMemory()
+            if version.modified != nil {
+                guard let saved = try? JSONDecoder().decode(Saved.self, from: Data(contentsOf: Self.url)) else { return }
+                if saved.resets == resets ?? saved.resets { memory = saved.memory }
+            }
             Task { @MainActor in
-                Self.base = version
+                self.base = version
                 use(memory)
             }
         }
     }
 
-    @MainActor static func save(_ memory: TypingMemory, sharing: Bool) {
+    func save(_ memory: TypingMemory, sharing: Bool) {
         guard let base else { return }
-        let resets = resets, sharedTouchesURL = sharing ? sharedTouchesURL : nil
-        queue.async {
-            let current = Version(modified: modified, resets: resets)
+        let resets = Self.resets, sharedTouchesURL = sharing ? Self.sharedTouchesURL : nil
+        Self.queue.async { [self] in
+            let url = Self.url, current = Version(modified: Self.modified, resets: resets)
             guard current == base || current == written else { return }
             try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
             try? JSONEncoder().encode(Saved(resets: resets ?? 0, memory: memory)).write(to: url, options: .atomic)
-            written = Version(modified: modified, resets: resets)
+            written = Version(modified: Self.modified, resets: resets)
             guard let sharedTouchesURL else { return }
             try? FileManager.default.createDirectory(at: sharedTouchesURL.deletingLastPathComponent(), withIntermediateDirectories: true)
             guard (try? JSONEncoder().encode(memory.touches).write(to: sharedTouchesURL, options: .atomic)) != nil else { return }
-            notify_post(touchesChanged)
+            notify_post(Self.touchesChanged)
         }
     }
 

@@ -54,6 +54,7 @@ open class HexKeyboardViewController: UIInputViewController {
     private lazy var panels: [Panel: PanelContent] = [.emoji: emojiPanel, .gif: gifPanel, .clipboard: clipboardPanel].compactMapValues { $0 }
     private lazy var document = ProxyDocument { [unowned self] in textDocumentProxy }
     private var engine = TypingEngine()
+    private let memoryStore = MemoryStore()
     private lazy var toolbarHeightConstraint = toolbarView.heightAnchor.constraint(equalToConstant: 0)
     private lazy var keyboardHeightConstraint = keyboardView.heightAnchor.constraint(equalToConstant: 0)
     private lazy var keysMinimumConstraint = keyboardView.heightAnchor.constraint(greaterThanOrEqualToConstant: 0)
@@ -163,7 +164,7 @@ open class HexKeyboardViewController: UIInputViewController {
         KeyboardHost.appeared()
         updateHost()
         keyboard = .random(in: 1 ... .max)
-        MemoryStore.refresh { [weak self] memory in
+        memoryStore.refresh { [weak self] memory in
             self?.engine.corrector?.changeMemory { $0 = memory }
             self?.engine.suggestionsChanged()
             self?.render()
@@ -268,7 +269,7 @@ open class HexKeyboardViewController: UIInputViewController {
 
     /// When the keyboard goes away and when a message is sent, so what was learned outlives the keyboard being ended.
     private func saveMemory() {
-        if let memory = engine.corrector?.memory { MemoryStore.save(memory, sharing: hasFullAccess) }
+        if let memory = engine.corrector?.memory { memoryStore.save(memory, sharing: hasFullAccess) }
     }
 
     private var screenSize: CGSize {
