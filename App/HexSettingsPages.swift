@@ -218,6 +218,16 @@ struct AboutPage: View {
                     .row()
                 }
             }
+            Box {
+                Link(destination: URL(string: "https://github.com/AVGVSTVS96/iikb/blob/main/Packages/HexKeyboard/Sources/KeyboardUI/Resources/SWIPE-LICENSE")!) {
+                    HStack {
+                        Text("Swipe typing powered by FUTO Swipe").foregroundStyle(.primary)
+                        Spacer()
+                        Image(systemName: "arrow.up.forward").font(.footnote.weight(.semibold)).foregroundStyle(Color.hexSecondary)
+                    }
+                    .row()
+                }
+            }
         }
     }
 

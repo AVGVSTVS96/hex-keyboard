@@ -191,10 +191,11 @@ struct TypingSettings: View {
 
     var body: some View {
         CharacterPreviewPicker()
-        Box(footer: "Predictive Text shows three suggestions above the keys, and the next word before you type it.") {
+        Box(footer: "Predictive Text shows three suggestions above the keys, and the next word before you type it. Slide to Type types a word as you swipe across its letters.") {
             ToggleRow(title: "Auto-Capitalization", isOn: model.binding(\.autoCapitalization))
             ToggleRow(title: "Auto-Correction", isOn: model.binding(\.autoCorrection))
             ToggleRow(title: "Predictive Text", isOn: model.binding(\.predictiveText))
+            ToggleRow(title: "Slide to Type", isOn: model.binding(\.slideToType))
         }
         Box(footer: "Smart Punctuation curls quotes and turns two hyphens into a dash.") {
             ToggleRow(title: "Smart Punctuation", isOn: model.binding(\.smartPunctuation))

@@ -27,12 +27,17 @@ final class KeyboardView: UIView {
     private var rowKeys: [[KeyView]] = []
     private var globeControls: [UIControl] = []
     let callout = CalloutView()
+    let trail = TrailView()
     let alternates = AlternatesView()
     private let expander = ExpanderView()
     private var animatesLayout = false
     var tracked: [ObjectIdentifier: TrackedTouch] = [:]
 
     var characterPreview = CharacterPreview.attached
+    var slidesToType = true
+    /// How far a touch on a letter must travel to be a swipe rather than a tap that wandered, in key widths: past the
+    /// key's neighbor, which a tap's drift never reaches.
+    static let swipeDistance: CGFloat = 0.8
     /// The key whose hold opens the layer menu, what it offers, and the layout in use.
     var menu: (key: Key?, items: [KeyboardEvent], current: KeyboardEvent?) = (nil, [], nil)
     var showsCallouts: Bool { characterPreview != .none && faceContext.device == .phone }
@@ -47,6 +52,7 @@ final class KeyboardView: UIView {
         expander.isHidden = true
         expander.addAction(UIAction { [unowned self] _ in onEvent(.oneHanded(.off)) }, for: .touchUpInside)
         addSubview(expander)
+        addSubview(trail)
         addSubview(callout)
         addSubview(alternates)
     }
@@ -66,6 +72,7 @@ final class KeyboardView: UIView {
         self.metrics = metrics
         self.faceContext = faces
         self.theme = theme
+        trail.color = theme.prominent.ui
 
         if rebuild { rebuildKeys() }
         if relayout { setNeedsLayout() }
@@ -82,7 +89,7 @@ final class KeyboardView: UIView {
             }
         }
         keyViews = rowKeys.flatMap { $0 }
-        keyViews.forEach { insertSubview($0, belowSubview: callout) }
+        keyViews.forEach { insertSubview($0, belowSubview: trail) }
         globeControls = keyViews.filter { $0.key.action == .nextKeyboard }.map { _ in
             let control = UIControl()
             globeTarget?(control)

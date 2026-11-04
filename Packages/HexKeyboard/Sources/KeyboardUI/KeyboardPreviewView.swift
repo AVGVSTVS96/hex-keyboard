@@ -41,6 +41,7 @@ public final class KeyboardPreviewView: UIView {
         let theme = KeyboardTheme.named(settings.theme, appearance: settings.themeAppearance, dark: dark, style: .current)
         let keys = Self.keys(settings, on: self.screen)
         keyboard.characterPreview = .none
+        keyboard.slidesToType = false
         keyboard.update(layout: keys.layout, signature: "preview", metrics: keys.metrics, faces: keys.faces, theme: theme)
         let metrics = keys.metrics
         bar.toolbar = metrics.toolbar

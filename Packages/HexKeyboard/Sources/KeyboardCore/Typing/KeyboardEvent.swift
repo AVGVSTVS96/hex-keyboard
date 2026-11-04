@@ -3,6 +3,8 @@ public enum KeyboardEvent: Hashable, Sendable {
     case up(Key)
     case type(Key, Tap)
     case slide(String)
+    /// A finger that went over the letters without lifting, as a word.
+    case swipe([SwipePoint])
     case trigger(Key)
     case cursor(offset: Int)
     /// Moves the caret down that many lines, up when negative.

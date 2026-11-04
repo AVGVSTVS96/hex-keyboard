@@ -27,6 +27,8 @@ public struct TypingEngine {
         }
     }
     public var corrector: Corrector?
+    public var swipeSource: (any SwipeSource)?
+    var swiped: Swiped?
     /// How the host likely wraps its text, for moving the caret up and down lines.
     public var lineLayout: (any LineLayout)?
     private var lineGoal: LineGoal?
@@ -136,6 +138,10 @@ public struct TypingEngine {
             write("\t", in: document)
         case .delete:
             stray = nil
+            if let swiped = swipedWord {
+                write("", replacing: swiped.length, in: document)
+                break
+            }
             let offersRevert = revert?.isCommitted(before: text.before) == true
             write("", replacing: 1, in: document)
             if offersRevert {
@@ -170,6 +176,8 @@ public struct TypingEngine {
             releaseShift(in: document)
         case .type(let key, let tap):
             perform(key.action == .space ? .space : .character(tap.key), in: document, tap: tap)
+        case .swipe(let path):
+            return swipe(path, in: document)
         case .slide(let text):
             let layer = self.layer
             perform(.character(text), in: document)

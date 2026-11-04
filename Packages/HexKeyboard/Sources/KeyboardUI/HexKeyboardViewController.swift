@@ -319,6 +319,7 @@ open class HexKeyboardViewController: UIInputViewController {
             metrics = metrics.filling(room - ask, rows: layout.rows.count, hasNumberRow: layout.hasNumberRow)
         }
         if toolbarHeightConstraint.constant != ask { toolbarHeightConstraint.constant = ask }
+        keyboardView.slidesToType = engine.settings.slideToType && engine.panel == nil
         keyboardView.menu = (context.menuKey(in: layout), context.menu, context.menuPick)
         keyboardView.update(layout: layout, signature: context.signature, metrics: metrics, faces: engine.faces(on: device), theme: theme)
         renderToolbar(metrics, device: device)

@@ -71,6 +71,16 @@
 			<string>PSToggleSwitchSpecifier</string>
 		</dict>
 		<dict>
+			<key>DefaultValue</key>
+			<true/>
+			<key>Key</key>
+			<string>slideToType</string>
+			<key>Title</key>
+			<string>Slide to Type</string>
+			<key>Type</key>
+			<string>PSToggleSwitchSpecifier</string>
+		</dict>
+		<dict>
 			<key>FooterText</key>
 			<string>Smart Punctuation curls quotes and turns two hyphens into a dash. Double tap shift for caps lock, and the space bar for a period and a space.</string>
 			<key>Type</key>

@@ -3,7 +3,7 @@ import KeyboardCore
 
 extension KeyboardView {
     final class TrackedTouch {
-        enum Mode { case typing, alternates, trackpad, slide, menu }
+        enum Mode { case typing, alternates, trackpad, slide, menu, swipe }
 
         var key: Key
         weak var keyView: KeyView?
@@ -14,13 +14,26 @@ extension KeyboardView {
         var lastCursor: CGPoint
         var hold: Timer?
         var menuFrame: CGRect?
+        let began: TimeInterval
+        let swipeReach: CGFloat
+        var path: [SwipePoint]
 
-        init(keyView: KeyView, start: CGPoint) {
+        init(keyView: KeyView, start: CGPoint, at time: TimeInterval, swipes: Bool) {
             self.key = keyView.key
             self.keyView = keyView
             self.start = start
             self.point = start
             self.lastCursor = start
+            self.began = time
+            self.swipeReach = swipes ? keyView.frame.width * KeyboardView.swipeDistance : .infinity
+            self.path = [SwipePoint(x: start.x, y: start.y, time: 0)]
+        }
+
+        func follow(_ touch: UITouch, in view: UIView, event: UIEvent?) {
+            for sample in event?.coalescedTouches(for: touch) ?? [touch] {
+                let at = sample.location(in: view)
+                path.append(SwipePoint(x: at.x, y: at.y, time: (sample.timestamp - began) * 1000))
+            }
         }
     }
 
@@ -31,7 +44,7 @@ extension KeyboardView {
             rollOver()
             let point = touch.location(in: self)
             guard let view = keyView(at: point) else { continue }
-            let tracked = TrackedTouch(keyView: view, start: point)
+            let tracked = TrackedTouch(keyView: view, start: point, at: touch.timestamp, swipes: slidesToType && startsSwipe(view.key))
             self.tracked[ObjectIdentifier(touch)] = tracked
             if view.key == menu.key, !menu.items.isEmpty { tracked.menuFrame = view.frame }
             press(view, tracked: tracked)
@@ -64,7 +77,16 @@ extension KeyboardView {
                     tracked.lastCursor.y += CGFloat(lines) * line
                     onEvent(.cursorLines(lines))
                 }
+            case .swipe:
+                let drawn = tracked.path.count
+                tracked.follow(touch, in: self, event: event)
+                trail.add(tracked.path[drawn...])
             case .typing, .slide:
+                if tracked.swipeReach.isFinite {
+                    tracked.follow(touch, in: self, event: event)
+                    if hypot(point.x - tracked.start.x, point.y - tracked.start.y) >= tracked.swipeReach { beginSwipe(tracked) }
+                    if tracked.mode == .swipe { continue }
+                }
                 if let flick = flickTarget(tracked, point) {
                     tracked.hold?.invalidate()
                     tracked.flicked = flick
@@ -108,7 +130,7 @@ extension KeyboardView {
     }
 
     private func rollOver() {
-        for (id, other) in tracked where other.mode == .typing && other.key.isInput {
+        for (id, other) in tracked where other.mode == .swipe || other.mode == .typing && other.key.isInput {
             tracked.removeValue(forKey: id)
             finish(other, commit: true)
         }
@@ -137,6 +159,8 @@ extension KeyboardView {
             if commit, key.isInput, let text = text(for: key, flicked: tracked.flicked) {
                 onEvent(.slide(text))
             }
+        case .swipe:
+            if commit { onEvent(.swipe(tracked.path)) }
         case .typing:
             guard commit else { return }
             if let text = text(for: key, flicked: tracked.flicked) {
@@ -147,6 +171,19 @@ extension KeyboardView {
                 onEvent(.trigger(key))
             }
         }
+    }
+
+    private func startsSwipe(_ key: Key) -> Bool {
+        faceContext.layer == .letters && key.label?.first?.isLetter == true
+    }
+
+    private func beginSwipe(_ tracked: TrackedTouch) {
+        tracked.mode = .swipe
+        tracked.hold?.invalidate()
+        callout.hide()
+        tracked.keyView?.isPressed = false
+        tracked.keyView?.isFlicked = false
+        trail.begin(tracked.path[...])
     }
 
     private func tap(_ tracked: TrackedTouch, _ text: String) -> Tap {

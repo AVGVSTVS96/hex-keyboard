@@ -17,6 +17,7 @@ public enum SettingsStore {
         ("smartPunctuation", \.smartPunctuation),
         ("periodShortcut", \.periodShortcut),
         ("predictiveText", \.predictiveText),
+        ("slideToType", \.slideToType),
         ("sound", \.sound),
         ("emojiKey", \.emojiKey),
         ("globeKey", \.globeKey),

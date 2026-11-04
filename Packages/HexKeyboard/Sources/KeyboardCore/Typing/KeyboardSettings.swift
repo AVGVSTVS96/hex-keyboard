@@ -5,6 +5,8 @@ public struct KeyboardSettings: Hashable, Sendable {
     public var smartPunctuation = true
     public var periodShortcut = true
     public var predictiveText = true
+    /// Swiping over the letters types a word.
+    public var slideToType = true
     public var characterPreview = CharacterPreview.attached
     public var haptics = HapticFeedback.standard
     public var sound = true

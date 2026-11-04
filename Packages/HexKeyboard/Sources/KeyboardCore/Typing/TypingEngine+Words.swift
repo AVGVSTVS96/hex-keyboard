@@ -231,7 +231,7 @@ extension TypingEngine {
         var final = String(word), typedText = final
         var context = Words.context(before: word, in: text)
         let owned = self.text.owned
-        guard correcting, owned >= word.count, Words.isCorrectable(word, in: text) else {
+        guard correcting, owned >= word.count, Words.isCorrectable(word, in: text), swipedWord == nil else {
             return settle(final, typed: final, after: context, ending: ending)
         }
         let typed = TypedWord(final, taps: typing.letters, previous: context.previous)
@@ -362,6 +362,7 @@ extension TypingEngine {
         let whole = word + tail
         let named = whole.isEmpty && text.hasSuffix(" ") ? Words.current(in: String(text.dropLast())) : whole
         emojiSuggestions = emojiCatalog?.suggestions(for: String(named), history: emojiHistory, limit: 30) ?? []
+        if let swiped = swipedWord { return suggestions = swiped.alternatives }
         guard let corrector else { return suggestions = [] }
         let typed = TypedWord(String(whole), taps: tail.isEmpty ? typing.letters : [], previous: Words.previous(before: word, in: text))
         defer { suggestions = suggestions.map { Suggestion(written($0.text), $0.kind) } }
