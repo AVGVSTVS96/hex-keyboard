@@ -2,11 +2,11 @@ EVAL aimShift keyboard=learning after: words=2714 raw=75.5% autocorrect=95.0% to
 EVAL aimShift keyboard=learning per 100 words to 500, then per 500 (raw/final): 65.0%/87.0% 81.0%/95.0% 83.0%/97.0% 76.0%/92.0% 72.0%/95.0% 78.2%/95.8% 74.4%/96.0% 75.2%/94.2% 75.2%/96.4%
 EVAL emoji corpus=chat words=7233 withEmoji=26.7%
 EVAL emoji corpus=phrases words=2714 withEmoji=24.6%
-EVAL missedSpaces spaces=1 keyboard=decoder runs=500 withTypo=150 aSpaceReadAsSpace=53.6% allAsLetters: shown=84.5% firstAlternative=78.0%
-EVAL missedSpaces spaces=1 untyped keyboard=decoder runs=500 withTypo=191 aSpaceReadAsSpace=0.0% allAsLetters: shown=79.0% firstAlternative=62.0%
-EVAL missedSpaces spaces=2 keyboard=decoder runs=500 withTypo=201 aSpaceReadAsSpace=63.0% allAsLetters: shown=87.0% firstAlternative=87.0%
-EVAL missedSpaces spaces=2 untyped keyboard=decoder runs=500 withTypo=293 aSpaceReadAsSpace=0.0% allAsLetters: shown=64.0% firstAlternative=63.8%
-EVAL missedSpaces spaces=3 keyboard=decoder runs=489 withTypo=260 aSpaceReadAsSpace=60.7% allAsLetters: shown=82.8% firstAlternative=82.8%
+EVAL missedSpaces spaces=1 keyboard=decoder runs=500 withTypo=150 aSpaceReadAsSpace=53.6% allAsLetters: shown=84.9% firstAlternative=78.4%
+EVAL missedSpaces spaces=1 untyped keyboard=decoder runs=500 withTypo=191 aSpaceReadAsSpace=0.0% allAsLetters: shown=79.4% firstAlternative=62.2%
+EVAL missedSpaces spaces=2 keyboard=decoder runs=500 withTypo=201 aSpaceReadAsSpace=63.0% allAsLetters: shown=89.2% firstAlternative=89.2%
+EVAL missedSpaces spaces=2 untyped keyboard=decoder runs=500 withTypo=293 aSpaceReadAsSpace=0.0% allAsLetters: shown=83.8% firstAlternative=83.2%
+EVAL missedSpaces spaces=3 keyboard=decoder runs=489 withTypo=260 aSpaceReadAsSpace=60.7% allAsLetters: shown=86.5% firstAlternative=86.5%
 EVAL noise=0.0 keyboard=baseline words=2714 raw=100.0% autocorrect=99.9% top3=100.0% next3=9.5% fixed=0 broken=2 ["claus→class", "favourite→favorite"]
 EVAL noise=0.0 keyboard=decoder words=2714 raw=100.0% autocorrect=99.9% top3=100.0% next3=31.2% fixed=0 broken=2 ["ides→sides", "racketball→racquetball"]
 EVAL noise=0.0 keyboard=learning words=2714 raw=100.0% autocorrect=100.0% top3=100.0% next3=31.2% fixed=0 broken=1 ["ides→sides"]
