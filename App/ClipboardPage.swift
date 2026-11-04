@@ -9,6 +9,7 @@ struct ClipboardPage: View {
     @State private var store = ClipboardStore()
     @State private var items: [ClipboardHistory.Item] = []
     @State private var query = ""
+    @State private var matches: [ClipboardHistory.Item] = []
     @State private var copied: ClipboardHistory.Item.Content?
     @State private var picked: ClipboardHistory.Item.Content?
     @State private var confirmsClear = false
@@ -18,7 +19,7 @@ struct ClipboardPage: View {
 
     private var shown: [ClipboardHistory.Item] {
         let query = query.trimmingCharacters(in: .whitespaces)
-        return query.isEmpty ? items : store.history.matching(query)
+        return query.isEmpty ? items : matches
     }
 
     private var groups: [(title: String, items: [ClipboardHistory.Item])] {
@@ -76,6 +77,7 @@ struct ClipboardPage: View {
                 }
             }
         }
+        .task(id: query) { await search() }
         .onAppear(perform: catchUp)
         .onChange(of: scenePhase) { _, phase in if phase == .active { catchUp() } }
         .sensoryFeedback(.success, trigger: copied) { _, new in new != nil }
@@ -123,7 +125,15 @@ struct ClipboardPage: View {
 
     private func refresh() {
         items = store.history.items
+        Task { await search() }
         if let copied, !items.contains(where: { $0.content == copied }) { self.copied = nil }
+    }
+
+    private func search() async {
+        let query = query
+        let found = await store.matching(query.trimmingCharacters(in: .whitespaces))
+        guard query == self.query else { return }
+        matches = found
     }
 
     private var missing: String? {
@@ -154,6 +164,7 @@ struct ClipboardPage: View {
             .contextMenu {
                 Button("Copy", systemImage: "doc.on.doc") { copy(item) }
                 if case .text(let text) = item.content { ShareLink(item: text) }
+                if case .textFile(let name, _) = item.content { ShareLink(item: store.file(name)) }
                 Button(item.pinned ? "Unpin" : "Pin", systemImage: item.pinned ? "pin.slash" : "pin") {
                     store.setPinned(!item.pinned, item.content)
                     refresh()
@@ -171,6 +182,15 @@ struct ClipboardPage: View {
         case .text(let text):
             UIPasteboard.general.string = text
             store.skip(changeCount: UIPasteboard.general.changeCount)
+        case .textFile:
+            Task {
+                guard let text = await store.text(item.content) else { return }
+                UIPasteboard.general.string = text
+                store.skip(changeCount: UIPasteboard.general.changeCount)
+                copied = item.content
+            }
+            picked = item.content
+            return
         case .image(let name):
             store.copy(image: name)
         }
@@ -196,6 +216,7 @@ private struct ClipDetail: View {
     let store: ClipboardStore
     let copy: () -> Void
     let changed: () -> Void
+    @State private var fullText: String?
 
     var body: some View {
         Column(top: 12) {
@@ -205,8 +226,8 @@ private struct ClipDetail: View {
                 .padding(.horizontal, 4)
             Group {
                 switch item.content {
-                case .text(let text):
-                    Text(text.trimmingCharacters(in: .whitespacesAndNewlines))
+                case .text(let text), .textFile(_, let text):
+                    Text((fullText ?? text).trimmingCharacters(in: .whitespacesAndNewlines))
                         .font(.title3)
                         .textSelection(.enabled)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -220,6 +241,7 @@ private struct ClipDetail: View {
             .overlay(RoundedRectangle(cornerRadius: HexStyle.cardRadius, style: .continuous).strokeBorder(Color.hexEdge))
             Box {
                 ActionRow(title: copied ? "Copied" : "Copy", symbol: copied ? "checkmark" : "doc.on.doc", action: copy)
+                if case .textFile(let name, _) = item.content { ShareLink("Share", item: store.file(name)).row() }
                 if case .text(let text) = item.content {
                     ShareLink(item: text) {
                         HStack {
@@ -243,6 +265,12 @@ private struct ClipDetail: View {
                     changed()
                 }
             }
+        }
+        .task(id: item.content) {
+            fullText = nil
+            let text = await store.text(item.content)
+            guard !Task.isCancelled else { return }
+            fullText = text
         }
     }
 }
@@ -278,8 +306,8 @@ private struct ClipRow: View {
         HStack(alignment: .top, spacing: 12) {
             VStack(alignment: .leading, spacing: 5) {
                 switch item.content {
-                case .text(let text):
-                    Text(text.trimmingCharacters(in: .whitespacesAndNewlines))
+                case .text(let text), .textFile(_, let text):
+                    Text(String(text.prefix(300)).trimmingCharacters(in: .whitespacesAndNewlines))
                         .lineLimit(4)
                         .foregroundStyle(.primary)
                 case .image(let name):

@@ -134,6 +134,46 @@ struct ClipboardStoreTests {
         #expect(FileManager.default.fileExists(atPath: folder.appending(path: name).path(percentEncoded: false)))
     }
 
+    @Test func largeTextLivesInAFileAndSurvivesTheGroupBeingLost() async throws {
+        let own = URL.temporaryDirectory.appending(path: "clipboard-backup-\(UUID().uuidString)")
+        defer {
+            try? FileManager.default.removeItem(at: own)
+            try? FileManager.default.removeItem(at: folder)
+        }
+        let text = String(repeating: "🙂é\n", count: 300_000) + "find this tail"
+        let store = ClipboardStore(folder: folder, backup: own)
+        pasteboard.string = text
+        await keep(store)
+        let item = try #require(store.history.items.first)
+        guard case .textFile(let name, let preview) = item.content else {
+            Issue.record("large text must be stored separately")
+            return
+        }
+        #expect(preview == String(text.prefix(300)))
+        #expect(try Data(contentsOf: folder.appending(path: "history.json")).count < 10_000)
+        #expect(try String(contentsOf: folder.appending(path: name), encoding: .utf8) == text)
+        #expect(try String(contentsOf: own.appending(path: name), encoding: .utf8) == text)
+        #expect(await store.matching("FIND THIS TAIL").map(\.content) == [item.content])
+        store.setPinned(true, item.content)
+        await store.settled()
+        pasteboard.string = text
+        await keep(store)
+        #expect(store.history.items.count == 1)
+        #expect(store.history.items.first?.pinned == true)
+        try FileManager.default.removeItem(at: folder)
+        let restored = await read(folder, backup: own)
+        #expect(restored.history.items.count == 1)
+        #expect(restored.history.items.first?.pinned == true)
+        #expect(await restored.text(item.content) == text)
+        restored.removeUnpinned()
+        await restored.settled()
+        #expect(restored.history.items.count == 1)
+        restored.remove(item.content)
+        await restored.settled()
+        #expect(!FileManager.default.fileExists(atPath: folder.appending(path: name).path))
+        #expect(!FileManager.default.fileExists(atPath: own.appending(path: name).path))
+    }
+
     private func keep(_ store: ClipboardStore) async {
         store.catchUp(pasteboard)
         await store.settled()

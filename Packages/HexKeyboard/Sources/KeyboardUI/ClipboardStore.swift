@@ -1,4 +1,5 @@
 import CryptoKit
+import Darwin
 import Foundation
 import ImageIO
 import KeyboardCore
@@ -81,8 +82,9 @@ public final class ClipboardStore {
         saved?.history.remove(content)
         update { saved, disk in
             saved.history.remove(content)
+            guard disk.save(saved) else { return false }
             disk.delete([content])
-            return true
+            return false
         }
     }
 
@@ -90,8 +92,10 @@ public final class ClipboardStore {
     public func removeUnpinned() {
         _ = saved?.history.removeUnpinned()
         update { saved, disk in
-            disk.delete(saved.history.removeUnpinned())
-            return true
+            let gone = saved.history.removeUnpinned()
+            guard disk.save(saved) else { return false }
+            disk.delete(gone)
+            return false
         }
     }
 
@@ -102,6 +106,20 @@ public final class ClipboardStore {
             pasteboard.setData(data, forPasteboardType: type.identifier)
             saved.seen = pasteboard.changeCount
             return true
+        }
+    }
+
+    /// Loads only the selected text, off the main thread.
+    public func text(_ content: ClipboardHistory.Item.Content) async -> String? {
+        await withCheckedContinuation { done in
+            queue.async { [disk] in done.resume(returning: disk.text(content)) }
+        }
+    }
+
+    public func matching(_ query: String) async -> [ClipboardHistory.Item] {
+        let history = history
+        return await withCheckedContinuation { done in
+            queue.async { [disk] in done.resume(returning: history.matching(query, text: disk.text)) }
         }
     }
 
@@ -138,8 +156,11 @@ public final class ClipboardStore {
     private func update(_ edit: @escaping @Sendable (inout Saved, Disk) -> Bool) {
         let mine = saved
         queue.async { [disk] in
-            var latest = disk.load() ?? mine ?? Saved()
-            if edit(&latest, disk) { disk.save(latest) }
+            let latest = disk.locked {
+                var latest = disk.load() ?? mine ?? Saved()
+                if edit(&latest, disk) { disk.save(latest) }
+                return latest
+            }
             DispatchQueue.main.async {
                 MainActor.assumeIsolated { [weak self] in
                     guard let self else { return }
@@ -151,7 +172,7 @@ public final class ClipboardStore {
     }
 }
 
-/// The history's files: `history.json` and an image file per image item, in the folder, with the same in the backup.
+/// The history's files: `history.json` and a file per image or large text, in the folder, with the same in the backup.
 nonisolated private struct Disk: Sendable {
     let folder: URL
     let backup: URL?
@@ -160,19 +181,33 @@ nonisolated private struct Disk: Sendable {
 
     var started: Bool { FileManager.default.fileExists(atPath: folder.appending(path: "history.json").path(percentEncoded: false)) }
 
+    func locked<T>(_ body: () -> T) -> T {
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let descriptor = open(folder.appending(path: "lock").path(percentEncoded: false), O_CREAT | O_RDWR, 0o600)
+        guard descriptor >= 0 else { return body() }
+        defer { flock(descriptor, LOCK_UN); close(descriptor) }
+        flock(descriptor, LOCK_EX)
+        return body()
+    }
+
     /// The history as the folder holds it, or the backup's when the folder lost it, with the backup's own history
     /// joined in once.
     func load() -> ClipboardStore.Saved? {
         guard var saved = Self.read(folder) ?? restore() else { return nil }
         guard let backup, !FileManager.default.fileExists(atPath: backup.appending(path: Self.moved).path(percentEncoded: false)), let kept = Self.read(backup) else { return saved }
         let files = (try? FileManager.default.contentsOfDirectory(atPath: backup.path(percentEncoded: false))) ?? []
-        for name in files where name != "history.json" {
+        for name in files where name != "history.json" && name != "lock" {
             try? FileManager.default.copyItem(at: backup.appending(path: name), to: folder.appending(path: name))
         }
         saved.history.add(kept.history.items)
         saved.history.add(files.filter { UTType(filenameExtension: ($0 as NSString).pathExtension)?.conforms(to: .image) == true }.map { name in
             let found = (try? FileManager.default.attributesOfItem(atPath: backup.appending(path: name).path(percentEncoded: false))[.modificationDate] as? Date) ?? .now
             return ClipboardHistory.Item(content: .image(name), found: found.timeIntervalSince1970)
+        })
+        saved.history.add(files.filter { $0.hasSuffix(".txt") }.compactMap { name in
+            guard let text = try? String(contentsOf: backup.appending(path: name), encoding: .utf8) else { return nil }
+            let found = (try? FileManager.default.attributesOfItem(atPath: backup.appending(path: name).path(percentEncoded: false))[.modificationDate] as? Date) ?? .now
+            return ClipboardHistory.Item(content: .textFile(name: name, preview: String(text.prefix(300))), found: found.timeIntervalSince1970)
         })
         if save(saved) { FileManager.default.createFile(atPath: backup.appending(path: Self.moved).path(percentEncoded: false), contents: nil) }
         return saved
@@ -187,7 +222,7 @@ nonisolated private struct Disk: Sendable {
         }
         let content: ClipboardHistory.Item.Content?
         if pasteboard.hasStrings {
-            content = pasteboard.string.map(ClipboardHistory.Item.Content.text)
+            content = pasteboard.string.flatMap(saveText)
         } else if pasteboard.hasImages {
             content = Self.imageData(pasteboard).map(saveImage)
         } else {
@@ -205,28 +240,61 @@ nonisolated private struct Disk: Sendable {
     }
 
     func delete(_ contents: [ClipboardHistory.Item.Content]) {
-        for case .image(let name) in contents { try? FileManager.default.removeItem(at: folder.appending(path: name)) }
+        for content in contents {
+            guard let name = content.fileName else { continue }
+            try? FileManager.default.removeItem(at: folder.appending(path: name))
+            if let backup { try? FileManager.default.removeItem(at: backup.appending(path: name)) }
+        }
     }
 
     /// Whether the group took it: the keyboard can write there only with Full Access.
     @discardableResult func save(_ saved: ClipboardStore.Saved) -> Bool {
         let kept = Self.write(saved, to: folder)
         guard let backup else { return kept }
-        Self.write(saved, to: backup)
-        let images = Set(saved.history.items.compactMap { if case .image(let name) = $0.content { name } else { nil } })
+        try? FileManager.default.createDirectory(at: backup, withIntermediateDirectories: true)
+        let files = Set(saved.history.items.compactMap { $0.content.fileName })
         let backedUp = Set((try? FileManager.default.contentsOfDirectory(atPath: backup.path(percentEncoded: false))) ?? []).subtracting(["history.json", Self.moved])
-        for name in images.subtracting(backedUp) { try? FileManager.default.copyItem(at: folder.appending(path: name), to: backup.appending(path: name)) }
-        for name in backedUp.subtracting(images) { try? FileManager.default.removeItem(at: backup.appending(path: name)) }
+        do {
+            for name in files.subtracting(backedUp) {
+                try FileManager.default.copyItem(at: folder.appending(path: name), to: backup.appending(path: name))
+            }
+        } catch { return kept }
+        if Self.write(saved, to: backup) {
+            for name in backedUp.subtracting(files) where name != "lock" {
+                try? FileManager.default.removeItem(at: backup.appending(path: name))
+            }
+        }
         return kept
     }
 
     private func restore() -> ClipboardStore.Saved? {
         guard let backup, let saved = Self.read(backup) else { return nil }
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        for name in (try? FileManager.default.contentsOfDirectory(atPath: backup.path(percentEncoded: false))) ?? [] {
+        for name in (try? FileManager.default.contentsOfDirectory(atPath: backup.path(percentEncoded: false))) ?? [] where name != "lock" {
             try? FileManager.default.copyItem(at: backup.appending(path: name), to: folder.appending(path: name))
         }
         return saved
+    }
+
+    func text(_ content: ClipboardHistory.Item.Content) -> String? {
+        switch content {
+        case .text(let text): return text
+        case .textFile(let name, _):
+            return (try? String(contentsOf: folder.appending(path: name), encoding: .utf8))
+                ?? backup.flatMap { try? String(contentsOf: $0.appending(path: name), encoding: .utf8) }
+        case .image: return nil
+        }
+    }
+
+    private func saveText(_ text: String) -> ClipboardHistory.Item.Content? {
+        guard text.utf8.count > 100_000 else { return .text(text) }
+        let data = Data(text.utf8)
+        let name = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined() + ".txt"
+        do {
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            try data.write(to: folder.appending(path: name), options: .atomic)
+            return .textFile(name: name, preview: String(text.prefix(300)))
+        } catch { return nil }
     }
 
     private func saveImage(_ image: (data: Data, type: UTType)) -> ClipboardHistory.Item.Content {

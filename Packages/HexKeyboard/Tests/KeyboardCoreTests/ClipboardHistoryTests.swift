@@ -11,13 +11,13 @@ struct ClipboardHistoryTests {
         #expect(history.items.first?.found == 3)
     }
 
-    @Test func aCopyTooBigForTheKeyboardsMemoryIsntKept() {
+    @Test func largeCopiesAreKept() {
         var history = ClipboardHistory()
         let log = String(repeating: "x", count: 10_000_000)
         history.keep(.text(log), at: 1)
-        #expect(history.items.count == 0, "fifty of these would be 500 MB in a keyboard that gets well under 100")
+        #expect(history.items.count == 1)
         history.keep(.text(String(repeating: "y", count: 50_000)), at: 2)
-        #expect(history.items.count == 1, "a long message still is")
+        #expect(history.items.count == 2)
     }
 
     @Test func clearingKeepsWhatsPinned() {

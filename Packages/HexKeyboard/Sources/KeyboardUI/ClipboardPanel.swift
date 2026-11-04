@@ -22,6 +22,7 @@ final class ClipboardPanel: UIView, PanelContent, UICollectionViewDataSource, UI
     }
 
     private let store: ClipboardStore
+    private var search = 0
     private var shown: Shown?
     private var items: [ClipboardHistory.Item] = []
     private var holding: ClipboardHistory.Item.Content?
@@ -54,6 +55,7 @@ final class ClipboardPanel: UIView, PanelContent, UICollectionViewDataSource, UI
     required init?(coder: NSCoder) { fatalError() }
 
     func reset() {
+        search += 1
         if fullAccess() { store.catchUp() }
         holding = nil
         notice = nil
@@ -71,8 +73,17 @@ final class ClipboardPanel: UIView, PanelContent, UICollectionViewDataSource, UI
     /// Runs only when the search, the look or the history changed, never on a keystroke that changed none of them.
     private func refresh() {
         guard let shown, window != nil else { return }
+        search += 1
+        let request = search
+        Task {
+            let items = fullAccess() && store.loaded ? await store.matching(shown.query) : []
+            guard request == search else { return }
+            display(items, shown: shown)
+        }
+    }
+
+    private func display(_ items: [ClipboardHistory.Item], shown: Shown) {
         let loaded = fullAccess() && store.loaded
-        let items = loaded ? store.history.matching(shown.query) : []
         let missing: String? = if !fullAccess() { "Clipboard needs Full Access." } else if store.refused { "To keep what you copy, set Paste from Other Apps to Allow." } else { nil }
         let empty: String? = loaded && items.isEmpty ? (shown.query.isEmpty ? "Things you copy show up here." : "Nothing copied with “\(shown.query)”") : nil
         message.show(missing ?? empty, turnOn: missing != nil, oneRow: shown.compact, theme: shown.theme)
@@ -91,6 +102,12 @@ final class ClipboardPanel: UIView, PanelContent, UICollectionViewDataSource, UI
         }
         switch item.content {
         case .text(let text): onPaste(text)
+        case .textFile:
+            let request = search
+            Task {
+                guard let text = await store.text(item.content), request == search, window != nil else { return }
+                onPaste(text)
+            }
         case .image(let name):
             store.copy(image: name)
             notice = "Copied. Paste it in your message."
@@ -218,7 +235,7 @@ private final class ClipRow: UICollectionViewCell {
         age.text = ClipboardHistory.age(of: item.found, now: Date.now.timeIntervalSince1970)
         age.textAlignment = compact ? .left : .right
         switch item.content {
-        case .text(let string):
+        case .text(let string), .textFile(_, let string):
             text.text = String(string.prefix(300)).split(whereSeparator: \.isNewline).joined(separator: " ")
             text.isHidden = false
             image.isHidden = true
@@ -271,7 +288,7 @@ private final class ClipRow: UICollectionViewCell {
 private extension ClipboardHistory.Item.Content {
     var label: String {
         switch self {
-        case .text(let text): String(text.prefix(40))
+        case .text(let text), .textFile(_, let text): String(text.prefix(40))
         case .image(let name): name
         }
     }

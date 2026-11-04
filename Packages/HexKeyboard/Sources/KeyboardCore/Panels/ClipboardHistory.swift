@@ -4,8 +4,23 @@ public struct ClipboardHistory: Codable, Hashable, Sendable {
     public struct Item: Codable, Hashable, Sendable, Identifiable {
         public enum Content: Codable, Hashable, Sendable {
             case text(String)
+            case textFile(name: String, preview: String)
             /// An image, by the name of the file the store saved it under (its hash, so a copy of the same image is the same item).
             case image(String)
+
+            public var preview: String? {
+                switch self {
+                case .text(let text), .textFile(_, let text): text
+                case .image: nil
+                }
+            }
+
+            public var fileName: String? {
+                switch self {
+                case .textFile(let name, _), .image(let name): name
+                case .text: nil
+                }
+            }
         }
 
         public var content: Content
@@ -27,15 +42,10 @@ public struct ClipboardHistory: Codable, Hashable, Sendable {
     public var items: [Item] { saved.sorted { ($0.pinned ? 1 : 0, $0.found) > ($1.pinned ? 1 : 0, $1.found) } }
     private var saved: [Item] = []
 
-    /// The longest text kept, in UTF-8 bytes. The history lives in the keyboard's small memory and is read whenever it
-    /// opens, so a copied log or document isn't kept at all rather than kept cut short.
-    static let longest = 100_000
-
     public init() {}
 
     /// Keeps something just copied. Copying it again moves it up rather than repeating it.
     public mutating func keep(_ content: Item.Content, at time: Double) {
-        if case .text(let text) = content, text.utf8.count > Self.longest { return }
         let pinned = saved.first { $0.content == content }?.pinned ?? false
         saved.removeAll { $0.content == content }
         saved.append(Item(content: content, found: time, pinned: pinned))
@@ -64,12 +74,12 @@ public struct ClipboardHistory: Codable, Hashable, Sendable {
     }
 
     /// The items whose text holds the search, ignoring case. An empty search shows everything; images match none.
-    public func matching(_ search: String) -> [Item] {
+    public func matching(_ search: String, text: (Item.Content) -> String? = { $0.preview }) -> [Item] {
         let search = search.lowercased()
         guard !search.isEmpty else { return items }
         return items.filter {
-            guard case .text(let text) = $0.content else { return false }
-            return text.lowercased().contains(search)
+            guard let value = text($0.content) else { return false }
+            return value.lowercased().contains(search)
         }
     }
 
