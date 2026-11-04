@@ -1,11 +1,18 @@
 #!/bin/sh
-# Runs on the Mac (ssh mac sh -s <sha1> < scripts/resign): signs ~/Developer/hex-keyboard-phone/Hex.app and its keyboard
-# with the Mac's identity whose certificate has that SHA-1, each with the entitlements its embedded profile grants. The
-# free team holds one development certificate, and when it's the Mac's, xtool provisions for it but can't sign with it,
-# since its key stays in the Mac's login keychain. That keychain opens only in the login session, never over ssh, so the
-# signing runs there as a one-off launch agent, which no one sees.
+# Runs on the Mac (ssh mac sh -s <serial> < scripts/resign): signs ~/Developer/hex-keyboard-phone/Hex.app and its
+# keyboard with the Mac's identity whose certificate has that serial number, each with the entitlements its embedded
+# profile grants, and does nothing when the Mac has no such identity. The free team holds one development certificate,
+# and when it's the Mac's, xtool provisions for it but can't sign with it, since its key stays in the Mac's login
+# keychain. That keychain opens only in the login session, never over ssh, so the signing runs there as a one-off
+# launch agent, which no one sees.
 set -eu
-identity=$1
+serial=$1
+identity=
+for hash in $(security find-identity -v -p codesigning | awk '/"Apple Development/ {print $2}'); do
+  security find-certificate -a -Z -p -c "Apple Development" | awk -v h="$hash" '/^SHA-1 hash:/ {on = $3 == h} on && !/^SHA-1/' |
+    openssl x509 -noout -serial 2>/dev/null | grep -qi "=$serial\$" && identity=$hash
+done
+[ -n "$identity" ] || exit 0
 dir=$(mktemp -d /tmp/hexkb-resign.XXXXXX)
 cat > "$dir/run" <<RUN
 #!/bin/sh

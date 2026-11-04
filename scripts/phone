@@ -1,7 +1,9 @@
 #!/bin/sh
 # Builds Hex on this Linux box with xtool and provisions it for the free team's devices. The team holds one development
-# certificate, and it's the Mac's: xtool's identity (~/.config/xtool/data/<team>) holds that certificate with a stand-in key,
-# so xtool makes the profiles for it, and scripts/resign signs on the Mac, whose login keychain has the real key.
+# certificate, and it's the Mac's: xtool's identity (~/.config/xtool/data/<team>) is a stand-in, a key of its own and a
+# self-signed certificate with the Mac's serial number, which is how xtool matches it to the team's, so xtool makes the
+# profiles for the Mac's certificate and signs with the stand-in, and scripts/resign signs again on the Mac, whose login
+# keychain has the real key.
 # Never let xtool revoke a certificate to make its own: that breaks what the Mac signs (stdin is closed, so it can't ask).
 # Then it installs it through the Mac on the iPhone the Mac reaches, by cable or Wi-Fi, once no
 # dictation is going on there: Hex writes a dictation's recording as it's heard, so one written in the last 10 seconds
@@ -62,13 +64,12 @@ for binary in xtool/Hex.app/Hex xtool/Hex.app/PlugIns/Keyboard.appex/Keyboard; d
   }
 done
 rsync -a --delete xtool/Hex.app/ mac:Developer/hex-keyboard-phone/Hex.app/
-identity=$(python3 -c "
-import glob, hashlib, os, plistlib
+serial=$(python3 -c "
+import glob, os, plistlib, subprocess
 path = max(glob.glob(os.path.expanduser('~/.config/xtool/data/??????????')), key=os.path.getmtime)
-print(hashlib.sha1(plistlib.load(open(path, 'rb'))['certificate']).hexdigest().upper())")
-if ssh mac security find-identity -v -p codesigning | grep -q "$identity"; then
-  ssh mac sh -s "$identity" < scripts/resign
-fi
+der = plistlib.load(open(path, 'rb'))['certificate']
+print(subprocess.run(['openssl', 'x509', '-inform', 'DER', '-noout', '-serial'], input=der, capture_output=True).stdout.decode().split('=')[1].strip())")
+ssh mac sh -s "$serial" < scripts/resign
 dictating() {
   ssh mac sh -s "$phone" <<'MAC'
 xcrun devicectl device info files --device "$1" --domain-type appDataContainer --domain-identifier com.shahidy.hexkeyboard \
