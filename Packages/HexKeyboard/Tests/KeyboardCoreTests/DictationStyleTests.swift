@@ -175,4 +175,35 @@ struct DictationStyleTests {
         #expect(excited("We finally shipped the whole thing today. Can you check it.") == "We finally shipped the whole thing today. Can you check it?")
         #expect(excited("Wait for it...") == "Wait for it...")
     }
+
+    @Test func cleanTakesOutWhatYouCorrectAsYouGo() {
+        let clean = { write($0, .formal, .clean) }
+        #expect(clean("Let's meet at two, I mean three.") == "Let's meet at three.")
+        #expect(clean("Meet at two pm, I mean three.") == "Meet at three pm.")
+        #expect(clean("Send it to Sam, I mean Alex, tonight.") == "Send it to Alex tonight.")
+        #expect(clean("I'll have the pasta, actually the salad.") == "I'll have the salad.")
+        #expect(clean("Book it for Tuesday, no wait, Wednesday.") == "Book it for Wednesday.")
+        #expect(clean("Call Sam at five, sorry, six.") == "Call Sam at six.")
+        #expect(clean("On Tuesday, actually Wednesday.") == "On Wednesday.")
+        #expect(write("Let's meet at two, I mean three.", .formal, .light) == "Let's meet at two, I mean three.")
+    }
+
+    @Test func cleanKeepsWhatOnlySoundsLikeACorrection() {
+        let clean = { write($0, .formal, .clean) }
+        for kept in [
+            "I'm busy, sorry I can't.", "It's fine, I mean it works.", "We should go, actually, it's late.", "Thanks, actually.",
+            "I like it, actually a lot.", "No, no, it's fine.", "I think so, no doubt.",
+        ] {
+            #expect(clean(kept) == kept)
+        }
+    }
+
+    @Test func cleanTakesOutLikeAndYouKnowSaidAsAnAside() {
+        let clean = { write($0, .formal, .clean) }
+        #expect(clean("It was, like, huge.") == "It was huge.")
+        #expect(clean("It works, you know.") == "It works.")
+        #expect(clean("You know, it works. Like, I said so. I mean, it's fine.") == "It works. I said so. It's fine.")
+        #expect(clean("I like it. Like I said, it works. You know what I mean.") == "I like it. Like I said, it works. You know what I mean.")
+        #expect(write("It was, like, huge.", .formal, .light) == "It was, like, huge.")
+    }
 }

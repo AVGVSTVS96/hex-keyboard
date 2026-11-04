@@ -253,7 +253,8 @@ public enum DictationEditing: String, CaseIterable, Hashable, Sendable {
     case asSaid
     /// Without um and uh.
     case light
-    /// Without um and uh, words said twice in a row, or what you take back with "scratch that".
+    /// Without um and uh, words said twice in a row, "like" and "you know" said between commas, what you take back with
+    /// "scratch that", and what you correct as you go ("at two, I mean three").
     case clean
 
     public static let standard = DictationEditing.asSaid
@@ -262,7 +263,7 @@ public enum DictationEditing: String, CaseIterable, Hashable, Sendable {
         switch self {
         case .asSaid: heard
         case .light: Self.withoutFillers(heard)
-        case .clean: Self.withoutFillers(Self.withoutScratched(Self.withoutRepeats(heard)))
+        case .clean: Self.withoutFillers(Self.withoutAsides(Self.withoutScratched(Self.withoutCorrections(Self.withoutRepeats(heard)))))
         }
     }
 
@@ -357,7 +358,156 @@ public enum DictationEditing: String, CaseIterable, Hashable, Sendable {
         while start < at, text[start] == " " { start += 1 }
         return start
     }
+    /// "like", "you know" and "I mean" said between commas, or opening a sentence before one, as in "it was, like,
+    /// huge" or "You know, it works". A capital passes to the next word.
+    static func withoutAsides(_ text: [Character]) -> [Character] {
+        var text = text
+        var searched = 0
+        while let aside = aside(in: text, from: searched) {
+            var start = aside.lowerBound
+            var end = aside.upperBound
+            let opens = DictationStyle.startsSentence(text, at: start)
+            if opens, end < text.count, text[end] == "," {
+                end += 1
+                while end < text.count, text[end] == " " { end += 1 }
+                if text[start].isUppercase, end < text.count, text[end].isLowercase { text[end] = Character(text[end].uppercased()) }
+            } else if start >= 2, text[start - 2] == ",", text[start - 1] == " ", end < text.count, text[end] == "," || TypingEngine.sentenceEnders.contains(text[end]) {
+                start -= 2
+                if text[end] == "," { end += 1 }
+            } else {
+                searched = aside.upperBound
+                continue
+            }
+            text.removeSubrange(start ..< end)
+            searched = start
+        }
+        return text
+    }
+
+    private static let asides: [[String]] = [["like"], ["you", "know"], ["i", "mean"]]
+
+    private static func aside(in text: [Character], from: Int) -> Range<Int>? {
+        let words = Words.ranges(in: text)
+        for (index, word) in words.enumerated() where word.lowerBound >= from {
+            for aside in asides where phrase(text, words, at: index, is: aside) {
+                return word.lowerBound ..< words[index + aside.count - 1].upperBound
+            }
+        }
+        return nil
+    }
+
+    /// Whether the words from `index` are `phrase`, with only spaces between them.
+    private static func phrase(_ text: [Character], _ words: [Range<Int>], at index: Int, is phrase: [String]) -> Bool {
+        guard index + phrase.count <= words.count else { return false }
+        for (offset, said) in phrase.enumerated() {
+            let word = words[index + offset]
+            guard Words.plain(String(text[word]).lowercased()) == said else { return false }
+            if offset > 0, !text[words[index + offset - 1].upperBound ..< word.lowerBound].allSatisfy({ $0 == " " }) { return false }
+        }
+        return true
+    }
+
+    /// What you correct as you say it: "at two, I mean three" is "at three", and "on Tuesday, actually Wednesday" is
+    /// "on Wednesday". The correction is one to three words after "I mean", "actually", "no wait", "or rather", "make
+    /// that", or "sorry", "no" or "wait" with a comma, up to the next mark; it takes the place of as many words before
+    /// the comma, or of the nearest number or name when it's one, and only words that carry no subject or verb, so "I'm
+    /// busy, sorry I can't" and "it's fine, I mean it works" stay.
+    static func withoutCorrections(_ text: [Character]) -> [Character] {
+        var text = text
+        var searched = 0
+        while let fix = correction(in: text, from: searched) {
+            text.replaceSubrange(fix.range, with: fix.with)
+            searched = fix.range.lowerBound + fix.with.count
+        }
+        return text
+    }
+
+    private static let cues: [(words: [String], comma: Bool)] = [
+        (["i", "mean"], false), (["i", "meant"], false), (["no", "wait"], false), (["wait", "no"], false),
+        (["or", "rather"], false), (["make", "that"], false), (["actually"], false), (["sorry"], true), (["no"], true), (["wait"], true),
+    ]
+
+    private static func correction(in text: [Character], from: Int) -> (range: Range<Int>, with: [Character])? {
+        let words = Words.ranges(in: text)
+        for (index, word) in words.enumerated() where word.lowerBound >= max(from, 2) && index > 0 {
+            guard text[word.lowerBound - 1] == " ", text[word.lowerBound - 2] == ",", words[index - 1].upperBound == word.lowerBound - 2 else { continue }
+            for cue in cues where phrase(text, words, at: index, is: cue.words) {
+                let comma = word.lowerBound - 2
+                var after = words[index + cue.words.count - 1].upperBound
+                if after < text.count, text[after] == "," { after += 1 } else if cue.comma { continue }
+                guard after < text.count, text[after] == " " else { continue }
+                let said = clause(text, words, from: index + cue.words.count, startingAt: after + 1)
+                guard (1 ... 3).contains(said.count) else { continue }
+                let before = clause(text, words, endingAt: index - 1)
+                guard let replaced = replaced(text, words, before, by: said) else { continue }
+                var with = Array(text[words[said.first!].lowerBound ..< words[said.last!].upperBound])
+                with += text[words[replaced.last!].upperBound ..< comma]
+                if text[words[replaced[0]].lowerBound].isUppercase, with[0].isLowercase { with[0] = Character(with[0].uppercased()) }
+                var end = words[said.last!].upperBound
+                if end < text.count, text[end] == ",", replaced.last == before.last { end += 1 }
+                return (words[replaced[0]].lowerBound ..< end, with)
+            }
+        }
+        return nil
+    }
+
+    /// The indices of the words from `index` on that only spaces part, starting at `startingAt`, if the clause ends at
+    /// a mark or the end.
+    private static func clause(_ text: [Character], _ words: [Range<Int>], from index: Int, startingAt: Int) -> [Int] {
+        guard index < words.count, words[index].lowerBound == startingAt else { return [] }
+        var clause = [index]
+        while let last = clause.last, last + 1 < words.count, text[words[last].upperBound ..< words[last + 1].lowerBound].allSatisfy({ $0 == " " }) {
+            clause.append(last + 1)
+            if clause.count > 3 { return [] }
+        }
+        let end = words[clause.last!].upperBound
+        return end == text.count || ",.!?;:".contains(text[end]) ? clause : []
+    }
+
+    /// The indices of the words that only spaces part, ending with `index`, back to the clause's start.
+    private static func clause(_ text: [Character], _ words: [Range<Int>], endingAt index: Int) -> [Int] {
+        var clause = [index]
+        while let first = clause.first, first > 0, text[words[first - 1].upperBound ..< words[first].lowerBound].allSatisfy({ $0 == " " }) {
+            clause.insert(first - 1, at: 0)
+        }
+        return clause
+    }
+
+    /// The words of `before` that `said` takes the place of.
+    private static func replaced(_ text: [Character], _ words: [Range<Int>], _ before: [Int], by said: [Int]) -> [Int]? {
+        guard before.count >= said.count else { return nil }
+        let spelled = { (index: Int) in Words.plain(String(text[words[index]]).lowercased()) }
+        guard !said.contains(where: { unreplaceable.contains(spelled($0)) }) else { return nil }
+        let first = said[0]
+        let kind: ((Int) -> Bool)? = isNumber(spelled(first)) ? { isNumber(spelled($0)) }
+            : text[words[first].lowerBound].isUppercase ? { text[words[$0].lowerBound].isUppercase } : nil
+        var start = before.count - said.count
+        if let kind, !kind(before[start]) {
+            guard let match = before[...start].lastIndex(where: kind) else { return nil }
+            start = match
+        }
+        let span = Array(before[start ..< start + said.count])
+        return span.contains(where: { unreplaceable.contains(spelled($0)) }) ? nil : span
+    }
+
+    private static func isNumber(_ word: String) -> Bool {
+        word.allSatisfy(\.isNumber) || numberWords.contains(word)
+    }
+
+    private static let numberWords: Set<String> = [
+        "zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "fifteen",
+        "twenty", "thirty", "forty", "fifty", "hundred", "thousand", "noon", "midnight",
+    ]
+
+    /// Words a correction never replaces or is: subjects, verbs and joiners, which say it's a clause of its own.
+    private static let unreplaceable: Set<String> = [
+        "i", "i'm", "i'll", "i've", "i'd", "me", "you", "you're", "we", "we're", "they", "they're", "he", "she", "it", "it's",
+        "that's", "there's", "is", "was", "are", "were", "am", "be", "been", "do", "does", "did", "don't", "can", "can't",
+        "will", "won't", "would", "should", "could", "have", "has", "had", "not", "and", "or", "but", "so", "if", "think",
+        "know", "guess", "mean", "just",
+    ]
 }
+
 
 /// What you said, as Hex types it: edited, in its style, and with any list you spoke written as one. Its capitals are
 /// the keyboard's, set where it goes in (`capitals`).
