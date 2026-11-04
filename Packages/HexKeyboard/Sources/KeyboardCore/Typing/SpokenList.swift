@@ -1,11 +1,11 @@
 /// A list you speak, written as one, as Wispr Flow does: "my goals are one, finish the report, two, send it" becomes
-/// "my goals are:", then "1. finish the report" and "2. send it" on lines of their own. A marker is a number, a digit
+/// "my goals are:", then "1. finish the report" and "2. send it" (or "• finish the report") on lines of their own. A marker is a number, a digit
 /// or an ordinal ("first", "secondly", "number three") with a comma, colon or period after it, as Parakeet writes the
 /// pause you make there, and the markers count up from one. Two markers make a list only where a sentence or clause
 /// starts with the first, so "I have one, maybe two, cats" stays a sentence; three always do. The last item runs to the
 /// end of its sentence, and what follows starts a new line.
 enum SpokenList {
-    static func written(_ text: [Character]) -> [Character] {
+    static func written(_ text: [Character], bulleted: Bool = false) -> [Character] {
         guard let list = first(in: text) else { return text }
         var intro = Array(text[..<list.markers[0].lowerBound])
         while intro.last == " " { intro.removeLast() }
@@ -14,11 +14,11 @@ enum SpokenList {
 
         var lines: [[Character]] = intro.isEmpty ? [] : [intro]
         for (index, item) in list.items.enumerated() {
-            lines.append(Array("\(index + 1). ") + item)
+            lines.append(Array(bulleted ? "• " : "\(index + 1). ") + item)
         }
         var rest = Array(text[list.end...])
         while rest.first == " " || rest.first?.isNewline == true { rest.removeFirst() }
-        if !rest.isEmpty { lines.append(written(rest)) }
+        if !rest.isEmpty { lines.append(written(rest, bulleted: bulleted)) }
         return Array(lines.joined(separator: "\n"))
     }
 

@@ -51,12 +51,13 @@ struct ModelSettings: View {
     }
 }
 
-/// The words and punctuation iikb types for what you say: a preview of the same words as picked, then each style and
-/// each level of editing shown by how it types them with everything else as picked.
+/// The words and punctuation iikb types for what you say: a preview of the same words as picked, then each style, each
+/// level of editing and each way of writing a list shown by how it types them with everything else as picked.
 struct WritingSettings: View {
-    private static let said = "So, let's send it to Sam tonight."
-    private static let rambled = "Um, I think the the plan works."
-    private static let preview = "Um, so I think the the plan works, let's send it to Sam tonight."
+    private static let said = "Hey, are you free tonight. Let's grab dinner, and then see the show."
+    private static let rambled = "Um, I think the the plan is, like, two, I mean three."
+    private static let listed = "Buy one, eggs, two, milk, three, bread."
+    private static let preview = "Um, so are you free tonight. Let's grab dinner at the the place on Main, and then see the show at two, I mean three."
     private let model = SettingsModel.shared
 
     private func typed(_ said: String, _ change: (inout DictationWriting) -> Void = { _ in }) -> String {
@@ -71,7 +72,7 @@ struct WritingSettings: View {
 
     var body: some View {
         WritingPreview(said: Self.preview, typed: typed(Self.preview))
-        Box(header: "Style", footer: "A style sets the punctuation. Capitals follow Auto-Capitalization in Keyboard › Typing; very casual has none.") {
+        Box(header: "Style", footer: "A style sets all the punctuation. Formal keeps every mark; Casual drops the last period and the comma after “so” or “hey”; very casual also drops capitals and the comma before “and” or “but”; Excited! ends short sentences with “!”. Every style asks a question with “?”. Capitals follow Auto-Capitalization in Keyboard › Typing.") {
             ForEach(DictationStyle.allCases, id: \.self) { style in
                 ChoiceRow(title: style.title, detail: quoted(Self.said) { $0.style = style }, picked: model.settings.dictationStyle == style) {
                     withAnimation(.snappy(duration: 0.25)) { model.update { $0.dictationStyle = style } }
@@ -85,8 +86,12 @@ struct WritingSettings: View {
                 }
             }
         }
-        Box {
-            ToggleRow(title: "Lists", detail: "“One, eggs, two, milk” is typed as a numbered list. First, second works too.", isOn: model.binding(\.dictationLists))
+        Box(header: "Lists", footer: "A list you say with one, two or first, second is written on lines of its own.") {
+            ForEach(DictationLists.allCases, id: \.self) { lists in
+                ChoiceRow(title: lists.title, detail: typed(Self.listed) { $0.lists = lists }, picked: model.settings.dictationLists == lists) {
+                    withAnimation(.snappy(duration: 0.25)) { model.update { $0.dictationLists = lists } }
+                }
+            }
         }
     }
 }

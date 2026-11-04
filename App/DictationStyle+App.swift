@@ -30,3 +30,13 @@ extension DictationEditing {
         }
     }
 }
+
+extension DictationLists {
+    var title: String {
+        switch self {
+        case .numbered: "Numbered"
+        case .bulleted: "Bulleted"
+        case .off: "Off"
+        }
+    }
+}

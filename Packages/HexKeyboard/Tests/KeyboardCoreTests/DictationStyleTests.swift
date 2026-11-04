@@ -2,14 +2,14 @@ import Testing
 @testable import KeyboardCore
 
 struct DictationStyleTests {
-    private func write(_ heard: String, _ style: DictationStyle = .formal, _ editing: DictationEditing = .asSaid, lists: Bool = true) -> String {
+    private func write(_ heard: String, _ style: DictationStyle = .formal, _ editing: DictationEditing = .asSaid, lists: DictationLists = .numbered) -> String {
         DictationWriting(style: style, editing: editing, lists: lists).written(heard)
     }
 
     @Test func asSaidKeepsEveryWordUmAndUhIncluded() {
         let heard = "Um, so I think, uh, the the job is done."
         #expect(write(heard) == heard)
-        #expect(KeyboardSettings.initial.dictation == DictationWriting(style: .casual, editing: .asSaid, lists: true, capitalizes: false))
+        #expect(KeyboardSettings.initial.dictation == DictationWriting(style: .casual, editing: .asSaid, lists: .numbered, capitalizes: false))
     }
 
     @Test func lightLeavesOutUmAndUh() {
@@ -79,7 +79,7 @@ struct DictationStyleTests {
         #expect(write("I have one, maybe two, cats.") == "I have one, maybe two, cats.")
         #expect(write("One, two, three, go.") == "One, two, three, go.")
         #expect(write("Twenty-one, then two, then done.") == "Twenty-one, then two, then done.")
-        #expect(write("My goals are one, finish, two, send.", lists: false) == "My goals are one, finish, two, send.")
+        #expect(write("My goals are one, finish, two, send.", lists: .off) == "My goals are one, finish, two, send.")
     }
 
     @Test func hisListFromNovemberThird() {
@@ -205,5 +205,15 @@ struct DictationStyleTests {
         #expect(clean("You know, it works. Like, I said so. I mean, it's fine.") == "It works. I said so. It's fine.")
         #expect(clean("I like it. Like I said, it works. You know what I mean.") == "I like it. Like I said, it works. You know what I mean.")
         #expect(write("It was, like, huge.", .formal, .light) == "It was, like, huge.")
+    }
+
+    @Test func aSpokenListCanBeBulletedOrLeftInItsSentence() {
+        let heard = "Buy one, eggs, two, milk, and three, bread. Then go home."
+        #expect(write(heard, lists: .numbered) == "Buy:\n1. eggs\n2. milk\n3. bread\nThen go home.")
+        #expect(write(heard, lists: .bulleted) == "Buy:\n• eggs\n• milk\n• bread\nThen go home.")
+        #expect(write(heard, lists: .off) == heard)
+        let typed = DictationWriting(style: .formal, lists: .bulleted).typed(heard, lexicon: lexicon)
+        #expect(typed == "Buy:\n• Eggs\n• Milk\n• Bread\nThen go home.")
+        #expect(write("Also, one, eggs, two, milk.", .casual, lists: .bulleted) == "Also:\n• eggs\n• milk")
     }
 }

@@ -24,7 +24,6 @@ public enum SettingsStore {
         ("numberRow", \.numberRow),
         ("split", \.split),
         ("compactPanels", \.compactPanels),
-        ("dictationLists", \.dictationLists),
     ]
 
     /// The settings with a value picked from a list, each kept as its raw value. Character Preview and Haptic Feedback
@@ -37,6 +36,7 @@ public enum SettingsStore {
     private static let keyRoundness = Choice(key: "keyRoundness", path: \.keyRoundness)
     private static let dictationStyle = Choice(key: "writingStyle", path: \.dictationStyle)
     private static let dictationEditing = Choice(key: "dictationEditing", path: \.dictationEditing, switchKey: "keepsUmAndUh", on: .asSaid, off: .light)
+    private static let dictationLists = Choice(key: "spokenLists", path: \.dictationLists, switchKey: "dictationLists", on: .numbered, off: .off)
     private static let keyboardMenu = Choice(key: "keyboardMenu", path: \.keyboardMenu)
     private static let skinToneKey = "skinTone"
 
@@ -60,6 +60,7 @@ public enum SettingsStore {
         keyRoundness.load(into: &settings, sharing: sharing)
         dictationStyle.load(into: &settings, sharing: sharing)
         dictationEditing.load(into: &settings, sharing: sharing)
+        dictationLists.load(into: &settings, sharing: sharing)
         keyboardMenu.load(into: &settings, sharing: sharing)
         settings.skinTone = (value(forKey: skinToneKey, sharing: sharing) as? String).flatMap(SkinTone.init)
         return settings
@@ -78,6 +79,7 @@ public enum SettingsStore {
         keyRoundness.save(settings)
         dictationStyle.save(settings)
         dictationEditing.save(settings)
+        dictationLists.save(settings)
         keyboardMenu.save(settings)
         set(settings.skinTone?.rawValue ?? "", forKey: skinToneKey)
     }

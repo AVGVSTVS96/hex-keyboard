@@ -33,7 +33,7 @@ public struct KeyboardSettings: Hashable, Sendable {
     /// How the app writes what you dictate (`DictationWriting`).
     public var dictationStyle = DictationStyle.standard
     public var dictationEditing = DictationEditing.standard
-    public var dictationLists = true
+    public var dictationLists = DictationLists.standard
 
     public init() {}
 

@@ -486,7 +486,7 @@ extension TypingEngine {
                 expecting = false
             } else if character.isNewline || sentenceEnders.contains(character) && (at + 1 == text.count || text[at + 1].isWhitespace) {
                 expecting = true
-            } else if expecting, !character.isWhitespace, !Words.openers.contains(character) {
+            } else if expecting, !character.isWhitespace, !Words.openers.contains(character), character != "•" {
                 expecting = false
             }
         }

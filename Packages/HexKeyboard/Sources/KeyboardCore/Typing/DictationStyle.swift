@@ -247,6 +247,18 @@ public enum DictationStyle: String, CaseIterable, Hashable, Sendable {
     }
 }
 
+/// How a list you speak is written (`SpokenList`).
+public enum DictationLists: String, CaseIterable, Hashable, Sendable {
+    /// "1. eggs", "2. milk", each on a line of its own.
+    case numbered
+    /// "• eggs", "• milk".
+    case bulleted
+    /// As said, in a sentence.
+    case off
+
+    public static let standard = DictationLists.numbered
+}
+
 /// How much of what you said Hex edits out.
 public enum DictationEditing: String, CaseIterable, Hashable, Sendable {
     /// Every word, um and uh included, as the model labs and Bassim's own transcriber keep them.
@@ -514,12 +526,12 @@ public enum DictationEditing: String, CaseIterable, Hashable, Sendable {
 public struct DictationWriting: Hashable, Sendable {
     public var style = DictationStyle.standard
     public var editing = DictationEditing.standard
-    /// "one, eggs, two, milk" written as a numbered list (`SpokenList`).
-    public var lists = true
+    /// "one, eggs, two, milk" written as a list (`SpokenList`).
+    public var lists = DictationLists.standard
     /// Auto-Capitalization, which a dictation follows as typing does.
     public var capitalizes = true
 
-    public init(style: DictationStyle = .standard, editing: DictationEditing = .standard, lists: Bool = true, capitalizes: Bool = true) {
+    public init(style: DictationStyle = .standard, editing: DictationEditing = .standard, lists: DictationLists = .standard, capitalizes: Bool = true) {
         self.style = style
         self.editing = editing
         self.lists = lists
@@ -534,7 +546,7 @@ public struct DictationWriting: Hashable, Sendable {
 
     public func written(_ heard: String) -> String {
         var text = style.punctuated(Self.withoutDoubledPeriods(editing.edited(Array(heard))))
-        if lists { text = SpokenList.written(text) }
+        if lists != .off { text = SpokenList.written(text, bulleted: lists == .bulleted) }
         return String(style.commas(text))
     }
 
