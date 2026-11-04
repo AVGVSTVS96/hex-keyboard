@@ -29,10 +29,14 @@ extension KeyboardView {
             self.path = [SwipePoint(x: start.x, y: start.y, time: 0)]
         }
 
+        /// Adds the samples that came in with this event, spread evenly over the time since the last: the simulator's
+        /// synthesized touches all carry the time the finger went down, so delivery time is the clock that holds.
         func follow(_ touch: UITouch, in view: UIView, event: UIEvent?) {
-            for sample in event?.coalescedTouches(for: touch) ?? [touch] {
+            let samples = event?.coalescedTouches(for: touch) ?? [touch]
+            let from = path.last?.time ?? 0, to = CACurrentMediaTime() - began
+            for (index, sample) in samples.enumerated() {
                 let at = sample.location(in: view)
-                path.append(SwipePoint(x: at.x, y: at.y, time: sample.timestamp - began))
+                path.append(SwipePoint(x: at.x, y: at.y, time: from + (to - from) * Double(index + 1) / Double(samples.count)))
             }
         }
     }
@@ -44,7 +48,7 @@ extension KeyboardView {
             rollOver()
             let point = touch.location(in: self)
             guard let view = keyView(at: point) else { continue }
-            let tracked = TrackedTouch(keyView: view, start: point, at: touch.timestamp, swipes: slidesToType && startsSwipe(view.key))
+            let tracked = TrackedTouch(keyView: view, start: point, at: CACurrentMediaTime(), swipes: slidesToType && startsSwipe(view.key))
             self.tracked[ObjectIdentifier(touch)] = tracked
             if view.key == menu.key, !menu.items.isEmpty { tracked.menuFrame = view.frame }
             press(view, tracked: tracked)
