@@ -1,51 +1,245 @@
-/// How a dictation reads, in Wispr Flow's styles: its capitals and its punctuation. The words are `DictationEditing`'s.
+/// How a dictation reads, in Wispr Flow's four styles: its capitals and all of its punctuation, never its words, which
+/// are `DictationEditing`'s. Every style gives a question the model ended with a period its question mark. Formal
+/// keeps every comma, ends every sentence, adds the comma after an opening "However" or "Actually" and lets one ! or ?
+/// do. Casual keeps the capitals with less punctuation: no last period, no comma after an opening "So", "Hey" or
+/// "Thanks", and a comma for a semicolon. Very casual is Casual in lowercase without the comma before "and", "but" or
+/// "so". Excited is Formal with an exclamation mark ending the last sentence, every short one and every cheer.
 public enum DictationStyle: String, CaseIterable, Hashable, Sendable {
-    /// Capitals and every period.
     case formal
-    /// Capitals, without the last period or the comma after an opening "so" or "also".
     case casual
-    /// Casual in lowercase, names and the like kept as the lexicon spells them.
     case veryCasual
-    /// Capitals, ending with an exclamation mark.
     case excited
 
     public static let standard = DictationStyle.casual
 
-    /// `text` punctuated in this style, around a list it may end on.
+    /// `text`'s sentence marks in this style, before a list it may end on is written as one.
     func punctuated(_ text: [Character]) -> [Character] {
-        var text = text
+        var text = Self.questionsMarked(text)
         switch self {
         case .formal:
+            text = Self.marksSingled(text)
             if let last = text.last, last.isLetter || last.isNumber { text.append(".") }
         case .casual, .veryCasual:
             if text.last == ".", text.dropLast().last != "." { text.removeLast() }
         case .excited:
-            if text.last == ".", text.dropLast().last != "." { text.removeLast() }
-            if let last = text.last, last.isLetter || last.isNumber { text.append("!") }
+            text = Self.exclaimed(Self.marksSingled(text))
         }
         return text
     }
 
-    /// Without the comma after a sentence's opening word, as in "So, " or "Also, ", in the casual styles.
-    func openersLoosened(_ text: [Character]) -> [Character] {
-        guard self == .casual || self == .veryCasual else { return text }
+    /// `text`'s commas in this style, once its lists are written.
+    func commas(_ text: [Character]) -> [Character] {
+        switch self {
+        case .formal, .excited: Self.transitionsSetOff(text)
+        case .casual: Self.openersLoosened(Self.semicolonsLoosened(text))
+        case .veryCasual: Self.conjunctionsLoosened(Self.openersLoosened(Self.semicolonsLoosened(text)))
+        }
+    }
+
+    /// A sentence: from its first character to its mark (`mark`), or to the end of its line or the text.
+    struct Sentence {
+        var range: Range<Int>
+        var mark: Int?
+    }
+
+    /// Each sentence in `text`, split after a period, question or exclamation mark that a space, a line break or the
+    /// end follows, or at a line break. "..." is one mark, and a period inside a number splits nothing.
+    static func sentences(in text: [Character]) -> [Sentence] {
+        var sentences: [Sentence] = []
+        var start: Int?
+        var at = 0
+        while at < text.count {
+            let character = text[at]
+            if character.isNewline {
+                if let begun = start { sentences.append(Sentence(range: begun ..< trimmedEnd(text, begun, at), mark: nil)) }
+                start = nil
+            } else if start == nil, character != " " {
+                start = at
+            }
+            if let begun = start, TypingEngine.sentenceEnders.contains(character) {
+                var end = at
+                while end + 1 < text.count, TypingEngine.sentenceEnders.contains(text[end + 1]) { end += 1 }
+                if end + 1 == text.count || text[end + 1].isWhitespace {
+                    sentences.append(Sentence(range: begun ..< end + 1, mark: end))
+                    start = nil
+                }
+                at = end
+            }
+            at += 1
+        }
+        if let begun = start { sentences.append(Sentence(range: begun ..< trimmedEnd(text, begun, text.count), mark: nil)) }
+        return sentences.filter { !$0.range.isEmpty }
+    }
+
+    private static func trimmedEnd(_ text: [Character], _ start: Int, _ end: Int) -> Int {
+        var end = end
+        while end > start, text[end - 1] == " " { end -= 1 }
+        return end
+    }
+
+    /// Whether the sentence's mark is a lone period, not part of "...".
+    private static func endsWithPeriod(_ text: [Character], _ sentence: Sentence) -> Bool {
+        guard let mark = sentence.mark, text[mark] == "." else { return false }
+        return mark == 0 || text[mark - 1] != "."
+    }
+
+    /// The words of the sentence, lowercased with straight apostrophes.
+    private static func words(_ text: [Character], _ sentence: Sentence) -> [String] {
+        let sentence = Array(text[sentence.range])
+        return Words.ranges(in: sentence).map { Words.plain(String(sentence[$0]).lowercased()) }
+    }
+
+    /// A question the model wrote with a period, or with nothing at the end: one that opens with a verb before its
+    /// subject ("Are you", "Can we", "Did it"), a question word before a verb ("What do", "Where's"), or ends on a tag
+    /// after a comma (", right", ", isn't it").
+    static func questionsMarked(_ text: [Character]) -> [Character] {
+        var text = text
+        for sentence in sentences(in: text).reversed() where asks(words(text, sentence), tagged: tagged(text, sentence)) {
+            if endsWithPeriod(text, sentence), let mark = sentence.mark {
+                text[mark] = "?"
+            } else if sentence.mark == nil, let last = text[sentence.range].last, last.isLetter || last.isNumber {
+                text.insert("?", at: sentence.range.upperBound)
+            }
+        }
+        return text
+    }
+
+    private static func asks(_ words: [String], tagged: Bool) -> Bool {
+        if tagged { return true }
+        let words = Array(words.drop { leadIns.contains($0) })
+        guard let first = words.first else { return false }
+        if questionWords.contains(first) { return words.count > 1 }
+        guard words.count > 1 else { return false }
+        let second = words[1]
+        if ["what", "where", "when", "why", "who", "how", "which"].contains(first) { return verbs.contains(second) }
+        guard verbs.contains(first), subjects.contains(second) else { return false }
+        return !(["do", "have", "had"].contains(first) && ["it", "that", "this"].contains(second))
+    }
+
+    /// Whether the sentence ends on ", right", ", okay" or a verb and its subject, as in ", isn't it".
+    private static func tagged(_ text: [Character], _ sentence: Sentence) -> Bool {
+        var end = sentence.mark.map { endsWithPeriod(text, sentence) ? $0 : -1 } ?? sentence.range.upperBound
+        guard end > sentence.range.lowerBound else { return false }
+        while end > sentence.range.lowerBound, text[end - 1] == " " { end -= 1 }
+        let tail = Array(text[sentence.range.lowerBound ..< end])
+        let words = Words.ranges(in: tail)
+        guard words.count >= 3 else { return false }
+        func word(_ index: Int) -> String { Words.plain(String(tail[words[index]]).lowercased()) }
+        func comma(before index: Int) -> Bool { words[index].lowerBound >= 2 && tail[words[index].lowerBound - 2] == "," }
+        let last = words.count - 1
+        if ["right", "okay", "ok", "yeah"].contains(word(last)), comma(before: last) { return true }
+        return word(last - 1).hasSuffix("n't") && subjects.contains(word(last)) && comma(before: last - 1)
+    }
+
+    private static let leadIns: Set<String> = ["so", "and", "but", "okay", "ok", "hey", "well", "um", "uh", "oh", "also", "then", "now", "yeah", "anyway", "wait", "sorry"]
+    private static let questionWords: Set<String> = ["what's", "where's", "when's", "why's", "who's", "how's", "what're", "where're", "who're", "how're"]
+    private static let verbs: Set<String> = [
+        "are", "is", "am", "was", "were", "do", "does", "did", "can", "could", "would", "will", "should", "shall", "may",
+        "might", "have", "has", "had", "isn't", "aren't", "wasn't", "weren't", "doesn't", "didn't", "can't", "couldn't",
+        "wouldn't", "won't", "shouldn't", "haven't", "hasn't",
+    ]
+    private static let subjects: Set<String> = [
+        "you", "we", "i", "they", "he", "she", "it", "there", "that", "this", "y'all", "anyone", "anybody", "everyone", "someone",
+    ]
+
+    /// One ! or ? where the model wrote several, as in "!!" or "??".
+    static func marksSingled(_ text: [Character]) -> [Character] {
+        var text = text
+        var at = 1
+        while at < text.count {
+            if "!?".contains(text[at]), text[at] == text[at - 1] { text.remove(at: at) } else { at += 1 }
+        }
+        return text
+    }
+
+    /// Excited's marks: the last sentence, every sentence of up to three words and every one that opens with a cheer
+    /// ends with ! where it would end with a period, never a question or "...".
+    static func exclaimed(_ text: [Character]) -> [Character] {
+        var text = text
+        let sentences = sentences(in: text)
+        for (index, sentence) in sentences.enumerated().reversed() {
+            let words = words(text, sentence)
+            let excites = index == sentences.count - 1 || words.count <= 3 || words.first.map(cheers.contains) == true
+            guard excites, !words.isEmpty else { continue }
+            if endsWithPeriod(text, sentence), let mark = sentence.mark {
+                text[mark] = "!"
+            } else if sentence.mark == nil, let last = text[sentence.range].last, last.isLetter || last.isNumber {
+                text.insert("!", at: sentence.range.upperBound)
+            }
+        }
+        return text
+    }
+
+    private static let cheers: Set<String> = [
+        "wow", "yay", "congrats", "congratulations", "awesome", "amazing", "great", "nice", "cool", "thanks", "thank", "hey",
+        "hi", "hello", "love", "woohoo", "omg", "yes", "finally", "perfect", "sweet", "haha", "happy", "welcome", "cheers",
+        "hooray", "can't", "good", "fantastic", "incredible", "excellent", "brilliant", "best",
+    ]
+
+    /// Formal's comma after a sentence's opening transition: "However, ", "Actually, ", "Hopefully, ".
+    static func transitionsSetOff(_ text: [Character]) -> [Character] {
+        var text = text
+        let words = Words.ranges(in: text)
+        for (index, word) in words.enumerated().reversed() where index + 1 < words.count {
+            guard transitions.contains(String(text[word]).lowercased()), startsSentence(text, at: word.lowerBound),
+                  words[index + 1].lowerBound == word.upperBound + 1, text[word.upperBound] == " ",
+                  String(text[words[index + 1]]).lowercased() != "not" else { continue }
+            text.insert(",", at: word.upperBound)
+        }
+        return text
+    }
+
+    private static let transitions: Set<String> = [
+        "however", "also", "anyway", "anyways", "actually", "basically", "honestly", "meanwhile", "otherwise", "additionally",
+        "unfortunately", "fortunately", "luckily", "sadly", "personally", "apparently", "hopefully", "frankly", "regardless",
+        "nevertheless", "nonetheless", "therefore", "furthermore", "moreover", "alternatively", "ultimately", "overall",
+        "lastly", "anyhow", "seriously", "technically", "surprisingly", "interestingly",
+    ]
+
+    /// Without the comma after a sentence's opening word, as in "So, " or "Hey, ", in the casual styles.
+    static func openersLoosened(_ text: [Character]) -> [Character] {
         var text = text
         for word in Words.ranges(in: text).reversed() where word.upperBound < text.count && text[word.upperBound] == "," {
-            guard Self.openers.contains(String(text[word]).lowercased()), Self.startsSentence(text, at: word.lowerBound) else { continue }
+            guard openers.contains(Words.plain(String(text[word]).lowercased())), startsSentence(text, at: word.lowerBound) else { continue }
             text.remove(at: word.upperBound)
         }
         return text
     }
 
     private static let openers: Set<String> = [
-        "so", "also", "now", "well", "yeah", "yes", "yep", "no", "okay", "ok", "oh", "anyway", "and", "but", "plus", "hey", "hi", "um", "uh",
+        "so", "also", "now", "well", "yeah", "yes", "yep", "no", "nope", "okay", "ok", "oh", "anyway", "anyways", "and",
+        "but", "plus", "hey", "hi", "hello", "um", "uh", "actually", "honestly", "basically", "thanks", "sure", "alright",
+        "right", "cool", "great", "nice", "wow", "sorry", "however", "then", "like", "look", "listen", "btw", "lol",
     ]
+
+    /// "; " as ", ", which casual writing uses in its place.
+    static func semicolonsLoosened(_ text: [Character]) -> [Character] {
+        var text = text
+        for at in text.indices where text[at] == ";" && at + 1 < text.count && text[at + 1] == " " && at > 0 && Words.isWordCharacter(text[at - 1]) {
+            text[at] = ","
+        }
+        return text
+    }
+
+    /// Very casual's: no comma between two clauses joined by "and", "but", "so", "or", "then" or "because".
+    static func conjunctionsLoosened(_ text: [Character]) -> [Character] {
+        var text = text
+        for word in Words.ranges(in: text).reversed() where word.lowerBound >= 3 {
+            guard text[word.lowerBound - 1] == " ", text[word.lowerBound - 2] == ",", Words.isWordCharacter(text[word.lowerBound - 3]),
+                  conjunctions.contains(String(text[word]).lowercased()), word.upperBound < text.count, text[word.upperBound] == " " else { continue }
+            text.remove(at: word.lowerBound - 2)
+        }
+        return text
+    }
+
+    private static let conjunctions: Set<String> = ["and", "but", "so", "or", "then", "because", "cause", "cuz"]
 
     /// Whether `at` begins the text, a line, a sentence or a list item.
     static func startsSentence(_ text: [Character], at: Int) -> Bool {
         var before = at - 1
         while before >= 0, text[before] == " " { before -= 1 }
         guard before >= 0, !text[before].isNewline else { return true }
+        if text[before] == "•", before == 0 || text[before - 1].isNewline { return true }
         guard TypingEngine.sentenceEnders.contains(text[before]), before < at - 1 else { return false }
         var number = before - 1
         while number >= 0, text[number].isNumber { number -= 1 }
@@ -189,10 +383,9 @@ public struct DictationWriting: Hashable, Sendable {
     }
 
     public func written(_ heard: String) -> String {
-        var text = editing.edited(Array(heard))
-        text = Self.withoutDoubledPeriods(style.punctuated(text))
+        var text = style.punctuated(Self.withoutDoubledPeriods(editing.edited(Array(heard))))
         if lists { text = SpokenList.written(text) }
-        return String(style.openersLoosened(text))
+        return String(style.commas(text))
     }
 
     /// `heard` as Hex types it at the start of a field that capitalizes sentences, as a message's does.
