@@ -2,7 +2,8 @@
 # Builds Hex on this Linux box with xtool and signs it for the free team's devices (its one development certificate
 # lives with xtool here), then installs it through the Mac on the iPhone the Mac reaches, by cable or Wi-Fi, once no
 # dictation is going on there: Hex writes a dictation's recording as it's heard, so one written in the last 10 seconds
-# is still going. Then it starts Hex in the background, so Parakeet compiles for the new install right away.
+# is still going. It backs up the phone's iikb data here first (scripts/backup), and won't install without that backup.
+# Then it starts Hex in the background, so Parakeet compiles for the new install right away.
 # It builds main's last commit in its own worktree, so agents' branches and uncommitted edits never reach the phone,
 # and one run at a time, so agents installing at once queue instead of sharing that worktree. The build number is main's
 # commit count, which Settings › About shows as "Version 0.1.0 (<build>)"; when the iPhone already has that build,
@@ -63,6 +64,7 @@ while dictating; do
   echo "waiting for the dictation on the iPhone to end, since an install would cut it off" >&2
   sleep 2
 done
+scripts/backup "$phone"
 ssh mac xcrun devicectl device install app --device "$phone" Developer/hex-keyboard-phone/Hex.app
 ssh mac xcrun devicectl device process launch --no-activate --device "$phone" com.shahidy.hexkeyboard >/dev/null ||
   echo "Hex is installed but didn't start, so Parakeet gets ready at the next dictation instead" >&2

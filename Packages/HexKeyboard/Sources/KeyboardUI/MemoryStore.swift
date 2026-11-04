@@ -19,22 +19,28 @@ public enum MemoryStore {
         URL.applicationSupportDirectory.appending(path: "typing-memory.json")
     }
 
+    /// Under the group's Library, where the keyboard's other files are, since a keyboard can't write the group's root.
     private static var sharedTouchesURL: URL? {
-        FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: SettingsStore.appGroup)?.appending(path: "touches.json")
+        FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: SettingsStore.appGroup)?.appending(path: "Library/touches.json")
     }
 
     private static var resets: Int? { SettingsStore.value(forKey: resetsKey, sharing: false) as? Int }
 
-    /// The saved file's date and the reset token, as this process last read or wrote them. Each app gets a keyboard of
-    /// its own, so another one may have saved since.
-    @MainActor private static var known: Version?
+    /// The saved file's date and the reset token. Each app gets a keyboard of its own, so another one may have saved
+    /// since this one read, and a keyboard saves only over the version its memory was read from or its own last save:
+    /// saving over anything else would wipe what the other learned, or everything when its read hasn't landed yet.
     nonisolated private struct Version: Equatable {
         var modified: Date?
         var resets: Int?
     }
 
+    /// The version this process's memory was read from; none until its first read lands.
+    @MainActor private static var base: Version?
+    /// The version this process last saved, kept on `queue`.
+    nonisolated(unsafe) private static var written: Version?
+
     /// Reads and writes the file in turn, off the main thread: at 20,000 words each takes a tenth of a second.
-    nonisolated private static let queue = DispatchQueue(label: "com.shahidy.hexkeyboard.memory", qos: .userInitiated)
+    nonisolated static let queue = DispatchQueue(label: "com.shahidy.hexkeyboard.memory", qos: .userInitiated)
 
     nonisolated private static var modified: Date? {
         try? url.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate
@@ -43,25 +49,31 @@ public enum MemoryStore {
     /// Hands `use` the saved memory when it isn't the one this process has: on the first appearance, after another
     /// app's keyboard saved, or after the app reset it.
     @MainActor static func refresh(_ use: @escaping @MainActor (TypingMemory) -> Void) {
-        let version = Version(modified: modified, resets: resets)
-        guard version != known else { return }
-        known = version
-        let resets = version.resets
+        let base = base, resets = resets
         queue.async {
+            let version = Version(modified: modified, resets: resets)
+            guard version != base, version != written else { return }
             let saved = try? JSONDecoder().decode(Saved.self, from: Data(contentsOf: url))
             let memory = saved.flatMap { $0.resets == resets ?? $0.resets ? $0.memory : nil } ?? TypingMemory()
-            Task { @MainActor in use(memory) }
+            Task { @MainActor in
+                Self.base = version
+                use(memory)
+            }
         }
     }
 
     @MainActor static func save(_ memory: TypingMemory, sharing: Bool) {
+        guard let base else { return }
         let resets = resets, sharedTouchesURL = sharing ? sharedTouchesURL : nil
         queue.async {
+            let current = Version(modified: modified, resets: resets)
+            guard current == base || current == written else { return }
             try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
             try? JSONEncoder().encode(Saved(resets: resets ?? 0, memory: memory)).write(to: url, options: .atomic)
-            let version = Version(modified: modified, resets: resets)
-            Task { @MainActor in known = version }
-            guard let sharedTouchesURL, (try? JSONEncoder().encode(memory.touches).write(to: sharedTouchesURL, options: .atomic)) != nil else { return }
+            written = Version(modified: modified, resets: resets)
+            guard let sharedTouchesURL else { return }
+            try? FileManager.default.createDirectory(at: sharedTouchesURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+            guard (try? JSONEncoder().encode(memory.touches).write(to: sharedTouchesURL, options: .atomic)) != nil else { return }
             notify_post(touchesChanged)
         }
     }

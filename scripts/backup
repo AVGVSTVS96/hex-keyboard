@@ -1,0 +1,43 @@
+#!/bin/bash
+# Copies iikb's data off the iPhone the Mac reaches into ~/.local/share/hex-keyboard/backup here: the app's, the
+# keyboard's and the App Group's files, all but Parakeet's models. Nothing is deleted there, and a file a backup
+# replaces is kept under versions/<time>, so one wiped on the phone can be put back. scripts/phone runs it before
+# every install. Usage: scripts/backup <iPhone UDID>
+set -euo pipefail
+umask 077
+phone=${1:?usage: scripts/backup <iPhone UDID>}
+backup=${HEX_BACKUP:-$HOME/.local/share/hex-keyboard/backup}
+mkdir -p "$backup/mirror/app/recordings"
+have=$(cd "$backup/mirror/app/recordings" && ls | paste -sd, -)
+read -r -d '' mac <<'MAC' || true
+set -eu
+phone=$1 have=${2:-} out=$(mktemp -d /tmp/iikb-backup.XXXX)
+copy() { xcrun devicectl device copy from --device "$phone" --domain-type "$1" --domain-identifier "$2" --source "$3" --destination "$out/$4" >/dev/null; }
+list() {
+  xcrun devicectl device info files --device "$phone" --domain-type appDataContainer --domain-identifier com.shahidy.hexkeyboard \
+    --subdirectory "$1" --json-output "$out/list.json" >/dev/null
+  /usr/bin/python3 -c "import json, sys; print('\n'.join(f['relativePath'] for f in json.load(open(sys.argv[1]))['result']['files'] if '/' not in f['relativePath']))" "$out/list.json"
+}
+mkdir -p "$out/app/recordings" "$out/keyboard" "$out/group"
+for name in $(list "Library/Application Support"); do
+  case $name in (FluidAudio|recordings) ;; (*) copy appDataContainer com.shahidy.hexkeyboard "Library/Application Support/$name" "app/$name" ;; esac
+done
+copy appDataContainer com.shahidy.hexkeyboard Library/Preferences app/Preferences
+if [ -z "$have" ]; then
+  rmdir "$out/app/recordings"
+  copy appDataContainer com.shahidy.hexkeyboard "Library/Application Support/recordings" app/recordings
+else
+  for name in $(list "Library/Application Support/recordings"); do
+    case ",$have," in (*",$name,"*) ;; (*) copy appDataContainer com.shahidy.hexkeyboard "Library/Application Support/recordings/$name" "app/recordings/$name" ;; esac
+  done
+fi
+copy appDataContainer com.shahidy.hexkeyboard.keyboard "Library/Application Support" keyboard/support
+copy appDataContainer com.shahidy.hexkeyboard.keyboard Library/Preferences keyboard/Preferences
+copy appGroupDataContainer group.com.shahidy.hexkeyboard Library group/Library
+rm "$out/list.json"
+echo "$out"
+MAC
+staged=$(ssh mac sh -s "$phone" "$have" <<<"$mac")
+rsync -a --checksum --backup --backup-dir="$backup/versions/$(date +%Y-%m-%dT%H%M%S)" "mac:$staged/" "$backup/mirror/"
+ssh mac rm -rf "$staged"
+echo "iikb's data is backed up in $backup"
