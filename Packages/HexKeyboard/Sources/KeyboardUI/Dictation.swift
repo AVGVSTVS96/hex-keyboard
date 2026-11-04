@@ -26,7 +26,7 @@ public enum Dictation {
     /// What the app leaves for the keyboard.
     public enum Note: Codable, Equatable, Sendable {
         /// A dictation written down, typed only by the keyboard you stopped it in (`keyboard`, which it sent with
-        /// `finish` or `stop`), so it never lands in a field you didn't say it for; one stopped in the app (its Done)
+        /// `finish`), so it never lands in a field you didn't say it for; one stopped in the app (its Done)
         /// is typed by the next keyboard to see it.
         case heard(String, keyboard: UInt64?)
         /// Something to tell you about a dictation: why it couldn't be made or written down, or where it went.
@@ -40,8 +40,6 @@ public enum Dictation {
         case finish = "com.shahidy.hexkeyboard.dictation.finish"
         /// The keyboard wants to dictate again while the app still has the microphone on.
         case start = "com.shahidy.hexkeyboard.dictation.start"
-        /// The keyboard wants the microphone off, with what was said so far typed, carrying its `keyboard` as `finish` does.
-        case stop = "com.shahidy.hexkeyboard.dictation.stop"
         /// The keyboard wants the dictation being recorded thrown away: never typed, kept only in Transcripts.
         case cancel = "com.shahidy.hexkeyboard.dictation.cancel"
         /// A keyboard appeared, carrying its `keyboard` in the state, so any other still listening (one whose app
@@ -161,13 +159,13 @@ public enum Dictation {
         notify_post(signal.rawValue)
     }
 
-    /// Sends `finish`, `stop` or `appeared` from `keyboard`, a number the keyboard picks each time it appears.
+    /// Sends `finish` or `appeared` from `keyboard`, a number the keyboard picks each time it appears.
     public static func send(_ signal: Signal, from keyboard: UInt64) {
         if let token = stateTokens[signal] { notify_set_state(token, keyboard) }
         send(signal)
     }
 
-    nonisolated private static let stateTokens = Dictionary(uniqueKeysWithValues: [Signal.finish, .stop, .appeared].map { signal in
+    nonisolated private static let stateTokens = Dictionary(uniqueKeysWithValues: [Signal.finish, .appeared].map { signal in
         var token: Int32 = 0
         notify_register_check(signal.rawValue, &token)
         return (signal, token)

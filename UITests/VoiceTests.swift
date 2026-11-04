@@ -3,7 +3,7 @@ import XCTest
 /// The bar's mic against a stand-in for the app (`scripts/voicetest` holds the microphone lock and answers the
 /// keyboard's signals the way `Listener` does), since a simulator can't record for the real one.
 final class VoiceTests: XCTestCase {
-    func testTheBarsMicStartsStopsAndTurnsOffDictationInPlace() throws {
+    func testTheBarsMicStartsAndStopsDictationInPlace() throws {
         let environment = ProcessInfo.processInfo.environment
         guard let shots = environment["HEX_SHOTS"] else { throw XCTSkip("Run through scripts/voicetest") }
         continueAfterFailure = false
@@ -58,7 +58,9 @@ final class VoiceTests: XCTestCase {
         try shot("\(shots)-elsewhere")
 
         mic.press(forDuration: 0.8)
-        XCTAssertTrue(wait(for: mic, label: "Dictate", value: nil), "holding the mic turns the microphone off, and a dictation the app left unfinished when it ended doesn't hold the mic")
+        XCTAssertTrue(wait(for: mic, label: "Stop Dictating", value: nil), "holding the mic dictates as a tap does: only the app turns the microphone off")
+        mic.tap()
+        XCTAssertTrue(wait(for: mic, label: "Dictate", value: nil), "a dictation the app left unfinished when it ended doesn't hold the mic")
         try shot("\(shots)-off")
     }
 

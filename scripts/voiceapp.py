@@ -1,8 +1,8 @@
 """Stands in for the Hex app's Listener in the simulator, which can't record: holds the microphone lock, answers the
 keyboard's start with listening and a voice's worth of levels, and finish with writing it down for the keyboard that
 stopped it. The first waits for the model to get ready, and meanwhile the keyboard starts a second; the first is typed as
-the second records. Then it leaves one for a keyboard that has closed, which isn't typed. Stop ends the way a quit app
-does, mid-writing: the status stays, the lock goes. scripts/voiceapp.py <simulator id> <App Group container>
+the second records. Then it leaves one for a keyboard that has closed, which isn't typed. The last dictation ends the way a
+quit app does, mid-writing: the status stays, the lock goes. scripts/voiceapp.py <simulator id> <App Group container>
 [listening|saved|waiting], which holds one state until it's killed, for screenshots of the bar: talking; talking with two
 saved; three saved waiting for the model."""
 import fcntl, json, math, os, struct, subprocess, sys, threading, time, uuid
@@ -91,12 +91,15 @@ first = keyboard("finish")
 publish(listening=True)
 leave("hello from the mic", first)
 listen(finished)
-stopped = notify("-1", f"{prefix}.stop")
+started = notify("-1", f"{prefix}.start")
 publish(writing=[2.8])
 publish()
 leave("and again", keyboard("finish"))
 leave("said elsewhere", 1)
-stopped.wait()
+started.wait()
+finished = notify("-1", f"{prefix}.finish")
+publish(listening=True)
+listen(finished)
 publish(writing=[2.8])
 fcntl.flock(lock, fcntl.LOCK_UN)
 lock.close()

@@ -99,10 +99,6 @@ open class HexKeyboardViewController: UIInputViewController {
             render()
         }
         sources.onHint = { [unowned self] in render() }
-        suggestionBar.onMicOff = { [unowned self] in
-            feedback(.other)
-            Dictation.send(.stop, from: keyboard)
-        }
         suggestionBar.onCancel = { [unowned self] in
             feedback(.other)
             Dictation.send(.cancel)
@@ -135,7 +131,6 @@ open class HexKeyboardViewController: UIInputViewController {
             keyMic.isHidden = !keyed
         }
         keyMic.addAction(UIAction { [unowned self] _ in suggestionBar.onMic() }, for: .touchUpInside)
-        keyMic.onHold = { [unowned self] in suggestionBar.onMicOff() }
         keyboardView.micKey = keyMic
         keyboardView.advance = { [unowned self] step in HostLayout.width(of: engine.character(crossedBy: step)) }
         keyboardView.globeTarget = { [unowned self] control in

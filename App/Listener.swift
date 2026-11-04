@@ -1,13 +1,15 @@
 import AVFoundation
 import KeyboardUI
+import Observation
 import UIKit
 
 /// Voice typing, in two steps that never wait on each other: the `Microphone` records a dictation the moment you ask,
 /// and once you stop, the `VoiceModel` writes its finished `Recording` down, whatever state it was in when you started.
 /// Dictations still being written are typed in the order you said them. After you dictate the microphone stays on for
 /// as long as Keep Mic On says, so the keyboard can start the next dictation (`start`) without opening the app, which
-/// is the only place iOS lets a recording begin.
-@MainActor final class Listener {
+/// is the only place iOS lets a recording begin. Only the app turns the microphone off: Home's switch, or Keep Mic On
+/// running out. The keyboard can only start a dictation.
+@Observable @MainActor final class Listener {
     static let shared = Listener()
 
     private let microphone = Microphone()
@@ -20,14 +22,19 @@ import UIKit
     private var writing: [Take] = []
     /// The last of `writing`, which each dictation waits for before it's written, so they're typed in order.
     private var written: Task<Void, Never>?
-    /// You held the keyboard's mic: it goes off once what you said is written down, keeping Hex running till then.
+    /// Home's switch turned the microphone off: it goes off once what you said is written down, keeping Hex running
+    /// till then.
     private var micOffOnceWritten = false
+    /// Home's switch turned the microphone on: it stays on until the switch turns it off, whatever Keep Mic On says.
+    private var held = false
     /// Why the last dictation couldn't be made or written down, for the app's screen.
     private(set) var failure: (title: String, reason: String)?
     var onChange: (() -> Void)?
     var onLevel: ((Float) -> Void)?
 
     var isMicOn: Bool { microphone.isOn }
+    /// Turned off, and on only till what's being said and written is done.
+    var isTurningMicOff: Bool { microphone.isOn && micOffOnceWritten }
     var isListening: Bool { recording != nil && tail == nil }
     var isWriting: Bool { !writing.isEmpty }
 
@@ -47,7 +54,6 @@ import UIKit
                 guard Listener.shared.microphone.isOn else { return }
                 Task { await Listener.shared.start() }
             },
-            Dictation.observe(.stop) { keyboard in Task { await Listener.shared.turnMicOff(in: keyboard) } },
             Dictation.observe(.cancel) { Listener.shared.cancel() },
         ]
     }
@@ -72,7 +78,7 @@ import UIKit
         } catch {
             recording = nil
             closeMic()
-            fail("Couldn’t listen", (error as? Failure)?.description ?? error.localizedDescription)
+            fail("Couldn’t listen", error.localizedDescription)
         }
     }
 
@@ -144,11 +150,11 @@ import UIKit
     }
 
     /// Starts Keep Mic On's countdown over, or turns the microphone off now when it's Off, once nothing is being
-    /// recorded or written. Until then the microphone stays on: that keeps Hex running in the background to write,
-    /// and its lock tells the keyboard Hex is still there.
+    /// recorded or written, unless Home's switch holds it on. Until then the microphone stays on: that keeps Hex
+    /// running in the background to write, and its lock tells the keyboard Hex is still there.
     func keepMicOn() {
         micOff?.cancel()
-        guard microphone.isOn, recording == nil, writing.isEmpty else { return }
+        guard microphone.isOn, recording == nil, writing.isEmpty, !held else { return }
         let seconds = SettingsStore.keepMicOn
         guard seconds > 0, !micOffOnceWritten else { return closeMic() }
         guard seconds != Dictation.micForever else { return }
@@ -159,12 +165,26 @@ import UIKit
         }
     }
 
-    /// You held the keyboard's mic: keep what was heard, typed in `keyboard`, and turn the microphone off once it's
-    /// written down, so the next dictation opens the app and starts it afresh.
-    func turnMicOff(in keyboard: UInt64?) async {
+    /// Home's switch, on: the microphone on with nothing recorded, so the keyboard starts each dictation in place, and
+    /// kept on until the switch turns it off.
+    func turnMicOn() async throws {
+        micOff?.cancel()
+        micOffOnceWritten = false
+        if !microphone.isOn {
+            guard await AVAudioApplication.requestRecordPermission() else { throw Failure.microphone }
+            try microphone.open()
+            VoiceModel.shared.micIsOn = true
+        }
+        held = true
+    }
+
+    /// Home's switch, off: what you're saying is kept, for the next keyboard to show to type, and the microphone goes
+    /// off once every dictation is written down, so the next one opens the app and starts it afresh.
+    func turnMicOff() async {
+        held = false
         guard microphone.isOn else { return }
-        await finish(in: keyboard)
         micOffOnceWritten = true
+        await finish()
         keepMicOn()
     }
 
@@ -180,6 +200,7 @@ import UIKit
         micOff?.cancel()
         micOff = nil
         micOffOnceWritten = false
+        held = false
         microphone.close()
         VoiceModel.shared.micIsOn = false
     }
@@ -199,10 +220,10 @@ import UIKit
         onChange?()
     }
 
-    private enum Failure: Error, CustomStringConvertible {
+    private enum Failure: LocalizedError {
         case microphone
 
-        var description: String {
+        var errorDescription: String? {
             switch self {
             case .microphone: "iikb needs the microphone. Turn it on in Settings › Apps › iikb."
             }

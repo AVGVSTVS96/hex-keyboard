@@ -3,8 +3,9 @@ import KeyboardUI
 import SwiftUI
 import UIKit
 
-/// Hex's home (docs/design.md, "The app"): whether the keyboard is on and what's left to set up, a field to try it,
-/// tiles for today's dictation and your taps, and a card for each setting you reach for, opening its page in Settings.
+/// Hex's home (docs/design.md, "The app"): whether the keyboard is on and what's left to set up, the microphone's
+/// switch, a field to try it, tiles for today's dictation and your taps, and a card for each setting you reach for,
+/// opening its page in Settings.
 final class HomeViewController: UIHostingController<AnyView> {
     private let field: UITextView
     private let state: HomeState
@@ -115,22 +116,14 @@ struct HomeView: View {
         .navigationSubtitle(status.summary)
         .toolbarTitleDisplayMode(.inlineLarge)
         .toolbar {
-            if Listener.shared.isMicOn {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Mic On", systemImage: "mic.fill") {
-                        Task { await Listener.shared.turnMicOff(in: nil) }
-                    }
-                    .tint(.red)
-                    .accessibilityLabel("Turn microphone off")
-                    .accessibilityIdentifier("home-mic")
-                }
-            }
             if !status.isAdded {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Turn On", systemImage: "keyboard.badge.ellipsis") { HexStatus.openSettings() }
                         .buttonStyle(.borderedProminent)
                 }
             }
+            ToolbarItem(placement: .topBarTrailing) { MicSwitch() }
+                .sharedBackgroundVisibility(.hidden)
         }
     }
 
@@ -184,6 +177,48 @@ struct HomeView: View {
                 }
                 .buttonStyle(CardPress())
                 .accessibilityIdentifier("home-\(page.rawValue)")
+            }
+        }
+    }
+}
+
+/// The microphone, on or off, as it really is: on, the keyboard starts each dictation in place, and it stays on until
+/// you turn it off here; off, it goes off once what you're saying is written down. The keyboard can't turn it off.
+private struct MicSwitch: View {
+    @State private var flipping: Bool?
+    @State private var failure: String?
+
+    var body: some View {
+        let listener = Listener.shared
+        let on = flipping ?? (listener.isMicOn && !listener.isTurningMicOff)
+        HStack(spacing: 8) {
+            Image(systemName: on ? "mic.fill" : "mic.slash.fill")
+                .font(.subheadline)
+                .foregroundStyle(Color.hexSecondary)
+                .contentTransition(.symbolEffect(.replace))
+                .accessibilityHidden(true)
+            Toggle("Microphone", isOn: Binding(get: { on }, set: flip))
+                .labelsHidden()
+                .tint(.blue)
+                .accessibilityIdentifier("home-mic")
+        }
+        .alert("Couldn’t Turn On the Microphone", isPresented: Binding(get: { failure != nil }, set: { if !$0 { failure = nil } })) {
+            Button("Settings") { HexStatus.openSettings() }
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(failure ?? "")
+        }
+    }
+
+    private func flip(_ on: Bool) {
+        flipping = on
+        Task {
+            defer { flipping = nil }
+            if !on { return await Listener.shared.turnMicOff() }
+            do {
+                try await Listener.shared.turnMicOn()
+            } catch {
+                failure = error.localizedDescription
             }
         }
     }

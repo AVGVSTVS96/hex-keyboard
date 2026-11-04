@@ -9,8 +9,6 @@ final class SuggestionBar: UIView {
     var onSelect: (Suggestion) -> Void = { _ in }
     var onEmoji: (String) -> Void = { _ in }
     var onMic: () -> Void = {}
-    /// Holding the mic turns the microphone off.
-    var onMicOff: () -> Void = {}
     var onCancel: () -> Void = {}
     var onNotice: () -> Void = {}
     var onTool: (Panel) -> Void = { _ in }
@@ -65,7 +63,6 @@ final class SuggestionBar: UIView {
         strip.accessibilityIdentifier = "hex.suggestion.emoji"
         addSubview(strip)
         mic.addAction(UIAction { [unowned self] _ in onMic() }, for: .touchUpInside)
-        mic.onHold = { [unowned self] in onMicOff() }
         cancel.addAction(UIAction { [unowned self] _ in onCancel() }, for: .touchUpInside)
         addSubview(cancel)
         addSubview(mic)
@@ -262,11 +259,10 @@ private func settle(bounce: CGFloat = 0, _ changes: @escaping () -> Void, comple
 /// The bar's mic: a round button, white on dark and black on light, with a green dot while the app keeps the
 /// microphone on. While it listens it turns record red and grows into a capsule over the suggestions, which holds the
 /// waveform, with a white stop where the mic was; while the app writes a dictation down a spinner takes the glyph's
-/// place, and a tap still starts the next one. Tap to start or stop, hold to turn the microphone off.
+/// place, and a tap still starts the next one. Tap to start or stop; only the app turns the microphone off.
 final class MicButton: UIControl {
     enum Phase { case off, on, listening, writing }
 
-    var onHold: () -> Void = {}
     /// The face's corner radius, where it takes a key's shape; otherwise round.
     var corner: CGFloat? { didSet { setNeedsLayout() } }
     private(set) var phase = Phase.off
@@ -290,9 +286,6 @@ final class MicButton: UIControl {
         glyph.contentMode = .center
         dot.backgroundColor = UIColor(red: 0x30 / 255, green: 0xD1 / 255, blue: 0x58 / 255, alpha: 1)
         spinner.hidesWhenStopped = false
-        let hold = UILongPressGestureRecognizer(target: self, action: #selector(held))
-        hold.minimumPressDuration = 0.5
-        addGestureRecognizer(hold)
     }
 
     required init?(coder: NSCoder) { fatalError() }
@@ -345,13 +338,6 @@ final class MicButton: UIControl {
         dot.transform = phase == .on ? .identity : CGAffineTransform(scaleX: 0.5, y: 0.5)
         spinner.color = theme.micGlyph.ui
         spinner.alpha = phase == .writing ? 1 : 0
-    }
-
-    @objc private func held(_ gesture: UILongPressGestureRecognizer) {
-        guard gesture.state == .began else { return }
-        cancelTracking(with: nil)
-        isHighlighted = false
-        onHold()
     }
 
     /// The circle is smaller than a fingertip; taps a little around it still reach it.
