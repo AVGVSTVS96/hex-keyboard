@@ -115,6 +115,16 @@ struct HomeView: View {
         .navigationSubtitle(status.summary)
         .toolbarTitleDisplayMode(.inlineLarge)
         .toolbar {
+            if Listener.shared.isMicOn {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Mic On", systemImage: "mic.fill") {
+                        Task { await Listener.shared.turnMicOff(in: nil) }
+                    }
+                    .tint(.red)
+                    .accessibilityLabel("Turn microphone off")
+                    .accessibilityIdentifier("home-mic")
+                }
+            }
             if !status.isAdded {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Turn On", systemImage: "keyboard.badge.ellipsis") { HexStatus.openSettings() }

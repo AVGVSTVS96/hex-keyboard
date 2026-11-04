@@ -27,6 +27,7 @@ import UIKit
     var onChange: (() -> Void)?
     var onLevel: ((Float) -> Void)?
 
+    var isMicOn: Bool { microphone.isOn }
     var isListening: Bool { recording != nil && tail == nil }
     var isWriting: Bool { !writing.isEmpty }
 

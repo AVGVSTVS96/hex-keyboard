@@ -1,10 +1,11 @@
 import AVFoundation
 import KeyboardUI
+import Observation
 
 /// The iPhone's microphone, recording a dictation as a `Recording`: 16 kHz, kept in memory and written to its file as
 /// it's heard. It knows nothing of the models that write recordings down, so nothing about them can hold up a
 /// recording. While it's on it holds the App Group's mic lock, which tells the keyboard the app is there to dictate.
-@MainActor final class Microphone {
+@Observable @MainActor final class Microphone {
     private let engine = AVAudioEngine()
     private let feed = Feed()
     private var lock: Int32?
