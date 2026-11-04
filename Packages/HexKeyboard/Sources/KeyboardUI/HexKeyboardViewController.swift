@@ -54,6 +54,7 @@ open class HexKeyboardViewController: UIInputViewController {
     private lazy var panels: [Panel: PanelContent] = [.emoji: emojiPanel, .gif: gifPanel, .clipboard: clipboardPanel].compactMapValues { $0 }
     private lazy var document = ProxyDocument { [unowned self] in textDocumentProxy }
     private var engine = TypingEngine()
+    private var typingLog = TypingLog()
     private let memoryStore = MemoryStore()
     private lazy var toolbarHeightConstraint = toolbarView.heightAnchor.constraint(equalToConstant: 0)
     private lazy var keyboardHeightConstraint = keyboardView.heightAnchor.constraint(equalToConstant: 0)
@@ -213,6 +214,7 @@ open class HexKeyboardViewController: UIInputViewController {
         haptics.stop()
         TouchTrace.shared.flush()
         saveMemory()
+        saveTyping()
         MemoryStore.save(engine.emojiHistory)
         if hasFullAccess { MemoryStore.queue.async { Backup.sync(Backup.keyboard + Backup.group) } }
         observers.forEach(Dictation.stopObserving)
@@ -258,7 +260,10 @@ open class HexKeyboardViewController: UIInputViewController {
         let known = engine.text.before.count
         let report = engine.documentChanged(document)
         if report == .changed { tellSources(.app) }
-        if report == .changed, engine.text.isEmpty { saveMemory() }
+        if report == .changed, engine.text.isEmpty {
+            saveMemory()
+            saveTyping()
+        }
         TouchTrace.shared.record(report, host: textDocumentProxy.documentContextBeforeInput?.count ?? 0, known: known)
         render()
     }
@@ -266,6 +271,19 @@ open class HexKeyboardViewController: UIInputViewController {
     /// When the keyboard goes away and when a message is sent, so what was learned outlives the keyboard being ended.
     private func saveMemory() {
         if let memory = engine.corrector?.memory { memoryStore.save(memory, sharing: hasFullAccess) }
+    }
+
+    private func saveTyping() {
+        noteTyping()
+        TypingStats.save(typingLog.take(), sharing: hasFullAccess)
+    }
+
+    /// Notes what typing did, in the hour and app it happened in: the engine's tally changes only as you type.
+    private func noteTyping() {
+        let now = Date.now
+        let parts = Calendar.current.dateComponents([.year, .month, .day, .hour], from: now)
+        let day = String(format: "%04d-%02d-%02d", parts.year ?? 0, parts.month ?? 0, parts.day ?? 0)
+        typingLog.note(engine.tally, at: ProcessInfo.processInfo.systemUptime, day: day, hour: parts.hour ?? 0, app: hostApp ?? "")
     }
 
     private var screenSize: CGSize {
@@ -304,6 +322,7 @@ open class HexKeyboardViewController: UIInputViewController {
 
     private func render() {
         tellSources(.keyboard)
+        noteTyping()
         let device = device
         let screen = Size(width: screenSize.width, height: screenSize.height)
         let context = engine.layout(on: device, screen: screen, showsGlobe: showsGlobe)

@@ -118,12 +118,17 @@ extension TypingEngine {
             write(revert.original, replacing: revert.replacement.count, in: document)
             corrector?.changeMemory { $0.keep(revert.original) }
             pending?.word = revert.original
+            tally.undone += 1
         case .literal:
             corrector?.changeMemory { $0.keep(whole) }
             hold(whole, typed: whole)
+            tally.words += 1
         case .correction, .candidate:
             write(suggestion.text, replacing: whole.count, in: document)
             hold(suggestion.text, typed: whole)
+            tally.words += suggestion.text.split(separator: " ").count
+            tally.picked += 1
+            tally.characters += max(suggestion.text.count - whole.count, 0) + 1
         }
         if !suggestion.text.contains(" ") { corrector?.record(pending?.word ?? suggestion.text, after: context.previous, earlier: context.earlier) }
         revert = nil
@@ -139,6 +144,7 @@ extension TypingEngine {
         let (word, tail) = suggested
         guard text.before[..<word.startIndex] == suggestionsBefore else { return }
         emojiHistory.use(emoji)
+        tally.emoji += 1
         learnPending()
         revert = nil
         typing = WordTaps()
@@ -246,6 +252,7 @@ extension TypingEngine {
             final = joined
             typedText = joined
             context = (before, Words.previous(before: Words.current(in: head), in: head))
+            tally.corrected += 1
         } else if let pending, owned >= pending.word.count + 1 + word.count, let join = join(typed, after: pending, in: text) {
             write(join.word, replacing: pending.word.count + 1 + word.count, in: document)
             revert = Revert(original: "\(pending.word) \(final)", replacement: join.word)
@@ -255,10 +262,13 @@ extension TypingEngine {
             final = join.word
             typedText = join.word
             context = join.context
+            tally.words -= 1
+            tally.corrected += 1
         } else if let correction = corrector.correction(for: typed).map(written) {
             write(correction, replacing: word.count, in: document)
             revert = Revert(original: final, replacement: correction)
             final = correction
+            tally.corrected += 1
         }
         settle(final, typed: typedText, after: context, ending: ending)
     }
@@ -274,6 +284,7 @@ extension TypingEngine {
 
     private mutating func settle(_ word: String, typed: String, after context: (previous: String?, earlier: String?), ending: Tap?) {
         if !word.contains(" ") { corrector?.record(word, after: context.previous, earlier: context.earlier) }
+        tally.words += word.split(separator: " ").count
         hold(word, typed: typed, ending: ending)
     }
 
@@ -315,6 +326,7 @@ extension TypingEngine {
         corrector.forget(pending.word, after: context.previous, earlier: context.earlier)
         corrector.record(word, after: context.previous, earlier: context.earlier)
         corrector.changeMemory { $0.unrecordSpaceAfterSpace(keepingKey: false) }
+        tally.corrected += 1
         self.pending = PendingWord(word: word, typed: word, taps: pending.taps + [end], retyped: pending.retyped, ending: space)
         return true
     }
