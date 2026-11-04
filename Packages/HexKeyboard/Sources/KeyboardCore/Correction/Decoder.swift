@@ -30,6 +30,9 @@ struct Decoder {
     static let editLogProbability = Math.log(0.01)
     static let apostropheLogProbability = Math.log(0.5)
     static let budget = 6000
+    /// A word read out of a longer run (`Corrector.split`) gets less: the taps of a real word find it in far fewer steps, and
+    /// most spans of a run spell no word at all.
+    static let wordBudget = 1000
 
     struct Result: Hashable {
         var word: String
@@ -71,7 +74,7 @@ struct Decoder {
     }
 
     /// The `count` likeliest words, completions included, and at least the likeliest word of exactly the typed length.
-    func decode(_ taps: [TapEvidence], count: Int = 4) -> [Result] {
+    func decode(_ taps: [TapEvidence], count: Int = 4, budget: Int = Self.budget) -> [Result] {
         guard !taps.isEmpty else { return [] }
         let best = taps.map(\.best)
         let offset = best.reduce(0, +)
@@ -94,7 +97,7 @@ struct Decoder {
         }
         push(State(node: lexicon.root, tap: 0, edits: 0, completing: false, score: 0, spelling: Trail.empty, terminal: false))
 
-        while found.count < count || exact == 0, pops < Self.budget, let state = heap.pop() {
+        while found.count < count || exact == 0, pops < budget, let state = heap.pop() {
             pops += 1
             if state.terminal {
                 guard seen.insert(state.node).inserted else { continue }

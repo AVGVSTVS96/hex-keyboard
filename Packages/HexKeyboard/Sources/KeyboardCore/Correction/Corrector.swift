@@ -17,11 +17,13 @@ public final class Corrector {
     /// How many of the words in `memory` the lexicon doesn't know, counted once and then kept up to date.
     private var novel: Int?
     private var rankings: [Ranking: [Candidate]] = [:]
+    private var keyShares: [String: [Double]] = [:]
     private var generation = 0
 
     private struct Ranking: Hashable {
         var typed: TypedWord
         var alone: Bool
+        var inRun: Bool
     }
 
     /// With a `Lexicon` as its source, the corrector decodes your taps against your own touch model and words;
@@ -42,6 +44,7 @@ public final class Corrector {
         copy.grid = grid
         copy.novel = novel
         copy.rankings = rankings
+        copy.keyShares = keyShares
         copy.generation = generation
         return copy
     }
@@ -50,6 +53,7 @@ public final class Corrector {
     func adopt(_ snapshot: Corrector) {
         guard snapshot.generation == generation else { return }
         rankings.merge(snapshot.rankings) { mine, _ in mine }
+        keyShares.merge(snapshot.keyShares) { mine, _ in mine }
         if novel == nil { novel = snapshot.novel }
     }
 
@@ -91,6 +95,7 @@ public final class Corrector {
 
     private func forgetRankings() {
         rankings = [:]
+        keyShares = [:]
         generation += 1
     }
 
@@ -134,6 +139,10 @@ public final class Corrector {
         let typed = Substring(word.text)
         var seen: Set<String> = [word.text.lowercased()]
         var alternatives: [Suggestion] = []
+        if word.text.contains(" ") {
+            let words = correcting && guessing ? split(word) : nil
+            return [Suggestion(word.text, .literal)] + (words.map { [Suggestion($0, .candidate)] } ?? [])
+        }
         if correcting, let correction = correction(for: word, guessing: guessing), seen.insert(correction.lowercased()).inserted {
             alternatives.append(Suggestion(correction, applying ? .correction : .candidate))
         }
@@ -199,16 +208,17 @@ extension Corrector {
     }
 
     /// Candidates for what you meant, likeliest first. `alone` leaves out the words you've typed, so only the lexicon
-    /// and your touches speak.
-    func ranked(_ typed: TypedWord, alone: Bool = false) -> [Candidate] {
-        let key = Ranking(typed: typed, alone: alone)
+    /// and your touches speak; `inRun` reads a word out of a longer run (`split`), which needs whole words, not
+    /// completions.
+    func ranked(_ typed: TypedWord, alone: Bool = false, inRun: Bool = false) -> [Candidate] {
+        let key = Ranking(typed: typed, alone: alone, inRun: inRun)
         if let cached = rankings[key] { return cached }
-        let candidates = rank(typed, alone: alone)
+        let candidates = rank(typed, alone: alone, inRun: inRun)
         rankings[key] = candidates
         return candidates
     }
 
-    private func rank(_ typed: TypedWord, alone: Bool) -> [Candidate] {
+    private func rank(_ typed: TypedWord, alone: Bool, inRun: Bool) -> [Candidate] {
         guard let lexicon, !typed.text.isEmpty else { return [] }
         let words = alone ? TypingMemory() : memory
         let model = alone ? LanguageModel(lexicon: lexicon, memory: words) : languageModel(lexicon)
@@ -225,12 +235,16 @@ extension Corrector {
         func likelihood(_ word: String, completing: Bool = false) -> Double {
             Decoder.logLikelihood(of: word, given: taps, touches: memory.touches, on: grid, completing: completing)
         }
-        for result in Decoder(lexicon: lexicon).decode(taps) {
+        for result in Decoder(lexicon: lexicon).decode(taps, budget: inRun ? Decoder.wordBudget : Decoder.budget) {
             consider(result.word, logLikelihood: likelihood(result.word, completing: result.isCompletion), isCompletion: result.isCompletion)
         }
         let literalWord = lexicon.canonical(literal) ?? typed.text
         consider(literalWord, logLikelihood: likelihood(literalWord), isCompletion: false)
         for word in words.familiar where word.utf8.count + 1 >= taps.count && lexicon.logProbability(of: word) == nil {
+            if inRun {
+                if word.utf8.count <= taps.count + 1 { consider(word, logLikelihood: likelihood(word), isCompletion: false) }
+                continue
+            }
             let exact = likelihood(word)
             let completed = likelihood(word, completing: true)
             consider(word, logLikelihood: max(exact, completed), isCompletion: completed > exact)
@@ -244,22 +258,52 @@ extension Corrector {
     func isKnown(_ word: TypedWord) -> Bool {
         if memory.isKept(word.text) { return true }
         guard lexicon?.isWord(word.text) == true || memory.count(of: word.text) > 1 else { return false }
-        guard let perfect = ranked(TypedWord(word.text), alone: true).first(where: { !$0.isCompletion }), !perfect.isLiteral else { return true }
+        let centers = word.text.lowercased().utf8.map { letter in
+            let label = String(UnicodeScalar(Lexicon.fold(letter)))
+            let frame = grid.frame(of: label)
+            return Tap(x: frame?.midX ?? 0, y: frame?.midY ?? 0, key: label)
+        }
+        guard let perfect = ranked(TypedWord(word.text, taps: centers), alone: true).first(where: { !$0.isCompletion }), !perfect.isLiteral else { return true }
         return perfect.word.contains("'")
     }
 
+    /// What each tap says about the letter it meant: where it landed, or for a word typed without its taps (one you went
+    /// back to), only the key it hit (`shares`). A space tap may have meant a letter too.
     func evidence(for typed: TypedWord, touches: TouchModel) -> [TapEvidence] {
         let letters = typed.text.lowercased().utf8.map(Lexicon.fold)
-        let taps = typed.taps.count == letters.count ? typed.taps.map(Optional.some) : letters.map { _ in nil }
+        let tapped = typed.taps.count == letters.count
         let bounds = grid.bounds
         let stray = -Math.log(bounds.width * bounds.height)
         let keys = touches.layout(grid)
-        return zip(letters, taps).map { letter, tap in
-            guard let index = Lexicon.index(of: letter), let typed = grid.frame(of: Lexicon.labels[index]) else { return .exact(letter) }
-            let point = tap.map { ($0.x, $0.y) } ?? (typed.midX, typed.midY)
-            let likelihoods = Lexicon.labels.map { keys.logLikelihood(x: point.0, y: point.1, for: $0) ?? -.infinity }
-            return TapEvidence(letters: likelihoods, stray: stray, point: Tap(x: point.0, y: point.1, key: Lexicon.labels[index]))
+        return letters.indices.map { index in
+            let letter = letters[index]
+            guard let label = letter == 32 ? " " : Lexicon.index(of: letter).map({ Lexicon.labels[$0] }), grid.frame(of: label) != nil else {
+                return .exact(letter)
+            }
+            guard tapped else { return TapEvidence(letters: Array(shares(of: label).prefix(Lexicon.alphabet)), stray: stray) }
+            let tap = typed.taps[index]
+            let likelihoods = Lexicon.labels.map { keys.logLikelihood(x: tap.x, y: tap.y, for: $0) ?? -.infinity }
+            return TapEvidence(letters: likelihoods, stray: stray, point: Tap(x: tap.x, y: tap.y, key: label))
         }
+    }
+
+    /// How well a tap known only by the key it hit fits each key (a–z, the apostrophe, then the space bar): it may have
+    /// landed anywhere on that key, so each key counts by its share of the taps landing there against the hit key's own,
+    /// at the hit key's center.
+    func shares(of hit: String) -> [Double] {
+        if let cached = keyShares[hit] { return cached }
+        guard let frame = grid.frame(of: hit) else { return [] }
+        let keys = memory.touches.layout(grid), cell = grid.cell(of: frame), steps = 5
+        let points = (0..<(steps * steps)).map { step in
+            (cell.x + (Double(step / steps) + 0.5) * cell.width / Double(steps), cell.y + (Double(step % steps) + 0.5) * cell.height / Double(steps))
+        }
+        func mass(_ label: String) -> Double {
+            points.reduce(-Double.infinity) { Math.logSumExp($0, keys.logLikelihood(x: $1.0, y: $1.1, for: label) ?? -.infinity) }
+        }
+        let center = keys.logLikelihood(x: frame.midX, y: frame.midY, for: hit) ?? 0, own = mass(hit)
+        let result = (Lexicon.labels + [" "]).map { center + mass($0) - own }
+        keyShares[hit] = result
+        return result
     }
 
     func languageModel(_ lexicon: Lexicon) -> LanguageModel {
@@ -304,59 +348,61 @@ extension Corrector {
 }
 
 extension Corrector {
-    /// The words a word's taps spell if some of them meant the space bar ("freatvday" → "great day", "inalsonuodated" →
-    /// "i also updated"), each read from its own taps after the word before it, so any may hold a typo of its own, when
-    /// they're likelier than every reading of the taps as one word. A thumb that misses the space bar lands on the row
-    /// above it, so only those taps are read as spaces. Only the likeliest words up to each such tap go on, so each word
-    /// is read once and stays cached as the taps after it come in.
+    /// The words a run of taps spells when its spaces went astray ("freatvday" → "great day", "iloveyou" → "I love you",
+    /// "ab out" → "about"), each word read from its own taps after the word before it, with any typo of its own. Between
+    /// two words the space may have been typed, missed, or hit as a letter on the row above the space bar, where a thumb
+    /// that misses it lands; a space tap inside a word may have meant a letter. Only the likeliest words up to each point
+    /// go on, so each word is read once and stays cached as the taps after it come in. A single word is read as several
+    /// only when that's likelier than every reading of its taps as one known word.
     func split(_ typed: TypedWord) -> String? {
-        guard let lexicon, typed.text.count >= 3, typed.taps.isEmpty || typed.taps.count == typed.text.count,
-              let spaceRow = grid.index(of: " ")?.row, !isKnown(typed) else { return nil }
-        let letters = Array(typed.text), taps = evidence(for: typed, touches: memory.touches), keys = memory.touches.layout(grid)
+        let letters = Array(typed.text), spaced = letters.contains(" ")
+        guard let lexicon, letters.count >= 3, typed.taps.isEmpty || typed.taps.count == letters.count,
+              let spaceRow = grid.index(of: " ")?.row, spaced || !isKnown(typed) else { return nil }
+        let keys = memory.touches.layout(grid)
+        func isWord(_ candidate: Candidate) -> Bool {
+            lexicon.isWord(candidate.word) || memory.count(of: candidate.word) > 1 || memory.isKept(candidate.word)
+        }
         func meant(_ range: Range<Int>, after previous: String?) -> Candidate? {
-            ranked(TypedWord(String(letters[range]), taps: typed.taps.isEmpty ? [] : Array(typed.taps[range]), previous: previous)).first {
-                !$0.isCompletion && (lexicon.isWord($0.word) || memory.count(of: $0.word) > 1 || memory.isKept($0.word))
-            }
+            guard letters[range.lowerBound] != " ", letters[range.upperBound - 1] != " " else { return nil }
+            let word = TypedWord(String(letters[range]), taps: typed.taps.isEmpty ? [] : Array(typed.taps[range]), previous: previous)
+            let ranked = ranked(word, inRun: true)
+            guard let best = ranked.first(where: { !$0.isCompletion && isWord($0) }) else { return nil }
+            let typedAlone = spaced && (range.lowerBound == 0 || letters[range.lowerBound - 1] == " ")
+                && (range.upperBound == letters.count || letters[range.upperBound] == " ")
+            guard typedAlone, !best.isLiteral, isKnown(word), let literal = ranked.first(where: \.isLiteral),
+                  literal.logLikelihood >= best.logLikelihood else { return best }
+            return literal
         }
-        /// A tap known only by its letter, as in a word you went back to, may have landed anywhere on its key, so the
-        /// space bar's share of that key is weighed against the letter's own.
-        func asSpace(_ point: Tap) -> Double? {
-            guard typed.taps.isEmpty, let frame = grid.frame(of: point.key), let own = keys.logLikelihood(x: point.x, y: point.y, for: point.key) else {
-                return keys.logLikelihood(x: point.x, y: point.y, for: " ")
-            }
-            let cell = grid.cell(of: frame), steps = 5
-            var space = -Double.infinity, letter = -Double.infinity
-            for i in 0..<steps {
-                for j in 0..<steps {
-                    let x = cell.x + (Double(i) + 0.5) * cell.width / Double(steps), y = cell.y + (Double(j) + 0.5) * cell.height / Double(steps)
-                    space = Math.logSumExp(space, keys.logLikelihood(x: x, y: y, for: " ") ?? -.infinity)
-                    letter = Math.logSumExp(letter, keys.logLikelihood(x: x, y: y, for: point.key) ?? -.infinity)
-                }
-            }
-            return own + space - letter
+        /// A space, or a letter on the row above the space bar, may have been the space between two words.
+        func asSpace(_ index: Int) -> Double? {
+            let label = String(letters[index]).lowercased()
+            guard label == " " || grid.index(of: label)?.row == spaceRow - 1 else { return nil }
+            guard !typed.taps.isEmpty else { return shares(of: label).last }
+            return keys.logLikelihood(x: typed.taps[index].x, y: typed.taps[index].y, for: " ")
         }
-        let spaces: [(index: Int, logLikelihood: Double)] = (1..<(letters.count - 1)).compactMap { index in
-            guard grid.index(of: String(letters[index]).lowercased())?.row == spaceRow - 1, let point = taps[index].point,
-                  let asSpace = asSpace(point) else { return nil }
-            return (index, asSpace)
-        }
-        guard !spaces.isEmpty else { return nil }
         var runs: [Int: (words: [String], score: Double)] = [0: ([], 0)]
         var best: (words: [String], score: Double)?
-        for start in [0] + spaces.map({ $0.index + 1 }) {
+        for start in letters.indices {
             guard let run = runs[start] else { continue }
-            for end in spaces.filter({ $0.index > start }) + [(letters.count, 0)] {
-                guard let word = meant(start..<end.index, after: run.words.last?.lowercased() ?? typed.previous) else { continue }
-                let words = run.words + [word.word], score = run.score + word.logPosterior + end.logLikelihood
-                if end.index == letters.count {
-                    if !run.words.isEmpty, score > best?.score ?? -.infinity { best = (words, score) }
-                } else if score > runs[end.index + 1]?.score ?? -.infinity {
-                    runs[end.index + 1] = (words, score)
+            for end in (start + 1)...min(letters.count, start + Self.longestWord) {
+                guard let word = meant(start..<end, after: run.words.last?.lowercased() ?? typed.previous) else { continue }
+                let words = run.words + [word.word], score = run.score + word.logPosterior
+                func reach(_ next: Int, by logLikelihood: Double) {
+                    if score + logLikelihood > runs[next]?.score ?? -.infinity { runs[next] = (words, score + logLikelihood) }
+                }
+                if end == letters.count {
+                    if spaced || !run.words.isEmpty, score > best?.score ?? -.infinity { best = (words, score) }
+                } else {
+                    reach(end, by: Decoder.editLogProbability)
+                    if let space = asSpace(end) { reach(end + 1, by: space) }
                 }
             }
         }
-        let whole = ranked(typed).first { !$0.isCompletion }?.logPosterior ?? -.infinity
+        let whole = spaced ? -Double.infinity : ranked(typed).first(where: isWord)?.logPosterior ?? -.infinity
         guard let best, best.score > whole else { return nil }
-        return Words.matchCase(best.words.joined(separator: " "), to: Substring(typed.text))
+        let words = best.words.joined(separator: " ")
+        return words.lowercased() == typed.text.lowercased() ? nil : Words.matchCase(words, to: Substring(typed.text))
     }
+
+    static let longestWord = 20
 }

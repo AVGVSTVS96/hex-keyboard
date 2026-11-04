@@ -159,6 +159,12 @@ extension TypingEngine {
         }
     }
 
+    /// Whether a selection is short words and spaces the bar can read again, if anything is selected.
+    private func isWords(_ selected: String) -> Bool {
+        selected.isEmpty || selected.count <= TextState.window && selected.contains(where: Words.isWordCharacter)
+            && selected.allSatisfy { Words.isWordCharacter($0) || $0 == " " }
+    }
+
     /// Whether the keyboard typed the word before the caret, or the space before it, rather than you went back there.
     var isTyping: Bool { text.owned >= max(Words.current(in: text.before).count, 1) }
 
@@ -349,7 +355,7 @@ extension TypingEngine {
         guard panel == nil else { return suggestions = [] }
         let text = self.text.before
         let (word, tail) = suggested
-        guard showsSuggestions, self.text.selected.allSatisfy(Words.isWordCharacter) else { return suggestions = [] }
+        guard showsSuggestions, isWords(self.text.selected) else { return suggestions = [] }
         suggestionsBefore = String(text[..<word.startIndex])
         let whole = word + tail
         let named = whole.isEmpty && text.hasSuffix(" ") ? Words.current(in: String(text.dropLast())) : whole

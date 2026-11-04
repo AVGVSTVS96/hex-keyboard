@@ -112,8 +112,8 @@ struct Evaluation {
     /// often the bar offers the pair, and the pairs whose words have a typo of their own.
     @Test func missedSpaces() throws {
         let phrases = try Self.phrases()
-        for spaces in 1...3 {
-            let seed = UInt64(spaces - 1) * 1000
+        for (spaces, skipped) in [(1, false), (2, false), (3, false), (1, true), (2, true)] {
+            let seed = UInt64(spaces - 1) * 1000 + (skipped ? 10000 : 0)
             var user = SimulatedUser(width: Self.width, noise: 0.25, seed: 2027 + seed)
             var thumb = SimulatedUser(width: Self.width, noise: 0.4, seed: 2028 + seed)
             var random = SplitMix64(seed: 2029 + seed)
@@ -143,7 +143,9 @@ struct Evaluation {
                 let run = words[pick...(pick + spaces)]
                 var landed: [String?] = [], typo = false
                 for (index, word) in run.enumerated() {
-                    if index > 0 {
+                    if index > 0, skipped {
+                        landed.append(nil)
+                    } else if index > 0 {
                         var space: (Double, Double)?
                         for _ in 0..<500 {
                             let point = thumb.tap(" ")
@@ -168,7 +170,7 @@ struct Evaluation {
                 }
             }
             let share = { (count: Int, of: Int) in String(format: "%.1f%%", 100.0 * Double(count) / Double(max(of, 1))) }
-            print("EVAL missedSpaces spaces=\(spaces) keyboard=decoder runs=\(runs) withTypo=\(mistyped) aSpaceReadAsSpace=\(share(spaced, runs)) allAsLetters: shown=\(share(shown, runs - spaced)) firstAlternative=\(share(first, runs - spaced))")
+            print("EVAL missedSpaces spaces=\(spaces)\(skipped ? " untyped" : "") keyboard=decoder runs=\(runs) withTypo=\(mistyped) aSpaceReadAsSpace=\(share(spaced, runs)) allAsLetters: shown=\(share(shown, runs - spaced)) firstAlternative=\(share(first, runs - spaced))")
         }
     }
 

@@ -283,8 +283,22 @@ struct AutocorrectTests {
 struct MissedSpaceTests {
     let corrector = Corrector(source: Lexicon(counts: [
         ("great", 300), ("day", 400), ("the", 1000), ("what", 500), ("given", 80), ("give", 100), ("treat", 40),
-        ("i", 900), ("also", 300), ("updated", 60), ("update", 80), ("done", 200), ("ok", 100),
+        ("i", 900), ("also", 300), ("updated", 60), ("update", 80), ("done", 200), ("ok", 100), ("love", 200), ("you", 900),
+        ("baby", 60), ("about", 300),
     ].map { (word: $0.0, count: Double($0.1)) }))
+
+    @Test func readsAMistypedLetterBesidesEveryMissedSpace() {
+        #expect(corrector.split(TypedWord("iblovebuoubbaby")) == "i love you baby")
+    }
+
+    @Test func readsASpaceThatWasNeverTyped() {
+        #expect(corrector.split(TypedWord("greatday")) == "great day")
+    }
+
+    @Test func readsASpaceTapThatMeantALetter() {
+        #expect(corrector.split(TypedWord("a out the")) == "about the")
+        #expect(corrector.split(TypedWord("what the")) == nil)
+    }
 
     @Test func readsEveryMissedSpaceInARun() {
         #expect(corrector.split(TypedWord("inalsonuodated", previous: "done")) == "i also updated")
@@ -299,6 +313,17 @@ struct MissedSpaceTests {
         let pair = try #require(engine.suggestions.first { $0.text == "great day" })
         engine.accept(pair, in: document)
         #expect(document.text == "done great day ok")
+    }
+
+    @Test func rereadsASelectionOfSeveralWords() throws {
+        var engine = TypingEngine()
+        engine.corrector = corrector
+        let document = TestDocument("done a out the ok")
+        document.select("a out the")
+        engine.documentChanged(document)
+        let words = try #require(engine.suggestions.first { $0.text == "about the" })
+        engine.accept(words, in: document)
+        #expect(document.text == "done about the ok")
     }
 
     @Test func offersTheWordsOfARunBeforeTheCaret() {
