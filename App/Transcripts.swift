@@ -27,8 +27,8 @@ struct Transcript: Codable, Identifiable, Hashable {
 /// Every dictation the app transcribed, newest first, in one JSON line each in the app's own container, and the sound of
 /// each as a `Recording` beside it, written as it's heard, up to 512 MB (about 4½ hours of talking), past which the oldest
 /// lose their sound. A recording with no transcript, left by an app that ended mid-dictation, is written down the next
-/// time the app starts, and the keyboard says so. Nothing leaves the iPhone: the keyboard never reads it, and the app's only download is the voice
-/// model.
+/// time the app starts, and the keyboard says so. Nothing leaves the iPhone but for the backup server a build may have
+/// (`Backup`): the keyboard never reads it, and the app's only download is the voice model.
 @Observable final class Transcripts {
     static let shared = Transcripts()
 
@@ -83,6 +83,7 @@ struct Transcript: Codable, Identifiable, Hashable {
             defer { try? file.close() }
             try file.seekToEnd()
             try file.write(contentsOf: line + [UInt8(ascii: "\n")])
+            Backup.syncApp()
         } catch {
             save()
         }
@@ -132,5 +133,6 @@ struct Transcript: Codable, Identifiable, Hashable {
         let lines = all.reversed().compactMap { try? encoder.encode($0) + [UInt8(ascii: "\n")] }
         try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         try? Data(lines.joined()).write(to: url, options: .atomic)
+        Backup.syncApp()
     }
 }

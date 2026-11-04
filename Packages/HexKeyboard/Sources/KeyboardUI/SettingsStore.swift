@@ -8,7 +8,7 @@ import notify
 /// value changes nothing, and a side that may write the group puts its copy back. The app tells a keyboard that's up
 /// with a Darwin notification each time it keeps them, as on the open iPhone Duo, where the app sits beside the keys.
 public enum SettingsStore {
-    public static let appGroup = "group.com.shahidy.hexkeyboard"
+    nonisolated public static let appGroup = "group.com.shahidy.hexkeyboard"
 
     public static let toggles: [(key: String, path: WritableKeyPath<KeyboardSettings, Bool>)] = [
         ("autoCapitalization", \.autoCapitalization),

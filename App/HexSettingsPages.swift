@@ -161,13 +161,24 @@ struct SetupPage: View {
 struct PrivacyPage: View {
     @State private var confirmsReset = false
     @State private var confirmsDelete = false
+    @State private var backup: Backup.Outcome?
     private let transcripts = Transcripts.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 28) {
             Box(header: "What Leaves This iPhone") {
-                Label("Learned words, app-specific language and emoji choices, dictations and clipboard history stay here.", systemImage: "iphone").row()
+                Label(Backup.isBuiltIn ? "Learned words, app-specific language and emoji choices, dictations and clipboard history stay here and on your backup server." : "Learned words, app-specific language and emoji choices, dictations and clipboard history stay here.", systemImage: "iphone").row()
                 Label("iikb goes online to download its voice model, search GIFs, and send the field’s text and app ID to sources you add.", systemImage: "network").row()
+            }
+            if Backup.isBuiltIn {
+                Box(header: "Backup", footer: "iikb sends what it keeps to your server each time it changes, and the server keeps every version, so a lost iPhone, a reinstall or a bug can’t take it.") {
+                    switch backup {
+                    case nil: RowText(title: "Checking your server…").row()
+                    case .upToDate: RowText(title: "Up to date", detail: "Your dictations, Dictionary, clipboard and taps are there. The keyboard sends what it learns each time it closes.").row()
+                    case .unreachable: RowText(title: "Can’t reach your server", detail: "iikb sends what changed the next time it can.").row()
+                    }
+                }
+                .task { backup = await Backup.sendApp() }
             }
             Box(footer: "iikb forgets the words it learned across apps and within each app, and where your thumbs land on each key. Your Dictionary stays.") {
                 ActionRow(title: "Reset Learned Words and Taps", role: .destructive) { confirmsReset = true }

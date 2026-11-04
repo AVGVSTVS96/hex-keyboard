@@ -219,6 +219,7 @@ open class HexKeyboardViewController: UIInputViewController {
         TouchTrace.shared.flush()
         saveMemory()
         MemoryStore.save(engine.emojiHistory)
+        if hasFullAccess { MemoryStore.queue.async { Backup.sync(Backup.keyboard + Backup.group) } }
         observers.forEach(Dictation.stopObserving)
         observers = []
     }

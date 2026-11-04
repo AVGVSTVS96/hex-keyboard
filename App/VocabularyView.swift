@@ -1,4 +1,5 @@
 import KeyboardCore
+import KeyboardUI
 import Observation
 import SwiftUI
 
@@ -17,6 +18,7 @@ import SwiftUI
         vocabulary.terms = terms
         try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         try? JSONEncoder().encode(vocabulary).write(to: url, options: .atomic)
+        Backup.syncApp()
     }
 }
 

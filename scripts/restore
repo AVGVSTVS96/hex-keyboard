@@ -1,0 +1,62 @@
+#!/bin/bash
+# Puts iikb's data from the backup here (~/.local/share/hex-keyboard/backup, docs/backup.md) back on an iPhone the Mac
+# reaches, over what's there: every file, or only those named as the backup names them (keyboard/support/typing-memory.json),
+# each as it is now or, with --at, as it was then: the version replaced first after that time, else the one kept now.
+# The app is quit first when its files go back, since it holds its transcripts in memory and would save over them.
+# Usage: scripts/restore <iPhone UDID> [--at 2026-11-04T0300] [name…]
+set -euo pipefail
+umask 077
+phone=${1:?usage: scripts/restore <iPhone UDID> [--at 2026-11-04T0300] [name…]}
+shift
+at=
+if [ "${1:-}" = --at ]; then at=$2; shift 2; fi
+backup=${HEX_BACKUP:-$HOME/.local/share/hex-keyboard/backup}
+stage=$(mktemp -d "$backup/restore.XXXX")
+trap 'rm -rf "$stage"; ssh mac rm -rf "/tmp/${stage##*/}"' EXIT
+python3 - "$backup" "$at" "$stage" "$@" <<'PY'
+import os, sys
+backup, at, stage, names = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4:]
+
+def files(root):
+    for folder, _, found in os.walk(root):
+        for name in found:
+            path = os.path.join(folder, name)
+            yield os.path.relpath(path, root), path
+
+picked = dict(files(os.path.join(backup, 'mirror')))
+if at:
+    versions = os.path.join(backup, 'versions')
+    for stamp in sorted((s for s in os.listdir(versions) if s > at), reverse=True):
+        picked.update(files(os.path.join(versions, stamp)))
+if names:
+    missing = [name for name in names if name not in picked]
+    if missing: sys.exit(f"not in the backup: {' '.join(missing)}")
+    picked = {name: picked[name] for name in names}
+for name, path in picked.items():
+    os.makedirs(os.path.dirname(os.path.join(stage, name)), exist_ok=True)
+    os.link(path, os.path.join(stage, name))
+PY
+rsync -a "$stage/" "mac:/tmp/${stage##*/}/"
+ssh mac sh -s "$phone" "/tmp/${stage##*/}" <<'MAC'
+set -eu
+phone=$1 stage=$2
+if [ -d "$stage/app" ]; then
+  xcrun devicectl device info processes --device "$phone" --json-output "$stage.json" >/dev/null
+  pid=$(/usr/bin/python3 -c "import json, sys; print(next((str(p['processIdentifier']) for p in json.load(open(sys.argv[1]))['result']['runningProcesses'] if p.get('executable', '').endswith('/Hex.app/Hex')), ''))" "$stage.json")
+  rm "$stage.json"
+  [ -z "$pid" ] || xcrun devicectl device process terminate --device "$phone" --pid "$pid" >/dev/null
+fi
+put() {
+  [ -d "$stage/$1" ] || return 0
+  for item in "$stage/$1"/*; do
+    case $1/${item##*/} in (app/Preferences) continue ;; esac
+    xcrun devicectl device copy to --device "$phone" --domain-type "$2" --domain-identifier "$3" --source "$item" --destination "$4/${item##*/}" >/dev/null
+  done
+}
+put app appDataContainer com.shahidy.hexkeyboard "Library/Application Support"
+put app/Preferences appDataContainer com.shahidy.hexkeyboard Library/Preferences
+put keyboard/support appDataContainer com.shahidy.hexkeyboard.keyboard "Library/Application Support"
+put keyboard/Preferences appDataContainer com.shahidy.hexkeyboard.keyboard Library/Preferences
+put group/Library appGroupDataContainer group.com.shahidy.hexkeyboard Library
+MAC
+echo "iikb's data is back on the iPhone"

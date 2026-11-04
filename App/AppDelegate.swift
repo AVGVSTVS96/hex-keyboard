@@ -7,7 +7,10 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         guard !VoiceProbe.asked else { return true }
         if VoiceModel.hasNeuralEngine { VoiceModel.shared.prepare() }
-        Task { await Transcripts.shared.recover() }
+        Task {
+            await Transcripts.shared.recover()
+            Backup.syncApp()
+        }
         return true
     }
 }
