@@ -32,7 +32,7 @@ extension KeyboardView {
         func follow(_ touch: UITouch, in view: UIView, event: UIEvent?) {
             for sample in event?.coalescedTouches(for: touch) ?? [touch] {
                 let at = sample.location(in: view)
-                path.append(SwipePoint(x: at.x, y: at.y, time: (sample.timestamp - began) * 1000))
+                path.append(SwipePoint(x: at.x, y: at.y, time: sample.timestamp - began))
             }
         }
     }

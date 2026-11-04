@@ -212,6 +212,10 @@ def data(directory, split, limit=None):
             out.write(struct.pack("<HH", len(raw), len(points)) + raw)
             out.write(points.astype("<f4").tobytes())
     print(f"{len(swipes)} swipes")
+    with open(source) as lines, open(os.path.join(directory, f"{split}.context"), "w") as out:
+        records = (json.loads(line) for line in lines)
+        contexts = [" ".join(r["sentence"].split()[: r["word_idx"]]) for r in records if len(r["data"]) >= 2]
+        out.write("\n".join(contexts[: len(swipes)]) + "\n")
 
 
 def resample(points, size=64):

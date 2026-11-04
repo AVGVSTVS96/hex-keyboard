@@ -116,6 +116,7 @@ open class HexKeyboardViewController: UIInputViewController {
             render()
         }
         engine.corrector = Corrector(source: Lexicon.english, network: .english)
+        engine.swipeModel = .english
         Task { [weak self] in
             let catalog = await Task.detached(priority: .userInitiated) { EmojiCatalog.english }.value
             self?.engine.emojiCatalog = catalog

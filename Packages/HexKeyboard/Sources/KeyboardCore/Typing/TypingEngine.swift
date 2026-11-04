@@ -27,7 +27,8 @@ public struct TypingEngine {
         }
     }
     public var corrector: Corrector?
-    public var swipeSource: (any SwipeSource)?
+    public var swipeModel: Swipe?
+    var ownedWords: (words: Set<String>, lexicon: Lexicon)?
     var swiped: Swiped?
     /// How the host likely wraps its text, for moving the caret up and down lines.
     public var lineLayout: (any LineLayout)?

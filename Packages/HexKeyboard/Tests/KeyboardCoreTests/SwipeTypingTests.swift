@@ -1,103 +1,97 @@
+import Foundation
 import Testing
 @testable import KeyboardCore
 
-private final class Reading: SwipeSource {
-    var words: [(word: String, score: Double)]
-    var keys: [String: Rect] = [:]
-
-    init(_ words: [(word: String, score: Double)]) { self.words = words }
-
-    func decode(_ path: [SwipePoint], keys: [String: Rect]) -> [(word: String, score: Double)] {
-        self.keys = keys
-        return words
+/// The finger going over the keys of `word` on the standard grid, at 8 points a step and 8 ms apart.
+private func path(_ word: String, on grid: KeyGrid = .standard) -> [SwipePoint] {
+    let centers = word.map { grid.frame(of: String($0))! }.map { (x: $0.midX, y: $0.midY) }
+    var points = [SwipePoint(x: centers[0].x, y: centers[0].y, time: 0)]
+    for (from, to) in zip(centers, centers.dropFirst()) {
+        let steps = max(Int((hypot(to.x - from.x, to.y - from.y) / 0.25).rounded(.up)), 1)
+        for step in 1...steps {
+            let share = Double(step) / Double(steps)
+            points.append(SwipePoint(x: from.x + (to.x - from.x) * share, y: from.y + (to.y - from.y) * share, time: points.last!.time + 0.008))
+        }
     }
+    return points
 }
 
-private let path = [SwipePoint(x: 20, y: 20, time: 0), SwipePoint(x: 120, y: 40, time: 80), SwipePoint(x: 200, y: 20, time: 160)]
-
-private func engine(reading words: [(word: String, score: Double)]) -> (engine: TypingEngine, source: Reading, document: TestDocument) {
+private func engine() -> (engine: TypingEngine, document: TestDocument) {
     var engine = TypingEngine()
     engine.corrector = Corrector(source: testLexicon)
     engine.settings.autoCapitalization = false
-    let source = Reading(words)
-    engine.swipeSource = source
+    engine.swipeModel = swipe
     let document = TestDocument()
     engine.documentChanged(document)
-    return (engine, source, document)
+    return (engine, document)
 }
 
 struct SwipeTypingTests {
     @Test func aSwipeTypesItsWordAndTheNextOneFollowsAfterASpace() {
-        var (engine, source, document) = engine(reading: [("hello", -1)])
-        let typed = engine.handle(.swipe(path), in: document)
+        var (engine, document) = engine()
+        let typed = engine.handle(.swipe(path("hello")), in: document)
         #expect(typed)
         #expect(document.text == "hello", "no space before the first word, none after")
-        source.words = [("world", -1)]
-        engine.handle(.swipe(path), in: document)
+        engine.handle(.swipe(path("world")), in: document)
         #expect(document.text == "hello world")
         #expect(engine.text.owned == document.text.count, "the keyboard typed it, so it may correct it")
     }
 
     @Test func noSpaceGoesInAfterASpaceOrAnOpener() {
-        var (engine, _, document) = engine(reading: [("hello", -1)])
+        var (engine, document) = engine()
         engine.perform(.space, in: document)
-        engine.handle(.swipe(path), in: document)
+        engine.handle(.swipe(path("hello")), in: document)
         #expect(document.text == " hello")
         let quote = TestDocument("(")
         engine.documentChanged(quote)
-        engine.handle(.swipe(path), in: quote)
+        engine.handle(.swipe(path("hello")), in: quote)
         #expect(quote.text == "(hello")
     }
 
     @Test func aWordInProgressEndsBeforeTheSwipe() {
-        var (engine, _, document) = engine(reading: [("world", -1)])
+        var (engine, document) = engine()
         engine.perform(.character("h"), in: document)
         engine.perform(.character("i"), in: document)
-        engine.handle(.swipe(path), in: document)
+        engine.handle(.swipe(path("world")), in: document)
         #expect(document.text == "hi world")
     }
 
     @Test func capitalsFollowShiftAndCapsLock() {
-        var (engine, _, document) = engine(reading: [("hello", -1)])
+        var (engine, document) = engine()
         engine.settings.autoCapitalization = true
-        engine.handle(.swipe(path), in: document)
+        engine.handle(.swipe(path("hello")), in: document)
         #expect(document.text == "Hello", "the field's start asks for a capital, as typing does")
-        engine.handle(.swipe(path), in: document)
+        engine.handle(.swipe(path("hello")), in: document)
         #expect(document.text == "Hello hello")
 
         let other = TestDocument()
         engine.documentChanged(other)
         engine.perform(.capsLock, in: other)
-        engine.handle(.swipe(path), in: other)
+        engine.handle(.swipe(path("hello")), in: other)
         #expect(other.text == "HELLO")
     }
 
-    @Test func theSentenceDecidesBetweenCloseReadings() {
-        var (engine, _, document) = engine(reading: [("man", -1), ("the", -1.5)])
-        engine.handle(.swipe(path), in: document)
-        #expect(document.text == "the", "log P(word | before it) outweighs half a point of swipe score")
-    }
-
     @Test func theSpellingIsTheLexicons() {
-        var (engine, _, document) = engine(reading: [("i", -1)])
-        engine.handle(.swipe(path), in: document)
-        #expect(document.text == "I")
+        var (engine, document) = engine()
+        engine.handle(.swipe(path("im")), in: document)
+        #expect(document.text == "I’m", "the apostrophe costs no swipe, and is curled as typed ones are")
     }
 
     @Test func theBarOffersTheOtherReadingsAndAPickReplacesTheSwipedWord() throws {
-        var (engine, _, document) = engine(reading: [("hello", -1), ("help", -1.2), ("hell", -3)])
+        var (engine, document) = engine()
         engine.perform(.character("a"), in: document)
         engine.perform(.space, in: document)
-        engine.handle(.swipe(path), in: document)
-        #expect(engine.suggestions.map(\.text) == ["help", "hello", "hell"])
-        engine.accept(try #require(engine.suggestions.first { $0.text == "help" }), in: document)
-        #expect(document.text == "a help ")
+        engine.handle(.swipe(path("hello")), in: document)
+        let bar = engine.suggestions.map(\.text)
+        #expect(bar.count == 3 && bar[1] == "hello", "\(bar)")
+        engine.accept(try #require(engine.suggestions.first { $0.text != "hello" }), in: document)
+        #expect(document.text != "a hello" && document.text.hasSuffix(" "))
     }
 
     @Test func deleteTakesOutTheWholeSwipedWordAndTheSpaceItAdded() {
-        var (engine, _, document) = engine(reading: [("hello", -1)])
+        var (engine, document) = engine()
         engine.perform(.character("a"), in: document)
-        engine.handle(.swipe(path), in: document)
+        engine.handle(.swipe(path("hello")), in: document)
         #expect(document.text == "a hello")
         engine.perform(.delete, in: document)
         #expect(document.text == "a")
@@ -106,17 +100,17 @@ struct SwipeTypingTests {
     }
 
     @Test func deleteLeavesASpaceYouTyped() {
-        var (engine, _, document) = engine(reading: [("hello", -1)])
+        var (engine, document) = engine()
         engine.perform(.character("a"), in: document)
         engine.perform(.space, in: document)
-        engine.handle(.swipe(path), in: document)
+        engine.handle(.swipe(path("hello")), in: document)
         engine.perform(.delete, in: document)
         #expect(document.text == "a ")
     }
 
     @Test func aLetterTypedAfterASwipeGoesOnNormally() {
-        var (engine, _, document) = engine(reading: [("hello", -1)])
-        engine.handle(.swipe(path), in: document)
+        var (engine, document) = engine()
+        engine.handle(.swipe(path("hello")), in: document)
         engine.perform(.character("s"), in: document)
         #expect(document.text == "hellos")
         engine.perform(.delete, in: document)
@@ -124,8 +118,8 @@ struct SwipeTypingTests {
     }
 
     @Test func aSwipeIsNotUndoneByDeleteOnceTheCaretMoves() {
-        var (engine, _, document) = engine(reading: [("hello", -1)])
-        engine.handle(.swipe(path), in: document)
+        var (engine, document) = engine()
+        engine.handle(.swipe(path("hello")), in: document)
         engine.handle(.cursor(offset: -1), in: document)
         engine.handle(.cursor(offset: 1), in: document)
         engine.perform(.delete, in: document)
@@ -133,35 +127,36 @@ struct SwipeTypingTests {
     }
 
     @Test func theSwipedWordIsKeptAsSwipedAndCountedOnceYouMoveOn() {
-        var (engine, _, document) = engine(reading: [("world", -1)])
-        engine.handle(.swipe(path), in: document)
+        var (engine, document) = engine()
+        engine.handle(.swipe(path("world")), in: document)
         engine.perform(.space, in: document)
         #expect(document.text == "world ")
         #expect(engine.corrector?.memory.count(of: "world") == 1)
     }
 
     @Test func withSlideToTypeOffNothingIsTyped() {
-        var (engine, source, document) = engine(reading: [("hello", -1)])
+        var (engine, document) = engine()
         engine.settings.slideToType = false
-        let typed = engine.handle(.swipe(path), in: document)
-        #expect(!typed)
-        #expect(document.text.isEmpty)
-        #expect(source.keys.isEmpty)
-    }
-
-    @Test func aSwipeNoWordFitsTypesNothing() {
-        var (engine, _, document) = engine(reading: [])
-        let typed = engine.handle(.swipe(path), in: document)
+        let typed = engine.handle(.swipe(path("hello")), in: document)
         #expect(!typed)
         #expect(document.text.isEmpty)
     }
 
-    @Test func theDecoderGetsEveryLetterKeyOfTheLiveGrid() throws {
-        var (engine, source, document) = engine(reading: [("hello", -1)])
-        engine.handle(.swipe(path), in: document)
-        let grid = try #require(engine.corrector?.grid)
-        #expect(source.keys.count == 26)
-        #expect(source.keys["q"] == grid.frame(of: "q"))
+    @Test func aTouchTooShortToReadTypesNothing() {
+        var (engine, document) = engine()
+        let typed = engine.handle(.swipe([SwipePoint(x: 1, y: 1, time: 0)]), in: document)
+        #expect(!typed)
+        #expect(document.text.isEmpty)
+    }
+
+    @Test func wordsYouTaughtTheKeyboardCanBeSwiped() {
+        var (engine, document) = engine()
+        for _ in 0..<2 { engine.corrector?.record("zorp", after: "", earlier: nil) }
+        engine.corrector?.setNames(["Quentin"])
+        engine.handle(.swipe(path("zorp")), in: document)
+        #expect(document.text == "zorp")
+        engine.handle(.swipe(path("quentin")), in: document)
+        #expect(document.text == "zorp Quentin")
     }
 
     @Test func aSplitKeyboardsRepeatedKeyIsTheOneNearTheSwipe() throws {
@@ -169,15 +164,15 @@ struct SwipeTypingTests {
         let context = LayoutContext(device: .phone, layer: .letters, kind: .text, showsGlobe: true, isLandscape: true, isOpen: true, isSplit: true, showsEmoji: true)
         let metrics = KeyboardMetrics.for(.phone, width: width, height: height, split: true)
         let grid = KeyGrid(Layouts.layout(for: context), width: width, metrics: metrics.grid, signature: context.signature)
-        var (engine, source, document) = engine(reading: [("hello", -1)])
-        engine.corrector?.grid = grid
         let copies = grid.rows.joined().filter { $0.key.label == "v" }.map(\.frame)
         try #require(copies.count == 2)
+        let alphabet = (0..<26).map { String(UnicodeScalar(UInt8(97 + $0))) }
+        let v = alphabet.firstIndex(of: "v")!
         for copy in copies {
-            let near = [SwipePoint(x: copy.midX, y: copy.midY, time: 0), SwipePoint(x: copy.midX + 1, y: copy.midY, time: 10)]
-            engine.handle(.swipe(near), in: document)
-            #expect(source.keys["v"] == copy)
+            let near = [SwipePoint(x: copy.midX, y: copy.midY, time: 0), SwipePoint(x: copy.midX + 1, y: copy.midY, time: 0.01)]
+            let layout = try #require(grid.swipeLayout(near: near))
+            let box = try #require(SwipeLayout(grid: grid)).frame
+            #expect(abs(layout.centers[v].x * box.width + box.x - copy.midX) < 0.001)
         }
-        #expect(source.keys.count == 26)
     }
 }

@@ -1,5 +1,5 @@
 /// One touch of a swipe: where it was in points, and when, in seconds.
-public struct SwipePoint: Sendable, Equatable {
+public struct SwipePoint: Sendable, Hashable {
     public var x: Double
     public var y: Double
     public var time: Double

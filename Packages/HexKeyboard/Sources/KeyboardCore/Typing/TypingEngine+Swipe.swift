@@ -1,20 +1,3 @@
-/// One sample of a swipe: where the finger was, in keyboard points, and when, in milliseconds after it touched down.
-public struct SwipePoint: Hashable, Sendable {
-    public var x, y, time: Double
-
-    public init(x: Double, y: Double, time: Double) {
-        self.x = x
-        self.y = y
-        self.time = time
-    }
-}
-
-/// Reads a swipe over the letter keys as the words it may have spelled, likeliest first, each scored by a
-/// log-probability-like number that knows nothing of the sentence.
-public protocol SwipeSource: AnyObject {
-    func decode(_ path: [SwipePoint], keys: [String: Rect]) -> [(word: String, score: Double)]
-}
-
 /// The word a swipe just typed, which delete takes out whole and the bar offers alternatives to, for as long as the text
 /// before the caret is as the swipe left it.
 struct Swiped: Hashable {
@@ -24,16 +7,12 @@ struct Swiped: Hashable {
 }
 
 extension TypingEngine {
-    /// How much the sentence counts against the swipe, as a multiple of log P(word | the words before it).
-    static let swipeContextWeight = 0.65
 
     /// Types the likeliest word for a swipe, as a word follows a word: a space first when the caret follows one, none
     /// after. Returns false when nothing was typed.
     mutating func swipe(_ path: [SwipePoint], in document: some TextDocument) -> Bool {
-        guard settings.slideToType, panel == nil, layer == .letters, path.count > 1, let swipeSource, let corrector else { return false }
+        guard settings.slideToType, panel == nil, layer == .letters, let corrector, let decoded = candidates(for: path, corrector) else { return false }
         attach(document)
-        let decoded = swipeSource.decode(path, keys: corrector.grid.letterFrames(near: path))
-        guard !decoded.isEmpty else { return false }
         lastSpace = nil
         revert = nil
         commitWord(in: document)
@@ -42,7 +21,7 @@ extension TypingEngine {
         var seen: Set<String> = []
         let words = decoded
             .map { (word: corrector.spelling(of: $0.word), swipe: $0.score) }
-            .map { (word: $0.word, score: $0.swipe + Self.swipeContextWeight * continues($0.word)) }
+            .map { (word: $0.word, score: $0.swipe + Swipe.Scoring.contextWeight * continues($0.word)) }
             .filter { seen.insert($0.word.lowercased()).inserted }
             .sorted { $0.score > $1.score }
             .prefix(3)
@@ -54,6 +33,28 @@ extension TypingEngine {
         refreshShift()
         suggestionsChanged()
         return true
+    }
+
+    /// What the swipe may have spelled, in the lexicon and in the words you've taught the keyboard, which a lexicon of their
+    /// own holds (made again only when they change). Nil for a path too short to read.
+    private mutating func candidates(for path: [SwipePoint], _ corrector: Corrector) -> [Swipe.Candidate]? {
+        guard let model = swipeModel, let lexicon = corrector.lexicon, let layout = corrector.grid.swipeLayout(near: path),
+              let emissions = model.emissions(of: path, on: layout) else { return nil }
+        var found = Swipe.rank(emissions, in: lexicon, .withContext, limit: 10)
+        if let own = ownWords(corrector, besides: lexicon) {
+            let prior = Swipe.Scoring.withContext.lambda * (Math.log(Double(own.count)) - Swipe.Scoring.ownLogProbability)
+            found += Swipe.rank(emissions, in: own.lexicon, .withContext, limit: 3).map { Swipe.Candidate(word: $0.word, score: $0.score + prior) }
+        }
+        return found.isEmpty ? nil : found
+    }
+
+    private mutating func ownWords(_ corrector: Corrector, besides lexicon: Lexicon) -> (lexicon: Lexicon, count: Int)? {
+        let words = Set((Array(corrector.memory.familiar) + Array(corrector.names.values)).filter { word in
+            word.utf8.allSatisfy { Lexicon.index(of: Lexicon.fold($0)) != nil } && lexicon.logProbability(of: word) == nil
+        })
+        guard !words.isEmpty else { return nil }
+        if ownedWords?.words != words { ownedWords = (words, Lexicon(counts: words.map { (word: $0, count: 1.0) })) }
+        return ownedWords.map { ($0.lexicon, words.count) }
     }
 
     /// The swipe's word while it's still the last thing typed.
@@ -84,16 +85,27 @@ extension Corrector {
     }
 }
 
-private extension KeyGrid {
-    /// Each letter's key frame; where the halves of a split keyboard both have one, the one nearer the swipe's middle.
-    func letterFrames(near path: [SwipePoint]) -> [String: Rect] {
+extension Swipe.Scoring {
+    /// How much the sentence counts against the swipe, as a multiple of ln P(word | the words before it).
+    static let contextWeight = 0.65
+    /// Where a word you taught the keyboard sits in the lexicon's scale, whatever its spelling's prior.
+    static let ownLogProbability = -12.0
+    /// `refined` with the language model in the score: it takes over some of what the lexicon's prior did.
+    static let withContext = refined
+}
+
+extension KeyGrid {
+    /// The letters as the model reads them: each key's center, and where the halves of a split keyboard both have one,
+    /// the one nearer the swipe's middle.
+    func swipeLayout(near path: [SwipePoint]) -> SwipeLayout? {
+        guard let box = SwipeLayout(grid: self), !path.isEmpty else { return nil }
         let x = path.reduce(0) { $0 + $1.x } / Double(path.count), y = path.reduce(0) { $0 + $1.y } / Double(path.count)
-        var frames: [String: Rect] = [:]
+        var nearest: [Character: Rect] = [:]
         for (key, frame) in rows.joined() {
-            guard let label = key.label, label.first?.isLetter == true else { continue }
-            if let known = frames[label], known.distanceSquared(toX: x, y: y) <= frame.distanceSquared(toX: x, y: y) { continue }
-            frames[label] = frame
+            guard let label = key.label?.lowercased(), label.utf8.count == 1, let letter = label.first, letter.isASCII, letter.isLowercase else { continue }
+            if let known = nearest[letter], known.distanceSquared(toX: x, y: y) <= frame.distanceSquared(toX: x, y: y) { continue }
+            nearest[letter] = frame
         }
-        return frames
+        return SwipeLayout(centers: nearest.mapValues { ($0.midX, $0.midY) }, frame: box.frame)
     }
 }
