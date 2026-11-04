@@ -156,7 +156,7 @@ struct HomeView: View {
     }
 
     /// The settings pages Home links straight to, each showing what it's set to.
-    private static let shortcuts: [SettingsPage.Page] = [.dictionary, .theme, .model, .writing, .feedback, .mic]
+    private static let shortcuts: [SettingsPage.Page] = [.dictionary, .writing, .model, .mic, .theme, .layout, .typing, .feedback]
 
     private static let columns = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
 

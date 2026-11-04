@@ -102,17 +102,11 @@ struct TryPreview: View {
         Binding { self.settings[keyPath: path] } set: { value in self.update { $0[keyPath: path] = value } }
     }
 
-    var oneHanded: OneHanded {
-        get { settings.oneHanded }
-        set { update { $0.oneHanded = newValue } }
-    }
-
     func keepMicOn(_ seconds: Int) {
         keepMicOn = seconds
         SettingsStore.keepMicOn = seconds
         Listener.shared.keepMicOn()
     }
-
 
     /// Adds a source, or puts `replacing` back with its new values.
     func save(_ source: Source, replacing old: Source?) {
@@ -226,40 +220,30 @@ struct LayoutSettings: View {
     private let model = SettingsModel.shared
 
     var body: some View {
-        Box(header: "Key Spacing", footer: "Less space between the keys makes them bigger. The keyboard stays the same size.") {
+        Box(header: "Size and Shape", footer: "Less space between the keys makes them bigger. The keyboard stays the same size.") {
             StopSlider(title: "Space Between Keys", label: "Key Spacing", level: model.binding(\.keySpacing), levels: KeySpacing.allCases, name: \.title, ends: ("Bigger Keys", "More Space"))
-        }
-        Box(header: "Key Roundness", footer: "How round the keys' corners are, from square to nearly a pill.") {
             StopSlider(title: "Corners", label: "Key Roundness", level: model.binding(\.keyRoundness), levels: KeyRoundness.allCases, name: \.title, ends: ("Sharper", "Rounder"))
         }
-        Box(header: "Rows") {
+        Box(header: "Keys") {
             ToggleRow(title: "Number Row", detail: "1 to 0 above the letters. The keyboard grows upward.", isOn: model.binding(\.numberRow))
-        }
-        Box(header: "Emoji") {
             ToggleRow(title: "Emoji Key", detail: "Every emoji, from beside the space bar. Without it, a word’s emoji still show in the suggestions.", isOn: model.binding(\.emojiKey))
+            ToggleRow(title: "Globe Key", detail: "At the far left of the bottom row, on iPhones with no globe under the keyboard, like the Duo. Without it, Next Keyboard is in the keyboard’s menu.", isOn: model.binding(\.globeKey))
+            ToggleRow(title: "Record Key", detail: "The record button left of 123, in the globe’s place, instead of at the right of the bar. The globe goes to the keyboard’s menu.", isOn: model.binding(\.micKey))
+        }
+        Box(header: "Emoji and GIFs") {
             MenuRow(title: "Skin Tone", selection: model.binding(\.skinTone), choices: [nil] + SkinTone.allCases.map(Optional.some)) { tone in
                 "✋\(tone.map { String($0.modifier) } ?? "") \(tone?.title ?? "Default")"
             }
             ToggleRow(title: "Compact Emoji & GIFs", detail: "One row that scrolls sideways, as in landscape, so the keyboard stays short in portrait too.", isOn: model.binding(\.compactPanels))
         }
-        Box(footer: "On the open iPhone Duo in landscape, half the keys sit under each thumb. You can also pick it from the keyboard’s menu.") {
+        Box(header: "Split and One-Handed", footer: "Split puts half the keys under each thumb on the open iPhone Duo in landscape. One-Handed moves them toward one thumb on an iPhone in portrait, on the Duo only folded. The keyboard’s menu has both too.") {
             ToggleRow(title: "Split Keyboard", isOn: model.binding(\.split))
-        }
-        Box(header: "One-Handed Keyboard", footer: "Moves the keys toward one thumb on an iPhone in portrait, on the Duo only folded. You can also pick it from the keyboard’s menu.") {
-            ForEach(OneHanded.allCases, id: \.self) { hand in
-                ChoiceRow(title: Self.title(of: hand), picked: model.oneHanded == hand) { model.oneHanded = hand }
-            }
+            MenuRow(title: "One-Handed Keyboard", selection: model.binding(\.oneHanded), choices: OneHanded.allCases, label: Self.title(of:))
         }
         Box(header: "Keyboard Menu", footer: "Where to open layouts, Next Keyboard and iikb Settings: hold 123 and slide, or tap the menu button above the keys.") {
             ForEach(KeyboardMenu.allCases, id: \.self) { place in
                 ChoiceRow(title: place.title, picked: model.settings.keyboardMenu == place) { model.update { $0.keyboardMenu = place } }
             }
-        }
-        Box(footer: "At the far left of the bottom row, on iPhones with no globe under the keyboard, like the Duo. Without it, Next Keyboard is in the keyboard’s menu.") {
-            ToggleRow(title: "Globe Key", isOn: model.binding(\.globeKey))
-        }
-        Box(footer: "The record button at the far left of the bottom row, left of 123, in the globe’s place, instead of at the right of the bar. The globe goes to the keyboard’s menu.") {
-            ToggleRow(title: "Record Key", isOn: model.binding(\.micKey))
         }
     }
 
@@ -466,15 +450,17 @@ struct FeedbackSettings: View {
     }
 
     var body: some View {
-        Box(header: "Touch and Sound", footer: status.fullAccess ? "Standard is Apple’s keyboard’s own tap. Each step taps as you pick it." : "Haptics need Allow Full Access.") {
+        Box(header: "Haptics", footer: status.fullAccess ? "Standard is Apple’s keyboard’s own tap. Each step taps as you pick it." : "Haptics need Allow Full Access.") {
             ToggleRow(title: "Key Haptics", isOn: hapticsOn)
             if model.settings.haptics != .off {
                 HapticSlider(level: model.binding(\.haptics))
             }
-            ToggleRow(title: "Sound", detail: "The key click, while Keyboard Clicks is on in iOS Settings › Sounds & Haptics.", isOn: model.binding(\.sound))
             if !status.fullAccess {
                 ActionRow(title: "Allow Full Access", symbol: "arrow.up.forward") { HexStatus.openSettings() }
             }
+        }
+        Box {
+            ToggleRow(title: "Sound", detail: "The key click, while Keyboard Clicks is on in iOS Settings › Sounds & Haptics.", isOn: model.binding(\.sound))
         }
     }
 }
