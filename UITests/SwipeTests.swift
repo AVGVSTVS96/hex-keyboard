@@ -10,12 +10,17 @@ final class SwipeTests: XCTestCase {
         app = XCUIApplication()
         app.launchArguments = ["-HexFocus", "YES", "-HexResetSettings", "YES"]
         app.launch()
-        XCTAssertTrue(app.keys["hex.space"].waitForExistence(timeout: 30), "iikb is not the active keyboard")
+        if !app.keys["hex.space"].waitForExistence(timeout: 15) {
+            app.terminate()
+            app.launch()
+        }
+        XCTAssertTrue(app.keys["hex.space"].waitForExistence(timeout: 15), "iikb is not the active keyboard")
     }
 
     func testASwipeTypesItsWordAndTheBarOffersOthers() throws {
         try swipe("hello")
         XCTAssertEqual(settled().lowercased(), "hello")
+        XCTAssertTrue(suggestion(1).waitForExistence(timeout: 5))
         let middle = suggestion(1).label
         XCTAssertEqual(middle.lowercased(), "hello", "the bar's middle slot is the swiped word")
         let other = [0, 2].map { suggestion($0).label }.first { !$0.isEmpty }
