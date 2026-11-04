@@ -80,6 +80,25 @@ nonisolated public enum Backup {
         return .upToDate
     }
 
+    /// A file the Mac sent the server under `mac/`, and when it was last changed there; nil without a server or the file.
+    public static func read(_ name: String) async -> (data: Data, modified: Date)? {
+        guard let server else { return nil }
+        var request = URLRequest(url: server.url.appending(path: name), cachePolicy: .reloadIgnoringLocalCacheData)
+        request.setValue("Bearer \(server.token)", forHTTPHeaderField: "Authorization")
+        guard let (data, response) = try? await URLSession.shared.data(for: request), let http = response as? HTTPURLResponse, http.statusCode == 200,
+              let modified = http.value(forHTTPHeaderField: "Last-Modified").flatMap(httpDate)
+        else { return nil }
+        return (data, modified)
+    }
+
+    private static func httpDate(_ text: String) -> Date? {
+        let format = DateFormatter()
+        format.locale = Locale(identifier: "en_US_POSIX")
+        format.timeZone = .gmt
+        format.dateFormat = "EEE, dd MMM yyyy HH:mm:ss zzz"
+        return format.date(from: text)
+    }
+
     private static func contents(of folder: Folder) -> [(name: String, url: URL, size: Int, modified: Int)] {
         let keys: Set<URLResourceKey> = [.isRegularFileKey, .fileSizeKey, .contentModificationDateKey]
         let root = folder.url.resolvingSymlinksInPath().pathComponents

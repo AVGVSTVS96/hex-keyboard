@@ -4,9 +4,9 @@ import KeyboardUI
 import SwiftUI
 import notify
 
-/// What the keyboard learned of where you tap, for one screen at a time: your numbers, the keyboard drawn with it
-/// (Heat, Aim, Accuracy), a picked key up close, how each half pulls, and the keys you miss most. Wide, the keyboard and
-/// the pull take the pane before the hinge and the rest the one after.
+/// Stats' Taps: what the keyboard learned of where you tap, for one screen at a time: your numbers, the keyboard drawn
+/// with it (Heat, Aim, Accuracy), a picked key up close, how each half pulls, and the keys you miss most. Wide, the
+/// keyboard and the pull take the pane before the hinge and the rest the one after.
 struct TapsPage: View {
     @State private var model = TapsModel()
     @State private var mode = LaunchOptions.tapsMode ?? .heat
@@ -14,22 +14,16 @@ struct TapsPage: View {
     @Environment(\.window) private var window
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if let board = model.board {
-                    content(board)
-                } else {
-                    empty
-                }
+        Group {
+            if let board = model.board {
+                content(board)
+            } else {
+                empty
             }
-            .hexPage()
-            .navigationTitle("Your Taps")
-            .toolbarTitleDisplayMode(.inlineLarge)
-            .toolbar {
-                if model.layouts.count > 1 {
-                    ToolbarItem(placement: .topBarTrailing) { screens }
-                }
-                MicSwitchItem()
+        }
+        .toolbar {
+            if model.layouts.count > 1 {
+                ToolbarItem(placement: .topBarTrailing) { screens }
             }
         }
         .onAppear {
@@ -76,7 +70,7 @@ struct TapsPage: View {
 
     private func map(_ board: TapBoard, reader: ScrollViewProxy) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            ModePills(selection: $mode)
+            SectionPills(sections: TapMapView.Mode.allCases, selection: $mode, title: \.title)
             MapView(board: board, revision: model.revision, mode: mode, selected: model.selected) { key in
                 withAnimation(.snappy(duration: 0.25)) { model.selected = key }
             }
@@ -281,43 +275,13 @@ private extension TapMapView.Mode {
     }
 }
 
-/// Raycast's pills for the map's three modes: a row of titles, the picked one on a filled capsule.
-private struct ModePills: View {
-    @Binding var selection: TapMapView.Mode
-    @Namespace private var pill
-
-    var body: some View {
-        HStack(spacing: 2) {
-            ForEach(TapMapView.Mode.allCases, id: \.self) { mode in
-                let picked = mode == selection
-                Button {
-                    withAnimation(.snappy(duration: 0.28)) { selection = mode }
-                } label: {
-                    Text(mode.title)
-                        .font(.body.weight(.medium))
-                        .foregroundStyle(picked ? Color.hexPillLabel : Color.hexSecondary)
-                        .padding(.horizontal, 13)
-                        .padding(.vertical, 8)
-                        .background {
-                            if picked { Capsule().fill(Color.hexPill).matchedGeometryEffect(id: "pill", in: pill) }
-                        }
-                        .contentShape(.capsule)
-                }
-                .buttonStyle(.plain)
-                .accessibilityAddTraits(picked ? [.isSelected, .isButton] : .isButton)
-            }
-        }
-        .sensoryFeedback(.selection, trigger: selection)
-    }
-}
-
-private enum TapColor {
+enum TapColor {
     static let aim = Color.blue
     static let miss = Color(TapMapPalette.miss)
 }
 
 /// A card in the app's look, its content padded, under a gray header and over a gray footer.
-private struct Card<Content: View>: View {
+struct Card<Content: View>: View {
     var header: String? = nil
     var footer: String? = nil
     @ViewBuilder var content: Content
@@ -332,7 +296,7 @@ private struct Card<Content: View>: View {
 }
 
 /// A big number with its label under it, flush left.
-private struct Figure: View {
+struct Figure: View {
     let value: String
     let label: String
     var size: CGFloat = 30
@@ -426,7 +390,7 @@ private struct Meter: View {
 }
 
 /// How your last taps compare: green and up when they land more often, orange and down when less.
-private struct TrendChip: View {
+struct TrendChip: View {
     let points: Int
 
     var body: some View {
@@ -607,7 +571,7 @@ private struct KeyDetail: View {
             Drawing(make: { TapCloseUpView() }, update: { $0.show(aim, keys: keys) }, height: { _ in TapCloseUpView.height })
             if !aim.recent.isEmpty { recent }
 
-            section("Where its taps land") { LandingBar(shares: shares) }
+            section("Where its taps land") { SegmentedBar(parts: landing) }
             section("Its aim follows") { MemoryBar(weights: aim.memories.map(\.weight)) }
         }
     }
@@ -647,75 +611,14 @@ private struct KeyDetail: View {
         .padding(.top, 4)
     }
 
-    /// The key itself, its three biggest misses, and the rest as one.
-    private var shares: [LandingBar.Share] {
+    /// The key itself in blue, its three biggest misses in orange, and the rest as one in gray.
+    private var landing: [SegmentedBar.Part] {
         let misses = aim.landing.filter { $0.key != aim.key }
-        var shares = [LandingBar.Share(name: name, share: aim.onTarget, kind: .target)]
-        shares += misses.prefix(3).filter { $0.share >= 0.005 }.map { LandingBar.Share(name: TapMapPalette.name(of: $0.key), share: $0.share, kind: .miss) }
-        let rest = 1 - shares.reduce(0) { $0 + $1.share }
-        if rest >= 0.005 { shares.append(LandingBar.Share(name: "other", share: rest, kind: .rest)) }
-        return shares
-    }
-}
-
-/// One whole split into where a key's taps land: the key in the accent, each miss in orange, the rest in gray, each
-/// part's name and share under it.
-private struct LandingBar: View {
-    struct Share {
-        enum Kind { case target, miss, rest }
-        let name: String
-        let share: Double
-        let kind: Kind
-    }
-
-    let shares: [Share]
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            GeometryReader { proxy in
-                let gap: CGFloat = 2
-                let width = proxy.size.width - gap * CGFloat(shares.count - 1)
-                HStack(spacing: gap) {
-                    ForEach(shares.indices, id: \.self) { index in
-                        let share = shares[index]
-                        RoundedRectangle(cornerRadius: 4, style: .continuous)
-                            .fill(color(share.kind))
-                            .frame(width: max(width * share.share, 3))
-                            .overlay(alignment: .leading) {
-                                if width * share.share >= 48 {
-                                    Text(TapMapPalette.percent(share.share))
-                                        .font(.caption.weight(.semibold))
-                                        .monospacedDigit()
-                                        .foregroundStyle(.white)
-                                        .padding(.leading, 8)
-                                }
-                            }
-                    }
-                }
-            }
-            .frame(height: 28)
-            HStack(spacing: 14) {
-                ForEach(shares.indices, id: \.self) { index in
-                    HStack(spacing: 5) {
-                        RoundedRectangle(cornerRadius: 2).fill(color(shares[index].kind)).frame(width: 8, height: 8)
-                        Text("\(shares[index].name) \(TapMapPalette.percent(shares[index].share))")
-                            .monospacedDigit()
-                    }
-                }
-            }
-            .font(.footnote)
-            .foregroundStyle(Color.hexSecondary)
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(shares.map { "\($0.name) \(TapMapPalette.percent($0.share))" }.joined(separator: ", "))
-    }
-
-    private func color(_ kind: Share.Kind) -> Color {
-        switch kind {
-        case .target: TapColor.aim
-        case .miss: TapColor.miss
-        case .rest: Color.hexSecondary.opacity(0.45)
-        }
+        var parts = [SegmentedBar.Part(name: name, share: aim.onTarget, color: TapColor.aim)]
+        parts += misses.prefix(3).filter { $0.share >= 0.005 }.map { SegmentedBar.Part(name: TapMapPalette.name(of: $0.key), share: $0.share, color: TapColor.miss) }
+        let rest = 1 - parts.reduce(0) { $0 + $1.share }
+        if rest >= 0.005 { parts.append(SegmentedBar.Part(name: "other", share: rest, color: Color.hexSecondary.opacity(0.45))) }
+        return parts
     }
 }
 

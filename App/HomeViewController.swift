@@ -161,7 +161,7 @@ struct HomeView: View {
                 Tile(symbol: "list.clipboard.fill", color: .orange, title: state.copied == 1 ? "item copied" : "items copied", value: state.copied.formatted())
             }
             .buttonStyle(CardPress())
-            Button { Router.shared.show(.taps) } label: {
+            Button { Router.shared.show(StatsPage.Section.taps) } label: {
                 Tile(symbol: "hand.tap.fill", color: .blue, title: state.taps == 1 ? "tap learned" : "taps learned", value: state.taps.formatted())
             }
             .buttonStyle(CardPress())

@@ -14,14 +14,21 @@ enum LaunchOptions {
     /// `-HexScrollToEnd YES` opens every page scrolled to its end, for screenshots of what sits above the tab bar.
     static var scrollsToEnd: Bool { defaults.bool(forKey: "HexScrollToEnd") }
     static var scrollAnchor: UnitPoint { scrollsToEnd ? .bottom : .top }
-    /// The tab and page the app opens on: `-HexTab transcripts`, `-HexTaps YES` for Your Taps, `-HexSettings typing`
-    /// for a settings page (`YES` for the list), as `SettingsPage.Page` names them.
+    /// The tab and page the app opens on: `-HexTab transcripts`, `-HexTaps YES` for Stats' Taps, `-HexStats dictation`
+    /// for another of its pills, `-HexSettings typing` for a settings page (`YES` for the list), as `SettingsPage.Page`
+    /// names them.
     static func route() {
         let router = Router.shared
-        if defaults.bool(forKey: "HexTaps") { return router.show(.taps) }
+        if let section = statsSection { return router.show(section) }
         if let page = defaults.string(forKey: "HexSettings") { return router.show(.settings, settings: SettingsPage.Page(rawValue: page)) }
         router.show(defaults.string(forKey: "HexTab").flatMap(Router.Destination.init) ?? .home)
     }
+
+    static var statsSection: StatsPage.Section? {
+        defaults.bool(forKey: "HexTaps") ? .taps : defaults.string(forKey: "HexStats").flatMap(StatsPage.Section.init)
+    }
+    /// `-HexStatsDevice mac` shows the Mac's.
+    static var statsDevice: StatsPage.Device? { defaults.string(forKey: "HexStatsDevice").flatMap(StatsPage.Device.init) }
 
     static var tapsMode: TapMapView.Mode? {
         switch defaults.string(forKey: "HexTapsMode") {
