@@ -304,6 +304,25 @@ struct MissedSpaceTests {
         #expect(corrector.split(TypedWord("inalsonuodated", previous: "done")) == "i also updated")
     }
 
+    @Test func readsAMissedSpaceByTheWordsAroundIt() {
+        let vocabulary = Network.specials + ["in", "i", "also", "updated", "done"]
+        let network = Network(vocabulary: vocabulary, embedding: vocabulary.map { word in
+            switch word {
+            case "in", "<s>": [1, 0]
+            case "i": [0, 1]
+            case "also": [-1, 1]
+            default: [0, 0]
+            }
+        }, input: [[0, 0], [0, 0], [0, 0], [0, 0], [5, 0], [0, 5], [0, 0], [0, 0]], recurrent: Array(repeating: [0, 0], count: 8),
+                              gates: [10, 10, -10, -10, 0, 0, 10, 10], projection: [[20, 0], [0, 20]], projectionBias: [0, 0],
+                              output: vocabulary.map { Network.specials.contains($0) ? -10 : 0 })
+        let corrector = Corrector(source: Lexicon(counts: [("in", 3000), ("i", 900), ("also", 300), ("updated", 60), ("done", 200)]
+            .map { (word: $0.0, count: Double($0.1)) }), network: network)
+        let typed = TypedWord("inalsonuodated", previous: "done")
+        #expect(corrector.split(typed) == "in also updated")
+        #expect(corrector.split(typed, context: "done ") == "i also updated")
+    }
+
     @Test func offersTheWordsOfASelectedRun() throws {
         var engine = TypingEngine()
         engine.corrector = corrector

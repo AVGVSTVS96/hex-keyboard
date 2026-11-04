@@ -147,7 +147,7 @@ public final class Corrector {
         var seen: Set<String> = [word.text.lowercased()]
         var alternatives: [Suggestion] = []
         if word.text.contains(" ") {
-            let words = correcting && guessing ? split(word) : nil
+            let words = correcting && guessing ? split(word, context: context) : nil
             return [Suggestion(word.text, .literal)] + (words.map { [Suggestion($0, .candidate)] } ?? [])
         }
         if correcting, let correction = correction(for: word, guessing: guessing), seen.insert(correction.lowercased()).inserted {
@@ -159,7 +159,7 @@ public final class Corrector {
                 if seen.insert(text.lowercased()).inserted { alternatives.append(Suggestion(text, kind)) }
             }
         }
-        if correcting, guessing, let split = split(word) { add([split], as: .candidate) }
+        if correcting, guessing, let split = split(word, context: context) { add([split], as: .candidate) }
         let lower = word.text.lowercased()
         add(names.filter { $0.key.count > lower.count && $0.key.hasPrefix(lower) }.values.sorted(), as: .candidate)
         if lexicon != nil {
@@ -223,13 +223,17 @@ public final class Corrector {
         } else {
             network.read(tokens.suffix(Network.window), from: network.start)
         }
+        let next = next(at: state, network, lexicon)
+        reading = (tokens, state, next)
+        return next
+    }
+
+    private func next(at state: Network.State, _ network: Network, _ lexicon: Lexicon) -> Network.Next {
         let unknown = unknown ?? 1 - (Network.specials.count..<network.words).reduce(0) {
             $0 + (lexicon.logProbability(of: network.spelling(of: $1)).map(Math.exp) ?? 0)
         }
         self.unknown = unknown
-        let next = Network.Next(network: network, logProbabilities: network.logProbabilities(at: state), unknown: max(unknown, .ulpOfOne))
-        reading = (tokens, state, next)
-        return next
+        return Network.Next(network: network, logProbabilities: network.logProbabilities(at: state), unknown: max(unknown, .ulpOfOne))
     }
 
     /// The words Check Spelling underlines: words with no digits that aren't in the lexicon (nor its possessive),
@@ -404,7 +408,7 @@ extension Corrector {
     /// that misses it lands; a space tap inside a word may have meant a letter. Only the likeliest words up to each point
     /// go on, so each word is read once and stays cached as the taps after it come in. A single word is read as several
     /// only when that's likelier than every reading of its taps as one known word.
-    func split(_ typed: TypedWord) -> String? {
+    func split(_ typed: TypedWord, context: String? = nil) -> String? {
         let letters = Array(typed.text), spaced = letters.contains(" ")
         guard let lexicon, letters.count >= 3, typed.taps.isEmpty || typed.taps.count == letters.count,
               let spaceRow = grid.index(of: " ")?.row, spaced || !isKnown(typed) else { return nil }
@@ -430,28 +434,62 @@ extension Corrector {
             guard !typed.taps.isEmpty else { return shares(of: label).last }
             return keys.logLikelihood(x: typed.taps[index].x, y: typed.taps[index].y, for: " ")
         }
-        var runs: [Int: (words: [String], score: Double)] = [0: ([], 0)]
-        var best: (words: [String], score: Double)?
+        var runs: [Int: [Run]] = [0: [Run(words: [], likelihood: 0, score: 0)]]
+        var finished: [Run] = []
         for start in letters.indices {
-            guard let run = runs[start] else { continue }
-            for end in (start + 1)...min(letters.count, start + Self.longestWord) {
-                guard let word = meant(start..<end, after: run.words.last?.lowercased() ?? typed.previous) else { continue }
-                let words = run.words + [word.word], score = run.score + word.logPosterior
-                func reach(_ next: Int, by logLikelihood: Double) {
-                    if score + logLikelihood > runs[next]?.score ?? -.infinity { runs[next] = (words, score + logLikelihood) }
-                }
-                if end == letters.count {
-                    if spaced || !run.words.isEmpty, score > best?.score ?? -.infinity { best = (words, score) }
-                } else {
-                    reach(end, by: Decoder.editLogProbability)
-                    if let space = asSpace(end) { reach(end + 1, by: space) }
+            for run in runs[start] ?? [] {
+                for end in (start + 1)...min(letters.count, start + Self.longestWord) {
+                    guard let word = meant(start..<end, after: run.words.last?.lowercased() ?? typed.previous) else { continue }
+                    func extended(by logLikelihood: Double) -> Run {
+                        Run(words: run.words + [word.word], likelihood: run.likelihood + word.logLikelihood + logLikelihood,
+                            score: run.score + word.logPosterior + logLikelihood)
+                    }
+                    if end == letters.count {
+                        if spaced || !run.words.isEmpty { Run.keep(extended(by: 0), in: &finished) }
+                    } else {
+                        Run.keep(extended(by: Decoder.editLogProbability), in: &runs[end, default: []])
+                        if end + 1 < letters.count, let space = asSpace(end) { Run.keep(extended(by: space), in: &runs[end + 1, default: []]) }
+                    }
                 }
             }
         }
         let whole = spaced ? -Double.infinity : ranked(typed).first(where: isWord)?.logPosterior ?? -.infinity
-        guard let best, best.score > whole else { return nil }
+        let likely = finished.filter { $0.score > whole }
+        guard let best = likely.count == 1 ? likely.first : likely.map({ ($0, inContext($0, typed, context)) }).max(by: { $0.1 < $1.1 })?.0
+        else { return nil }
         let words = best.words.joined(separator: " ")
         return words.lowercased() == typed.text.lowercased() ? nil : Words.matchCase(words, to: Substring(typed.text))
+    }
+
+    /// A reading of a run so far: its words, how well they fit their taps, and that with each word's likelihood after the one before.
+    struct Run {
+        var words: [String]
+        var likelihood: Double
+        var score: Double
+
+        static let kept = 3
+
+        static func keep(_ run: Run, in runs: inout [Run]) {
+            runs.insert(run, at: runs.firstIndex { $0.score < run.score } ?? runs.count)
+            if runs.count > kept { runs.removeLast() }
+        }
+    }
+
+    /// How well a reading fits its taps and the words before it, each word scored after the words before it, with the
+    /// network's say when there is `context`, the text before the run.
+    func inContext(_ run: Run, _ typed: TypedWord, _ context: String?) -> Double {
+        guard let lexicon else { return run.score }
+        let model = languageModel(lexicon)
+        var previous = typed.previous, earlier = context.flatMap { Words.context(before: $0[$0.endIndex...], in: $0).earlier }
+        var state = context.flatMap { expected(after: $0) == nil ? nil : reading?.state }
+        var total = run.likelihood
+        for word in run.words {
+            let next = state.flatMap { state in network.map { next(at: state, $0, lexicon) } }
+            total += model.predictor(after: previous, earlier: earlier, expected: next)(word)
+            (earlier, previous) = (previous, word.lowercased())
+            state = state.flatMap { state in network.map { $0.read([$0.id(of: Words.plain(word).lowercased()) ?? Network.unknown], from: state) } }
+        }
+        return total
     }
 
     static let longestWord = 20

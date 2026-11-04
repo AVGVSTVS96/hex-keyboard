@@ -1,19 +1,20 @@
 """Trains the next-word network behind Packages/HexKeyboard/Sources/KeyboardUI/Resources/en.network.
 
-Corpus: what people type to chatbots and to each other. The English user turns of WildChat-4.8M, and two in five lines
-of WildChat-1M's with SODA's dialogues (allenai; ODC-BY, CC BY 4.0). Lines are kept when they read as prose: mostly
-letters, at most 120 words, no code or markup characters. A line repeated within a source is dropped by its first 60
-characters.
+Corpus: what people type to each other and to chatbots. Reddit comments from 16 subreddits, 7M words from the first
+file of each (HuggingFaceGECLM/REDDIT_comments, with links and Markdown taken out), the English user turns of
+WildChat-4.8M, and two in five lines of WildChat-1M's with SODA's dialogues (allenai; ODC-BY, CC BY 4.0). Lines are
+kept when they read as prose: mostly letters, at most 120 words, no code or markup characters. A chatbot line repeated
+within its source is dropped by its first 60 characters.
 
 Tokens: lowercase words (apostrophes kept), a comma, a number, and a sentence's start; the 20,000 commonest words and
 the specials are the vocabulary, every other word one unknown token.
 
-Model: a word embedding (128 wide, also scoring the next word) into one LSTM layer (512 wide) projected back to the
-embedding, trained on 32-token windows, 256 at a time, for 24,000 steps (Adam, one-cycle learning rate to 3e-3).
-About 40 minutes on an M1 Max's GPU; on a CPU, most of a day.
+Model: a word embedding (128 wide, also scoring the next word) into one LSTM layer (768 wide) projected back to the
+embedding, trained on 32-token windows, 256 at a time, for 30,000 steps (Adam, one-cycle learning rate to 3e-3).
+About two hours on an M1 Max's GPU; on a CPU, days.
 
 Usage: uv run --no-project --with pyarrow --with numpy --with torch python3 scripts/network.py build/network
-Each stage is skipped when its output is there: wildchat.txt and chat.txt, vocab.txt and tokens.npy, model.pt, then
+Each stage is skipped when its output is there: reddit.txt, wildchat.txt and chat.txt, vocab.txt and tokens.npy, model.pt, then
 weights.f32 (the widths and the float32 tensors in Network's order), which scripts/network packs with Tools/NetworkBuilder.
 """
 
@@ -30,12 +31,23 @@ HUB = "https://huggingface.co/datasets"
 WILDCHAT = [(f"allenai/WildChat-4.8M/resolve/main/data/train-{i:05d}-of-00086.parquet") for i in range(86)]
 WILDCHAT_1M = [(f"allenai/WildChat-1M/resolve/main/data/train-{i:05d}-of-00014.parquet") for i in range(14)]
 SODA = ["allenai/soda/resolve/main/train.parquet"]
-SOURCES = {"wildchat.txt": 1.0, "chat.txt": 0.4}
+REDDIT = [f"HuggingFaceGECLM/REDDIT_comments/resolve/main/data/{name}.parquet" for name in [
+    "IAmA-00000-of-00019-06736ec34c459e98", "LifeProTips-00000-of-00011-3a9e835a552d2710",
+    "Showerthoughts-00000-of-00027-6e7342a5eac6f96c", "buildapc-00000-of-00020-0382afa88fc5d8f8",
+    "changemyview-00000-of-00018-12261008ea895e29", "explainlikeimfive-00000-of-00017-21d7b92cb6f7a8ba",
+    "gaming-00000-of-00057-943c09de1b2d3604", "mildlyinteresting-00000-of-00019-99c7f919d3e81fa6",
+    "personalfinance-00000-of-00019-4a7e59196197a2c1", "podcasts-00000-of-00001-9af2599ee776d606",
+    "programming-00000-of-00007-682384b233d9a62b", "relationship_advice-00000-of-00045-da08cc6ebcf82ddb",
+    "socialskills-00000-of-00003-775ee50d8a579123", "technology-00000-of-00022-7a3b7f76ceb7c961",
+    "tifu-00000-of-00010-b52d0440151617c8", "todayilearned-00000-of-00046-2ed2870d54c80544",
+]]
+REDDIT_WORDS = 7_000_000
+SOURCES = {"reddit.txt": 1.0, "wildchat.txt": 1.0, "chat.txt": 0.4}
 
 VOCABULARY = 20_000
 SPECIALS = ["<s>", "<unk>", "<n>", ","]
 TOKEN = re.compile(r"[a-z0-9]+(?:'[a-z0-9]+)*|[.!?,]")
-WIDTH, HIDDEN, WINDOW, BATCH, STEPS, RATE = 128, 512, 32, 256, 24_000, 3e-3
+WIDTH, HIDDEN, WINDOW, BATCH, STEPS, RATE = 128, 768, 32, 256, 30_000, 3e-3
 
 out = sys.argv[1]
 os.makedirs(os.path.join(out, "download"), exist_ok=True)
@@ -56,14 +68,14 @@ def download(files):
     return paths
 
 
-def prose(text):
+def prose(text, markup=r"[{};<>=_\\|`#*@\[\]]"):
     for line in text.replace("’", "'").replace("‘", "'").replace("“", '"').replace("”", '"').split("\n"):
         line = re.sub(r"\s+", " ", line).strip()
         if not line or len(line.split()) > 120:
             continue
         if sum(c.isalpha() for c in line) < 0.7 * len(line.replace(" ", "")):
             continue
-        if re.search(r"[{};<>=_\\|`#*@\[\]]", line):
+        if re.search(markup, line):
             continue
         yield line
 
@@ -98,7 +110,28 @@ def dialogues(files):
                 yield from prose(turn)
 
 
+def comments(files):
+    import pyarrow.parquet as pq
+    for file in files:
+        words = 0
+        for batch in pq.ParquetFile(file).iter_batches(columns=["body"], batch_size=5000):
+            for body in batch.column("body").to_pylist():
+                if not body or body in ("[deleted]", "[removed]"):
+                    continue
+                body = re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", body)
+                body = re.sub(r"https?://\S+|www\.\S+|/?[ru]/\w+", "", body).replace("&amp;", "&")
+                body = "\n".join(line.strip().lstrip(">") for line in body.split("\n"))
+                for line in prose(body, markup=r"[{};<>=_\\|`#*@\[\]^~]"):
+                    words += len(line.split())
+                    yield line
+            if words >= REDDIT_WORDS:
+                break
+
+
 def corpus():
+    if not os.path.exists(path("reddit.txt")):
+        with open(path("reddit.txt"), "w") as file:
+            file.writelines(line + "\n" for line in comments(download(REDDIT)))
     if not os.path.exists(path("wildchat.txt")):
         write_unique("wildchat.txt", user_turns(download(WILDCHAT)))
     if not os.path.exists(path("chat.txt")):

@@ -15,7 +15,8 @@ gives them:
 | `app/Preferences/` | the app's `Library/Preferences` | the app's settings |
 | `keyboard/support/` | the keyboard's `Library/Application Support` | what it learned (words, taps), emoji and GIF picks, its clipboard copy |
 | `keyboard/Preferences/` | the keyboard's `Library/Preferences` | the keyboard's settings |
-| `group/Library/` | the App Group's `Library` | the clipboard history, the taps the app shows, the settings both read |
+| `group/Library/` | the App Group's `Library` | the clipboard history, the taps and typing counts the app shows, the settings both read |
+| `mac/` | the Mac (`scripts/keystroke`) | Keystroke's `typing-stats.json`, for Stats (docs/stats.md); the only files the server gives back, and never put on the iPhone |
 
 ## When
 

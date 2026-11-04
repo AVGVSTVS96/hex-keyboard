@@ -19,15 +19,22 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
 @Observable final class Router {
     static let shared = Router()
 
-    enum Destination: String { case home, transcripts, clipboard, taps, settings }
+    enum Destination: String { case home, transcripts, clipboard, stats, settings }
 
     /// The settings page open on its own, or, wide, the one beside the list.
     var settingsPath: [SettingsPage.Page] = []
+    /// Stats' pill.
+    var stats = LaunchOptions.statsSection ?? .typing
     @ObservationIgnored weak var tabs: UITabBarController?
 
     func show(_ destination: Destination, settings page: SettingsPage.Page? = nil) {
         if destination == .settings { settingsPath = page.map { [$0] } ?? [] }
         tabs?.selectedTab = tabs?.tab(forIdentifier: destination.rawValue)
+    }
+
+    func show(_ section: StatsPage.Section) {
+        stats = section
+        show(.stats)
     }
 }
 
@@ -50,8 +57,8 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             UITab(title: "Clipboard", image: UIImage(systemName: "list.clipboard"), identifier: Router.Destination.clipboard.rawValue) { _ in
                 Self.hosting(ClipboardPage())
             },
-            UITab(title: "Your Taps", image: UIImage(systemName: "hand.tap"), identifier: Router.Destination.taps.rawValue) { _ in
-                Self.hosting(TapsPage())
+            UITab(title: "Stats", image: UIImage(systemName: "chart.bar.xaxis"), identifier: Router.Destination.stats.rawValue) { _ in
+                Self.hosting(StatsPage())
             },
             UITab(title: "Settings", image: UIImage(systemName: "gearshape"), identifier: Router.Destination.settings.rawValue) { _ in
                 Self.hosting(SettingsPage())

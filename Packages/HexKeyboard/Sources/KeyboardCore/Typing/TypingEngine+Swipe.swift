@@ -28,6 +28,7 @@ extension TypingEngine {
             .map { written(cased($0.word)) }
         guard let best = words.first else { return false }
         write((joins ? " " : "") + best, in: document)
+        tally.characters += best.count + (joins ? 1 : 0)
         let slots = Array(words.dropFirst().prefix(1)) + [best] + Array(words.dropFirst(2))
         swiped = Swiped(length: best.count + (joins ? 1 : 0), end: text.before, alternatives: slots.map { Suggestion($0, .candidate) })
         refreshShift()

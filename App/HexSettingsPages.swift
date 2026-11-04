@@ -161,13 +161,14 @@ struct SetupPage: View {
 struct PrivacyPage: View {
     @State private var confirmsReset = false
     @State private var confirmsDelete = false
+    @State private var confirmsDeleteTyping = false
     @State private var backup: Backup.Outcome?
     private let transcripts = Transcripts.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 28) {
             Box(header: "What Leaves This iPhone") {
-                Label(Backup.isBuiltIn ? "Learned words, app-specific language and emoji choices, dictations and clipboard history stay here and on your backup server." : "Learned words, app-specific language and emoji choices, dictations and clipboard history stay here.", systemImage: "iphone").row()
+                Label(Backup.isBuiltIn ? "Learned words, app-specific language and emoji choices, typing counts, dictations and clipboard history stay here and on your backup server." : "Learned words, app-specific language and emoji choices, typing counts, dictations and clipboard history stay here.", systemImage: "iphone").row()
                 Label("iikb goes online to download its voice model, search GIFs, and send the field’s text and app ID to sources you add.", systemImage: "network").row()
             }
             if Backup.isBuiltIn {
@@ -183,6 +184,9 @@ struct PrivacyPage: View {
             Box(footer: "iikb forgets the words it learned across apps and within each app, and where your thumbs land on each key. Your Dictionary stays.") {
                 ActionRow(title: "Reset Learned Words and Taps", role: .destructive) { confirmsReset = true }
             }
+            Box(footer: "Deletes the counts Stats keeps of your typing on this iPhone: never what you typed, only how much, how fast and in which app.") {
+                ActionRow(title: "Delete Typing Stats", role: .destructive) { confirmsDeleteTyping = true }
+            }
             Box(footer: transcripts.all.isEmpty ? "You haven’t dictated anything yet." : "Deletes all \(transcripts.all.count.formatted()) dictations and their sound from this iPhone.") {
                 ActionRow(title: "Delete All Transcripts", role: .destructive) { confirmsDelete = true }
                     .disabled(transcripts.all.isEmpty)
@@ -190,6 +194,9 @@ struct PrivacyPage: View {
         }
         .confirmationDialog("iikb will forget the words it learned and everything it learned about your taps.", isPresented: $confirmsReset, titleVisibility: .visible) {
             Button("Reset", role: .destructive) { MemoryStore.reset() }
+        }
+        .confirmationDialog("Delete your typing stats from this iPhone?", isPresented: $confirmsDeleteTyping, titleVisibility: .visible) {
+            Button("Delete", role: .destructive) { TypingStats.delete() }
         }
         .confirmationDialog("Delete all \(transcripts.all.count) transcripts from this iPhone?", isPresented: $confirmsDelete, titleVisibility: .visible) {
             Button("Delete All", role: .destructive) { transcripts.delete(Set(transcripts.all.map(\.id))) }

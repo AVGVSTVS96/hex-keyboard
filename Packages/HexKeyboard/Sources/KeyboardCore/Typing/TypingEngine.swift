@@ -36,6 +36,8 @@ public struct TypingEngine {
     /// The one copy of the text the engine reads. The keyboard's edits reach it through `write` and `moveCursor`, the
     /// host's reports through `documentChanged`.
     public private(set) var text = TextState()
+    /// What your typing did so far, as counts, for the app's stats.
+    public internal(set) var tally = TypingTally()
 
     /// The space just before the caret, if the keyboard just put it there: one you typed, or one a pick from the bar
     /// added after its word, which punctuation typed next goes before, as on Apple's keyboard.
@@ -85,6 +87,7 @@ public struct TypingEngine {
         }
         if panel != nil, action != .delete || !query.isEmpty { return search(action) }
         if panel != nil, deleteHeldInSearch { return }
+        tally.keys += 1
 
         let wasSpace = lastSpace == .typed, picked = lastSpace == .picked
         let revert = self.revert
@@ -113,6 +116,7 @@ public struct TypingEngine {
                 recordTap(tap, for: typed.lowercased())
             }
             write(typed, in: document)
+            tally.characters += typed.count
             self.revert?.trailing = typed
             if layer != .letters, Self.returnsToLetters.contains(key) { layer = .letters }
             if shiftHold != nil { shiftHold = .typedWhileHeld }
@@ -130,15 +134,19 @@ public struct TypingEngine {
                 lastSpace = .typed
                 if blank, let tap { stray = StraySpace(tap: tap, swallowed: " ", restored: "", counted: wasSpace) }
             }
+            tally.characters += 1
             if layer != .letters { layer = .letters }
         case .return:
             commitWord(in: document)
             write("\n", in: document)
+            tally.characters += 1
             self.revert?.trailing = "\n"
         case .tab:
             write("\t", in: document)
+            tally.characters += 1
         case .delete:
             stray = nil
+            tally.deletes += 1
             if let swiped = swipedWord {
                 write("", replacing: swiped.length, in: document)
                 break
@@ -206,6 +214,7 @@ public struct TypingEngine {
             show(panel)
         case .emoji(let emoji, let base):
             emojiHistory.use(emoji, base: base)
+            tally.emoji += 1
             insertWhole(emoji, in: document)
         case .paste(let text):
             insertWhole(text, in: document)
@@ -235,6 +244,7 @@ public struct TypingEngine {
             self.pending = nil
         }
         typing = WordTaps()
+        tally.deletes += 1
         write("", replacing: Self.wordLength(before: text.before), in: document)
         refreshShift()
         suggestionsChanged()

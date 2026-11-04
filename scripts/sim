@@ -211,10 +211,11 @@ themes() {
 }
 
 # Screenshots each of the app's screens on the iPhone Duo's four screens, as duo does for the keyboard:
-# shots/raw/duo/app/<tag>-<screen>-<page>-<appearance>.png. TOUCHES (a touch model, as the keyboard shares it) and
-# TRANSCRIPTS (JSON lines, as the app keeps them) fill Your Taps and Transcripts, and CLIPBOARD (a history.json, as
-# ClipboardStore keeps it) Clipboard; PAGES picks the pages; ARGS adds launch arguments to each (-HexScrollToEnd YES shows each page's end); SIM names
-# the simulator.
+# shots/raw/duo/app/<tag>-<screen>-<page>-<appearance>.png. TOUCHES (a touch model, as the keyboard shares it),
+# TYPING (JSON lines of hours, as the keyboard shares them) and TRANSCRIPTS (JSON lines, as the app keeps them) fill
+# Stats and Transcripts, MAC (a Keystroke typing-stats.json) Stats' Mac as the copy last read, and CLIPBOARD (a
+# history.json, as ClipboardStore keeps it) Clipboard; PAGES picks the pages; ARGS adds launch arguments to each
+# (-HexScrollToEnd YES shows each page's end); SIM names the simulator.
 duoapp() {
   local tag=$1 id data group; shift
   id=$(ensure "${SIM:-iPhone Duo}" iPhone-Duo)
@@ -224,7 +225,9 @@ duoapp() {
   unfold "$id" 0
   group=$(xcrun simctl get_app_container "$id" "$BUNDLE" group.com.shahidy.hexkeyboard)
   data=$(xcrun simctl get_app_container "$id" "$BUNDLE" data)
-  [ -n "${TOUCHES:-}" ] && cp "$TOUCHES" "$group/touches.json"
+  [ -n "${TOUCHES:-}" ] && mkdir -p "$group/Library" && cp "$TOUCHES" "$group/Library/touches.json"
+  [ -n "${TYPING:-}" ] && mkdir -p "$group/Library" && cp "$TYPING" "$group/Library/typing.jsonl"
+  [ -n "${MAC:-}" ] && mkdir -p "$data/Library/Caches" && cp "$MAC" "$data/Library/Caches/mac-stats.json"
   [ -n "${TRANSCRIPTS:-}" ] && mkdir -p "$data/Library/Application Support" && cp "$TRANSCRIPTS" "$data/Library/Application Support/transcripts.jsonl"
   [ -n "${CLIPBOARD:-}" ] && mkdir -p "$group/Library/clipboard" && cp "$CLIPBOARD" "$group/Library/clipboard/history.json"
   while read -r screen hinge orientation display; do
@@ -254,6 +257,10 @@ dictionary -HexSettings dictionary
 mic -HexSettings mic
 transcripts -HexTab transcripts
 clipboard -HexTab clipboard
+stats -HexStats typing
+stats-dictation -HexStats dictation
+stats-mac -HexStats typing -HexStatsDevice mac
+stats-mac-dictation -HexStats dictation -HexStatsDevice mac
 taps -HexTaps YES
 sources -HexSettings sources
 access -HexSettings access
@@ -263,7 +270,7 @@ PAGES
   [ -n "${KEEP:-}" ] || xcrun simctl shutdown "$id"
 }
 
-# Screenshots the app's Your Taps screen showing a touch model (JSON, as the keyboard shares it), light and dark:
+# Screenshots the app's Stats › Taps screen showing a touch model (JSON, as the keyboard shares it), light and dark:
 # Heat, Aim and Accuracy, each alone and with KEY selected (Heat's scrolled to the key's close-up), and the
 # thumbs and most-missed sections at the bottom.
 taps() {
@@ -272,7 +279,7 @@ taps() {
   slug=$(echo "$name" | tr 'A-Z ' 'a-z-')
   boot "$id"
   group=$(xcrun simctl get_app_container "$id" "$BUNDLE" group.com.shahidy.hexkeyboard)
-  cp "$touches" "$group/touches.json"
+  mkdir -p "$group/Library" && cp "$touches" "$group/Library/touches.json"
   for appearance in light dark; do
     xcrun simctl ui "$id" appearance "$appearance"
     while read -r variant args; do
