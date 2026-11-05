@@ -4,8 +4,8 @@ import notify
 /// Voice typing runs in the app, because a keyboard can't use the microphone: the keyboard opens the app with a
 /// `Request`, the app listens until the keyboard (or the app) says it's done, and leaves what it wrote down in the App
 /// Group for the keyboard to type. Each side tells the other through a Darwin notification. The app alone writes the
-/// `Status`, and leaves each `Note` in a file of its own that the keyboard takes by removing it, so the two never write
-/// the same file.
+/// `Status`, the keyboard alone its `host`, and the app leaves each `Note` in a file of its own that the keyboard takes
+/// by removing it, so the two never write the same file.
 public enum Dictation {
     /// What the app is doing. Recording and writing are separate: the app records a new dictation while the ones before
     /// are still being written down, and has them typed in the order you said them.
@@ -97,6 +97,8 @@ public enum Dictation {
 
     private static var notesURL: URL? { library?.appending(path: "notes") }
 
+    private static var hostURL: URL? { library?.appending(path: "dictation-host.txt") }
+
     /// The app holds this lock while its microphone is on. The kernel lets go of it when the app ends however it ends,
     /// so the lock, unlike a status the app writes, can't outlive the app.
     public static func lockMic() -> Int32? {
@@ -122,6 +124,14 @@ public enum Dictation {
         guard descriptor >= 0 else { return false }
         defer { close(descriptor) }
         return flock(descriptor, LOCK_SH | LOCK_NB) != 0
+    }
+
+    /// The app the keyboard was in when it last started or stopped a dictation, its bundle ID, for Transcripts and
+    /// Stats. Only the keyboard writes it, before it signals, so the app reads it as the signal comes; nil when the
+    /// keyboard couldn't tell (`KeyboardHost`).
+    public static var host: String? {
+        get { hostURL.flatMap { try? String(contentsOf: $0, encoding: .utf8) }.flatMap { $0.isEmpty ? nil : $0 } }
+        set { if let hostURL { try? Data((newValue ?? "").utf8).write(to: hostURL, options: .atomic) } }
     }
 
     public static var status: Status {
