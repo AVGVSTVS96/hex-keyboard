@@ -1,6 +1,7 @@
 /// A decimal, a percentage or a run of digits the model wrote out in words, written as one: "Opus five point five" is
 /// "Opus 5.5", "twenty seven point one" 27.1, "two point oh" 2.0, "fifty percent" 50% and "four one five five five five
-/// zero one nine nine" 415-555-0199, as it writes them when it doesn't itself. Other numbers stay as written, and so do
+/// zero one nine nine" 415-555-0199, as it writes them when it doesn't itself, and a phone number it wrote with
+/// spaces ("415 555 0199") with dashes, as it mostly writes one. Other numbers stay as written, and so do
 /// a point that's a word ("at one point five people left", "a five point plan", "three points") and counting ("one two
 /// three four", "five, four, three, two, one", "one two, one two").
 enum SpokenNumber {
@@ -15,7 +16,7 @@ enum SpokenNumber {
         var words = text.split(separator: " ", omittingEmptySubsequences: false).map(String.init)
         var at = 0
         while at < words.count {
-            if let number = number(in: words, at: at) ?? digits(in: words, at: at) {
+            if let number = number(in: words, at: at) ?? digits(in: words, at: at) ?? phone(in: words, at: at) {
                 words.replaceSubrange(at ..< number.end, with: [number.written])
             }
             at += 1
@@ -69,6 +70,19 @@ enum SpokenNumber {
         let written = groups.count > 1 ? groups.joined(separator: "-")
             : all.count == 7 ? split([3, 4]) : all.count == 10 ? split([3, 3, 4]) : all.count == 11 && all.first == "1" ? split([1, 3, 3, 4]) : all
         return (written + tail, end)
+    }
+
+    /// A phone number written in groups of digits with spaces, 3-3-4 after an optional 1 or +1.
+    private static func phone(in words: [String], at: Int) -> (written: String, end: Int)? {
+        let sizes = words[at] == "1" || words[at] == "+1" ? [words[at].count, 3, 3, 4] : [3, 3, 4]
+        guard at + sizes.count <= words.count else { return nil }
+        let groups = (0 ..< sizes.count).map { words[at + $0] }
+        let last = groups.last!.prefix { $0.isNumber }
+        let digits = groups.dropLast() + [String(last)]
+        guard zip(digits, sizes).allSatisfy({ $0.count == $1 && $0.allSatisfy { $0.isNumber || $0 == "+" } }),
+              at + sizes.count == words.count || !(words[at + sizes.count].first?.isNumber ?? false),
+              at == 0 || !(words[at - 1].last?.isNumber ?? false) else { return nil }
+        return (digits.joined(separator: "-") + groups.last!.dropFirst(last.count), at + sizes.count)
     }
 
     /// One digit said, with "oh" for 0 inside a run.

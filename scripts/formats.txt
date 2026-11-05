@@ -56,6 +56,11 @@ The code is four eight two nine. | The code is 4829
 Five two seven eight four oh one. | 527-8401
 Oh, five five five one two three four. | Oh 555-1234
 Call me at 415-555-0199. | Call me at 415-555-0199
+So he gave me his number 415 555 0199. | So he gave me his number 415-555-0199
+Call 1 415 555 0199 now. | Call 1-415-555-0199 now
+It was 2 70 bucks a pound. | It was 2 70 bucks a pound
+Rooms 100 200 300 are free. | Rooms 100 200 300 are free
+He was like, no, just take this, it's three six three six four. | He was like, no, just take this, it's 36364
 My pin is 1337. | My pin is 1337
 
 # counting stays words
