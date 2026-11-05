@@ -1,0 +1,38 @@
+#!/usr/bin/python3 -I
+# Runs on the Mac, left running by scripts/phone after an install: starts Hex in the background on the iPhone
+# (argv[1]) now, or the moment it next unlocks, since iOS starts no app on a locked iPhone, so Parakeet compiles for
+# the new install then rather than at the next dictation. It watches SpringBoard's lock state through devicectl, which
+# writes what it observes only to a terminal, and gives up after a day.
+import os
+import pty
+import subprocess
+import sys
+import time
+
+phone = sys.argv[1]
+deadline = time.time() + 86400
+
+
+def start():
+    launch = ["xcrun", "devicectl", "device", "process", "launch", "--no-activate", "--device", phone, "com.shahidy.hexkeyboard"]
+    return subprocess.run(launch, capture_output=True).returncode == 0
+
+
+def lock_changes():
+    terminal, end = pty.openpty()
+    watch = subprocess.Popen(["xcrun", "devicectl", "device", "notification", "observe", "--device", phone,
+                              "--name", "com.apple.springboard.lockstate", "--session-timeout", "3600", "--timeout", "3610"],
+                             stdout=end, stderr=end)
+    os.close(end)
+    with os.fdopen(terminal, errors="replace") as said:
+        try:
+            for line in said:
+                if "Observed '" in line:
+                    break
+        except OSError:
+            pass
+    watch.kill()
+
+
+while not start() and time.time() < deadline:
+    lock_changes()
