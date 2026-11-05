@@ -1,5 +1,6 @@
 import UIKit
 import KeyboardCore
+import KeyboardEnglish
 
 open class HexKeyboardViewController: UIInputViewController {
     open var hapticsEnabled: Bool { hasFullAccess && engine.settings.haptics != .off }

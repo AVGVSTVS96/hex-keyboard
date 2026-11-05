@@ -5,7 +5,7 @@ import { join } from "node:path";
 const root = join(import.meta.dir, "..");
 const read = (path) => readFileSync(join(root, path), "utf8");
 const lines = (path) => read(path).split("\n").filter(Boolean);
-const resources = "Packages/HexKeyboard/Sources/KeyboardUI/Resources";
+const resources = "Packages/HexKeyboard/Sources/KeyboardEnglish/Resources";
 
 function find(path, pattern) {
   const match = read(path).match(pattern);

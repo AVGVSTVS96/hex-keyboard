@@ -1,4 +1,4 @@
-"""Trains the next-word network behind Packages/HexKeyboard/Sources/KeyboardUI/Resources/en.network.
+"""Trains the next-word network behind Packages/HexKeyboard/Sources/KeyboardEnglish/Resources/en.network.
 
 Corpus: what people type to each other and to chatbots. Reddit comments from 16 subreddits, 7M words from the first
 file of each (HuggingFaceGECLM/REDDIT_comments, with links and Markdown taken out), the English user turns of

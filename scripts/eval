@@ -20,10 +20,10 @@ if [ "$(uname)" = Darwin ]; then
   scored=.
 else
   pkg=$root/build/eval
-  mkdir -p "$pkg/Sources/KeyboardUI/Resources" "$pkg/Tests/KeyboardUITests"
+  rm -rf "$pkg/Sources/KeyboardUI"
+  mkdir -p "$pkg/Sources" "$pkg/Tests/KeyboardUITests"
   ln -sfn "$src/Sources/KeyboardCore" "$pkg/Sources/KeyboardCore"
-  ln -sf "$src/Sources/KeyboardUI/Lexicon+English.swift" "$pkg/Sources/KeyboardUI/"
-  for file in en.lexicon en.network en.swipe emoji.txt emoji-search.txt; do ln -sf "$src/Sources/KeyboardUI/Resources/$file" "$pkg/Sources/KeyboardUI/Resources/"; done
+  ln -sfn "$src/Sources/KeyboardEnglish" "$pkg/Sources/KeyboardEnglish"
   for file in Evaluation.swift SwipeEvaluation.swift phrases.txt chat.txt; do ln -sf "$src/Tests/KeyboardUITests/$file" "$pkg/Tests/KeyboardUITests/"; done
   cat > "$pkg/Package.swift" <<'SWIFT'
 // swift-tools-version: 6.2
@@ -31,8 +31,8 @@ import PackageDescription
 
 let package = Package(name: "Eval", targets: [
     .target(name: "KeyboardCore"),
-    .target(name: "KeyboardUI", dependencies: ["KeyboardCore"], resources: [.copy("Resources/en.lexicon"), .copy("Resources/en.network"), .copy("Resources/en.swipe"), .copy("Resources/emoji.txt"), .copy("Resources/emoji-search.txt")], swiftSettings: [.defaultIsolation(MainActor.self)]),
-    .testTarget(name: "KeyboardUITests", dependencies: ["KeyboardUI"], resources: [.copy("phrases.txt"), .copy("chat.txt")]),
+    .target(name: "KeyboardEnglish", dependencies: ["KeyboardCore"], exclude: ["Resources/LEXICON-LICENSE", "Resources/NETWORK-LICENSE"], resources: [.copy("Resources/en.lexicon"), .copy("Resources/en.network"), .copy("Resources/en.swipe"), .copy("Resources/SWIPE-LICENSE"), .copy("Resources/emoji.txt"), .copy("Resources/emoji-search.txt")]),
+    .testTarget(name: "KeyboardUITests", dependencies: ["KeyboardEnglish"], resources: [.copy("phrases.txt"), .copy("chat.txt")]),
 ])
 SWIFT
   cd "$pkg"

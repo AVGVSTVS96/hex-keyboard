@@ -1,6 +1,7 @@
 import Testing
 import UIKit
 @testable import KeyboardCore
+import KeyboardEnglish
 @testable import KeyboardUI
 
 /// Replays typing as UIKit delivers it, frame by frame, with fingers that overlap: the second (third, fourth…) finger

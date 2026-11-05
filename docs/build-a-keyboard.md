@@ -15,7 +15,7 @@ The package is in a subfolder (`Packages/HexKeyboard`), and Swift Package Manage
 git submodule add https://github.com/AVGVSTVS96/iikb
 ```
 
-Then in Xcode, choose File › Add Package Dependencies… › Add Local…, pick `iikb/Packages/HexKeyboard`, and link `KeyboardCore` and `KeyboardUI` to your keyboard extension. You need iOS 26 and Swift 6.2 or later.
+Then in Xcode, choose File › Add Package Dependencies… › Add Local…, pick `iikb/Packages/HexKeyboard`, and link `KeyboardCore`, `KeyboardEnglish` and `KeyboardUI` to your keyboard extension. You need iOS 26 and Swift 6.2 or later.
 
 ## All of iikb
 
@@ -31,7 +31,7 @@ This is iikb itself (`Keyboard/KeyboardViewController.swift`), including the par
 
 Start from the example. These are the steps it takes, in order:
 
-**1. An engine with a dictionary.** iikb's English dictionary and next-word model come with `KeyboardUI`.
+**1. An engine with a dictionary.** iikb's English dictionary and next-word model come with `KeyboardEnglish`.
 
 ```swift
 var engine = TypingEngine()
@@ -110,7 +110,7 @@ Linking `KeyboardUI` turns on UIKit's private keyboard arbiter when an extension
 ## Run it
 
 1. In Xcode, create an iOS App. Then choose File › New › Target… › Custom Keyboard Extension.
-2. Add the package as above, and link `KeyboardCore` and `KeyboardUI` to the extension.
+2. Add the package as above, and link `KeyboardCore`, `KeyboardEnglish` and `KeyboardUI` to the extension.
 3. Replace the template's `KeyboardViewController.swift` with the example's.
 4. Run the app. On the phone, go to Settings › General › Keyboard › Keyboards › Add New Keyboard… and add yours.
 
@@ -132,6 +132,6 @@ scripts/coretest   # its tests, in a package of KeyboardCore alone, since the ot
 | `KeyFace`, `KeyboardTheme`, `ThemeName` | what a key shows, and in what colors |
 | `Corrector`, `Lexicon`, `TouchModel`, `TypingMemory` | autocorrect, the dictionary, where you tap, and what's learned |
 | `ProxyDocument`, `InputTraits(_:)`, `Corrector.learn(_:)`, `KeyboardStyle.current` | `KeyboardUI`'s link to UIKit |
-| `Lexicon.english`, `Network.english` | the English dictionary and next-word model |
+| `Lexicon.english`, `Network.english` | `KeyboardEnglish`'s dictionary and next-word model |
 
 [AGENTS.md](../AGENTS.md) explains how each piece works and why.

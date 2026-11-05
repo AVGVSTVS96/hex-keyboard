@@ -1,7 +1,7 @@
 #!/bin/sh
-# Rebuilds Packages/HexKeyboard/Sources/KeyboardUI/Resources/en.lexicon (see scripts/lexicon.py for the sources).
+# Rebuilds Packages/HexKeyboard/Sources/KeyboardEnglish/Resources/en.lexicon (see scripts/lexicon.py for the sources).
 set -e
 cd "$(dirname "$0")/.."
 mkdir -p build/lexicon
 uv run --no-project python3 scripts/lexicon.py build/lexicon > build/lexicon/words.tsv
-scripts/tool LexiconBuilder build/lexicon/words.tsv Packages/HexKeyboard/Sources/KeyboardUI/Resources/en.lexicon
+scripts/tool LexiconBuilder build/lexicon/words.tsv Packages/HexKeyboard/Sources/KeyboardEnglish/Resources/en.lexicon

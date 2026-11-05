@@ -29,7 +29,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import network
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SHIPPED = f"{ROOT}/Packages/HexKeyboard/Sources/KeyboardUI/Resources/en.network"
+SHIPPED = f"{ROOT}/Packages/HexKeyboard/Sources/KeyboardEnglish/Resources/en.network"
 MIRROR = os.path.expanduser("~/.local/share/hex-keyboard/backup/mirror/personal/en.network")
 KINDS = {"text", "webSearch", "twitter"}
 WINDOW, BATCH, RATE, PASSES, HELD = 32, 32, 1e-3, 8, 0.1

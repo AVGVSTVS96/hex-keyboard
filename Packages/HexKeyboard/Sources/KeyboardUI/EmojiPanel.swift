@@ -1,5 +1,6 @@
 import UIKit
 import KeyboardCore
+import KeyboardEnglish
 
 /// The emoji panel's results: ten columns of emoji (more on a wide iPad) scrolling up and down, or one row scrolling
 /// sideways in the compact layout; what you pick most first, then every emoji in Apple's order, or what the search finds.

@@ -32,6 +32,8 @@ targets:
     dependencies:
       - target: Keyboard
       - package: HexKeyboard
+        product: KeyboardEnglish
+      - package: HexKeyboard
         product: KeyboardUI
       - package: FluidAudio
     settings:

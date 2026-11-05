@@ -1,6 +1,6 @@
 #!/bin/bash
 # FUTO Swipe's weights as iikb's en.swipe (SWIPE-LICENSE beside it), and the checks of it that run here on Linux:
-#   scripts/swipe [build]     rebuild Packages/HexKeyboard/Sources/KeyboardUI/Resources/en.swipe: downloads FUTO's two
+#   scripts/swipe [build]     rebuild Packages/HexKeyboard/Sources/KeyboardEnglish/Resources/en.swipe: downloads FUTO's two
 #                             models (4 MB), reads their weights with scripts/swipe.py and packs them with Tools/SwipeBuilder
 #   scripts/swipe data        download swipe.futo.org's test and validation splits (570 MB) as compact files for scripts/eval swipe
 #   scripts/swipe parity [n]  ExecuTorch's own output for n real test swipes (default 200) against KeyboardCore's, in SwipeTests
@@ -13,7 +13,7 @@ swipepy() { uv run --no-project --python 3.12 --with executorch --with numpy --w
 case "${1:-build}" in
   build)
     swipepy extract "$SWIPE_DATA"
-    scripts/tool SwipeBuilder "$SWIPE_DATA/weights.txt" "$SWIPE_DATA/weights.f32" Packages/HexKeyboard/Sources/KeyboardUI/Resources/en.swipe
+    scripts/tool SwipeBuilder "$SWIPE_DATA/weights.txt" "$SWIPE_DATA/weights.f32" Packages/HexKeyboard/Sources/KeyboardEnglish/Resources/en.swipe
     ;;
   data)
     swipepy data "$SWIPE_DATA" test

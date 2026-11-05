@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 import KeyboardCore
-@testable import KeyboardUI
+import KeyboardEnglish
 
 /// Types the MacKenzie & Soukoreff phrase set through `TypingEngine` with simulated taps and reports word accuracy.
 ///

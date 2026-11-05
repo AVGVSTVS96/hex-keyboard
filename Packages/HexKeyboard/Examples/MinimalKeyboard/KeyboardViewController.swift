@@ -1,5 +1,6 @@
 import UIKit
 import KeyboardCore
+import KeyboardEnglish
 import KeyboardUI
 
 /// A keyboard on iikb's engine with a look of its own: Apple's layouts and key sizes on every iPhone and iPad,

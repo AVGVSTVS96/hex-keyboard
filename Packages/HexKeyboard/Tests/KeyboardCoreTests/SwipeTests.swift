@@ -3,7 +3,7 @@ import Testing
 @testable import KeyboardCore
 
 private let resources = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
-    .appendingPathComponent("Sources/KeyboardUI/Resources")
+    .appendingPathComponent("Sources/KeyboardEnglish/Resources")
 
 func resource(_ name: String) -> Bytes {
     Bytes([UInt8](try! Data(contentsOf: resources.appendingPathComponent(name))))

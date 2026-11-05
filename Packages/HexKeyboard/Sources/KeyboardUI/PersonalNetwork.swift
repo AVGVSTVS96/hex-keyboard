@@ -1,6 +1,12 @@
 import Foundation
 import KeyboardCore
+import KeyboardEnglish
 import os
+
+extension Network {
+    /// The network the keyboard uses: the one fine-tuned on your typing when the app has fetched it (`PersonalNetwork`), else the bundled one.
+    public static let current = PersonalNetwork.load() ?? english
+}
 
 /// The next-word network fine-tuned on your typing: the server makes it from its record of what you type (`scripts/personal`,
 /// docs/backup.md) and gives it back under `personal/en.network`. The app fetches it whenever it syncs into the App Group's

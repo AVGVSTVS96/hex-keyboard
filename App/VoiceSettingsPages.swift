@@ -1,4 +1,5 @@
 import KeyboardCore
+import KeyboardEnglish
 import KeyboardUI
 import SwiftUI
 

@@ -2,7 +2,7 @@ import Dispatch
 import Foundation
 import Testing
 @testable import KeyboardCore
-@testable import KeyboardUI
+import KeyboardEnglish
 
 /// How well swipes are read, on swipe.futo.org's test split (MIT; `scripts/swipe data` writes it to `SWIPE_DATA`): the
 /// share of swipes whose word is the first, among the first three and among the first ten candidates, with iikb's own
