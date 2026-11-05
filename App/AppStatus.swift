@@ -36,4 +36,11 @@ import UIKit
     static func openSettings() {
         UIApplication.shared.open(URL(string: UIApplication.openSettingsURLString)!)
     }
+
+    /// iOS lists Paste from Other Apps under Settings › Apps › iikb only once the app itself has asked to paste; the
+    /// keyboard's reads are refused without asking, so a fresh install never shows it. Reading the clipboard here asks.
+    static func openPasteSetting() {
+        if !shared.pasteAllowed { _ = UIPasteboard.general.string }
+        openSettings()
+    }
 }

@@ -86,7 +86,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     private func open(_ contexts: Set<UIOpenURLContext>) {
         if let source = contexts.lazy.compactMap({ Source(link: $0.url) }).first { return offer(source) }
-        if contexts.contains(where: { $0.url == AppLink.settings }) { return UIApplication.shared.open(URL(string: UIApplication.openSettingsURLString)!) }
+        if contexts.contains(where: { $0.url == AppLink.settings }) { return AppStatus.openPasteSetting() }
         if contexts.contains(where: { $0.url == AppLink.keyboard }) { return Router.shared.show(.settings) }
         guard let request = contexts.lazy.compactMap({ Dictation.Request($0.url) }).first, let root = window?.rootViewController else { return }
         let fromSelf = request.host == Bundle.main.bundleIdentifier

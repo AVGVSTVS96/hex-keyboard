@@ -116,7 +116,7 @@ struct SetupSteps: View {
     var body: some View {
         SetupStep(done: status.isAdded, title: "Add iikb", detail: status.isAdded ? "iikb is one of your keyboards." : "Turn on Keyboards › iikb.")
         SetupStep(done: status.fullAccess, title: "Allow Full Access", detail: "For voice typing, haptics, GIFs, the clipboard, sources and your taps.")
-        SetupStep(done: status.pasteAllowed, title: "Paste from Other Apps", detail: "Set it to Allow, so the clipboard keeps what you copy.")
+        SetupStep(done: status.pasteAllowed, title: "Paste from Other Apps", detail: "Set it to Allow, so the clipboard keeps what you copy.") { AppStatus.openPasteSetting() }
     }
 }
 
@@ -124,9 +124,10 @@ private struct SetupStep: View {
     let done: Bool
     let title: String
     let detail: String
+    var open: @MainActor () -> Void = AppStatus.openSettings
 
     var body: some View {
-        Button { AppStatus.openSettings() } label: {
+        Button(action: open) {
             HStack(spacing: 14) {
                 Image(systemName: done ? "checkmark.circle.fill" : "circle")
                     .font(.title2)
