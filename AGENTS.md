@@ -17,7 +17,7 @@ Each module keeps its own AGENTS.md beside its code, with what it holds and why.
 - `Packages/HexKeyboard/Tools`: the builders of KeyboardEnglish's data (KeyboardEnglish/AGENTS.md).
 - `Packages/HexKeyboard/Tests/KeyboardUITests`: `Evaluation`, the autocorrect scorer (scripts/AGENTS.md, "scripts/eval"), with `TextCheckerSource` (`UITextChecker`) as its baseline keyboard.
 - `UITests/`: types through the real extension in the simulator.
-- `web/`: the web demo. `Sources/HexWeb` exports a `Keyboard` class to JavaScript (JavaScriptKit BridgeJS) that forwards to `TypingEngine` the way `HexKeyboardViewController` does, against the page's text field. `site/` is iikb's page (`page.css`, `page.js`, which fills its numbers from `copy/facts.json`), around a demo that draws the keys from `KeyboardCore`'s metrics, faces and colors and ports `KeyboardView+Touches` to pointer events. Deployed to Vercel as `iikb` (iikb.vercel.app) from `web/dist`; `redirect/` is the old `hex-keyboard` project, sending hex-keyboard.vercel.app there.
+- `web/`: the web demo and iikb's page, on KeyboardCore through `TypingEngine`, deployed to iikb.vercel.app. [web/AGENTS.md](web/AGENTS.md)
 - `sources/record.ts`: the record source (Bun): a log of every message you send and every field you leave with text you typed, with the host bundle ID the keyboard sends (docs/sources.md). `bun test sources/`.
 - `server/backup.ts`: the backup server (HexStore/AGENTS.md, "Backup").
 - `scripts/`: build, install, simulator and measuring scripts. [scripts/AGENTS.md](scripts/AGENTS.md)
