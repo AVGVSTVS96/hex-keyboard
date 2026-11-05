@@ -43,4 +43,18 @@ final class OneHandedTests: XCTestCase {
         XCTAssertFalse(expander.waitForExistence(timeout: 1))
         XCTAssertEqual(key("q").frame.width, fullWidth, accuracy: 0.5)
     }
+
+    /// Holding the emoji key opens the same menu holding 123 does, as Apple's does on the Duo. `scripts/layoutmenu` shoots it.
+    func testHoldingEmojiOpensTheLayoutMenu() throws {
+        let emoji = key("emoji")
+        XCTAssertTrue(emoji.waitForExistence(timeout: 5), "the emoji key sits beside space")
+        let pick = emoji.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).withOffset(CGVector(dx: 0, dy: -45))
+        if let shots = ProcessInfo.processInfo.environment["HEX_SHOTS"] {
+            FileManager.default.createFile(atPath: shots + ".holding", contents: nil)
+            emoji.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).press(forDuration: 1, thenDragTo: pick, withVelocity: .slow, thenHoldForDuration: 10)
+        } else {
+            emoji.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).press(forDuration: 1, thenDragTo: pick)
+        }
+        XCTAssertTrue(key("space").waitForExistence(timeout: 2))
+    }
 }

@@ -161,7 +161,7 @@ unfold() {
 # them) and the open ones slightly folded, in the iOS 27.1 simulator, the only one with the Duo:
 # shots/raw/duo/<tag>-<screen>-<keyboard>-<appearance>.png. The open screen comes from unfolding the simulator
 # (scripts/devicehub.c); a reboot folds it again. The open screen's own upright is landscape, 951 wide, so Device Hub's
-# portrait shows it in landscape. LISTENING=1 shows the bar while you talk, saved or waiting with dictations saved (scripts/voiceapp.py); DUO names the simulator.
+# portrait shows it in landscape. SCREENS (folded-portrait open-landscape …) picks some. LISTENING=1 shows the bar while you talk, saved or waiting with dictations saved (scripts/voiceapp.py); DUO names the simulator.
 duo() {
   local tag=$1 id app=; shift
   id=$(ensure "${DUO:-iPhone Duo}" iPhone-Duo)
@@ -174,6 +174,7 @@ duo() {
       app=$!
     fi
     while read -r screen hinge orientation display; do
+      [ -n "${SCREENS:-}" ] && [[ " $SCREENS " != *" $screen "* ]] && continue
       case $screen in open-*) unfold "$id" "$hinge" ;; esac
       hub "$id" orientation "$orientation"
       for appearance in ${APPEARANCES:-light dark}; do
