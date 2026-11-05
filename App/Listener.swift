@@ -159,7 +159,7 @@ import UIKit
                 Dictation.leave(.heard(written.text, plain: written.plain, keyboard: take.keyboard, id: take.id))
             }
             publish()
-            HostApp.log.notice("\(written.model, privacy: .public) wrote \(seconds, format: .fixed(precision: 1))s down \(Date.now.timeIntervalSince(take.stopped), format: .fixed(precision: 2))s after the stop")
+            HostApp.log.notice("\(written.model, privacy: .public) wrote \(seconds, format: .fixed(precision: 1))s down \(Date.now.timeIntervalSince(take.stopped), format: .fixed(precision: 2))s after the stop, \(HostApp.written, format: .fixed(precision: 1)) MB written since iikb started")
         } catch {
             writing.removeAll { $0 === take }
             fail("Couldn’t write it down", "\(error.localizedDescription) The recording is kept, and written down when iikb next opens.")

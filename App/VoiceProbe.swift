@@ -65,7 +65,7 @@ nonisolated enum VoiceProbe {
         }
         say("\(name), encoder on \(units.rawValue)")
         var began = Date.now
-        let folder = try await AsrModels.download(version: version)
+        let folder = try await AsrModels.download(to: version.folder, version: version)
         say("files there after \(seconds(since: began))")
         let parts = [(ModelNames.ASR.preprocessorFile, MLComputeUnits.cpuOnly), (ModelNames.ASR.decoderFile, .cpuAndNeuralEngine), (ModelNames.ASR.jointV3File, .cpuAndNeuralEngine), (ModelNames.ASR.encoderFile, units)]
         for (file, unit) in parts {

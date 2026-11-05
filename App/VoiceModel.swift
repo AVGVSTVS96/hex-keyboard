@@ -44,13 +44,13 @@ import UIKit
         }
 
         /// Loads the Parakeet, downloading it first if it isn't on the iPhone yet; nil for Apple's. iOS sometimes kills its
-        /// Neural Engine compiler for memory while it compiles the encoder after an install, and Core ML then runs the
+        /// Neural Engine compiler for memory while it compiles the encoder, and Core ML then runs the
         /// encoder on the CPU, ten times slower, until it's loaded again: so it's loaded again, up to three times.
         var loader: (@Sendable (@escaping ProgressHandler) async throws -> any Parakeet)? {
             guard let version else { return nil }
             let title = title
             return { progress in
-                let folder = try await AsrModels.download(version: version, progressHandler: progress)
+                let folder = try await AsrModels.download(to: version.folder, version: version, progressHandler: progress)
                 var load = 1
                 while true {
                     let parakeet = AsrManager(config: .default)
@@ -121,8 +121,8 @@ import UIKit
     }
 
     /// Downloads the picked Parakeet if it isn't on the iPhone yet, then loads it, unless it's loaded or on its way; one
-    /// that failed is tried again. The first load after an install compiles it for the Neural Engine; later ones read
-    /// that from a cache. It asks iOS for time in the background to finish, since iOS suspends Hex there within seconds
+    /// that failed is tried again. Its first load compiles it for the Neural Engine, as does the first after an iOS
+    /// update; later ones read that from a cache, installs included (`AsrModelVersion.folder`). It asks iOS for time in the background to finish, since iOS suspends Hex there within seconds
     /// (after `scripts/phone` starts it, or once you're back in your app with the microphone off) and the compile with it.
     func prepare() {
         guard let load = model.loader else { return state = .ready }
@@ -151,7 +151,7 @@ import UIKit
                 _ = try await parakeet.value
                 guard self.parakeet == parakeet else { return }
                 state = .ready
-                HostApp.log.notice("\(model.title, privacy: .public) ready after \(Date.now.timeIntervalSince(began), format: .fixed(precision: 1))s")
+                HostApp.log.notice("\(model.title, privacy: .public) ready after \(Date.now.timeIntervalSince(began), format: .fixed(precision: 1))s, \(HostApp.written, format: .fixed(precision: 1)) MB written since iikb started")
                 letGoIfIdle()
             } catch {
                 guard self.parakeet == parakeet else { return }
