@@ -1,4 +1,4 @@
-# Hex Keyboard feature map
+# iikb feature map
 
 One file per feature a user meets, each with how to reach it and the test that proves it.
 

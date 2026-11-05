@@ -6,8 +6,8 @@ How a dictation is typed (`DictationWriting`, KeyboardCore). Style, Wispr Flow's
 
 ## How to get to it (user POV)
 
-Hex app › Settings › Voice Typing › Writing Style, or the Hex tab's Writing Style card.
+iikb app › Settings › Voice Typing › Writing Style, or the iikb tab's Writing Style card.
 
 ## Driving it
 
-`DictationStyleTests` (package) pins each style and editing, the capitals and spoken lists; `scripts/coretest --filter DictationStyleTests` runs them on Linux. `-HexSettings writing` opens the page for a screenshot.
+`DictationStyleTests` (package) pins each style and editing, the capitals and spoken lists; `scripts/coretest --filter DictationStyleTests` runs them on Linux. `-iikbSettings writing` opens the page for a screenshot.

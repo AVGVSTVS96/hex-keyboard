@@ -1,6 +1,6 @@
 # App
 
-The containing app, in Raycast's look (`HexStyle`, `Components`: black pages, near-black cards, radio marks; docs/design.md, "The app"), with titles and big numbers in Helvetica Neue (`HexStyle.display`, `Font.display`; `brand/BRAND.md`).
+The containing app, in Raycast's look (`AppStyle`, `Components`: black pages, near-black cards, radio marks; docs/design.md, "The app"), with titles and big numbers in Helvetica Neue (`AppStyle.display`, `Font.display`; `brand/BRAND.md`).
 
 - A folder per feature (Voice, Transcripts, Stats, Settings, Dictionary); a piece more than one feature uses goes in `Design/`.
 - Five tabs in the system tab bar, which iOS 27.1 puts in the iPhone Duo's vertical bar.
@@ -23,10 +23,10 @@ Voice typing, the app's biggest part, has its own doc: Voice/AGENTS.md.
 - **Clipboard** (`ClipboardPage`): the history the keyboard's clipboard panel keeps, the same `ClipboardStore`, pinned first then by day. A tap copies an item again, and the app keeps what's on the clipboard when it comes forward once the keyboard has started the history.
 - **Stats** (`StatsPage`, docs/stats.md): Typing, Dictation and Taps as pills, the iPhone's or, in the menu beside the title, the Mac's.
   - `DeviceStats` shows an `Activity`: speed, words a day, the hours you type or talk in, then on the iPhone where your typed words came from and the apps typed in, or your dictations and the apps dictated into; on the Mac the apps dictated into.
-  - The iPhone's typing is `TypingStats` (HexStore); its dictation is `Transcripts`.
+  - The iPhone's typing is `TypingStats` (KeyboardStore); its dictation is `Transcripts`.
   - The Mac's is `MacStats`, Keystroke's `typing-stats.json`, which `scripts/keystroke`'s LaunchAgent on the Mac sends the backup server each time Keystroke saves it, read back with `Backup.read` each time Stats comes forward.
   - Taps is `TapsPage`: `TapMapView` (Heat, Aim, Accuracy, laid out by `TapBoard`) with your numbers, a picked key's close-up, the thumbs' pull and misses by key, per screen of the Duo.
 - **Settings** (`SettingsPage`): every setting, in one list of pages under
   - Keyboard: Theme, Layout, Typing, Sound & Haptics, each over a `KeyboardPreviewView` to try (`KeyboardSettingsPages`);
   - Voice Typing: Voice Model, Writing Style, Dictionary, Microphone, Keep Mic On (`VoiceSettingsPages`);
-  - iikb: Sources, Keyboard Access, Privacy & Data, About, which credits the swipe decoder and links its license (`HexSettingsPages`).
+  - iikb: Sources, Keyboard Access, Privacy & Data, About, which credits the swipe decoder and links its license (`SettingsPages`).

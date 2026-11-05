@@ -1,6 +1,6 @@
 import KeyboardCore
 import Charts
-import HexStore
+import KeyboardStore
 import KeyboardUI
 import SwiftUI
 import notify
@@ -46,9 +46,9 @@ struct StatsPage: View {
                     .padding(.horizontal, 16)
                     .padding(.bottom, 8)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color.hexPage)
+                    .background(Color.appPage)
             }
-            .hexPage()
+            .appPage()
             .navigationTitle("Stats")
             .toolbarTitleDisplayMode(.inlineLarge)
             .toolbar {
@@ -126,11 +126,11 @@ struct SectionPills<Value: Hashable>: View {
                 } label: {
                     Text(title(section))
                         .font(.body.weight(.medium))
-                        .foregroundStyle(picked ? Color.hexPillLabel : Color.hexSecondary)
+                        .foregroundStyle(picked ? Color.appPillLabel : Color.appSecondary)
                         .padding(.horizontal, 13)
                         .padding(.vertical, 8)
                         .background {
-                            if picked { Capsule().fill(Color.hexPill).matchedGeometryEffect(id: "pill", in: pill) }
+                            if picked { Capsule().fill(Color.appPill).matchedGeometryEffect(id: "pill", in: pill) }
                         }
                         .contentShape(.capsule)
                 }

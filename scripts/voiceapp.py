@@ -1,4 +1,4 @@
-"""Stands in for the Hex app's Listener in the simulator, which can't record: holds the microphone lock, answers the
+"""Stands in for the iikb app's Listener in the simulator, which can't record: holds the microphone lock, answers the
 keyboard's start with listening and a voice's worth of levels, and finish with writing it down for the keyboard that
 stopped it. The first waits for the model to get ready, and meanwhile the keyboard starts a second; the first is typed as
 the second records. Then it leaves one for a keyboard that has closed, which isn't typed. The last dictation ends the way a
@@ -9,7 +9,7 @@ text, left for the keyboard with that transcript's id, so the keyboard follows w
 import fcntl, json, math, os, struct, subprocess, sys, threading, time, uuid
 
 simulator, group = sys.argv[1:3]
-prefix = "com.shahidy.hexkeyboard.dictation"
+prefix = "com.shahidy.iikb.dictation"
 os.makedirs(f"{group}/Library/notes", exist_ok=True)
 for left in os.listdir(f"{group}/Library/notes"):
     os.remove(f"{group}/Library/notes/{left}")

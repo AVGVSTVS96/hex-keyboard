@@ -1,6 +1,6 @@
 #!/bin/bash
 # Runs on the Mac. Replays recorded swipes through a keyboard on the iPhone Duo and writes what each typed:
-# scripts/swipebench system|hex out.tsv [fixture] [first count]. SCREEN picks the Duo's screen (folded-portrait, folded-landscape,
+# scripts/swipebench system|iikb out.tsv [fixture] [first count]. SCREEN picks the Duo's screen (folded-portrait, folded-landscape,
 # open-landscape, open-portrait; as scripts/sim names them). scripts/swipescore.py compares two outputs.
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -20,10 +20,10 @@ scripts/sim use "$ID" "$KEYBOARD"
 [ "$hinge" = 0 ] || scripts/sim unfold "$ID" "$hinge"
 scripts/sim hub "$ID" orientation "$orientation"
 xcodegen generate -q
-xcodebuild build-for-testing -project HexKeyboard.xcodeproj -scheme Hex -destination "id=$ID" -derivedDataPath build/uitest -quiet 2>&1 | grep -E "error:" || true
-TEST_RUNNER_HEX_SWIPE_IN="$(realpath "${3:-scripts/swipebench.tsv}")" TEST_RUNNER_HEX_SWIPE_OUT="$(realpath "$OUT")" TEST_RUNNER_HEX_SWIPE_FIRST="${4:-0}" TEST_RUNNER_HEX_SWIPE_COUNT="${5:-}" \
-  TEST_RUNNER_HEX_SWIPE_ORIENTATION="$([ "$orientation" = portrait ] && echo portrait || echo landscape)" \
-  xcodebuild test-without-building -project HexKeyboard.xcodeproj -scheme Hex -destination "id=$ID" \
-  -derivedDataPath build/uitest -only-testing:HexUITests/SwipeBench 2>&1 | grep -E "error:|failed|Executed" || true
+xcodebuild build-for-testing -project iikb.xcodeproj -scheme iikb -destination "id=$ID" -derivedDataPath build/uitest -quiet 2>&1 | grep -E "error:" || true
+TEST_RUNNER_IIKB_SWIPE_IN="$(realpath "${3:-scripts/swipebench.tsv}")" TEST_RUNNER_IIKB_SWIPE_OUT="$(realpath "$OUT")" TEST_RUNNER_IIKB_SWIPE_FIRST="${4:-0}" TEST_RUNNER_IIKB_SWIPE_COUNT="${5:-}" \
+  TEST_RUNNER_IIKB_SWIPE_ORIENTATION="$([ "$orientation" = portrait ] && echo portrait || echo landscape)" \
+  xcodebuild test-without-building -project iikb.xcodeproj -scheme iikb -destination "id=$ID" \
+  -derivedDataPath build/uitest -only-testing:AppUITests/SwipeBench 2>&1 | grep -E "error:|failed|Executed" || true
 mkdir -p shots/raw/swipebench
 cp "$OUT" shots/raw/swipebench/

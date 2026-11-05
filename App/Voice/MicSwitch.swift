@@ -21,7 +21,7 @@ struct MicSwitch: View {
         HStack(spacing: 8) {
             Image(systemName: on ? "mic.fill" : "mic.slash.fill")
                 .font(.subheadline)
-                .foregroundStyle(Color.hexSecondary)
+                .foregroundStyle(Color.appSecondary)
                 .contentTransition(.symbolEffect(.replace))
                 .accessibilityHidden(true)
             Toggle("Microphone", isOn: Binding(get: { on }, set: flip))
@@ -31,7 +31,7 @@ struct MicSwitch: View {
                 .accessibilityIdentifier("home-mic")
         }
         .alert("Couldn’t Turn On the Microphone", isPresented: Binding(get: { failure != nil }, set: { if !$0 { failure = nil } })) {
-            Button("Settings") { HexStatus.openSettings() }
+            Button("Settings") { AppStatus.openSettings() }
             Button("OK", role: .cancel) {}
         } message: {
             Text(failure ?? "")

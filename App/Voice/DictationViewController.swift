@@ -13,7 +13,7 @@ final class DictationViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = HexStyle.page
+        view.backgroundColor = AppStyle.page
         orb.backgroundColor = .systemRed
         orb.isAccessibilityElement = false
         orb.layer.cornerRadius = 48
@@ -21,7 +21,7 @@ final class DictationViewController: UIViewController {
         status.textAlignment = .center
         status.numberOfLines = 0
         hint.font = .preferredFont(forTextStyle: .body)
-        hint.textColor = HexStyle.secondary
+        hint.textColor = AppStyle.secondary
         hint.textAlignment = .center
         hint.numberOfLines = 0
         done.configuration?.title = "Done"

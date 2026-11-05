@@ -1,6 +1,6 @@
 import AVFoundation
 
-/// A dictation's sound as Hex keeps it, beside its transcript: 16 kHz mono, which is what a Parakeet reads, saved as a
+/// A dictation's sound as iikb keeps it, beside its transcript: 16 kHz mono, which is what a Parakeet reads, saved as a
 /// 16-bit WAV.
 nonisolated enum Recording {
     static let format = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 16_000, channels: 1, interleaved: false)!

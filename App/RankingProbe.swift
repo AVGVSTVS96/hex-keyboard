@@ -3,11 +3,11 @@ import KeyboardEnglish
 import KeyboardUI
 import UIKit
 
-/// `-HexRankingProbe YES` (`scripts/rankprobe`): types the phrases in `Documents/probe-phrases.txt` through `TypingEngine`
+/// `-iikbRankingProbe YES` (`scripts/rankprobe`): types the phrases in `Documents/probe-phrases.txt` through `TypingEngine`
 /// with seeded noisy taps the way `Evaluation.latency()` does, timing every letter-up and space-up on this iPhone, and
 /// logs their median, p95, p99 and max to `Documents/rank.log`. Keep the screen unlocked while it runs.
 enum RankingProbe {
-    static var asked: Bool { UserDefaults.standard.bool(forKey: "HexRankingProbe") }
+    static var asked: Bool { UserDefaults.standard.bool(forKey: "iikbRankingProbe") }
 
     @MainActor static func runIfAsked() {
         guard asked else { return }

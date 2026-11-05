@@ -2,20 +2,20 @@ import XCTest
 
 final class CaptureTests: XCTestCase {
     func testHoldKeysForScreenshots() throws {
-        try XCTSkipUnless(ProcessInfo.processInfo.environment["HEX_CAPTURE"] != nil)
+        try XCTSkipUnless(ProcessInfo.processInfo.environment["IIKB_CAPTURE"] != nil)
         let app = XCUIApplication()
-        app.launchArguments = ["-HexFocus", "YES", "-HexOrientation", "portrait"]
-            + (ProcessInfo.processInfo.environment["HEX_ARGS"] ?? "").split(separator: " ").map(String.init)
+        app.launchArguments = ["-iikbFocus", "YES", "-iikbOrientation", "portrait"]
+            + (ProcessInfo.processInfo.environment["IIKB_ARGS"] ?? "").split(separator: " ").map(String.init)
         app.launch()
         let g = key("g", in: app)
         XCTAssertTrue(g.waitForExistence(timeout: 10))
-        if ProcessInfo.processInfo.environment["HEX_CAPTURE"] == "menu" {
+        if ProcessInfo.processInfo.environment["IIKB_CAPTURE"] == "menu" {
             let numbers = key("numbers", in: app)
             let top = numbers.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0)).withOffset(CGVector(dx: 0, dy: -85))
             numbers.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).press(forDuration: 4, thenDragTo: top, withVelocity: .slow, thenHoldForDuration: 4)
             return
         }
-        guard ProcessInfo.processInfo.environment["HEX_CAPTURE"] == "bar" else {
+        guard ProcessInfo.processInfo.environment["IIKB_CAPTURE"] == "bar" else {
             g.press(forDuration: 4)
             key("e", in: app).press(forDuration: 6)
             return
@@ -30,7 +30,7 @@ final class CaptureTests: XCTestCase {
     }
 
     private func key(_ name: String, in app: XCUIApplication) -> XCUIElement {
-        let hex = app.keys.matching(identifier: "hex.\(name)").firstMatch
-        return hex.exists ? hex : app.keys.matching(NSPredicate(format: "label ==[c] %@", name)).firstMatch
+        let iikb = app.keys.matching(identifier: "iikb.\(name)").firstMatch
+        return iikb.exists ? iikb : app.keys.matching(NSPredicate(format: "label ==[c] %@", name)).firstMatch
     }
 }

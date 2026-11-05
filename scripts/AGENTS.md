@@ -4,10 +4,10 @@ The command list is in the root AGENTS.md, "Build and test". This is how the big
 
 ## Simulators
 
-- `scripts/sim` creates its own `hexkb<slot> …` simulators and enables the extension by writing `AppleKeyboards` (and, for iPad, `AppleKeyboardsExpanded = 1`) into the simulator's global preferences, so no Settings UI is needed.
+- `scripts/sim` creates its own `iikb<slot> …` simulators and enables the extension by writing `AppleKeyboards` (and, for iPad, `AppleKeyboardsExpanded = 1`) into the simulator's global preferences, so no Settings UI is needed.
 - Simulators boot headless; the Simulator app never opens.
 - Reference screenshots of Apple's keyboard come from the same simulators with `KEYBOARDS=system`.
-- Builds are ad-hoc signed for the simulator (`CODE_SIGN_IDENTITY = -`), which embeds simulated entitlements, so the App Group works in the simulator without a team. Device builds need a team with the group `group.com.shahidy.hexkeyboard` registered.
+- Builds are ad-hoc signed for the simulator (`CODE_SIGN_IDENTITY = -`), which embeds simulated entitlements, so the App Group works in the simulator without a team. Device builds need a team with the group `group.com.shahidy.iikb` registered.
 
 ## scripts/phone
 

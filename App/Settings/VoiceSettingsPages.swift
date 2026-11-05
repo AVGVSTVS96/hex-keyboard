@@ -1,4 +1,4 @@
-import HexStore
+import KeyboardStore
 import KeyboardCore
 import KeyboardEnglish
 import KeyboardUI
@@ -27,7 +27,7 @@ struct ModelSettings: View {
                 Text("Downloading, \(done.formatted(.percent.precision(.fractionLength(0))))")
             }
             .font(.footnote)
-            .foregroundStyle(Color.hexSecondary)
+            .foregroundStyle(Color.appSecondary)
             .padding(.top, 8)
         case .loading:
             HStack(spacing: 6) {
@@ -35,7 +35,7 @@ struct ModelSettings: View {
                 Text("Getting ready")
             }
             .font(.footnote)
-            .foregroundStyle(Color.hexSecondary)
+            .foregroundStyle(Color.appSecondary)
             .padding(.top, 8)
         case .failed(let reason):
             VStack(alignment: .leading, spacing: 6) {
@@ -106,14 +106,14 @@ private struct WritingPreview: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             line("You say", said, primary: false)
-            Rectangle().fill(Color.hexDivider).frame(height: 1)
+            Rectangle().fill(Color.appDivider).frame(height: 1)
             line("iikb types", typed, primary: true)
                 .contentTransition(.opacity)
         }
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.hexCard, in: .rect(cornerRadius: HexStyle.cardRadius, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: HexStyle.cardRadius, style: .continuous).strokeBorder(Color.hexEdge))
+        .background(Color.appCard, in: .rect(cornerRadius: AppStyle.cardRadius, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: AppStyle.cardRadius, style: .continuous).strokeBorder(Color.appEdge))
         .accessibilityElement(children: .combine)
     }
 
@@ -121,10 +121,10 @@ private struct WritingPreview: View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title)
                 .font(.footnote.weight(.medium))
-                .foregroundStyle(Color.hexSecondary)
+                .foregroundStyle(Color.appSecondary)
             Text(text)
                 .font(primary ? .title3.weight(.medium) : .body)
-                .foregroundStyle(primary ? Color.primary : Color.hexSecondary)
+                .foregroundStyle(primary ? Color.primary : Color.appSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }

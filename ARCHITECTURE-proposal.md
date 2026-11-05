@@ -1,4 +1,4 @@
-# Hex keyboard: tap path and text state (built on Oct 11; see PROGRESS.md for the numbers)
+# iikb keyboard: tap path and text state (built on Oct 11; see PROGRESS.md for the numbers)
 
 ## What we have now (main, 925a433, on the phone)
 
@@ -20,7 +20,7 @@ show pop-up                             │  from the app's (late, cut-off) text
 1. The key is chosen by a model at touch down, using the app's text. The app's text arrives late and cut to a window, so the model guesses from the wrong text.
 2. The keyboard keeps no text of its own. Every decision (which word to fix, how many letters to delete, caps, quotes) reads the app's text again.
 3. A finger that is still down when its key view is rebuilt types nothing.
-4. iOS ignores touches on see-through pixels, and Hex draws nothing between keys, so taps in the gaps never arrive. This was measured in the simulator. On the phone, the 3:24pm trace shows every touch that arrived was handled.
+4. iOS ignores touches on see-through pixels, and iikb draws nothing between keys, so taps in the gaps never arrive. This was measured in the simulator. On the phone, the 3:24pm trace shows every touch that arrived was handled.
 
 ## What replaces it
 
@@ -104,7 +104,7 @@ The 3:24pm phone trace shows exactly these three cases: the app ran one edit beh
 - **Tap → key:** LatinIME, azooKey and KeyboardKit use geometry only and leave intent to the word decoder. Apple resizes hit regions with prediction. The precomputed key map is Apple's behavior built LatinIME's way (computed ahead, looked up on the tap). Pure geometry is the other option.
   - What geometry alone costs, measured with `scripts/eval` (2,714 words; 5,428 for thumbs). Words right after autocorrect, model picking keys → key under the finger:
 
-    | typing | Hex, fresh | Hex, learning |
+    | typing | iikb, fresh | iikb, learning |
     | --- | --- | --- |
     | noise σ 0.15 | 99.8 → 99.8 | 99.9 → 99.9 |
     | noise σ 0.25 | 97.3 → 95.7 | 96.9 → 95.7 |
@@ -114,7 +114,7 @@ The 3:24pm phone trace shows exactly these three cases: the app ran one edit beh
     Top-3 suggestion hits for learning thumbs: 98.5% → 95.7%. Letters right as typed (before autocorrect): 89.8% → 69.6%.
   - So prediction on the key is worth 1–3 points on sloppy typing, and nothing once your touches are learned.
   - My pick: build the precomputed key map, since that's what makes Apple's keyboard feel forgiving, with geometry as the fallback when no map is ready. If you'd rather match LatinIME exactly, the key under the finger alone is a smaller build and costs the numbers above.
-- **Composing text:** LatinIME and azooKey keep the word being typed as composing ("marked") text. Hex, like Apple's keyboard on iOS, inserts plain text and replaces the word on space. Third-party iOS keyboards can use `setMarkedText`, but it underlines the word in many apps, which Apple's keyboard doesn't do.
+- **Composing text:** LatinIME and azooKey keep the word being typed as composing ("marked") text. iikb, like Apple's keyboard on iOS, inserts plain text and replaces the word on space. Third-party iOS keyboards can use `setMarkedText`, but it underlines the word in many apps, which Apple's keyboard doesn't do.
 
 ## Proof so far (simulator and unit tests; the phone is the real check)
 - **Stress test** (3,000 seeded runs: fast noisy typing, deletes, suggestion taps, background jobs landing at random times, an app that reports late, cut-off and missing a delete, and external clears and pastes): before, 1,018 letters lost in 621 runs; with `TextState`, 0, and every run matches a perfect app exactly.

@@ -70,16 +70,16 @@ Swipe typing is in development. Languages other than English aren't available ye
 
 ## Install
 
-iikb isn't on the App Store, so you build it yourself. The code and IDs still use the old name (the `Hex` scheme, `HexKeyboard`, `com.shahidy.hexkeyboard`, the `hexkeyboard://` links), so an existing install updates in place and keeps what it learned.
+iikb isn't on the App Store, so you build it yourself. The code and IDs still use the old name (the `iikb` scheme, `FullKeyboard`, `com.shahidy.iikb`, the `iikb://` links), so an existing install updates in place and keeps what it learned.
 
 On a Mac, with Xcode and [XcodeGen](https://github.com/yonaskolb/XcodeGen):
 
 ```sh
 xcodegen generate
-open HexKeyboard.xcodeproj
+open iikb.xcodeproj
 ```
 
-Put your team in `Config/Team.xcconfig` (`DEVELOPMENT_TEAM = <your team ID>`) and run the `Hex` scheme. On Linux, `scripts/phone` builds and installs it with [AVGVSTVS96/xtool](https://github.com/AVGVSTVS96/xtool), a fork that keeps the app and App Group IDs (stock xtool installs a separate copy and drops the App Group); [AGENTS.md](AGENTS.md) has the details. A different team may need to swap in its own app and App Group IDs.
+Put your team in `Config/Team.xcconfig` (`DEVELOPMENT_TEAM = <your team ID>`) and run the `iikb` scheme. On Linux, `scripts/phone` builds and installs it with [AVGVSTVS96/xtool](https://github.com/AVGVSTVS96/xtool), a fork that keeps the app and App Group IDs (stock xtool installs a separate copy and drops the App Group); [AGENTS.md](AGENTS.md) has the details. A different team may need to swap in its own app and App Group IDs.
 
 Then on the phone: Settings › General › Keyboard › Keyboards › Add New Keyboard… › iikb, and turn on Allow Full Access. iikb needs it for haptics, voice, GIFs, the clipboard, Your Taps and sources. The clipboard also needs Settings › Apps › iikb › Paste from Other Apps set to Allow.
 
@@ -87,10 +87,10 @@ Then on the phone: Settings › General › Keyboard › Keyboards › Add New K
 
 | Path | What |
 | --- | --- |
-| `Packages/HexKeyboard/Sources/KeyboardCore` | Everything the keyboard does: layouts, typing, autocorrect, the tap model, emoji search. Pure Swift with no Foundation or UIKit, so it also runs in the browser as WebAssembly. Unit tested. |
-| `Packages/HexKeyboard/Sources/KeyboardUI` | Draws the keys, handles touches and haptics. |
-| `Packages/HexKeyboard/Sources/HexKeyboard` | iikb's own keyboard on those: talks to the app, and adds GIFs, the clipboard and sources. |
-| `Packages/HexKeyboard/Examples/` | A keyboard of its own built on `KeyboardCore`'s public API, for [docs/build-a-keyboard.md](docs/build-a-keyboard.md). |
+| `Packages/KeyboardModules/Sources/KeyboardCore` | Everything the keyboard does: layouts, typing, autocorrect, the tap model, emoji search. Pure Swift with no Foundation or UIKit, so it also runs in the browser as WebAssembly. Unit tested. |
+| `Packages/KeyboardModules/Sources/KeyboardUI` | Draws the keys, handles touches and haptics. |
+| `Packages/KeyboardModules/Sources/FullKeyboard` | iikb's own keyboard on those: talks to the app, and adds GIFs, the clipboard and sources. |
+| `Packages/KeyboardModules/Examples/` | A keyboard of its own built on `KeyboardCore`'s public API, for [docs/build-a-keyboard.md](docs/build-a-keyboard.md). |
 | `Keyboard/` | The keyboard extension. |
 | `App/` | The app: setup and settings, voice typing, Transcripts, Clipboard and Your Taps. |
 | `web/site/` | The product site and keyboard layout showcase. `scripts/site` builds it into `web/dist`. |
@@ -111,7 +111,7 @@ scripts/uitest     # on a Mac: types through the real keyboard
 
 ## Build your own
 
-iikb's typing engine is yours to build on. Draw the keys your way, and `KeyboardCore` handles Apple's layouts, autocorrect that learns your taps, and the suggestion bar. [docs/build-a-keyboard.md](docs/build-a-keyboard.md) walks through it, and [MinimalKeyboard](Packages/HexKeyboard/Examples/MinimalKeyboard/KeyboardViewController.swift) is a working keyboard in one file.
+iikb's typing engine is yours to build on. Draw the keys your way, and `KeyboardCore` handles Apple's layouts, autocorrect that learns your taps, and the suggestion bar. [docs/build-a-keyboard.md](docs/build-a-keyboard.md) walks through it, and [MinimalKeyboard](Packages/KeyboardModules/Examples/MinimalKeyboard/KeyboardViewController.swift) is a working keyboard in one file.
 
 ## License
 

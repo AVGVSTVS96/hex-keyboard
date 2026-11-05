@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The microphone a transcript was said into and whether voice processing heard it, and, when Hex kept its sound,
+/// The microphone a transcript was said into and whether voice processing heard it, and, when iikb kept its sound,
 /// writing it again with the voice model picked now, to keep or not.
 struct RecordingSection: View {
     let transcript: Transcript

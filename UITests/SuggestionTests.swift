@@ -6,7 +6,7 @@ final class SuggestionTests: XCTestCase {
     override func setUp() {
         continueAfterFailure = false
         app = XCUIApplication()
-        app.launchArguments = ["-HexFocus", "YES", "-HexResetSettings", "YES"]
+        app.launchArguments = ["-iikbFocus", "YES", "-iikbResetSettings", "YES"]
     }
 
     private func launch() {
@@ -53,14 +53,14 @@ final class SuggestionTests: XCTestCase {
     }
 
     func testAutoCorrectionSettingIsSharedWithTheKeyboard() {
-        app.launchArguments += ["-HexSettings", "typing"]
+        app.launchArguments += ["-iikbSettings", "typing"]
         app.launch()
         let toggle = app.switches["Auto-Correction"]
         XCTAssertTrue(toggle.waitForExistence(timeout: 5))
         toggle.switches.firstMatch.tap()
         XCTAssertEqual(toggle.value as? String, "0")
         app.terminate()
-        app.launchArguments = ["-HexFocus", "YES"]
+        app.launchArguments = ["-iikbFocus", "YES"]
         app.launch()
         XCTAssertTrue(key("space").waitForExistence(timeout: 10))
         type("helo ")
@@ -100,7 +100,7 @@ final class SuggestionTests: XCTestCase {
     }
 
     private func suggestion(_ index: Int) -> XCUIElement {
-        app.descendants(matching: .any).matching(identifier: "hex.suggestion.\(index)").firstMatch
+        app.descendants(matching: .any).matching(identifier: "iikb.suggestion.\(index)").firstMatch
     }
 
     private func tap(_ name: String) {
@@ -114,6 +114,6 @@ final class SuggestionTests: XCTestCase {
     }
 
     private func key(_ name: String) -> XCUIElement {
-        app.keys.matching(identifier: "hex.\(name)").firstMatch
+        app.keys.matching(identifier: "iikb.\(name)").firstMatch
     }
 }

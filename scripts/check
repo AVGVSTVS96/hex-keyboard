@@ -1,12 +1,12 @@
 #!/bin/sh
 # Builds this checkout's tree, uncommitted edits included, for the iPhone here on Linux with xtool, as scripts/phone
 # does but without signing or installing, so a change that breaks the phone build shows before it lands. One run at a
-# time, in ../hex-keyboard-check, where files are compared by content so the build stays incremental across checkouts.
+# time, in ../iikb-check, where files are compared by content so the build stays incremental across checkouts.
 # It takes a machine turn (~/.local/bin/turn) before its own lock, so the run holding the lock never waits for a turn.
 set -e
 [ -n "${TURN:-}" ] || ! command -v turn >/dev/null || exec turn "$0" "$@"
 cd "$(dirname "$0")/.."
-check=../hex-keyboard-check
+check=../iikb-check
 exec 9>"$check.lock"
 flock -n 9 || { echo "waiting for another scripts/check to finish" >&2; flock 9; }
 mkdir -p "$check"

@@ -1,7 +1,7 @@
 import XCTest
 
 extension XCTestCase {
-    /// Paste from Other Apps › Allow on the Settings page Hex just opened, without which iOS refuses the keyboard's
+    /// Paste from Other Apps › Allow on the Settings page iikb just opened, without which iOS refuses the keyboard's
     /// clipboard reads.
     func allowPasteFromOtherApps() throws {
         let settings = XCUIApplication(bundleIdentifier: "com.apple.Preferences")

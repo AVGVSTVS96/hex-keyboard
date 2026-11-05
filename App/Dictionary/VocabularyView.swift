@@ -46,7 +46,7 @@ struct VocabularyView: View {
             RowText(title: term.term, detail: term.heardAs.isEmpty ? nil : "Written as " + term.heardAs.joined(separator: ", "))
             Image(systemName: "chevron.right")
                 .font(.footnote.weight(.semibold))
-                .foregroundStyle(Color.hexSecondary)
+                .foregroundStyle(Color.appSecondary)
                 .accessibilityHidden(true)
         }
         .row()
@@ -113,7 +113,7 @@ private struct TermEditor: View {
             }
         }
         .presentationDetents([.medium, .large])
-        .presentationBackground(Color.hexPage)
+        .presentationBackground(Color.appPage)
         .onAppear { heardAs = term.heardAs.joined(separator: ", ") }
     }
 }

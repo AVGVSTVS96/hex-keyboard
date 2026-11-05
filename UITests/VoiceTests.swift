@@ -5,11 +5,11 @@ import XCTest
 final class VoiceTests: XCTestCase {
     func testTheBarsMicStartsAndStopsDictationInPlace() throws {
         let environment = ProcessInfo.processInfo.environment
-        guard let shots = environment["HEX_SHOTS"] else { throw XCTSkip("Run through scripts/voicetest") }
+        guard let shots = environment["IIKB_SHOTS"] else { throw XCTSkip("Run through scripts/voicetest") }
         continueAfterFailure = false
 
         let app = XCUIApplication()
-        app.launchArguments = ["-HexFocus", "YES", "-HexOrientation", "portrait", "-HexOneHanded", "off", "-HexMicKey", "NO"]
+        app.launchArguments = ["-iikbFocus", "YES", "-iikbOrientation", "portrait", "-iikbOneHanded", "off", "-iikbMicKey", "NO"]
         app.launch()
         if !key("space", in: app).waitForExistence(timeout: 10) {
             app.terminate()
@@ -18,10 +18,10 @@ final class VoiceTests: XCTestCase {
         XCTAssertTrue(key("space", in: app).waitForExistence(timeout: 10), "iikb is not the active keyboard")
         for letter in "pizza" { key(String(letter), in: app).tap() }
 
-        let mic = app.buttons["hex.mic"]
+        let mic = app.buttons["iikb.mic"]
         XCTAssertTrue(mic.waitForExistence(timeout: 5), "the mic is always beside the suggestions")
         XCTAssertTrue(wait(for: mic, label: "Dictate", value: "Mic On"), "it says when the app keeps the microphone on")
-        let emoji = app.keys.matching(identifier: "hex.suggestion.emoji.0").firstMatch
+        let emoji = app.keys.matching(identifier: "iikb.suggestion.emoji.0").firstMatch
         XCTAssertTrue(emoji.waitForExistence(timeout: 3), "the word's emoji sit beside the mic")
         XCTAssertLessThan(emoji.frame.maxX, mic.frame.minX + 1)
         try shot("\(shots)-on")
@@ -29,20 +29,20 @@ final class VoiceTests: XCTestCase {
         mic.tap()
         XCTAssertTrue(wait(for: mic, label: "Stop Dictating", value: nil), "tapping the mic starts listening without opening the app")
         Thread.sleep(forTimeInterval: 3)
-        let time = app.staticTexts["hex.time"]
+        let time = app.staticTexts["iikb.time"]
         XCTAssertTrue(wait { ["0:02", "0:03", "0:04"].contains(time.label) }, "the time is what the app has recorded, \(time.label)")
         try shot("\(shots)-listening")
 
         mic.tap()
         XCTAssertTrue(wait(for: mic, label: "Dictate", value: "Writing"), "tapping it again stops, and while that's written down the mic can dictate again")
-        let waiting = app.staticTexts["hex.waiting"]
-        let chip = app.staticTexts["hex.saved.0"]
+        let waiting = app.staticTexts["iikb.waiting"]
+        let chip = app.staticTexts["iikb.saved.0"]
         XCTAssertTrue(wait { waiting.label == "Model loading…" && chip.exists && chip.label == "0:05" }, "a dictation waiting for the model shows it's saved, with its length")
         try shot("\(shots)-writing")
 
         mic.tap()
         XCTAssertTrue(wait(for: mic, label: "Stop Dictating", value: nil), "a tap while the last is written down starts the next dictation")
-        let saved = app.staticTexts["hex.saved"]
+        let saved = app.staticTexts["iikb.saved"]
         XCTAssertTrue(wait { saved.exists && saved.label == "1 saved" }, "while you talk, the bar still counts the one waiting")
         try shot("\(shots)-listening-saved")
         let field = app.textViews.firstMatch
@@ -53,7 +53,7 @@ final class VoiceTests: XCTestCase {
         XCTAssertTrue(wait(for: mic, label: "Dictate", value: "Mic On"))
         try shot("\(shots)-typed")
 
-        let notice = app.descendants(matching: .any).matching(identifier: "hex.notice").firstMatch
+        let notice = app.descendants(matching: .any).matching(identifier: "iikb.notice").firstMatch
         XCTAssertTrue(wait { notice.exists && notice.label.hasPrefix("Not typed") }, "one stopped in a keyboard that has since closed says where it is")
         XCTAssertTrue((field.value as? String ?? "").hasSuffix("and again"), "and isn't typed here")
         try shot("\(shots)-elsewhere")
@@ -69,27 +69,27 @@ final class VoiceTests: XCTestCase {
     /// from it is the bar's mic's test above; the stand-in app answers one test per run.
     func testTheRecordKeySitsLeftOf123() throws {
         let environment = ProcessInfo.processInfo.environment
-        guard let shots = environment["HEX_SHOTS"] else { throw XCTSkip("Run through scripts/voicetest") }
+        guard let shots = environment["IIKB_SHOTS"] else { throw XCTSkip("Run through scripts/voicetest") }
         continueAfterFailure = false
 
         let app = XCUIApplication()
-        app.launchArguments = ["-HexFocus", "YES", "-HexOrientation", "portrait", "-HexOneHanded", "off", "-HexMicKey", "YES"]
+        app.launchArguments = ["-iikbFocus", "YES", "-iikbOrientation", "portrait", "-iikbOneHanded", "off", "-iikbMicKey", "YES"]
         app.launch()
         if !key("space", in: app).waitForExistence(timeout: 10) {
             app.terminate()
             app.launch()
         }
         XCTAssertTrue(key("space", in: app).waitForExistence(timeout: 10), "iikb is not the active keyboard")
-        let mic = app.buttons["hex.mic"]
+        let mic = app.buttons["iikb.mic"]
         XCTAssertTrue(mic.waitForExistence(timeout: 5))
         let numbers = key("numbers", in: app)
         try shot("\(shots)-key-on")
         XCTAssertTrue(wait { numbers.exists && abs(mic.frame.midY - numbers.frame.midY) < 2 && mic.frame.maxX <= numbers.frame.minX + 1 }, "the mic sits left of 123: \(mic.frame), 123 \(numbers.frame)")
-        XCTAssertFalse(app.keys.matching(identifier: "hex.next keyboard").firstMatch.exists, "in the globe's place")
+        XCTAssertFalse(app.keys.matching(identifier: "iikb.next keyboard").firstMatch.exists, "in the globe's place")
 
         XCTAssertEqual(mic.label, "Dictate", "it's the same mic, ready to dictate")
         app.terminate()
-        app.launchArguments = ["-HexFocus", "YES", "-HexMicKey", "NO"]
+        app.launchArguments = ["-iikbFocus", "YES", "-iikbMicKey", "NO"]
         app.launch()
     }
 
@@ -107,7 +107,7 @@ final class VoiceTests: XCTestCase {
     }
 
     private func key(_ name: String, in app: XCUIApplication) -> XCUIElement {
-        let hex = app.keys.matching(identifier: "hex.\(name)").firstMatch
-        return hex.exists ? hex : app.keys.matching(NSPredicate(format: "label ==[c] %@", name)).firstMatch
+        let iikb = app.keys.matching(identifier: "iikb.\(name)").firstMatch
+        return iikb.exists ? iikb : app.keys.matching(NSPredicate(format: "label ==[c] %@", name)).firstMatch
     }
 }

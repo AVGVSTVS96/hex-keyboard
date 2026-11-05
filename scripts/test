@@ -2,8 +2,8 @@
 # Runs on the Mac. KeyboardUI's package tests on the iPhone Duo simulator, without the slow autocorrect scorer
 # (scripts/eval); KeyboardCore's run here on Linux with scripts/coretest.
 set -euo pipefail
-cd "$(dirname "$0")/../Packages/HexKeyboard"
+cd "$(dirname "$0")/../Packages/KeyboardModules"
 ID=$(../../scripts/sim ensure "iPhone Duo" iPhone-Duo)
-xcodebuild test -scheme HexKeyboard-Package -destination "id=$ID" -derivedDataPath ../../build/tests \
+xcodebuild test -scheme FullKeyboard-Package -destination "id=$ID" -derivedDataPath ../../build/tests \
   -only-testing:KeyboardUITests -skip-testing:KeyboardUITests/Evaluation 2>&1 \
   | grep -E "error:|✘|Test run with"

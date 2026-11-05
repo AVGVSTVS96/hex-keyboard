@@ -1,31 +1,31 @@
 # Build a keyboard on iikb
 
-iikb's typing lives in `KeyboardCore`: Apple's layouts and key sizes for every iPhone and iPad, shift and caps lock, autocorrect that learns where each thumb lands, and a suggestion bar. It's pure Swift, so you draw the keys however you like and the engine does the rest. `KeyboardUI` is iikb's UIKit side: its keys, bar and panels, and the bridge to the host's text field. `HexKeyboard` is iikb's own keyboard, built on both.
+iikb's typing lives in `KeyboardCore`: Apple's layouts and key sizes for every iPhone and iPad, shift and caps lock, autocorrect that learns where each thumb lands, and a suggestion bar. It's pure Swift, so you draw the keys however you like and the engine does the rest. `KeyboardUI` is iikb's UIKit side: its keys, bar and panels, and the bridge to the host's text field. `FullKeyboard` is iikb's own keyboard, built on both.
 
 There are two ways in:
 
-- **All of iikb.** Subclass `HexKeyboardViewController` and you get the keyboard as it ships.
-- **Your own look.** Draw your own keys and pass touches to `TypingEngine`. [`Examples/MinimalKeyboard`](../Packages/HexKeyboard/Examples/MinimalKeyboard/KeyboardViewController.swift) does this in one file of about 240 lines.
+- **All of iikb.** Subclass `FullKeyboardViewController` and you get the keyboard as it ships.
+- **Your own look.** Draw your own keys and pass touches to `TypingEngine`. [`Examples/MinimalKeyboard`](../Packages/KeyboardModules/Examples/MinimalKeyboard/KeyboardViewController.swift) does this in one file of about 240 lines.
 
 ## Add the package
 
-The package is in a subfolder (`Packages/HexKeyboard`), and Swift Package Manager can't take a git URL for a package that isn't at the repository's root. So add the repository as a submodule:
+The package is in a subfolder (`Packages/KeyboardModules`), and Swift Package Manager can't take a git URL for a package that isn't at the repository's root. So add the repository as a submodule:
 
 ```sh
 git submodule add https://github.com/AVGVSTVS96/iikb
 ```
 
-Then in Xcode, choose File › Add Package Dependencies… › Add Local…, pick `iikb/Packages/HexKeyboard`, and link `KeyboardCore`, `KeyboardEnglish` and `KeyboardUI` to your keyboard extension. You need iOS 26 and Swift 6.2 or later.
+Then in Xcode, choose File › Add Package Dependencies… › Add Local…, pick `iikb/Packages/KeyboardModules`, and link `KeyboardCore`, `KeyboardEnglish` and `KeyboardUI` to your keyboard extension. You need iOS 26 and Swift 6.2 or later.
 
 ## All of iikb
 
 ```swift
-import HexKeyboard
+import FullKeyboard
 
-final class KeyboardViewController: HexKeyboardViewController {}
+final class KeyboardViewController: FullKeyboardViewController {}
 ```
 
-Link `HexKeyboard` for this. It's iikb itself (`Keyboard/KeyboardViewController.swift`), including the parts that belong to iikb's app. The keyboard keeps its settings and what it learns in the App Group `group.com.shahidy.hexkeyboard`, opens its settings at `hexkeyboard://`, and hands voice typing to iikb's app. Unless you ship that app with those IDs, take the second way.
+Link `FullKeyboard` for this. It's iikb itself (`Keyboard/KeyboardViewController.swift`), including the parts that belong to iikb's app. The keyboard keeps its settings and what it learns in the App Group `group.com.shahidy.iikb`, opens its settings at `iikb://`, and hands voice typing to iikb's app. Unless you ship that app with those IDs, take the second way.
 
 ## Your own look
 
@@ -103,9 +103,9 @@ engine.suggestionsChanged()
 
 ## What the example leaves out
 
-These all live in `KeyboardUI`'s `KeyboardView`: holding delete to repeat, the pop-up over a pressed key, accents on a long press, the space bar trackpad and Slide to Type. `HexKeyboardViewController` shows how to drive it. For haptics, `KeyHaptics` plays Apple's keyboard haptics: `start()` it in `viewWillAppear`, `play(.input)` as a key goes down, and `stop()` it in `viewWillDisappear`.
+These all live in `KeyboardUI`'s `KeyboardView`: holding delete to repeat, the pop-up over a pressed key, accents on a long press, the space bar trackpad and Slide to Type. `FullKeyboardViewController` shows how to drive it. For haptics, `KeyHaptics` plays Apple's keyboard haptics: `start()` it in `viewWillAppear`, `play(.input)` as a key goes down, and `stop()` it in `viewWillDisappear`.
 
-Linking `HexKeyboard` turns on UIKit's private keyboard arbiter when an extension loads (`KeyboardArbiter`). iikb uses it to learn which app it's typing in. `KeyboardCore` and `KeyboardUI` use no private API. A keyboard that links `HexKeyboard` runs on your own devices, but App Review may reject it.
+Linking `FullKeyboard` turns on UIKit's private keyboard arbiter when an extension loads (`KeyboardArbiter`). iikb uses it to learn which app it's typing in. `KeyboardCore` and `KeyboardUI` use no private API. A keyboard that links `FullKeyboard` runs on your own devices, but App Review may reject it.
 
 ## Run it
 
@@ -119,7 +119,7 @@ Linking `HexKeyboard` turns on UIKit's private keyboard arbiter when an extensio
 `KeyboardCore` imports no Foundation or UIKit, so it builds anywhere Swift 6.3 or later runs:
 
 ```sh
-swift build --package-path Packages/HexKeyboard --target KeyboardCore
+swift build --package-path Packages/KeyboardModules --target KeyboardCore
 scripts/coretest   # its tests, in a package of KeyboardCore alone, since the other targets need UIKit
 ```
 

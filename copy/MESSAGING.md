@@ -3,7 +3,7 @@
 ## Name
 
 - **iikb**, lowercase everywhere. The name stands alone and is never expanded.
-- Code and bundle IDs keep Hex so updates preserve installed data. Explain this only in the README's Install section.
+- Code and bundle IDs keep iikb so updates preserve installed data. Explain this only in the README's Install section.
 
 ## Position
 

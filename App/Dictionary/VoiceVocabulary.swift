@@ -1,5 +1,5 @@
 import Foundation
-import HexStore
+import KeyboardStore
 import KeyboardCore
 import Observation
 

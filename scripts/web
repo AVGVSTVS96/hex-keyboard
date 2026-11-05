@@ -10,4 +10,4 @@ mkdir dist
 cp -R .build/plugins/PackageToJS/outputs/Package dist/engine
 cp -R site/. dist/
 cp ../copy/facts.json dist/
-cp ../Packages/HexKeyboard/Sources/KeyboardEnglish/Resources/en.lexicon ../Packages/HexKeyboard/Sources/KeyboardEnglish/Resources/LEXICON-LICENSE dist/
+cp ../Packages/KeyboardModules/Sources/KeyboardEnglish/Resources/en.lexicon ../Packages/KeyboardModules/Sources/KeyboardEnglish/Resources/LEXICON-LICENSE dist/

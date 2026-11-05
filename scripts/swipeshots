@@ -8,18 +8,18 @@ tag=${1:?tag}
 id=$(scripts/sim ensure "iPhone Duo" iPhone-Duo)
 xcrun simctl shutdown "$id" 2>/dev/null || true
 scripts/sim boot "$id"
-scripts/sim use "$id" hex
+scripts/sim use "$id" iikb
 mkdir -p shots/raw/swipe
 xcodegen generate -q
-xcodebuild build-for-testing -project HexKeyboard.xcodeproj -scheme Hex -destination "id=$id" -derivedDataPath build/uitest -quiet
+xcodebuild build-for-testing -project iikb.xcodeproj -scheme iikb -destination "id=$id" -derivedDataPath build/uitest -quiet
 while read -r screen hinge orientation open; do
   [ "$hinge" = 0 ] || scripts/sim unfold "$id" "$hinge"
   scripts/sim hub "$id" orientation "$orientation"
   for appearance in light dark; do
     xcrun simctl ui "$id" appearance "$appearance"
-    TEST_RUNNER_HEX_SHOTS="$PWD/shots/raw/swipe/$tag-$screen-$appearance" TEST_RUNNER_HEX_SWIPE_ORIENTATION=portrait TEST_RUNNER_HEX_SWIPE_OPEN=$open \
-      xcodebuild test-without-building -project HexKeyboard.xcodeproj -scheme Hex -destination "id=$id" \
-      -derivedDataPath build/uitest -only-testing:HexUITests/SwipeShots 2>&1 | grep -E "error:|failed|Executed"
+    TEST_RUNNER_IIKB_SHOTS="$PWD/shots/raw/swipe/$tag-$screen-$appearance" TEST_RUNNER_IIKB_SWIPE_ORIENTATION=portrait TEST_RUNNER_IIKB_SWIPE_OPEN=$open \
+      xcodebuild test-without-building -project iikb.xcodeproj -scheme iikb -destination "id=$id" \
+      -derivedDataPath build/uitest -only-testing:AppUITests/SwipeShots 2>&1 | grep -E "error:|failed|Executed"
   done
 done <<'SCREENS'
 folded 0 portrait

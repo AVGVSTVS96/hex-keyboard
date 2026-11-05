@@ -6,11 +6,11 @@ cd "$(dirname "$0")/.."
 ID=$(scripts/sim ensure "${NAME:-iPhone 17}" "${TYPE:-iPhone-17}")
 BOOTED=$(xcrun simctl list devices | grep -c "$ID) (Booted)" || true)
 scripts/sim boot "$ID"
-scripts/sim use "$ID" hex
+scripts/sim use "$ID" iikb
 for text in "" "${1:-I think the wor}"; do
-  xcrun simctl terminate "$ID" com.shahidy.hexkeyboard 2>/dev/null || true
+  xcrun simctl terminate "$ID" com.shahidy.iikb 2>/dev/null || true
   pkill -f "$ID.*Keyboard.appex/Keyboard" 2>/dev/null || true
-  xcrun simctl launch "$ID" com.shahidy.hexkeyboard -HexFocus YES -HexText "$text" >/dev/null
+  xcrun simctl launch "$ID" com.shahidy.iikb -iikbFocus YES -iikbText "$text" >/dev/null
   until PID=$(pgrep -f "$ID.*Keyboard.appex/Keyboard"); do sleep 0.5; done
   sleep 5
   echo "text=\"$text\" $(footprint -p "$PID" 2>/dev/null | grep -m1 -E 'Footprint:')"

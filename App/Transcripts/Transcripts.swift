@@ -1,5 +1,5 @@
 import Foundation
-import HexStore
+import KeyboardStore
 import Observation
 import UIKit
 
@@ -8,22 +8,22 @@ struct Transcript: Codable, Identifiable, Hashable {
     var date: Date
     var text: String
     var seconds: Double
-    /// False when it wasn't typed where you said it: you canceled it, or Hex ended mid-dictation.
+    /// False when it wasn't typed where you said it: you canceled it, or iikb ended mid-dictation.
     var typed: Bool
-    /// Written down after Hex ended mid-dictation (an install, a crash, a dead iPhone), the next time it started.
+    /// Written down after iikb ended mid-dictation (an install, a crash, a dead iPhone), the next time it started.
     var recovered: Bool?
-    /// The speech model that wrote it; nil before Hex kept it.
+    /// The speech model that wrote it; nil before iikb kept it.
     var model: String?
-    /// The microphone it was said into, as iOS names it; nil before Hex kept it.
+    /// The microphone it was said into, as iOS names it; nil before iikb kept it.
     var mic: String?
-    /// Whether that microphone was heard through Apple's voice processing, as a call is; nil before Hex kept it.
+    /// Whether that microphone was heard through Apple's voice processing, as a call is; nil before iikb kept it.
     var voiceProcessing: Bool?
     /// What the model wrote, when your style or `Vocabulary` changed it.
     var heard: String?
-    /// The bundle ID of the app it was said for; nil when the keyboard couldn't tell, or before Hex kept it.
+    /// The bundle ID of the app it was said for; nil when the keyboard couldn't tell, or before iikb kept it.
     var app: String?
     /// What the keyboard typed for it and what that became once its field was sent or left, every edit in it included;
-    /// nil until then, when it wasn't typed, or before Hex kept it.
+    /// nil until then, when it wasn't typed, or before iikb kept it.
     var field: Field?
 
     struct Field: Codable, Hashable {

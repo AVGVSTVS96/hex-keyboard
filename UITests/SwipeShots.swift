@@ -1,14 +1,14 @@
 import XCTest
 
-/// Swipes a word and screenshots the trail as the finger lifts and the bar a moment later: HEX_SHOTS is the file prefix,
-/// HEX_SWIPE_ORIENTATION (portrait, landscape) the screen's, HEX_SWIPE_OPEN set for the open Duo's display.
+/// Swipes a word and screenshots the trail as the finger lifts and the bar a moment later: IIKB_SHOTS is the file prefix,
+/// IIKB_SWIPE_ORIENTATION (portrait, landscape) the screen's, IIKB_SWIPE_OPEN set for the open Duo's display.
 final class SwipeShots: XCTestCase {
     func testSwipeAndShoot() throws {
         let environment = ProcessInfo.processInfo.environment
-        guard let prefix = environment["HEX_SHOTS"] else { throw XCTSkip("Run through scripts/swipeshots") }
-        let landscape = environment["HEX_SWIPE_ORIENTATION"] == "landscape"
+        guard let prefix = environment["IIKB_SHOTS"] else { throw XCTSkip("Run through scripts/swipeshots") }
+        let landscape = environment["IIKB_SWIPE_ORIENTATION"] == "landscape"
         let app = XCUIApplication()
-        app.launchArguments = ["-HexFocus", "YES", "-HexOrientation", landscape ? "landscape" : "portrait"]
+        app.launchArguments = ["-iikbFocus", "YES", "-iikbOrientation", landscape ? "landscape" : "portrait"]
         app.launch()
         if !key("space", in: app).waitForExistence(timeout: 15) {
             app.terminate()
@@ -34,7 +34,7 @@ final class SwipeShots: XCTestCase {
         let record = XCSynthesizedEventRecord(name: "keyboard", interfaceOrientation: landscape ? .landscapeRight : .portrait)
         record.add(finger)
         try record.synthesize()
-        let screen = (environment["HEX_SWIPE_OPEN"] ?? "").isEmpty ? XCUIScreen.main : XCUIScreen.screens.max { $0.screenshot().image.size.width < $1.screenshot().image.size.width }!
+        let screen = (environment["IIKB_SWIPE_OPEN"] ?? "").isEmpty ? XCUIScreen.main : XCUIScreen.screens.max { $0.screenshot().image.size.width < $1.screenshot().image.size.width }!
         Thread.sleep(forTimeInterval: 0.12)
         try screen.screenshot().pngRepresentation.write(to: URL(fileURLWithPath: "\(prefix)-trail.png"))
         Thread.sleep(forTimeInterval: 1.5)
@@ -42,6 +42,6 @@ final class SwipeShots: XCTestCase {
     }
 
     private func key(_ name: String, in app: XCUIApplication) -> XCUIElement {
-        app.keys.matching(identifier: "hex.\(name)").firstMatch
+        app.keys.matching(identifier: "iikb.\(name)").firstMatch
     }
 }

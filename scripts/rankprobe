@@ -1,26 +1,26 @@
 #!/bin/sh
-# Times the suggestion bar's ranking on the iPhone the Mac reaches, in the installed Hex (scripts/phone): scripts/rankprobe.
+# Times the suggestion bar's ranking on the iPhone the Mac reaches, in the installed iikb (scripts/phone): scripts/rankprobe.
 # Types the first 100 phrases of the evaluation corpus with seeded noisy taps, as Evaluation.latency() does (scripts/eval
 # latency, here on Linux), and prints median, p95, p99 and max for letter-up and space-up. Keep the iPhone unlocked.
 set -e
 cd "$(dirname "$0")/.."
-scp -q Packages/HexKeyboard/Tests/KeyboardUITests/phrases.txt mac:/tmp/hex-probe-phrases.txt
+scp -q Packages/KeyboardModules/Tests/KeyboardUITests/phrases.txt mac:/tmp/iikb-probe-phrases.txt
 ssh mac sh -s <<'MAC'
 set -e
-phone=$(xcrun devicectl list devices --json-output /tmp/hex-phone.json >/dev/null && /usr/bin/python3 -c "
+phone=$(xcrun devicectl list devices --json-output /tmp/iikb-phone.json >/dev/null && /usr/bin/python3 -c "
 import json
-for d in json.load(open('/tmp/hex-phone.json'))['result']['devices']:
+for d in json.load(open('/tmp/iikb-phone.json'))['result']['devices']:
     h, c = d['hardwareProperties'], d['connectionProperties']
     if h.get('deviceType') == 'iPhone' and h.get('reality') == 'physical' and c.get('transportType'): print(h['udid']); break")
 [ -n "$phone" ] || { echo "the Mac doesn't reach an iPhone" >&2; exit 1; }
-container="--device $phone --domain-type appDataContainer --domain-identifier com.shahidy.hexkeyboard"
-xcrun devicectl device copy to $container --source /tmp/hex-probe-phrases.txt --destination Documents/probe-phrases.txt >/dev/null
+container="--device $phone --domain-type appDataContainer --domain-identifier com.shahidy.iikb"
+xcrun devicectl device copy to $container --source /tmp/iikb-probe-phrases.txt --destination Documents/probe-phrases.txt >/dev/null
 xcrun devicectl device copy to $container --source /dev/null --destination Documents/rank.log >/dev/null
-xcrun devicectl device process launch --terminate-existing --device "$phone" com.shahidy.hexkeyboard -- -HexRankingProbe YES >/dev/null
+xcrun devicectl device process launch --terminate-existing --device "$phone" com.shahidy.iikb -- -iikbRankingProbe YES >/dev/null
 n=0
-until xcrun devicectl device copy from $container --source Documents/rank.log --destination /tmp/hex-rank.log >/dev/null 2>&1 && grep -q "^done" /tmp/hex-rank.log; do
+until xcrun devicectl device copy from $container --source Documents/rank.log --destination /tmp/iikb-rank.log >/dev/null 2>&1 && grep -q "^done" /tmp/iikb-rank.log; do
   n=$((n + 1)); [ $n -lt 40 ] || { echo "no result in 2 minutes: is the iPhone unlocked?" >&2; exit 1; }
   sleep 3
 done
-cat /tmp/hex-rank.log
+cat /tmp/iikb-rank.log
 MAC

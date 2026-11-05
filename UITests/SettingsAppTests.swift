@@ -1,14 +1,14 @@
 import XCTest
 
 final class SettingsAppTests: XCTestCase {
-    func testSettingsAppSharesSwitchesWithHex() throws {
-        let hex = XCUIApplication()
-        hex.launchArguments = ["-HexResetSettings", "YES", "-HexSettings", "layout"]
-        hex.launch()
-        let inHex = hex.switches["Emoji Key"]
-        XCTAssertTrue(inHex.waitForExistence(timeout: 5))
-        XCTAssertEqual(inHex.value as? String, "1")
-        hex.terminate()
+    func testSettingsAppSharesSwitchesWithApp() throws {
+        let iikb = XCUIApplication()
+        iikb.launchArguments = ["-iikbResetSettings", "YES", "-iikbSettings", "layout"]
+        iikb.launch()
+        let inApp = iikb.switches["Emoji Key"]
+        XCTAssertTrue(inApp.waitForExistence(timeout: 5))
+        XCTAssertEqual(inApp.value as? String, "1")
+        iikb.terminate()
 
         let settings = XCUIApplication(bundleIdentifier: "com.apple.Preferences")
         settings.launch()
@@ -23,34 +23,34 @@ final class SettingsAppTests: XCTestCase {
         open("Layout", in: settings)
         let inSettings = settings.switches["Emoji Key"]
         XCTAssertTrue(inSettings.waitForExistence(timeout: 5))
-        if let path = ProcessInfo.processInfo.environment["HEX_SETTINGS_SHOT"] {
+        if let path = ProcessInfo.processInfo.environment["IIKB_SETTINGS_SHOT"] {
             try XCUIScreen.main.screenshot().pngRepresentation.write(to: URL(fileURLWithPath: path))
         }
         inSettings.switches.firstMatch.tap()
         XCTAssertEqual(inSettings.value as? String, "0")
         settings.terminate()
 
-        hex.launchArguments = ["-HexSettings", "layout"]
-        hex.launch()
-        XCTAssertTrue(inHex.waitForExistence(timeout: 5))
-        XCTAssertEqual(inHex.value as? String, "0")
+        iikb.launchArguments = ["-iikbSettings", "layout"]
+        iikb.launch()
+        XCTAssertTrue(inApp.waitForExistence(timeout: 5))
+        XCTAssertEqual(inApp.value as? String, "0")
     }
 
-    func testKeepMicOnIsPickedInHexAndShownInSettings() throws {
-        let hex = XCUIApplication()
-        hex.launchArguments = ["-HexResetSettings", "YES", "-HexSettings", "mic"]
-        hex.launch()
-        let picked = hex.buttons["5 Minutes"]
+    func testKeepMicOnIsPickedInAppAndShownInSettings() throws {
+        let iikb = XCUIApplication()
+        iikb.launchArguments = ["-iikbResetSettings", "YES", "-iikbSettings", "mic"]
+        iikb.launch()
+        let picked = iikb.buttons["5 Minutes"]
         XCTAssertTrue(picked.waitForExistence(timeout: 5))
-        for _ in 0 ..< 6 where !picked.isHittable { hex.swipeUp() }
+        for _ in 0 ..< 6 where !picked.isHittable { iikb.swipeUp() }
         XCTAssertTrue(picked.isSelected)
-        try shot(hex, "keep-mic-on-choices")
-        let minute = hex.buttons["1 Minute"]
-        while !minute.isHittable { hex.swipeUp() }
+        try shot(iikb, "keep-mic-on-choices")
+        let minute = iikb.buttons["1 Minute"]
+        while !minute.isHittable { iikb.swipeUp() }
         minute.tap()
         XCTAssertTrue(minute.isSelected)
         XCTAssertFalse(picked.isSelected)
-        hex.terminate()
+        iikb.terminate()
 
         let settings = XCUIApplication(bundleIdentifier: "com.apple.Preferences")
         settings.launch()
@@ -69,7 +69,7 @@ final class SettingsAppTests: XCTestCase {
         settings.terminate()
     }
 
-    /// Opens one of Hex's pages in Settings › Apps › Hex.
+    /// Opens one of iikb's pages in Settings › Apps › iikb.
     private func open(_ page: String, in settings: XCUIApplication) {
         let row = settings.descendants(matching: .any).matching(NSPredicate(format: "label == %@", page)).firstMatch
         XCTAssertTrue(row.waitForExistence(timeout: 15))
@@ -78,7 +78,7 @@ final class SettingsAppTests: XCTestCase {
     }
 
     private func shot(_ app: XCUIApplication, _ name: String) throws {
-        guard let folder = ProcessInfo.processInfo.environment["HEX_SHOTS"] else { return }
+        guard let folder = ProcessInfo.processInfo.environment["IIKB_SHOTS"] else { return }
         try FileManager.default.createDirectory(atPath: folder, withIntermediateDirectories: true)
         try XCUIScreen.main.screenshot().pngRepresentation.write(to: URL(fileURLWithPath: "\(folder)/\(name).png"))
     }

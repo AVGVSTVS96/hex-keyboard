@@ -1,48 +1,50 @@
 #!/bin/bash
-# Copies iikb's data off the iPhone the Mac reaches into ~/.local/share/hex-keyboard/backup here: the app's, the
+# Copies iikb's data off the iPhone the Mac reaches into ~/.local/share/iikb/backup here: the app's, the
 # keyboard's and the App Group's files, all but Parakeet's models. Nothing is deleted there, and a file a backup
 # replaces is kept under versions/<time>, so one wiped on the phone can be put back. scripts/phone runs it before
-# every install. In the day after an install left Hex a new, empty container (`reinstalls`, written by scripts/phone), a
+# every install. In the day after an install left iikb a new, empty container (`reinstalls`, written by scripts/phone), a
 # file the iPhone holds at under half the size of the backup's (over 4 KB) is kept under smaller/<time> rather than over
 # the backup's, which stays for scripts/restore to put back; --smaller takes such files anyway. Any other shrink was you
 # (Reset Learned Words, a deleted transcript) and is backed up as it is.
+# IIKB_APP names the app to back up, com.shahidy.iikb unless set.
 # Usage: scripts/backup <iPhone UDID> [--smaller]
 set -euo pipefail
 umask 077
 phone=${1:?usage: scripts/backup <iPhone UDID> [--smaller]}
 smaller=${2:-}
-backup=${HEX_BACKUP:-$HOME/.local/share/hex-keyboard/backup}
+id=${IIKB_APP:-com.shahidy.iikb}
+backup=${IIKB_BACKUP:-$HOME/.local/share/iikb/backup}
 mkdir -p "$backup/mirror/app/recordings"
 have=$(cd "$backup/mirror/app/recordings" && ls | paste -sd, -)
 read -r -d '' mac <<'MAC' || true
 set -eu
-phone=$1 have=${2:-} out=$(mktemp -d /tmp/iikb-backup.XXXX)
+phone=$1 have=$2 id=$3 out=$(mktemp -d /tmp/iikb-backup.XXXX)
 copy() { xcrun devicectl device copy from --device "$phone" --domain-type "$1" --domain-identifier "$2" --source "$3" --destination "$out/$4" >/dev/null; }
 list() {
-  xcrun devicectl device info files --device "$phone" --domain-type appDataContainer --domain-identifier com.shahidy.hexkeyboard \
+  xcrun devicectl device info files --device "$phone" --domain-type appDataContainer --domain-identifier "$id" \
     --subdirectory "$1" --json-output "$out/list.json" >/dev/null
   /usr/bin/python3 -c "import json, sys; print('\n'.join(f['relativePath'] for f in json.load(open(sys.argv[1]))['result']['files'] if '/' not in f['relativePath']))" "$out/list.json"
 }
 mkdir -p "$out/app/recordings" "$out/keyboard" "$out/group"
 for name in $(list "Library/Application Support"); do
-  case $name in (FluidAudio|recordings) ;; (*) copy appDataContainer com.shahidy.hexkeyboard "Library/Application Support/$name" "app/$name" ;; esac
+  case $name in (FluidAudio|recordings) ;; (*) copy appDataContainer "$id" "Library/Application Support/$name" "app/$name" ;; esac
 done
-copy appDataContainer com.shahidy.hexkeyboard Library/Preferences app/Preferences
+copy appDataContainer "$id" Library/Preferences app/Preferences
 if [ -z "$have" ]; then
   rmdir "$out/app/recordings"
-  copy appDataContainer com.shahidy.hexkeyboard "Library/Application Support/recordings" app/recordings
+  copy appDataContainer "$id" "Library/Application Support/recordings" app/recordings
 else
   for name in $(list "Library/Application Support/recordings"); do
-    case ",$have," in (*",$name,"*) ;; (*) copy appDataContainer com.shahidy.hexkeyboard "Library/Application Support/recordings/$name" "app/recordings/$name" ;; esac
+    case ",$have," in (*",$name,"*) ;; (*) copy appDataContainer "$id" "Library/Application Support/recordings/$name" "app/recordings/$name" ;; esac
   done
 fi
-copy appDataContainer com.shahidy.hexkeyboard.keyboard "Library/Application Support" keyboard/support
-copy appDataContainer com.shahidy.hexkeyboard.keyboard Library/Preferences keyboard/Preferences
-copy appGroupDataContainer group.com.shahidy.hexkeyboard Library group/Library
+copy appDataContainer "$id.keyboard" "Library/Application Support" keyboard/support
+copy appDataContainer "$id.keyboard" Library/Preferences keyboard/Preferences
+copy appGroupDataContainer "group.$id" Library group/Library
 rm "$out/list.json"
 echo "$out"
 MAC
-staged=$(ssh mac sh -s "$phone" "$have" <<<"$mac")
+staged=$(ssh mac sh -s "$phone" "$have" "$id" <<<"$mac")
 time=$(date +%Y-%m-%dT%H%M%S)
 incoming=$(mktemp -d "$backup/incoming.XXXX")
 trap 'rm -rf "$incoming"' EXIT

@@ -5,8 +5,8 @@ set -euo pipefail
 root=$(cd "$(dirname "$0")/.." && pwd)
 pkg=$root/build/core
 mkdir -p "$pkg"
-ln -sfn "$root/Packages/HexKeyboard/Sources" "$pkg/Sources"
-ln -sfn "$root/Packages/HexKeyboard/Tests" "$pkg/Tests"
+ln -sfn "$root/Packages/KeyboardModules/Sources" "$pkg/Sources"
+ln -sfn "$root/Packages/KeyboardModules/Tests" "$pkg/Tests"
 cat > "$pkg/Package.swift" <<'SWIFT'
 // swift-tools-version: 6.2
 import PackageDescription

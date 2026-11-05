@@ -10,9 +10,9 @@ pass where 10% of the lines, kept aside, are best predicted; when no pass beats 
 shipped file.
 
 Usage: scripts/personal record.jsonl [en.network [out]]
-Defaults: the shipped network in the repo, and ~/.local/share/hex-keyboard/backup/mirror/personal/en.network, where
+Defaults: the shipped network in the repo, and ~/.local/share/iikb/backup/mirror/personal/en.network, where
 server/backup.ts gives it back to the iPhone. With --daily it does nothing when the output is under a day old and newer
-than both inputs, which is what the systemd path unit hex-keyboard-personal runs.
+than both inputs, which is what the systemd path unit iikb-personal runs.
 """
 
 import json
@@ -29,8 +29,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import network
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SHIPPED = f"{ROOT}/Packages/HexKeyboard/Sources/KeyboardEnglish/Resources/en.network"
-MIRROR = os.path.expanduser("~/.local/share/hex-keyboard/backup/mirror/personal/en.network")
+SHIPPED = f"{ROOT}/Packages/KeyboardModules/Sources/KeyboardEnglish/Resources/en.network"
+MIRROR = os.path.expanduser("~/.local/share/iikb/backup/mirror/personal/en.network")
 KINDS = {"text", "webSearch", "twitter"}
 WINDOW, BATCH, RATE, PASSES, HELD = 32, 32, 1e-3, 8, 0.1
 

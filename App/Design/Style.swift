@@ -4,7 +4,7 @@ import UIKit
 
 /// The app's look, after Raycast's iOS app (docs/design.md, "The app"): a black page, near-black cards with a hairline
 /// edge, gray sentence-case headers, and white pills for what's picked.
-enum HexStyle {
+enum AppStyle {
     static let page = UIColor { $0.isDark ? .black : rgb(0xF2, 0xF2, 0xF5) }
     static let card = UIColor { $0.isDark ? rgb(0x1C, 0x1C, 0x1E) : .white }
     static let pressed = UIColor { $0.isDark ? rgb(0x2C, 0x2C, 0x2E) : rgb(0xE5, 0xE5, 0xEA) }
@@ -56,18 +56,18 @@ private extension UITraitCollection {
 }
 
 extension Font {
-    static func display(_ size: CGFloat, weight: UIFont.Weight = .bold) -> Font { Font(HexStyle.display(size, weight: weight)) }
+    static func display(_ size: CGFloat, weight: UIFont.Weight = .bold) -> Font { Font(AppStyle.display(size, weight: weight)) }
 }
 
 extension Color {
-    static let hexPage = Color(HexStyle.page)
-    static let hexCard = Color(HexStyle.card)
-    static let hexPressed = Color(HexStyle.pressed)
-    static let hexEdge = Color(HexStyle.edge)
-    static let hexDivider = Color(HexStyle.divider)
-    static let hexSecondary = Color(HexStyle.secondary)
-    static let hexPill = Color(HexStyle.pill)
-    static let hexPillLabel = Color(HexStyle.pillLabel)
+    static let appPage = Color(AppStyle.page)
+    static let appCard = Color(AppStyle.card)
+    static let appPressed = Color(AppStyle.pressed)
+    static let appEdge = Color(AppStyle.edge)
+    static let appDivider = Color(AppStyle.divider)
+    static let appSecondary = Color(AppStyle.secondary)
+    static let appPill = Color(AppStyle.pill)
+    static let appPillLabel = Color(AppStyle.pillLabel)
 }
 
 /// A white SF Symbol on a colored rounded square, as Raycast's More page draws its commands.

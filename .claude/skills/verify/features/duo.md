@@ -6,11 +6,11 @@ The keyboard and the app on each of the Duo's screens: the cover upright (466 ×
 
 ## How to get to it (user POV)
 
-Use Hex on the Duo, folded and open, upright and on its side.
+Use iikb on the Duo, folded and open, upright and on its side.
 
 ## Driving it
 
-`scripts/mac 'scripts/sim duo <tag>'` screenshots Apple's keyboard and Hex on the cover and open screens, upright and on its side, and half folded (`open-book`, 110°), light and dark, into `shots/raw/duo/`; `scripts/mac 'scripts/sim duoapp <tag>'` does every page of the app into `shots/raw/duo/app/`. `scripts/mac scripts/verify` runs the UI tests on a Duo simulator. `LayoutTests` pins Apple's keys and letters on each screen, `BarLayoutTests` the bar's spacing on every screen.
+`scripts/mac 'scripts/sim duo <tag>'` screenshots Apple's keyboard and iikb on the cover and open screens, upright and on its side, and half folded (`open-book`, 110°), light and dark, into `shots/raw/duo/`; `scripts/mac 'scripts/sim duoapp <tag>'` does every page of the app into `shots/raw/duo/app/`. `scripts/mac scripts/verify` runs the UI tests on a Duo simulator. `LayoutTests` pins Apple's keys and letters on each screen, `BarLayoutTests` the bar's spacing on every screen.
 
 ## Gotchas
 

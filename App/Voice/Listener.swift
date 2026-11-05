@@ -1,5 +1,5 @@
 import AVFoundation
-import HexStore
+import KeyboardStore
 import Observation
 import UIKit
 
@@ -22,7 +22,7 @@ import UIKit
     private var writing: [Take] = []
     /// The last of `writing`, which each dictation waits for before it's written, so they're typed in order.
     private var written: Task<Void, Never>?
-    /// Home's switch turned the microphone off: it goes off once what you said is written down, keeping Hex running
+    /// Home's switch turned the microphone off: it goes off once what you said is written down, keeping iikb running
     /// till then.
     private var micOffOnceWritten = false
     /// Home's switch turned the microphone on: it stays on until the switch turns it off, whatever Keep Mic On says.
@@ -169,7 +169,7 @@ import UIKit
 
     /// Starts Keep Mic On's countdown over, or turns the microphone off now when it's Off, once nothing is being
     /// recorded or written, unless Home's switch holds it on and it isn't deaf. Until then the microphone stays on: that
-    /// keeps Hex running in the background to write, and its lock tells the keyboard Hex is still there.
+    /// keeps iikb running in the background to write, and its lock tells the keyboard iikb is still there.
     func keepMicOn() {
         micOff?.cancel()
         guard microphone.isOn, recording == nil, writing.isEmpty else { return }

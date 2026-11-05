@@ -12,7 +12,7 @@ import struct
 import sys
 from collections import defaultdict
 
-APP = os.path.expanduser("~/.local/share/hex-keyboard/backup/mirror/app")
+APP = os.path.expanduser("~/.local/share/iikb/backup/mirror/app")
 SILENT = 100
 EPOCH = datetime.datetime(2001, 1, 1, tzinfo=datetime.timezone.utc)
 

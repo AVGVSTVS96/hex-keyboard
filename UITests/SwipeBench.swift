@@ -1,8 +1,8 @@
 import XCTest
 
 /// Replays recorded human swipes (scripts/swipebench.tsv) through the simulator's keyboard, each as one continuous touch
-/// with its original timing, sampled at 30 Hz, and records the word typed and the bar: HEX_SWIPE_IN, HEX_SWIPE_OUT, HEX_SWIPE_FIRST,
-/// HEX_SWIPE_COUNT, HEX_SWIPE_ORIENTATION (portrait, landscape).
+/// with its original timing, sampled at 30 Hz, and records the word typed and the bar: IIKB_SWIPE_IN, IIKB_SWIPE_OUT, IIKB_SWIPE_FIRST,
+/// IIKB_SWIPE_COUNT, IIKB_SWIPE_ORIENTATION (portrait, landscape).
 final class SwipeBench: XCTestCase {
     private static let rows = ["qwertyuiop", "asdfghjkl", "zxcvbnm"]
     private static let rowStart: [Double] = [0.05, 0.1004672897196, 0.2004672897196]
@@ -46,14 +46,14 @@ final class SwipeBench: XCTestCase {
 
     func testSwipes() throws {
         let environment = ProcessInfo.processInfo.environment
-        guard let input = environment["HEX_SWIPE_IN"], let output = environment["HEX_SWIPE_OUT"] else { throw XCTSkip("Run through scripts/swipebench") }
-        let first = Int(environment["HEX_SWIPE_FIRST"] ?? "") ?? 0
-        let count = Int(environment["HEX_SWIPE_COUNT"] ?? "") ?? .max
-        let landscape = environment["HEX_SWIPE_ORIENTATION"] == "landscape"
+        guard let input = environment["IIKB_SWIPE_IN"], let output = environment["IIKB_SWIPE_OUT"] else { throw XCTSkip("Run through scripts/swipebench") }
+        let first = Int(environment["IIKB_SWIPE_FIRST"] ?? "") ?? 0
+        let count = Int(environment["IIKB_SWIPE_COUNT"] ?? "") ?? .max
+        let landscape = environment["IIKB_SWIPE_ORIENTATION"] == "landscape"
         let swipes = try Self.load(input)
 
         let app = XCUIApplication()
-        app.launchArguments = ["-HexFocus", "YES", "-HexOrientation", landscape ? "landscape" : "portrait"]
+        app.launchArguments = ["-iikbFocus", "YES", "-iikbOrientation", landscape ? "landscape" : "portrait"]
         app.launch()
         let field = app.textViews.firstMatch
         XCTAssertTrue(field.waitForExistence(timeout: 10))
@@ -62,7 +62,7 @@ final class SwipeBench: XCTestCase {
 
         var frames: [String: CGRect] = [:]
         for key in app.keys.allElementsBoundByIndex where key.frame.width > 0 {
-            let name = key.identifier.hasPrefix("hex.") ? String(key.identifier.dropFirst(4)) : key.label.lowercased()
+            let name = key.identifier.hasPrefix("iikb.") ? String(key.identifier.dropFirst(4)) : key.label.lowercased()
             if name.count == 1, name.first!.isLowercase { frames[name] = key.frame }
         }
         let fit = try XCTUnwrap(Fit(frames: frames, rows: Self.rows, start: Self.rowStart, center: Self.rowCenter), "letter keys: \(frames.keys.sorted())")
@@ -78,7 +78,7 @@ final class SwipeBench: XCTestCase {
                 walk(snapshot)
                 return labels
             }
-            return (0..<3).map { app.descendants(matching: .any).matching(identifier: "hex.suggestion.\($0)").firstMatch }.filter(\.exists).map(\.label)
+            return (0..<3).map { app.descendants(matching: .any).matching(identifier: "iikb.suggestion.\($0)").firstMatch }.filter(\.exists).map(\.label)
         }
         func text() -> String { field.value as? String ?? "" }
         func clear() {

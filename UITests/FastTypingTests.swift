@@ -15,9 +15,9 @@ final class FastTypingTests: XCTestCase {
     override func setUp() {
         continueAfterFailure = false
         app = XCUIApplication()
-        app.launchArguments = ["-HexFocus", "YES", "-HexResetSettings", "YES"]
+        app.launchArguments = ["-iikbFocus", "YES", "-iikbResetSettings", "YES"]
         app.launch()
-        XCTAssertTrue(app.keys["hex.space"].waitForExistence(timeout: 10), "iikb is not the active keyboard")
+        XCTAssertTrue(app.keys["iikb.space"].waitForExistence(timeout: 10), "iikb is not the active keyboard")
     }
 
     func test200WordsPerMinuteSustained() throws {
@@ -46,7 +46,7 @@ final class FastTypingTests: XCTestCase {
 
     private func keyCenters(for characters: Set<Character>) -> [Character: CGPoint] {
         Dictionary(uniqueKeysWithValues: characters.map { character in
-            let key = app.keys["hex.\(character == " " ? "space" : String(character))"]
+            let key = app.keys["iikb.\(character == " " ? "space" : String(character))"]
             XCTAssertTrue(key.exists, "no key for \(character)")
             return (character, CGPoint(x: key.frame.midX, y: key.frame.midY))
         })

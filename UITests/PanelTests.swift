@@ -1,13 +1,13 @@
 import XCTest
 
 /// The emoji panel through the real keyboard: the emoji key opens it, the keys type into its search, a tap types the emoji
-/// into the app, and back brings the bar back. With HEX_SHOTS set, screenshots each step.
+/// into the app, and back brings the bar back. With IIKB_SHOTS set, screenshots each step.
 final class PanelTests: XCTestCase {
     func testTheEmojiPanelSearchesWithTheKeysAndTypesWhatYouPick() throws {
-        let shots = ProcessInfo.processInfo.environment["HEX_SHOTS"]
+        let shots = ProcessInfo.processInfo.environment["IIKB_SHOTS"]
         continueAfterFailure = false
         let app = XCUIApplication()
-        app.launchArguments = ["-HexFocus", "YES", "-HexOrientation", orientation, "-HexOneHanded", "off", "-HexCompactPanels", compactSetting ? "YES" : "NO"]
+        app.launchArguments = ["-iikbFocus", "YES", "-iikbOrientation", orientation, "-iikbOneHanded", "off", "-iikbCompactPanels", compactSetting ? "YES" : "NO"]
         app.launch()
         XCTAssertTrue(key("space", in: app).waitForExistence(timeout: 30), "iikb is not the active keyboard")
         for letter in "coffee at" { key(letter == " " ? "space" : String(letter), in: app).tap() }
@@ -16,23 +16,23 @@ final class PanelTests: XCTestCase {
         let tool = key("emoji", in: app)
         XCTAssertTrue(tool.waitForExistence(timeout: 3), "the emoji key sits beside the space bar")
         tool.tap()
-        let grid = app.collectionViews["hex.emoji"]
+        let grid = app.collectionViews["iikb.emoji"]
         XCTAssertTrue(grid.waitForExistence(timeout: 3), "the emoji key opens the emoji panel")
         try shot(shots, "emoji")
         if compact { try assertOneRowScrollsSideways(grid.cells, in: grid, app: app) }
 
         for letter in "pizza" { key(String(letter), in: app).tap() }
-        let search = app.descendants(matching: .any).matching(identifier: "hex.panel.search").firstMatch
+        let search = app.descendants(matching: .any).matching(identifier: "iikb.panel.search").firstMatch
         XCTAssertTrue(wait { (search.value as? String) == "pizza" }, "the keys type into the search, not the app")
         let field = app.textViews.firstMatch
         XCTAssertEqual(field.value as? String, "Coffee at")
-        let pizza = app.descendants(matching: .any).matching(identifier: "hex.emoji.🍕").firstMatch
+        let pizza = app.descendants(matching: .any).matching(identifier: "iikb.emoji.🍕").firstMatch
         XCTAssertTrue(pizza.waitForExistence(timeout: 3), "searching finds the emoji by name")
         try shot(shots, "search")
 
         pizza.tap()
         XCTAssertTrue(wait { (field.value as? String) == "Coffee at🍕" }, "a tap types the emoji into the app")
-        app.buttons["hex.panel.back"].tap()
+        app.buttons["iikb.panel.back"].tap()
         XCTAssertTrue(wait { tool.exists && !grid.exists }, "back brings the bar and the tools back")
         try shot(shots, "after")
     }
@@ -41,7 +41,7 @@ final class PanelTests: XCTestCase {
         let app = launchAndType("coffee at")
         openEmoji(in: app)
         for letter in "pizza" { key(String(letter), in: app).tap() }
-        let search = app.descendants(matching: .any).matching(identifier: "hex.panel.search").firstMatch
+        let search = app.descendants(matching: .any).matching(identifier: "iikb.panel.search").firstMatch
         XCTAssertTrue(wait { (search.value as? String) == "pizza" })
         key("delete", in: app).press(forDuration: 3)
         XCTAssertTrue(wait { (search.value as? String) == "" }, "holding delete empties the search")
@@ -52,7 +52,7 @@ final class PanelTests: XCTestCase {
         let app = launchAndType("hi ")
         openEmoji(in: app)
         for letter in "hand" { key(String(letter), in: app).tap() }
-        let cells = app.collectionViews["hex.emoji"].cells
+        let cells = app.collectionViews["iikb.emoji"].cells
         XCTAssertTrue(cells.firstMatch.waitForExistence(timeout: 3))
         let top = cells.firstMatch.frame.minY
         let row = (0..<min(cells.count, 20)).map { cells.element(boundBy: $0) }.filter { $0.frame.minY == top }
@@ -64,16 +64,16 @@ final class PanelTests: XCTestCase {
         XCTAssertEqual(field.value as? String, "Hi " + emoji, "letting go where the hold began picks the emoji held")
     }
 
-    private var orientation: String { ProcessInfo.processInfo.environment["HEX_ORIENTATION"] ?? "portrait" }
-    /// `HEX_COMPACT=1` turns on Compact Emoji & GIFs.
-    private var compactSetting: Bool { ProcessInfo.processInfo.environment["HEX_COMPACT"] == "1" }
+    private var orientation: String { ProcessInfo.processInfo.environment["IIKB_ORIENTATION"] ?? "portrait" }
+    /// `IIKB_COMPACT=1` turns on Compact Emoji & GIFs.
+    private var compactSetting: Bool { ProcessInfo.processInfo.environment["IIKB_COMPACT"] == "1" }
     /// Landscape, or the setting, shows the panels as one row.
     private var compact: Bool { compactSetting || orientation == "landscape" }
 
     private func launchAndType(_ text: String) -> XCUIApplication {
         continueAfterFailure = false
         let app = XCUIApplication()
-        app.launchArguments = ["-HexFocus", "YES", "-HexOrientation", "portrait", "-HexOneHanded", "off"]
+        app.launchArguments = ["-iikbFocus", "YES", "-iikbOrientation", "portrait", "-iikbOneHanded", "off"]
         app.launch()
         XCTAssertTrue(key("space", in: app).waitForExistence(timeout: 30), "iikb is not the active keyboard")
         for letter in text { key(letter == " " ? "space" : String(letter), in: app).tap() }
@@ -92,7 +92,7 @@ final class PanelTests: XCTestCase {
     }
 
     private func key(_ name: String, in app: XCUIApplication) -> XCUIElement {
-        app.keys.matching(NSPredicate(format: "identifier == %@ OR label ==[c] %@", "hex.\(name)", name)).firstMatch
+        app.keys.matching(NSPredicate(format: "identifier == %@ OR label ==[c] %@", "iikb.\(name)", name)).firstMatch
     }
 
     /// The results sit in one row, and a swipe moves them sideways.

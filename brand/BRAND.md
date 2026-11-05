@@ -15,7 +15,7 @@ The app was already most of the way there (black pages, near-black cards, gray s
 
 - **iikb**, lowercase everywhere, even starting a sentence or a title. Never IIKB or Iikb, never "the iikb keyboard".
 - Never explained or expanded.
-- Code and IDs keep the old name (`HexKeyboard`, `HexStyle`, `com.shahidy.hexkeyboard`, `hexkeyboard://`), so installs keep their recordings, clipboard, typing record and settings.
+- Code and IDs keep the old name (`FullKeyboard`, `AppStyle`, `com.shahidy.iikb`, `iikb://`), so installs keep their recordings, clipboard, typing record and settings.
 
 ## Type: Helvetica Neue
 
@@ -24,7 +24,7 @@ One family, as the International Style used it.
 - **Wordmark:** Helvetica Neue Bold, tracked -45/1000, drawn from the font's own outlines by `logo/gen.mjs`.
 - **Display** (titles, headlines, big numbers): Helvetica Neue Bold, tracked -0.02em at 34px and up to -0.035em at 96px and above; line-height 0.95 to 1.05. Big numbers in Bold or Medium.
 - **Text** on the site: Helvetica Neue Regular 17/1.45, small 14/1.4, labels 12/1.3 Medium. Sentence case. No tracked all-caps.
-- **In the app** only titles (large and inline nav titles), the stat tiles' numbers, the About mark and the space bar's corner label use Helvetica Neue (`HexStyle.display`, `Font.display`). Rows, labels and controls stay the system font, so the app keeps reading as iOS.
+- **In the app** only titles (large and inline nav titles), the stat tiles' numbers, the About mark and the space bar's corner label use Helvetica Neue (`AppStyle.display`, `Font.display`). Rows, labels and controls stay the system font, so the app keeps reading as iOS.
 - **On the web:** `"Helvetica Neue", Helvetica` from the visitor's system first (every Apple device has it), then TeX Gyre Heros (GUST Font License, a free Helvetica clone) shipped in `fonts/` for everyone else. Helvetica Neue is Apple's system font and isn't redistributed: `logo/gen.mjs` reads it from `.scratch/fonts` (extracted from the Mac's `/System/Library/Fonts/HelveticaNeue.ttc`), and only the outlines are committed.
 
 ## Color: the app's own
@@ -33,12 +33,12 @@ Black and white do the work, as they already do in the app. Two colors come from
 
 | token | light | dark | use |
 | --- | --- | --- | --- |
-| `--page` | `#F2F2F5` | `#000000` | the page (HexStyle.page) |
-| `--card` | `#FFFFFF` | `#1C1C1E` | cards, panels (HexStyle.card) |
-| `--ink` | `#000000` | `#FFFFFF` | text, the wordmark, filled buttons (HexStyle.pill) |
-| `--ink-2` | `#6C6C70` | `#8E8E93` | secondary text (HexStyle.secondary) |
-| `--rule` | `#E3E3E8` | `#2C2C2E` | dividers (HexStyle.divider) |
-| `--edge` | `rgb(0 0 0 / .06)` | `rgb(255 255 255 / .07)` | card edges (HexStyle.edge) |
+| `--page` | `#F2F2F5` | `#000000` | the page (AppStyle.page) |
+| `--card` | `#FFFFFF` | `#1C1C1E` | cards, panels (AppStyle.card) |
+| `--ink` | `#000000` | `#FFFFFF` | text, the wordmark, filled buttons (AppStyle.pill) |
+| `--ink-2` | `#6C6C70` | `#8E8E93` | secondary text (AppStyle.secondary) |
+| `--rule` | `#E3E3E8` | `#2C2C2E` | dividers (AppStyle.divider) |
+| `--edge` | `rgb(0 0 0 / .06)` | `rgb(255 255 255 / .07)` | card edges (AppStyle.edge) |
 | `--red` | `#FF3B30` | `#FF453A` | live: the mic while it records, the line that's iikb in a chart, "now" |
 | `--blue` | `#007AFF` | `#0A84FF` | selected: the picked tab, a tapped key, a link |
 

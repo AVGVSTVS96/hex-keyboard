@@ -5,7 +5,7 @@ import UIKit
 /// isn't API: where it won't open the app by its bundle ID, the app's own link does, and with neither the dictation
 /// screen stays up for you to swipe back.
 enum HostApp {
-    nonisolated static let log = Logger(subsystem: "com.shahidy.hexkeyboard", category: "voice")
+    nonisolated static let log = Logger(subsystem: "com.shahidy.iikb", category: "voice")
 
     /// The megabytes iikb has written to storage since it started, as iOS counts them against its disk-writes limit.
     nonisolated static var written: Double {

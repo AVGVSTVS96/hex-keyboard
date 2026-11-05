@@ -1,9 +1,9 @@
-import HexStore
+import KeyboardStore
 import KeyboardCore
 import KeyboardUI
 import SwiftUI
 
-/// Hex drawn as these settings make it on the screen the app is on, at the width it's offered.
+/// iikb drawn as these settings make it on the screen the app is on, at the width it's offered.
 struct KeyboardPreview: UIViewRepresentable {
     let settings: KeyboardSettings
 
@@ -16,7 +16,7 @@ struct KeyboardPreview: UIViewRepresentable {
 
     func updateUIView(_ view: KeyboardPreviewView, context: Context) {
         view.show(settings, dark: context.environment.colorScheme == .dark, screen: context.environment.window)
-        view.layer.borderColor = HexStyle.edge.resolvedColor(with: view.traitCollection).cgColor
+        view.layer.borderColor = AppStyle.edge.resolvedColor(with: view.traitCollection).cgColor
     }
 
     func sizeThatFits(_ proposal: ProposedViewSize, uiView: KeyboardPreviewView, context: Context) -> CGSize? {
@@ -25,7 +25,7 @@ struct KeyboardPreview: UIViewRepresentable {
     }
 }
 
-/// Hex as it will look, over a pill that brings up the real keyboard in a field, so a change can be tried at once.
+/// iikb as it will look, over a pill that brings up the real keyboard in a field, so a change can be tried at once.
 struct TryPreview: View {
     @State private var trying = false
     @State private var text = ""
@@ -41,8 +41,8 @@ struct TryPreview: View {
                     .focused($focused)
                     .lineLimit(3 ... 6)
                     .padding(18)
-                    .background(Color.hexCard, in: .rect(cornerRadius: HexStyle.cardRadius, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: HexStyle.cardRadius, style: .continuous).strokeBorder(Color.hexEdge))
+                    .background(Color.appCard, in: .rect(cornerRadius: AppStyle.cardRadius, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: AppStyle.cardRadius, style: .continuous).strokeBorder(Color.appEdge))
                     .onAppear { focused = true }
                     .onChange(of: focused) { _, focused in if !focused { withAnimation(.snappy) { trying = false } } }
                     .transition(.opacity.combined(with: .scale(scale: 0.97)))
@@ -56,8 +56,8 @@ struct TryPreview: View {
                         .font(.subheadline.weight(.medium))
                         .padding(.horizontal, 18)
                         .padding(.vertical, 9)
-                        .background(Color.hexCard, in: .capsule)
-                        .overlay(Capsule().strokeBorder(Color.hexEdge))
+                        .background(Color.appCard, in: .capsule)
+                        .overlay(Capsule().strokeBorder(Color.appEdge))
                 }
                 .buttonStyle(CardPress())
                 .foregroundStyle(.primary)
@@ -74,7 +74,7 @@ struct TryPreview: View {
 }
 
 /// What the settings pages read and write: the keyboard's switches through `SettingsStore`, so the keyboard and
-/// Settings › Apps › Hex see the same values, and the sources Hex tells what you type.
+/// Settings › Apps › iikb see the same values, and the sources iikb tells what you type.
 @Observable final class SettingsModel {
     static let shared = SettingsModel()
 
@@ -204,12 +204,12 @@ struct TypingSettings: View {
             ToggleRow(title: "“.” Shortcut", detail: "Double-tap space for a period and a space.", isOn: model.binding(\.periodShortcut))
         }
         Box(header: "Text Replacements") {
-            Button { HexStatus.openSettings() } label: {
+            Button { AppStatus.openSettings() } label: {
                 HStack {
                     RowText(title: "Open Settings", detail: "iikb types the ones in General › Keyboard › Text Replacement. This opens Settings › Apps › iikb.")
                     Image(systemName: "arrow.up.forward")
                         .font(.footnote.weight(.semibold))
-                        .foregroundStyle(Color.hexSecondary)
+                        .foregroundStyle(Color.appSecondary)
                 }
                 .row()
             }
@@ -297,7 +297,7 @@ private struct PreviewDrawing: View {
     let preview: CharacterPreview
 
     var body: some View {
-        let key = Color.hexSecondary.opacity(0.45), bubble = Color.hexSecondary.opacity(0.7)
+        let key = Color.appSecondary.opacity(0.45), bubble = Color.appSecondary.opacity(0.7)
         ZStack(alignment: .bottom) {
             switch preview {
             case .none:
@@ -345,17 +345,17 @@ struct StopSlider<Level: Hashable>: View {
             HStack {
                 Text(title).foregroundStyle(.primary)
                 Spacer()
-                Text(name(level)).foregroundStyle(Color.hexSecondary)
+                Text(name(level)).foregroundStyle(Color.appSecondary)
             }
             GeometryReader { geometry in
                 let step = (geometry.size.width - thumb) / CGFloat(levels.count - 1)
                 let x = thumb / 2 + CGFloat(index) * step
                 ZStack(alignment: .leading) {
-                    Capsule().fill(Color.hexDivider).frame(height: 4)
+                    Capsule().fill(Color.appDivider).frame(height: 4)
                     Capsule().fill(Color.blue).frame(width: x, height: 4)
                     ForEach(levels.indices, id: \.self) { stop in
                         Circle()
-                            .fill(stop <= index ? Color.blue : Color.hexSecondary.opacity(0.45))
+                            .fill(stop <= index ? Color.blue : Color.appSecondary.opacity(0.45))
                             .frame(width: 8, height: 8)
                             .position(x: thumb / 2 + CGFloat(stop) * step, y: thumb / 2)
                     }
@@ -380,7 +380,7 @@ struct StopSlider<Level: Hashable>: View {
             }
             .overlay { Text("Standard") }
             .font(.footnote)
-            .foregroundStyle(Color.hexSecondary)
+            .foregroundStyle(Color.appSecondary)
         }
         .row()
         .accessibilityElement(children: .ignore)
@@ -432,10 +432,10 @@ struct MenuRow<Value: Hashable>: View {
             HStack {
                 Text(title).foregroundStyle(.primary)
                 Spacer()
-                Text(label(selection)).foregroundStyle(Color.hexSecondary)
+                Text(label(selection)).foregroundStyle(Color.appSecondary)
                 Image(systemName: "chevron.up.chevron.down")
                     .font(.footnote.weight(.semibold))
-                    .foregroundStyle(Color.hexSecondary)
+                    .foregroundStyle(Color.appSecondary)
             }
             .row()
         }
@@ -445,7 +445,7 @@ struct MenuRow<Value: Hashable>: View {
 
 struct FeedbackSettings: View {
     private let model = SettingsModel.shared
-    private let status = HexStatus.shared
+    private let status = AppStatus.shared
     @AppStorage("hapticsBeforeOff") private var lastLevel = HapticFeedback.standard
 
     private var hapticsOn: Binding<Bool> {
@@ -462,7 +462,7 @@ struct FeedbackSettings: View {
                 HapticSlider(level: model.binding(\.haptics))
             }
             if !status.fullAccess {
-                ActionRow(title: "Allow Full Access", symbol: "arrow.up.forward") { HexStatus.openSettings() }
+                ActionRow(title: "Allow Full Access", symbol: "arrow.up.forward") { AppStatus.openSettings() }
             }
         }
         Box {

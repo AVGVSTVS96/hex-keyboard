@@ -1,8 +1,8 @@
-import HexStore
+import KeyboardStore
 import KeyboardCore
 
 extension DictationWriting {
-    /// What Hex types for what the voice model wrote: as Settings › Voice writes it, then with your vocabulary's words,
+    /// What iikb types for what the voice model wrote: as Settings › Voice writes it, then with your vocabulary's words,
     /// so a term keeps its own spelling. The keyboard sets its capitals.
     static func typed(_ heard: String) -> String {
         VoiceVocabulary.shared.vocabulary.corrected(SettingsStore.load().dictation.written(heard))

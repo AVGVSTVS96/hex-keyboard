@@ -1,4 +1,4 @@
-import HexStore
+import KeyboardStore
 import SwiftUI
 import UIKit
 
@@ -47,7 +47,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         LaunchOptions.resetSettingsIfAsked()
         LaunchOptions.applySettings()
         LaunchOptions.applyLook()
-        HexStyle.applyTitles()
+        AppStyle.applyTitles()
         VoiceProbe.runIfAsked()
         RankingProbe.runIfAsked()
         let tabs = UITabBarController(tabs: [
@@ -75,7 +75,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     private static func hosting(_ view: some View) -> UIViewController {
         let controller = UIHostingController(rootView: view.readsWindow())
-        controller.view.backgroundColor = HexStyle.page
+        controller.view.backgroundColor = AppStyle.page
         return controller
     }
 
@@ -85,20 +85,20 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     private func open(_ contexts: Set<UIOpenURLContext>) {
         if let source = contexts.lazy.compactMap({ Source(link: $0.url) }).first { return offer(source) }
-        if contexts.contains(where: { $0.url == HexLink.settings }) { return UIApplication.shared.open(URL(string: UIApplication.openSettingsURLString)!) }
-        if contexts.contains(where: { $0.url == HexLink.keyboard }) { return Router.shared.show(.settings) }
+        if contexts.contains(where: { $0.url == AppLink.settings }) { return UIApplication.shared.open(URL(string: UIApplication.openSettingsURLString)!) }
+        if contexts.contains(where: { $0.url == AppLink.keyboard }) { return Router.shared.show(.settings) }
         guard let request = contexts.lazy.compactMap({ Dictation.Request($0.url) }).first, let root = window?.rootViewController else { return }
-        let fromHex = request.host == Bundle.main.bundleIdentifier
-        Task { await listen(thenOpen: fromHex ? nil : request.host) }
-        guard !fromHex, !(root.presentedViewController is DictationViewController) else { return }
+        let fromSelf = request.host == Bundle.main.bundleIdentifier
+        Task { await listen(thenOpen: fromSelf ? nil : request.host) }
+        guard !fromSelf, !(root.presentedViewController is DictationViewController) else { return }
         root.dismiss(animated: false)
         let dictation = DictationViewController()
         dictation.modalPresentationStyle = .fullScreen
         root.present(dictation, animated: false)
     }
 
-    /// Starts listening while Hex is in front, the only place iOS lets a recording begin, then reopens the app you were
-    /// typing in. Dictating in Hex's own field it stays put: iOS quits an app that opens itself, and the quit throws
+    /// Starts listening while iikb is in front, the only place iOS lets a recording begin, then reopens the app you were
+    /// typing in. Dictating in iikb's own field it stays put: iOS quits an app that opens itself, and the quit throws
     /// away a Parakeet still getting ready.
     private func listen(thenOpen host: String?) async {
         let asked = Date.now
@@ -110,7 +110,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         HostApp.log.notice("back to \(host ?? "none", privacy: .public) \(opened ? "opened" : "failed", privacy: .public) after \(Date.now.timeIntervalSince(asked), format: .fixed(precision: 2))s")
     }
 
-    /// A source's link asks before Hex starts telling it what you type.
+    /// A source's link asks before iikb starts telling it what you type.
     private func offer(_ source: Source) {
         let alert = UIAlertController(
             title: "Add “\(source.name)”?",

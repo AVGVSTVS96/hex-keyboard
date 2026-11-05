@@ -1,3 +1,3 @@
-import HexKeyboard
+import FullKeyboard
 
-final class KeyboardViewController: HexKeyboardViewController {}
+final class KeyboardViewController: FullKeyboardViewController {}

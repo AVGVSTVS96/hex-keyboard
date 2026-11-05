@@ -87,7 +87,7 @@ struct Box<Content: View>: View {
             if let header {
                 Text(header)
                     .font(.subheadline.weight(.medium))
-                    .foregroundStyle(Color.hexSecondary)
+                    .foregroundStyle(Color.appSecondary)
                     .padding(.horizontal, 20)
                     .accessibilityAddTraits(.isHeader)
             }
@@ -96,18 +96,18 @@ struct Box<Content: View>: View {
                     ForEach(rows.indices, id: \.self) { index in
                         rows[index]
                         if index < rows.count - 1 {
-                            Rectangle().fill(Color.hexDivider).frame(height: 1).padding(.leading, 20)
+                            Rectangle().fill(Color.appDivider).frame(height: 1).padding(.leading, 20)
                         }
                     }
                 }
             }
-            .background(Color.hexCard)
-            .clipShape(.rect(cornerRadius: HexStyle.cardRadius, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: HexStyle.cardRadius, style: .continuous).strokeBorder(Color.hexEdge))
+            .background(Color.appCard)
+            .clipShape(.rect(cornerRadius: AppStyle.cardRadius, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: AppStyle.cardRadius, style: .continuous).strokeBorder(Color.appEdge))
             if let footer {
                 Text(footer)
                     .font(.footnote)
-                    .foregroundStyle(Color.hexSecondary)
+                    .foregroundStyle(Color.appSecondary)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.horizontal, 20)
             }
@@ -127,7 +127,7 @@ struct RowText: View {
             if let detail {
                 Text(detail)
                     .font(.subheadline)
-                    .foregroundStyle(Color.hexSecondary)
+                    .foregroundStyle(Color.appSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -170,12 +170,12 @@ struct Radio: View {
 
     var body: some View {
         ZStack {
-            Circle().strokeBorder(Color.hexSecondary.opacity(picked ? 0 : 0.9), lineWidth: 1.5)
+            Circle().strokeBorder(Color.appSecondary.opacity(picked ? 0 : 0.9), lineWidth: 1.5)
             if picked {
-                Circle().fill(Color.hexPill)
+                Circle().fill(Color.appPill)
                 Image(systemName: "checkmark")
                     .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(Color.hexPillLabel)
+                    .foregroundStyle(Color.appPillLabel)
             }
         }
         .frame(width: 26, height: 26)
@@ -256,12 +256,12 @@ struct Tile: View {
                 }
                 Text(title)
                     .font(value == nil ? .body.weight(.medium) : .subheadline)
-                    .foregroundStyle(value == nil ? Color.primary : Color.hexSecondary)
+                    .foregroundStyle(value == nil ? Color.primary : Color.appSecondary)
                     .lineLimit(2)
                 if let detail {
                     Text(detail)
                         .font(.footnote)
-                        .foregroundStyle(Color.hexSecondary)
+                        .foregroundStyle(Color.appSecondary)
                         .lineLimit(2)
                 }
             }
@@ -269,9 +269,9 @@ struct Tile: View {
         }
         .padding(18)
         .frame(maxWidth: .infinity, minHeight: 128, alignment: .topLeading)
-        .background(Color.hexCard, in: .rect(cornerRadius: HexStyle.cardRadius, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: HexStyle.cardRadius, style: .continuous).strokeBorder(Color.hexEdge))
-        .contentShape(.rect(cornerRadius: HexStyle.cardRadius))
+        .background(Color.appCard, in: .rect(cornerRadius: AppStyle.cardRadius, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: AppStyle.cardRadius, style: .continuous).strokeBorder(Color.appEdge))
+        .contentShape(.rect(cornerRadius: AppStyle.cardRadius))
         .accessibilityElement(children: .combine)
     }
 }
@@ -288,14 +288,14 @@ struct CardPress: ButtonStyle {
 
 /// A page's background and readable width.
 extension View {
-    func hexPage() -> some View {
-        background(Color.hexPage.ignoresSafeArea())
+    func appPage() -> some View {
+        background(Color.appPage.ignoresSafeArea())
             .toolbarBackground(.hidden, for: .navigationBar)
     }
 
     /// A pushed page in the app's look: its rows on the page color, a small inline title.
     func pushedPage(_ title: String) -> some View {
-        hexPage()
+        appPage()
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
     }
@@ -352,7 +352,7 @@ struct Figure: View {
                 .contentTransition(.numericText())
             Text(label)
                 .font(.footnote)
-                .foregroundStyle(Color.hexSecondary)
+                .foregroundStyle(Color.appSecondary)
                 .lineLimit(1)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -366,18 +366,18 @@ struct SearchField: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            Image(systemName: "magnifyingglass").foregroundStyle(Color.hexSecondary)
+            Image(systemName: "magnifyingglass").foregroundStyle(Color.appSecondary)
             TextField("Search", text: $text)
                 .submitLabel(.search)
             if !text.isEmpty {
-                Button { text = "" } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(Color.hexSecondary) }
+                Button { text = "" } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(Color.appSecondary) }
                     .buttonStyle(.plain)
             }
         }
         .padding(.horizontal, 14)
         .frame(height: 44)
-        .background(Color.hexCard, in: .capsule)
-        .overlay(Capsule().strokeBorder(Color.hexEdge))
+        .background(Color.appCard, in: .capsule)
+        .overlay(Capsule().strokeBorder(Color.appEdge))
     }
 }
 
@@ -390,7 +390,7 @@ struct Fact: View {
         HStack {
             Text(title)
             Spacer()
-            Text(value).foregroundStyle(Color.hexSecondary).multilineTextAlignment(.trailing)
+            Text(value).foregroundStyle(Color.appSecondary).multilineTextAlignment(.trailing)
         }
         .row()
         .accessibilityElement(children: .combine)

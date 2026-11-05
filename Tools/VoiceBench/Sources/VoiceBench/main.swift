@@ -2,7 +2,7 @@ import FluidAudio
 import Foundation
 
 /// `VoiceBench <corpus> <asis|dictation> [percent loudness]`: writes every clip in `<corpus>/clips.jsonl` with Parakeet v3,
-/// as FluidAudio does by itself or as Hex's dictation does (`Parakeet.dictate`, the app's own file), at the given
+/// as FluidAudio does by itself or as iikb's dictation does (`Parakeet.dictate`, the app's own file), at the given
 /// loudness, into `<corpus>/outputs/<way>-<percent>.jsonl`.
 struct Clip: Decodable { let id: String; let audio_path: String }
 struct Row: Encodable { let id, text: String }

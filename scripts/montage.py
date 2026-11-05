@@ -18,12 +18,12 @@ def cell(name):
     return image.resize((WIDTH, round(image.height * WIDTH / width)), Image.LANCZOS)
 
 
-rows = [[cell(f'{device}-ref-system-{mode}.png'), cell(f'{device}-{tag}-hex-{mode}.png')] for mode in ('light', 'dark')]
+rows = [[cell(f'{device}-ref-system-{mode}.png'), cell(f'{device}-{tag}-iikb-{mode}.png')] for mode in ('light', 'dark')]
 height = rows[0][0].height
 canvas = Image.new('RGB', (PAD + 2 * (WIDTH + PAD), HEADER + 2 * (height + PAD)), (246, 246, 248))
 draw = ImageDraw.Draw(canvas)
 font = ImageFont.load_default(22)
-for column, title in enumerate(('Apple', 'Hex')):
+for column, title in enumerate(('Apple', 'iikb')):
     draw.text((PAD + column * (WIDTH + PAD), 12), title, fill=(60, 60, 67), font=font)
 for r, row in enumerate(rows):
     for c, image in enumerate(row):

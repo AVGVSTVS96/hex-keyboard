@@ -1,6 +1,6 @@
 #!/bin/bash
 # Types the phrase corpus with simulated taps and prints word accuracy for the old and new correctors (AGENTS.md).
-# Here on Linux it runs in a package of KeyboardCore, the word lists and Evaluation alone, and scores Hex's two
+# Here on Linux it runs in a package of KeyboardCore, the word lists and Evaluation alone, and scores iikb's two
 # keyboards; the UITextChecker baseline needs Apple's platforms, so on the Mac (scripts/mac scripts/eval) it scores that
 # too. Optional argument: one test (noise, biasedThumbs, aimShift, predictions, emoji), or swipe: how well swipes are
 # read on swipe.futo.org's test split (SwipeEvaluation; needs scripts/swipe data and SWIPE_DATA, takes minutes), which is
@@ -8,13 +8,13 @@
 # Mac; a change that moves the numbers updates that file in the same commit.
 set -euo pipefail
 root=$(cd "$(dirname "$0")/.." && pwd)
-src=$root/Packages/HexKeyboard
+src=$root/Packages/KeyboardModules
 out=$root/build/eval.txt
 mkdir -p "$root/build"
 if [ "$(uname)" = Darwin ]; then
   cd "$src"
   ID=$("$root/scripts/sim" ensure "iPhone 17" iPhone-17)
-  xcodebuild test -scheme HexKeyboard-Package -destination "id=$ID" -derivedDataPath ../../build/tests \
+  xcodebuild test -scheme FullKeyboard-Package -destination "id=$ID" -derivedDataPath ../../build/tests \
     -configuration Release ENABLE_TESTABILITY=YES \
     -only-testing:KeyboardUITests/Evaluation${1:+/$1()} 2>&1 | grep -E "error:|EVAL|✘" | tee "$out"
   scored=.

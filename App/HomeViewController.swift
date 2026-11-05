@@ -1,10 +1,10 @@
-import HexStore
+import KeyboardStore
 import KeyboardCore
 import KeyboardUI
 import SwiftUI
 import UIKit
 
-/// Hex's home (docs/design.md, "The app"): whether the keyboard is on and what's left to set up, the microphone's
+/// iikb's home (docs/design.md, "The app"): whether the keyboard is on and what's left to set up, the microphone's
 /// switch, a field to try it, tiles for today's dictation and your taps, and a card for each setting you reach for,
 /// opening its page in Settings.
 final class HomeViewController: UIHostingController<AnyView> {
@@ -23,7 +23,7 @@ final class HomeViewController: UIHostingController<AnyView> {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = HexStyle.page
+        view.backgroundColor = AppStyle.page
         field.font = .preferredFont(forTextStyle: .title3)
         field.adjustsFontForContentSizeCategory = true
         field.backgroundColor = .clear
@@ -57,7 +57,7 @@ final class HomeViewController: UIHostingController<AnyView> {
     }
 }
 
-/// What the home screen reads that isn't the keyboard's status, read again whenever Hex comes forward.
+/// What the home screen reads that isn't the keyboard's status, read again whenever iikb comes forward.
 @Observable final class HomeState {
     var taps = 0
     var copied = 0
@@ -69,18 +69,18 @@ final class HomeViewController: UIHostingController<AnyView> {
     }()
 
     func refresh() {
-        HexStatus.shared.refresh()
+        AppStatus.shared.refresh()
         taps = MemoryStore.sharedTouches()?.signatures.reduce(0) { $0 + $1.taps } ?? 0
         clipboard.reload()
     }
 }
 
-/// Wide, the field and what Hex has gathered take the first half and the settings' cards the second, so the field
+/// Wide, the field and what iikb has gathered take the first half and the settings' cards the second, so the field
 /// stays above the keys while you try them; elsewhere, one column.
 struct HomeView: View {
     let state: HomeState
     let field: UITextView
-    private let status = HexStatus.shared
+    private let status = AppStatus.shared
     @Environment(\.arrangement) private var arrangement
 
     var body: some View {
@@ -112,14 +112,14 @@ struct HomeView: View {
                 }
             }
         }
-        .hexPage()
+        .appPage()
         .navigationTitle("iikb")
         .navigationSubtitle(status.summary)
         .toolbarTitleDisplayMode(.inlineLarge)
         .toolbar {
             if !status.isAdded {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Turn On", systemImage: "keyboard.badge.ellipsis") { HexStatus.openSettings() }
+                    Button("Turn On", systemImage: "keyboard.badge.ellipsis") { AppStatus.openSettings() }
                         .buttonStyle(.borderedProminent)
                 }
             }
@@ -133,15 +133,15 @@ struct HomeView: View {
                 if !state.typed {
                     Text("Type something with iikb")
                         .font(.title3)
-                        .foregroundStyle(Color.hexSecondary)
+                        .foregroundStyle(Color.appSecondary)
                         .padding(.horizontal, 19)
                         .padding(.vertical, 16)
                         .allowsHitTesting(false)
                         .accessibilityHidden(true)
                 }
             }
-            .background(Color.hexCard, in: .rect(cornerRadius: HexStyle.cardRadius, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: HexStyle.cardRadius, style: .continuous).strokeBorder(Color.hexEdge))
+            .background(Color.appCard, in: .rect(cornerRadius: AppStyle.cardRadius, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: AppStyle.cardRadius, style: .continuous).strokeBorder(Color.appEdge))
     }
 
     private var setUp: some View {
@@ -153,7 +153,7 @@ struct HomeView: View {
 
     private static let columns = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
 
-    /// What Hex has gathered, one tile per tab that keeps it.
+    /// What iikb has gathered, one tile per tab that keeps it.
     private var stats: some View {
         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 3), spacing: 12) {
             Button { Router.shared.show(.transcripts) } label: { VoiceTile() }
@@ -190,7 +190,7 @@ private struct VoiceTile: View {
     }
 }
 
-/// The field to try Hex in: a UITextView, so launch options can set its keyboard and return key as tests ask.
+/// The field to try iikb in: a UITextView, so launch options can set its keyboard and return key as tests ask.
 private struct TryField: UIViewRepresentable {
     let view: UITextView
 

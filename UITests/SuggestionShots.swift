@@ -3,13 +3,13 @@ import XCTest
 final class SuggestionShots: XCTestCase {
     func testTypeAndShoot() throws {
         let environment = ProcessInfo.processInfo.environment
-        guard let prefix = environment["HEX_SHOTS"] else { throw XCTSkip("Run through scripts/shots") }
+        guard let prefix = environment["IIKB_SHOTS"] else { throw XCTSkip("Run through scripts/shots") }
         let app = XCUIApplication()
-        app.launchArguments = ["-HexFocus", "YES", "-HexOrientation", "portrait"]
+        app.launchArguments = ["-iikbFocus", "YES", "-iikbOrientation", "portrait"]
         app.launch()
         XCTAssertTrue(key("space", in: app).waitForExistence(timeout: 10))
 
-        let steps = (environment["HEX_STEPS"].flatMap { $0.isEmpty ? nil : $0 } ?? "empty:|hel:hel|helo:o|helo-space: |delete:⌫|clear:⌫⌫⌫⌫⌫⌫|omw:omw|omw-space: ").split(separator: "|")
+        let steps = (environment["IIKB_STEPS"].flatMap { $0.isEmpty ? nil : $0 } ?? "empty:|hel:hel|helo:o|helo-space: |delete:⌫|clear:⌫⌫⌫⌫⌫⌫|omw:omw|omw-space: ").split(separator: "|")
         for step in steps {
             let parts = step.split(separator: ":", maxSplits: 1, omittingEmptySubsequences: false)
             for character in parts[1] {
@@ -26,7 +26,7 @@ final class SuggestionShots: XCTestCase {
     }
 
     private func key(_ name: String, in app: XCUIApplication) -> XCUIElement {
-        let hex = app.keys.matching(identifier: "hex.\(name)").firstMatch
-        return hex.exists ? hex : app.keys.matching(NSPredicate(format: "label ==[c] %@", name)).firstMatch
+        let iikb = app.keys.matching(identifier: "iikb.\(name)").firstMatch
+        return iikb.exists ? iikb : app.keys.matching(NSPredicate(format: "label ==[c] %@", name)).firstMatch
     }
 }

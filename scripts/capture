@@ -4,7 +4,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 NAME=${1:-iPhone Duo}
 TYPE=${2:-iPhone-Duo}
-KEYBOARD=${3:-hex}
+KEYBOARD=${3:-iikb}
 ID=$(scripts/sim ensure "$NAME" "$TYPE")
 scripts/sim boot "$ID"
 scripts/sim use "$ID" "$KEYBOARD"
@@ -12,12 +12,12 @@ slug=$(echo "$NAME" | tr 'A-Z ' 'a-z-')
 mkdir -p shots/raw
 xcodegen generate -q
 rm -f shots/raw/$slug-capture-$KEYBOARD-*.png
-xcodebuild build-for-testing -project HexKeyboard.xcodeproj -scheme Hex -destination "id=$ID" \
+xcodebuild build-for-testing -project iikb.xcodeproj -scheme iikb -destination "id=$ID" \
   -derivedDataPath build/uitest >/dev/null 2>&1
-TEST_RUNNER_HEX_CAPTURE=${CAPTURE:-1} TEST_RUNNER_HEX_ARGS=${ARGS:-} xcodebuild test-without-building -project HexKeyboard.xcodeproj -scheme Hex -destination "id=$ID" \
-  -derivedDataPath build/uitest -only-testing:HexUITests/CaptureTests >/dev/null 2>&1 &
+TEST_RUNNER_IIKB_CAPTURE=${CAPTURE:-1} TEST_RUNNER_IIKB_ARGS=${ARGS:-} xcodebuild test-without-building -project iikb.xcodeproj -scheme iikb -destination "id=$ID" \
+  -derivedDataPath build/uitest -only-testing:AppUITests/CaptureTests >/dev/null 2>&1 &
 test_pid=$!
-until xcrun simctl spawn "$ID" launchctl list | grep -q "UIKitApplication:com.shahidy.hexkeyboard\["; do sleep 0.5; done
+until xcrun simctl spawn "$ID" launchctl list | grep -q "UIKitApplication:com.shahidy.iikb\["; do sleep 0.5; done
 for i in $(seq -w 1 ${FRAMES:-30}); do
   sleep 0.7
   xcrun simctl io "$ID" screenshot "shots/raw/$slug-capture-$KEYBOARD-$i.png" >/dev/null 2>&1 || true

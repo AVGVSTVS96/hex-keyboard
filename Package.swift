@@ -8,32 +8,32 @@ let settings: [SwiftSetting] = [
 ]
 
 let package = Package(
-    name: "Hex",
+    name: "iikb",
     platforms: [.iOS(.v26)],
     products: [
-        .library(name: "Hex", targets: ["Hex"]),
+        .library(name: "iikb", targets: ["iikb"]),
         .library(name: "Keyboard", targets: ["Keyboard"]),
     ],
     dependencies: [
-        .package(path: "Packages/HexKeyboard"),
+        .package(path: "Packages/KeyboardModules"),
         .package(url: "https://github.com/FluidInference/FluidAudio.git", exact: "0.18.0", traits: []),
     ],
     targets: [
         .target(
-            name: "Hex",
+            name: "iikb",
             dependencies: [
-                .product(name: "KeyboardEnglish", package: "HexKeyboard"),
-                .product(name: "HexStore", package: "HexKeyboard"),
-                .product(name: "KeyboardUI", package: "HexKeyboard"),
+                .product(name: "KeyboardEnglish", package: "KeyboardModules"),
+                .product(name: "KeyboardStore", package: "KeyboardModules"),
+                .product(name: "KeyboardUI", package: "KeyboardModules"),
                 .product(name: "FluidAudio", package: "FluidAudio"),
             ],
             path: "App",
-            exclude: ["AGENTS.md", "Voice/AGENTS.md", "Assets.xcassets", "Settings.bundle", "Hex.entitlements", "PrivacyInfo.xcprivacy"],
+            exclude: ["AGENTS.md", "Voice/AGENTS.md", "Assets.xcassets", "Settings.bundle", "iikb.entitlements", "PrivacyInfo.xcprivacy"],
             swiftSettings: settings
         ),
         .target(
             name: "Keyboard",
-            dependencies: [.product(name: "HexKeyboard", package: "HexKeyboard")],
+            dependencies: [.product(name: "FullKeyboard", package: "KeyboardModules")],
             path: "Keyboard",
             exclude: ["Keyboard.entitlements", "PrivacyInfo.xcprivacy"],
             swiftSettings: settings,

@@ -1,5 +1,5 @@
 #!/bin/sh
-# Scores Hex's dictation path against FluidAudio's own on a corpus of real dictations, at full loudness and 10 and 30
+# Scores iikb's dictation path against FluidAudio's own on a corpus of real dictations, at full loudness and 10 and 30
 # times quieter: scripts/voicebench <corpus>, where <corpus> holds clips.jsonl ({id, audio_path}), the audio and
 # references.jsonl ({id, text}). Runs Tools/VoiceBench on the Mac (Neural Engine) and scores here (scripts/voicescore.py).
 set -e

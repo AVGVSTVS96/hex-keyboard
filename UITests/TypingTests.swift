@@ -6,7 +6,7 @@ final class TypingTests: XCTestCase {
     override func setUp() {
         continueAfterFailure = false
         app = XCUIApplication()
-        app.launchArguments = ["-HexFocus", "YES", "-HexAutoCapitalization", "YES"]
+        app.launchArguments = ["-iikbFocus", "YES", "-iikbAutoCapitalization", "YES"]
         app.launch()
         XCTAssertTrue(key("space").waitForExistence(timeout: 10), "iikb is not the active keyboard")
     }
@@ -102,7 +102,7 @@ final class TypingTests: XCTestCase {
 
     private func relaunch(with text: String) {
         app.terminate()
-        app.launchArguments += ["-HexText", text]
+        app.launchArguments += ["-iikbText", text]
         app.launch()
         XCTAssertTrue(key("space").waitForExistence(timeout: 10))
     }
@@ -137,6 +137,6 @@ final class TypingTests: XCTestCase {
     }
 
     private func key(_ name: String) -> XCUIElement {
-        app.keys.matching(identifier: "hex.\(name)").firstMatch
+        app.keys.matching(identifier: "iikb.\(name)").firstMatch
     }
 }

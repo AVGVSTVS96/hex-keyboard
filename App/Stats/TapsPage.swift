@@ -1,5 +1,5 @@
 import Charts
-import HexStore
+import KeyboardStore
 import KeyboardCore
 import KeyboardUI
 import SwiftUI
@@ -127,12 +127,12 @@ struct TapsPage: View {
         ContentUnavailableView {
             Label("No Taps Yet", systemImage: "hand.tap")
         } description: {
-            Text(HexStatus.shared.fullAccess
+            Text(AppStatus.shared.fullAccess
                 ? "Type with the keyboard anywhere. Your taps show up here each time it closes."
                 : "Type with the keyboard anywhere. Your taps show up here each time it closes, once Allow Full Access is on.")
         } actions: {
-            if !HexStatus.shared.fullAccess {
-                Button("Allow Full Access") { HexStatus.openSettings() }
+            if !AppStatus.shared.fullAccess {
+                Button("Allow Full Access") { AppStatus.openSettings() }
                     .buttonStyle(.borderedProminent)
                     .buttonBorderShape(.capsule)
             }
@@ -298,7 +298,7 @@ private struct Numbers: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("On target")
                     .font(.subheadline.weight(.medium))
-                    .foregroundStyle(Color.hexSecondary)
+                    .foregroundStyle(Color.appSecondary)
                 HStack(alignment: .firstTextBaseline, spacing: 10) {
                     Text(TapMapPalette.percent(summary.onTarget))
                         .font(.display(52))
@@ -312,9 +312,9 @@ private struct Numbers: View {
             Meter(share: summary.onTarget)
             Text(caption)
                 .font(.footnote)
-                .foregroundStyle(Color.hexSecondary)
+                .foregroundStyle(Color.appSecondary)
                 .fixedSize(horizontal: false, vertical: true)
-            Rectangle().fill(Color.hexDivider).frame(height: 1)
+            Rectangle().fill(Color.appDivider).frame(height: 1)
             HStack(alignment: .top, spacing: 12) {
                 Figure(value: summary.taps.formatted(), label: summary.taps == 1 ? "tap learned" : "taps learned", size: 24)
                 Figure(value: String(format: "%.1f pt", summary.offCenter), label: "aim off center", size: 24)
@@ -394,11 +394,11 @@ private struct Legend: View {
             }
             Text(hasSelection ? about : about + " Tap a key to see it up close.")
                 .font(.footnote)
-                .foregroundStyle(Color.hexSecondary)
+                .foregroundStyle(Color.appSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .font(.caption)
-        .foregroundStyle(Color.hexSecondary)
+        .foregroundStyle(Color.appSecondary)
     }
 
     private var about: String {
@@ -449,7 +449,7 @@ private struct MapView: UIViewRepresentable {
     }
 
     func updateUIView(_ map: TapMapView, context: Context) {
-        map.layer.borderColor = HexStyle.edge.resolvedColor(with: map.traitCollection).cgColor
+        map.layer.borderColor = AppStyle.edge.resolvedColor(with: map.traitCollection).cgColor
         map.onSelect = { select($0?.key) }
         if context.coordinator.revision != revision {
             context.coordinator.revision = revision
@@ -495,7 +495,7 @@ private struct Keycap: View {
         Text(name)
             .font(.system(size: name.count == 1 ? size * 0.5 : size * 0.3, weight: .medium))
             .frame(width: size * (name.count == 1 ? 0.9 : 1.5), height: size)
-            .background(Color.hexPressed, in: .rect(cornerRadius: size * 0.22, style: .continuous))
+            .background(Color.appPressed, in: .rect(cornerRadius: size * 0.22, style: .continuous))
             .accessibilityLabel(name)
     }
 }
@@ -519,16 +519,16 @@ private struct KeyDetail: View {
                 Button(action: close) {
                     Image(systemName: "xmark")
                         .font(.footnote.weight(.bold))
-                        .foregroundStyle(Color.hexSecondary)
+                        .foregroundStyle(Color.appSecondary)
                         .frame(width: 30, height: 30)
-                        .background(Color.hexPressed, in: .circle)
+                        .background(Color.appPressed, in: .circle)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Close")
             }
             Text(aimed)
                 .font(.subheadline)
-                .foregroundStyle(Color.hexSecondary)
+                .foregroundStyle(Color.appSecondary)
 
             Drawing(make: { TapCloseUpView() }, update: { $0.show(aim, keys: keys) }, height: { _ in TapCloseUpView.height })
             if !aim.recent.isEmpty { recent }
@@ -553,7 +553,7 @@ private struct KeyDetail: View {
             if !strays.isEmpty { dot(TapColor.miss, strays.joined(separator: ", ")) }
         }
         .font(.footnote)
-        .foregroundStyle(Color.hexSecondary)
+        .foregroundStyle(Color.appSecondary)
     }
 
     private func dot(_ color: Color, _ text: String) -> some View {
@@ -579,7 +579,7 @@ private struct KeyDetail: View {
         var parts = [SegmentedBar.Part(name: name, share: aim.onTarget, color: TapColor.aim)]
         parts += misses.prefix(3).filter { $0.share >= 0.005 }.map { SegmentedBar.Part(name: TapMapPalette.name(of: $0.key), share: $0.share, color: TapColor.miss) }
         let rest = 1 - parts.reduce(0) { $0 + $1.share }
-        if rest >= 0.005 { parts.append(SegmentedBar.Part(name: "other", share: rest, color: Color.hexSecondary.opacity(0.45))) }
+        if rest >= 0.005 { parts.append(SegmentedBar.Part(name: "other", share: rest, color: Color.appSecondary.opacity(0.45))) }
         return parts
     }
 }
@@ -610,7 +610,7 @@ private struct MemoryBar: View {
                 }
             }
             .font(.footnote)
-            .foregroundStyle(Color.hexSecondary)
+            .foregroundStyle(Color.appSecondary)
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(weights.indices.map { "\(Self.names[$0]) \(TapMapPalette.percent(weights[$0]))" }.joined(separator: ", "))
@@ -657,7 +657,7 @@ private struct Thumbs: View {
                                 .minimumScaleFactor(0.8)
                             Text(targets[index].name)
                                 .font(.footnote)
-                                .foregroundStyle(Color.hexSecondary)
+                                .foregroundStyle(Color.appSecondary)
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -681,20 +681,20 @@ private struct Target: View {
             context.fill(Path(ellipseIn: CGRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2)), with: .color(Color(TapMapPalette.backdrop)))
             for ring in [reach / 2, reach] {
                 let r = ring * scale
-                context.stroke(Path(ellipseIn: CGRect(x: center.x - r, y: center.y - r, width: r * 2, height: r * 2)), with: .color(Color.hexSecondary.opacity(0.22)), lineWidth: 1)
+                context.stroke(Path(ellipseIn: CGRect(x: center.x - r, y: center.y - r, width: r * 2, height: r * 2)), with: .color(Color.appSecondary.opacity(0.22)), lineWidth: 1)
             }
             var cross = Path()
             cross.move(to: CGPoint(x: center.x - radius, y: center.y))
             cross.addLine(to: CGPoint(x: center.x + radius, y: center.y))
             cross.move(to: CGPoint(x: center.x, y: center.y - radius))
             cross.addLine(to: CGPoint(x: center.x, y: center.y + radius))
-            context.stroke(cross, with: .color(Color.hexSecondary.opacity(0.3)), lineWidth: 1)
+            context.stroke(cross, with: .color(Color.appSecondary.opacity(0.3)), lineWidth: 1)
             let point = CGPoint(x: center.x + drift.x * scale, y: center.y + drift.y * scale)
             var line = Path()
             line.move(to: center)
             line.addLine(to: point)
             context.stroke(line, with: .color(TapColor.aim), style: StrokeStyle(lineWidth: 2, lineCap: .round))
-            context.fill(Path(ellipseIn: CGRect(x: point.x - 6, y: point.y - 6, width: 12, height: 12)), with: .color(Color.hexCard))
+            context.fill(Path(ellipseIn: CGRect(x: point.x - 6, y: point.y - 6, width: 12, height: 12)), with: .color(Color.appCard))
             context.fill(Path(ellipseIn: CGRect(x: point.x - 4.5, y: point.y - 4.5, width: 9, height: 9)), with: .color(TapColor.aim))
         }
         .frame(width: 76, height: 76)
@@ -718,7 +718,7 @@ private struct Misses: View {
                 VStack(spacing: 0) {
                     ForEach(shown.prefix(3), id: \.key) { miss in
                         row(miss)
-                        if miss.key != shown.prefix(3).last?.key { Rectangle().fill(Color.hexDivider).frame(height: 1) }
+                        if miss.key != shown.prefix(3).last?.key { Rectangle().fill(Color.appDivider).frame(height: 1) }
                     }
                 }
             }
@@ -735,18 +735,18 @@ private struct Misses: View {
                     .clipShape(UnevenRoundedRectangle(topLeadingRadius: 3, topTrailingRadius: 3, style: .continuous))
             }
             RuleMark(y: .value("All letters", typical))
-                .foregroundStyle(Color.hexSecondary.opacity(0.7))
+                .foregroundStyle(Color.appSecondary.opacity(0.7))
                 .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
                 .annotation(position: .top, alignment: .leading, spacing: 2) {
                     Text("all letters \(TapMapPalette.percent(typical))")
                         .font(.caption2.weight(.medium))
-                        .foregroundStyle(Color.hexSecondary)
+                        .foregroundStyle(Color.appSecondary)
                 }
         }
         .chartYScale(domain: 0 ... max(peak, typical * 1.4))
         .chartYAxis {
             AxisMarks(position: .trailing, values: .automatic(desiredCount: 3)) { value in
-                AxisGridLine(stroke: StrokeStyle(lineWidth: 1)).foregroundStyle(Color.hexDivider)
+                AxisGridLine(stroke: StrokeStyle(lineWidth: 1)).foregroundStyle(Color.appDivider)
                 AxisValueLabel {
                     if let share = value.as(Double.self) { Text(TapMapPalette.percent(share)) }
                 }
@@ -770,7 +770,7 @@ private struct Misses: View {
                 if let onto = miss.onto {
                     Image(systemName: "arrow.right")
                         .font(.footnote.weight(.semibold))
-                        .foregroundStyle(Color.hexSecondary)
+                        .foregroundStyle(Color.appSecondary)
                     Keycap(key: onto, size: 34).opacity(0.75)
                 }
                 Spacer()
@@ -779,7 +779,7 @@ private struct Misses: View {
                     .monospacedDigit()
                 Text("missed")
                     .font(.footnote)
-                    .foregroundStyle(Color.hexSecondary)
+                    .foregroundStyle(Color.appSecondary)
             }
             .padding(.vertical, 10)
             .contentShape(.rect)

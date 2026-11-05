@@ -1,12 +1,12 @@
 # Voice typing
 
-A keyboard can't use the microphone (no access, even with Full Access), so voice typing opens the app, which records in the background (`UIBackgroundModes` audio) after starting in the foreground, and hands the text back through the App Group (`Dictation`, HexStore/AGENTS.md).
+A keyboard can't use the microphone (no access, even with Full Access), so voice typing opens the app, which records in the background (`UIBackgroundModes` audio) after starting in the foreground, and hands the text back through the App Group (`Dictation`, KeyboardStore/AGENTS.md).
 
 Voice typing is two steps that never wait on each other, joined by `Listener`: the `Microphone` records, and once you stop, `VoiceModel.write` writes the finished recording down. Recording never waits for a model: the `Microphone` knows nothing of `VoiceModel`, which takes only finished recordings, and the status carries recording and writing apart, so nothing can make a dictation wait to start.
 
 ## Opening the app and going back
 
-- The keyboard opens the app by `hexkeyboard://dictate` (HexKeyboard/AGENTS.md, "Opening apps and knowing the host").
+- The keyboard opens the app by `iikb://dictate` (FullKeyboard/AGENTS.md, "Opening apps and knowing the host").
 - `KeyboardHost` names the app you were typing in, in that link, and the app opens it once the microphone is on, with `LSApplicationWorkspace` (all private) or else the app's own link; if that fails its screen asks you to swipe back.
 - `HostApp` sends you back to the app the keyboard named, unless that's iikb itself, which iOS would quit, losing a Parakeet still getting ready; then it keeps the microphone on for Keep Mic On so the next dictation starts from the keyboard without opening the app.
 - No Live Activity is needed for this, and iikb starts none: iOS shows its own mic indicator.
@@ -14,7 +14,7 @@ Voice typing is two steps that never wait on each other, joined by `Listener`: t
 
 ## The microphone
 
-- The `Microphone` records a dictation as a `Recording` the moment the keyboard asks (by opening `hexkeyboard://dictate`, or with its start signal while the microphone is kept on).
+- The `Microphone` records a dictation as a `Recording` the moment the keyboard asks (by opening `iikb://dictate`, or with its start signal while the microphone is kept on).
 - It's Automatic unless a microphone is picked in Settings › Microphone (`PickedMicrophone`, by port UID, or by name for Bluetooth, whose microphone has another UID than its speaker). Automatic is the iPhone's own microphones through Apple's voice processing, or a plugged-in wired headset; never Bluetooth, which would put a speaker or AirPods on a call and drop music to call quality.
 - Voice processing hears you on all of the iPhone's microphones as a call does (on one, the folded Duo in portrait lost seconds of speech at a time).
 - Only a picked Bluetooth microphone allows HFP, and only while it's connected; picked and away, the iPhone's hears, and a device coming or going restarts the engine onto the right one, in the same recording.
@@ -45,7 +45,7 @@ Measured on the iPhone Duo (iOS 27.2):
 - v3's encoder compiles for the Neural Engine in about 17 to 37 s after each install of a new build and loads in 0.1 s after. That compile has iikb write about 500 MB (Core ML writes out the encoder's 425 MB of weights to compile them), against iOS's 1 GB a day before it files a disk-writes report: 4.3 GB in 97 minutes of installs on Nov 4. So `scripts/phone` installs only when something iikb is built from has changed. `HostApp.written` logs what iikb has written since it started with each load and dictation.
 - Core ML keys what it compiles by the OS build, by the literal path a model loads from, and, for the parts loaded for the Neural Engine (encoder, decoder, joint), by the install. The app's own container moves to a new path with every install, so the Parakeets live in the App Group's container (`Library/Application Support/FluidAudio`, which the backup skips; `AsrModelVersion.folder` moved them over by rename and cleared Core ML's stale cache), whose path installs keep: that keeps the CPU-only preprocessor's compile and Core ML's path entries, but the other three compile again after every install (Nov 5, builds 448 to 458).
 - Ultra's int8 encoder never caches there and takes 3 to 6 minutes, hot, every load (`scripts/voiceprobe`; FluidAudio #1022).
-- Parakeet Unified, the English Parakeet Anomaly's Hex uses, gets 15% fewer of Bassim's words wrong than v3 (2.06% to 2.41% with um and uh set aside) but isn't offered: in FluidAudio 0.18.0 on the Duo it never runs on the Neural Engine, taking 77 s (int8) or 51 s (fp16) to load after a first compile of 5 to 8 minutes, and 9 to 16 s to write 37 s of talking, where v3 takes 0.05 s.
+- Parakeet Unified, the English Parakeet Anomaly's iikb uses, gets 15% fewer of Bassim's words wrong than v3 (2.06% to 2.41% with um and uh set aside) but isn't offered: in FluidAudio 0.18.0 on the Duo it never runs on the Neural Engine, taking 77 s (int8) or 51 s (fp16) to load after a first compile of 5 to 8 minutes, and 9 to 16 s to write 37 s of talking, where v3 takes 0.05 s.
 
 ## The app's timers
 

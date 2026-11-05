@@ -6,11 +6,11 @@ Correcting on space, backspace offering the original back, tapping a suggestion,
 
 ## How to get to it (user POV)
 
-Turn on Auto-Correction (Hex app › Settings › Keyboard › Typing; it starts off), then type a misspelled word and press space; the bar above the keys shows the literal word in quotes, the correction in a pill, and a candidate.
+Turn on Auto-Correction (iikb app › Settings › Keyboard › Typing; it starts off), then type a misspelled word and press space; the bar above the keys shows the literal word in quotes, the correction in a pill, and a candidate.
 
 ## Driving it with XCUITest
 
-`UITests/SuggestionTests.swift` types "helo", reads `hex.suggestion.0`–`2`, and checks the field after space and delete. Accuracy is measured by `scripts/eval` (here on Linux) against `scripts/eval.expected`; the rules behind it are pinned in `AutocorrectTests` and `TypingModelTests`.
+`UITests/SuggestionTests.swift` types "helo", reads `iikb.suggestion.0`–`2`, and checks the field after space and delete. Accuracy is measured by `scripts/eval` (here on Linux) against `scripts/eval.expected`; the rules behind it are pinned in `AutocorrectTests` and `TypingModelTests`.
 
 ## Gotchas
 

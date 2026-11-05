@@ -6,7 +6,7 @@ A web service the keyboard sends the field you're typing in to, as JSON, one upd
 
 ## How to get to it (user POV)
 
-Hex app › Settings › Hex › Sources › Add Source (name, https address, optional token), or a `hexkeyboard://source?...` link the source gives you. It needs Full Access.
+iikb app › Settings › iikb › Sources › Add Source (name, https address, optional token), or a `iikb://source?...` link the source gives you. It needs Full Access.
 
 ## Driving it
 

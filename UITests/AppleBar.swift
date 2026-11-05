@@ -1,16 +1,16 @@
 import XCTest
 
 /// Types each line of a file through the simulator's keyboard and records its suggestion bar before each word and after
-/// its first and second letters, for comparing bars: HEX_APPLEBAR_IN (one lowercase segment per line), HEX_APPLEBAR_OUT.
+/// its first and second letters, for comparing bars: IIKB_APPLEBAR_IN (one lowercase segment per line), IIKB_APPLEBAR_OUT.
 final class AppleBar: XCTestCase {
     func testBars() throws {
         let environment = ProcessInfo.processInfo.environment
-        guard let input = environment["HEX_APPLEBAR_IN"], let output = environment["HEX_APPLEBAR_OUT"] else { throw XCTSkip("Run through scripts/applebar") }
-        let first = Int(environment["HEX_APPLEBAR_FIRST"] ?? "") ?? 0
-        let count = Int(environment["HEX_APPLEBAR_COUNT"] ?? "") ?? .max
+        guard let input = environment["IIKB_APPLEBAR_IN"], let output = environment["IIKB_APPLEBAR_OUT"] else { throw XCTSkip("Run through scripts/applebar") }
+        let first = Int(environment["IIKB_APPLEBAR_FIRST"] ?? "") ?? 0
+        let count = Int(environment["IIKB_APPLEBAR_COUNT"] ?? "") ?? .max
         let lines = try String(contentsOfFile: input, encoding: .utf8).split(separator: "\n").map(String.init)
         let app = XCUIApplication()
-        app.launchArguments = ["-HexFocus", "YES", "-HexOrientation", "portrait"]
+        app.launchArguments = ["-iikbFocus", "YES", "-iikbOrientation", "portrait"]
         app.launch()
         let field = app.textViews.firstMatch
         XCTAssertTrue(field.waitForExistence(timeout: 10))

@@ -1,8 +1,8 @@
 version: 1
-bundleID: com.shahidy.hexkeyboard
-product: Hex
-infoPath: Config/xtool/Hex-Info.plist
-entitlementsPath: App/Hex.entitlements
+bundleID: com.shahidy.iikb
+product: iikb
+infoPath: Config/xtool/iikb-Info.plist
+entitlementsPath: App/iikb.entitlements
 iconPath: App/Assets.xcassets/AppIcon.appiconset/icon.png
 skipLSP: true
 resources:
@@ -10,7 +10,7 @@ resources:
   - App/PrivacyInfo.xcprivacy
 extensions:
   - product: Keyboard
-    bundleID: com.shahidy.hexkeyboard.keyboard
+    bundleID: com.shahidy.iikb.keyboard
     infoPath: Config/xtool/Keyboard-Info.plist
     entitlementsPath: Keyboard/Keyboard.entitlements
     resources:

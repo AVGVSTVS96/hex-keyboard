@@ -6,7 +6,7 @@ final class OneHandedTests: XCTestCase {
     override func setUp() {
         continueAfterFailure = false
         app = XCUIApplication()
-        app.launchArguments = ["-HexFocus", "YES", "-HexOneHanded", "off", "-HexOrientation", "portrait"]
+        app.launchArguments = ["-iikbFocus", "YES", "-iikbOneHanded", "off", "-iikbOrientation", "portrait"]
         app.launch()
         XCTAssertTrue(key("space").waitForExistence(timeout: 10), "iikb is not the active keyboard")
     }
@@ -14,10 +14,10 @@ final class OneHandedTests: XCTestCase {
     private var field: XCUIElement { app.textViews.firstMatch }
 
     private func key(_ name: String) -> XCUIElement {
-        app.keys.matching(identifier: "hex.\(name)").firstMatch
+        app.keys.matching(identifier: "iikb.\(name)").firstMatch
     }
 
-    private var expander: XCUIElement { app.buttons.matching(identifier: "hex.expand").firstMatch }
+    private var expander: XCUIElement { app.buttons.matching(identifier: "iikb.expand").firstMatch }
 
     private func holdNumbersAndPick(atX x: CGFloat) {
         let numbers = key("numbers")
@@ -49,7 +49,7 @@ final class OneHandedTests: XCTestCase {
         let emoji = key("emoji")
         XCTAssertTrue(emoji.waitForExistence(timeout: 5), "the emoji key sits beside space")
         let pick = emoji.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).withOffset(CGVector(dx: 0, dy: -45))
-        if let shots = ProcessInfo.processInfo.environment["HEX_SHOTS"] {
+        if let shots = ProcessInfo.processInfo.environment["IIKB_SHOTS"] {
             FileManager.default.createFile(atPath: shots + ".holding", contents: nil)
             emoji.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).press(forDuration: 1, thenDragTo: pick, withVelocity: .slow, thenHoldForDuration: 10)
         } else {

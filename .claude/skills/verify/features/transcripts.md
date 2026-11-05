@@ -6,11 +6,11 @@ Every dictation is kept, newest first, in the app's Transcripts tab: typed ones,
 
 ## How to get to it (user POV)
 
-Dictate with the keyboard's mic, then open Hex › Transcripts.
+Dictate with the keyboard's mic, then open iikb › Transcripts.
 
 ## Driving it with XCUITest
 
-Not driven yet: dictation needs a real microphone. Screenshots: `TRANSCRIPTS=<transcripts.jsonl> PAGES=transcripts scripts/mac 'scripts/sim duoapp <tag>'` copies one into the app's container and shoots the tab on the Duo's screens; on another simulator copy it into `Library/Application Support/` of `xcrun simctl get_app_container <id> com.shahidy.hexkeyboard data` and launch with `-HexTab transcripts`.
+Not driven yet: dictation needs a real microphone. Screenshots: `TRANSCRIPTS=<transcripts.jsonl> PAGES=transcripts scripts/mac 'scripts/sim duoapp <tag>'` copies one into the app's container and shoots the tab on the Duo's screens; on another simulator copy it into `Library/Application Support/` of `xcrun simctl get_app_container <id> com.shahidy.iikb data` and launch with `-iikbTab transcripts`.
 
 ## Gotchas
 

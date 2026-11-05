@@ -1,5 +1,5 @@
 import AVFoundation
-import HexStore
+import KeyboardStore
 import Observation
 
 /// The microphone, recording a dictation as a `Recording`: 16 kHz, kept in memory and written to its file as

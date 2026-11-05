@@ -1,12 +1,12 @@
 import XCTest
 
-/// Apple's keyboard on the open iPhone Duo in landscape, split from its … menu, in letters, 123 and #+=: the reference Hex's
-/// split is matched against. HEX_SPLIT_SHOTS names the files; the simulator types with Apple's keyboard (scripts/sim use).
+/// Apple's keyboard on the open iPhone Duo in landscape, split from its … menu, in letters, 123 and #+=: the reference iikb's
+/// split is matched against. IIKB_SPLIT_SHOTS names the files; the simulator types with Apple's keyboard (scripts/sim use).
 final class AppleSplitShots: XCTestCase {
     func testApplesSplitKeyboard() throws {
-        guard let prefix = ProcessInfo.processInfo.environment["HEX_SPLIT_SHOTS"] else { throw XCTSkip("Run with HEX_SPLIT_SHOTS") }
+        guard let prefix = ProcessInfo.processInfo.environment["IIKB_SPLIT_SHOTS"] else { throw XCTSkip("Run with IIKB_SPLIT_SHOTS") }
         let app = XCUIApplication()
-        app.launchArguments = ["-HexFocus", "YES"]
+        app.launchArguments = ["-iikbFocus", "YES"]
         app.launch()
         let q = app.keys.matching(NSPredicate(format: "label ==[c] 'q'")).firstMatch
         XCTAssertTrue(q.waitForExistence(timeout: 15), "Apple's keyboard is up")

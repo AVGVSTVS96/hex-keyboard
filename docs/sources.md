@@ -15,7 +15,7 @@ Sources need Allow Full Access (Settings › Apps › iikb › Keyboards), since
 In the iikb app: Settings › iikb › Sources › Add Source, with a name, an address and an optional token. iOS lets a keyboard reach `https` URLs, and `http` only on your local network (`localhost`, `.local` names). Or a source can give you a link, which the app asks about before adding:
 
 ```
-hexkeyboard://source?name=Example&url=https%3A%2F%2Fexample.com%2Fhex&token=secret
+iikb://source?name=Example&url=https%3A%2F%2Fexample.com%2Fiikb&token=secret
 ```
 
 ## What iikb sends

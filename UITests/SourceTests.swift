@@ -5,13 +5,13 @@ import XCTest
 final class SourceTests: XCTestCase {
     func testASourceSeesWhatYouTypeAndItsHintStandsInForTheSuggestions() throws {
         let environment = ProcessInfo.processInfo.environment
-        guard let source = environment["HEX_SOURCE"], let shots = environment["HEX_SHOTS"] else {
+        guard let source = environment["IIKB_SOURCE"], let shots = environment["IIKB_SHOTS"] else {
             throw XCTSkip("Run through scripts/sourcetest")
         }
         continueAfterFailure = false
 
         let linked = XCUIApplication()
-        var link = URLComponents(string: "hexkeyboard://source")!
+        var link = URLComponents(string: "iikb://source")!
         link.queryItems = [URLQueryItem(name: "name", value: "Test"), URLQueryItem(name: "url", value: source)]
         linked.open(link.url!)
         let add = linked.alerts.buttons["Add"]
@@ -21,18 +21,18 @@ final class SourceTests: XCTestCase {
         linked.terminate()
 
         let app = XCUIApplication()
-        app.launchArguments = ["-HexFocus", "YES", "-HexOrientation", "portrait"]
+        app.launchArguments = ["-iikbFocus", "YES", "-iikbOrientation", "portrait"]
         app.launch()
         XCTAssertTrue(key("space", in: app).waitForExistence(timeout: 10), "iikb is not the active keyboard")
         type("i hate", in: app)
-        let hint = app.descendants(matching: .any).matching(identifier: "hex.notice").firstMatch
+        let hint = app.descendants(matching: .any).matching(identifier: "iikb.notice").firstMatch
         XCTAssertTrue(wait { hint.exists && hint.label == "Careful" }, "the source's hint stands in for the suggestions")
         try shot("\(shots)-hint")
 
         hint.tap()
         XCTAssertTrue(wait { !hint.exists }, "tapping the hint hides it")
         type(" it", in: app)
-        let suggestion = app.descendants(matching: .any).matching(identifier: "hex.suggestion.0").firstMatch
+        let suggestion = app.descendants(matching: .any).matching(identifier: "iikb.suggestion.0").firstMatch
         XCTAssertTrue(wait { suggestion.exists && suggestion.isHittable }, "the suggestions are back")
         XCTAssertFalse(hint.exists, "the same hint stays hidden")
         try shot("\(shots)-dismissed")
@@ -52,7 +52,7 @@ final class SourceTests: XCTestCase {
     }
 
     private func key(_ name: String, in app: XCUIApplication) -> XCUIElement {
-        let hex = app.keys.matching(identifier: "hex.\(name)").firstMatch
-        return hex.exists ? hex : app.keys.matching(NSPredicate(format: "label ==[c] %@", name)).firstMatch
+        let iikb = app.keys.matching(identifier: "iikb.\(name)").firstMatch
+        return iikb.exists ? iikb : app.keys.matching(NSPredicate(format: "label ==[c] %@", name)).firstMatch
     }
 }

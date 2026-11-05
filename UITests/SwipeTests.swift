@@ -8,13 +8,13 @@ final class SwipeTests: XCTestCase {
     override func setUp() {
         continueAfterFailure = false
         app = XCUIApplication()
-        app.launchArguments = ["-HexFocus", "YES", "-HexResetSettings", "YES"]
+        app.launchArguments = ["-iikbFocus", "YES", "-iikbResetSettings", "YES"]
         app.launch()
-        if !app.keys["hex.space"].waitForExistence(timeout: 15) {
+        if !app.keys["iikb.space"].waitForExistence(timeout: 15) {
             app.terminate()
             app.launch()
         }
-        XCTAssertTrue(app.keys["hex.space"].waitForExistence(timeout: 15), "iikb is not the active keyboard")
+        XCTAssertTrue(app.keys["iikb.space"].waitForExistence(timeout: 15), "iikb is not the active keyboard")
     }
 
     func testASwipeTypesItsWordAndTheBarOffersOthers() throws {
@@ -84,11 +84,11 @@ final class SwipeTests: XCTestCase {
     }
 
     private func key(_ name: String) -> XCUIElement {
-        app.keys.matching(identifier: "hex.\(name)").firstMatch
+        app.keys.matching(identifier: "iikb.\(name)").firstMatch
     }
 
     private func suggestion(_ index: Int) -> XCUIElement {
-        app.descendants(matching: .any).matching(identifier: "hex.suggestion.\(index)").firstMatch
+        app.descendants(matching: .any).matching(identifier: "iikb.suggestion.\(index)").firstMatch
     }
 
     private func settled() -> String {

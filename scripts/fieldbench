@@ -1,6 +1,6 @@
 #!/bin/sh
 # Scores what a dictation types in each kind of field, before and after reading it for the field (DictationReading):
-# says Tools/FieldBench/cases.jsonl in two voices on the Mac, writes it down with Hex's own dictation path
+# says Tools/FieldBench/cases.jsonl in two voices on the Mac, writes it down with iikb's own dictation path
 # (Tools/VoiceBench, Neural Engine), and scores here with KeyboardCore's FieldBenchTests, as exact matches per field.
 set -e
 cd "$(dirname "$0")/.."

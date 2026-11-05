@@ -1,5 +1,5 @@
 #!/bin/sh
-# Builds Hex on this Linux box with xtool and provisions it for the free team's devices. The team holds one development
+# Builds iikb on this Linux box with xtool and provisions it for the free team's devices. The team holds one development
 # certificate, and it's the Mac's: xtool's identity (~/.config/xtool/data/<team>) holds that certificate without its
 # key, so xtool (Bassim's fork) makes the profiles for it and signs ad hoc, and scripts/resign signs on the Mac, whose
 # login keychain has the key.
@@ -7,9 +7,9 @@
 # Then it backs up the phone's iikb data here (scripts/backup), and won't install without that backup, and installs it
 # through the Mac on the iPhone the Mac reaches, by cable or Wi-Fi, once no dictation is being recorded or written down
 # there, as the running app's status in the App Group says, checked last thing before the install. An install that left
-# Hex a new, empty container, as one after deleting the app does, is written in the backup's `reinstalls`, so
+# iikb a new, empty container, as one after deleting the app does, is written in the backup's `reinstalls`, so
 # scripts/backup and scripts/restore take the near-empty files sent in the day after it for that rather than for you.
-# Then it starts Hex in the background, now or the moment the iPhone next unlocks (scripts/unlocked), so Parakeet
+# Then it starts iikb in the background, now or the moment the iPhone next unlocks (scripts/unlocked), so Parakeet
 # compiles for the new build right away rather than at the next dictation. That compile has iikb write about 500 MB
 # (App/Voice/AGENTS.md), so main is installed only when something iikb is built from has changed since the commit last
 # installed, which the stamp keeps: a commit to docs, tests or scripts alone goes with the next one that changes iikb.
@@ -24,7 +24,7 @@
 # build already on the iPhone. --now skips the wait.
 set -e
 cd "$(dirname "$0")/.."
-build=../hex-keyboard-build
+build=../iikb-build
 exec 9>"$build.lock"
 flock 9
 stamp=$build.installed
@@ -36,15 +36,15 @@ fi
 [ -d "$build" ] || git worktree add -q --detach "$build"
 commit=$(git rev-parse --short main)
 number=$(git rev-list --count main)
-phone=$(ssh mac 'xcrun devicectl list devices --json-output /tmp/hex-phone.json >/dev/null && /usr/bin/python3 -c "
+phone=$(ssh mac 'xcrun devicectl list devices --json-output /tmp/iikb-phone.json >/dev/null && /usr/bin/python3 -c "
 import json
-for d in json.load(open(\"/tmp/hex-phone.json\"))[\"result\"][\"devices\"]:
+for d in json.load(open(\"/tmp/iikb-phone.json\"))[\"result\"][\"devices\"]:
     h, c = d[\"hardwareProperties\"], d[\"connectionProperties\"]
     if h.get(\"deviceType\") == \"iPhone\" and h.get(\"reality\") == \"physical\" and c.get(\"transportType\"): print(h[\"udid\"]); break"')
 [ -n "$phone" ] || { echo "the Mac doesn't reach an iPhone" >&2; exit 1; }
 installed=$(ssh mac sh -s "$phone" <<'MAC'
-xcrun devicectl device info apps --device "$1" --bundle-id com.shahidy.hexkeyboard --json-output /tmp/hex-apps.json >/dev/null 2>&1 &&
-/usr/bin/python3 -c "import json; print(next((a.get('bundleVersion', '') for a in json.load(open('/tmp/hex-apps.json'))['result']['apps']), ''))"
+xcrun devicectl device info apps --device "$1" --bundle-id com.shahidy.iikb --json-output /tmp/iikb-apps.json >/dev/null 2>&1 &&
+/usr/bin/python3 -c "import json; print(next((a.get('bundleVersion', '') for a in json.load(open('/tmp/iikb-apps.json'))['result']['apps']), ''))"
 MAC
 )
 if [ "$installed" = "$number" ] && [ "${1:-}" != --reinstall ]; then
@@ -53,47 +53,57 @@ if [ "$installed" = "$number" ] && [ "${1:-}" != --reinstall ]; then
 fi
 read -r stamped from < "$stamp" 2>/dev/null || true
 if [ "$installed" = "${stamped:-}" ] && [ "${1:-}" != --reinstall ] && git diff --quiet "$from" "$commit" -- App Keyboard Config/xtool \
-  xtool.yml Package.swift Package.resolved Packages/HexKeyboard/Package.swift Packages/HexKeyboard/Sources ':(exclude)**/AGENTS.md' 2>/dev/null; then
+  xtool.yml Package.swift Package.resolved Packages/KeyboardModules/Package.swift Packages/KeyboardModules/Sources ':(exclude)**/AGENTS.md' 2>/dev/null; then
   echo "build $installed (main $from) is on the iPhone and nothing iikb is built from has changed since, so main $commit waits for a change that needs an install"
   exit 0
 fi
 git -C "$build" checkout -q -f --detach "$commit"
-for plist in Config/xtool/Hex-Info.plist Config/xtool/Keyboard-Info.plist; do
+for plist in Config/xtool/iikb-Info.plist Config/xtool/Keyboard-Info.plist; do
   python3 -c "import plistlib, sys; p = plistlib.load(open(sys.argv[1], 'rb')); p['CFBundleVersion'] = sys.argv[2]; plistlib.dump(p, open(sys.argv[1], 'wb'))" "$build/$plist" "$number"
 done
 main=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
-backup=$main/Packages/HexKeyboard/Sources/HexStore/Resources/Keys/backup.key
+backup=$main/Packages/KeyboardModules/Sources/KeyboardStore/Resources/Keys/backup.key
 [ -f "$backup" ] || { echo "$backup is missing, so this build wouldn't back up the iPhone's iikb data (docs/backup.md)" >&2; exit 1; }
-for key in "$main"/Packages/HexKeyboard/Sources/*/Resources/Keys/*.key; do
+for key in "$main"/Packages/KeyboardModules/Sources/*/Resources/Keys/*.key; do
   to=$build/${key#"$main"/}
   [ ! -d "${to%/*}" ] || cp "$key" "$to"
 done
 cd "$build"
 TURN=phone xtool dev build -c release --sign < /dev/null
-for binary in xtool/Hex.app/Hex xtool/Hex.app/PlugIns/Keyboard.appex/Keyboard; do
+for binary in xtool/iikb.app/iikb xtool/iikb.app/PlugIns/Keyboard.appex/Keyboard; do
   sdk=$(llvm-otool -l "$binary" | awk '/LC_BUILD_VERSION/ {b=1} b && $1 == "sdk" {print $2; exit}')
   [ "$(printf '%s\n27.1\n' "$sdk" | sort -V | head -1)" = 27.1 ] || {
-    echo "$binary is linked against iOS SDK $sdk; below 27.1 the iPhone Duo runs Hex as an old iPhone app (AGENTS.md, scripts/phone)" >&2
+    echo "$binary is linked against iOS SDK $sdk; below 27.1 the iPhone Duo runs iikb as an old iPhone app (AGENTS.md, scripts/phone)" >&2
     exit 1
   }
 done
-rsync -a --delete xtool/Hex.app/ mac:Developer/hex-keyboard-phone/Hex.app/
+rsync -a --delete xtool/iikb.app/ mac:Developer/iikb-phone/iikb.app/
 serial=$(python3 -c "
 import glob, os, plistlib, subprocess
 path = max(glob.glob(os.path.expanduser('~/.config/xtool/data/??????????')), key=os.path.getmtime)
 der = plistlib.load(open(path, 'rb'))['certificate']
 print(subprocess.run(['openssl', 'x509', '-inform', 'DER', '-noout', '-serial'], input=der, capture_output=True).stdout.decode().split('=')[1].strip())")
 ssh mac sh -s "$serial" < scripts/resign
-scripts/backup "$phone"
+old=com.shahidy.hexkeyboard
+if ssh mac xcrun devicectl device info apps --device "$phone" --bundle-id $old 2>/dev/null | grep -q $old; then
+  IIKB_APP=$old scripts/backup "$phone"
+  mirror=${IIKB_BACKUP:-$HOME/.local/share/iikb/backup}/mirror
+  mv "$mirror/app/Preferences/$old.plist" "$mirror/app/Preferences/com.shahidy.iikb.plist"
+  mv "$mirror/keyboard/Preferences/$old.keyboard.plist" "$mirror/keyboard/Preferences/com.shahidy.iikb.keyboard.plist"
+  mv "$mirror/group/Library/Preferences/group.$old.plist" "$mirror/group/Library/Preferences/group.com.shahidy.iikb.plist"
+else
+  old=
+  scripts/backup "$phone"
+fi
 dictating() {
   ssh mac sh -s "$phone" <<'MAC'
-xcrun devicectl device info processes --device "$1" --json-output /tmp/hex-processes.json >/dev/null 2>&1 &&
-xcrun devicectl device copy from --device "$1" --domain-type appGroupDataContainer --domain-identifier group.com.shahidy.hexkeyboard \
-  --source Library/dictation.json --destination /tmp/hex-dictation.json >/dev/null 2>&1 &&
+xcrun devicectl device info processes --device "$1" --json-output /tmp/iikb-processes.json >/dev/null 2>&1 &&
+xcrun devicectl device copy from --device "$1" --domain-type appGroupDataContainer --domain-identifier group.com.shahidy.iikb \
+  --source Library/dictation.json --destination /tmp/iikb-dictation.json >/dev/null 2>&1 &&
 /usr/bin/python3 -c "
 import json, sys
-running = any(p['executable'].endswith('Hex.app/Hex') for p in json.load(open('/tmp/hex-processes.json'))['result']['runningProcesses'])
-status = json.load(open('/tmp/hex-dictation.json'))
+running = any(p['executable'].endswith('iikb.app/iikb') for p in json.load(open('/tmp/iikb-processes.json'))['result']['runningProcesses'])
+status = json.load(open('/tmp/iikb-dictation.json'))
 sys.exit(0 if running and (status.get('listening') or status.get('writing')) else 1)"
 MAC
 }
@@ -101,18 +111,23 @@ while dictating; do
   echo "waiting for the dictation on the iPhone to be recorded and written down, since an install would cut it off" >&2
   sleep 2
 done
-ssh mac xcrun devicectl device install app --device "$phone" Developer/hex-keyboard-phone/Hex.app
+ssh mac xcrun devicectl device install app --device "$phone" Developer/iikb-phone/iikb.app
 fresh=$(ssh mac sh -s "$phone" <<'MAC'
-xcrun devicectl device info files --device "$1" --domain-type appDataContainer --domain-identifier com.shahidy.hexkeyboard \
-  --subdirectory Library --json-output /tmp/hex-library.json >/dev/null 2>&1 &&
-/usr/bin/python3 -c "import json; print(not any(f['relativePath'].startswith('Application Support/') for f in json.load(open('/tmp/hex-library.json'))['result']['files']))"
+xcrun devicectl device info files --device "$1" --domain-type appDataContainer --domain-identifier com.shahidy.iikb \
+  --subdirectory Library --json-output /tmp/iikb-library.json >/dev/null 2>&1 &&
+/usr/bin/python3 -c "import json; print(not any(f['relativePath'].startswith('Application Support/') for f in json.load(open('/tmp/iikb-library.json'))['result']['files']))"
 MAC
 ) || true
 if [ "$fresh" = True ]; then
-  date +%Y-%m-%dT%H%M%S >> "${HEX_BACKUP:-$HOME/.local/share/hex-keyboard/backup}/reinstalls"
-  echo "the install started Hex in a new, empty container; scripts/restore $phone puts its data back (docs/backup.md)" >&2
+  date +%Y-%m-%dT%H%M%S >> "${IIKB_BACKUP:-$HOME/.local/share/iikb/backup}/reinstalls"
+  echo "the install started iikb in a new, empty container; scripts/restore $phone puts its data back (docs/backup.md)" >&2
 fi
-ssh mac 'cat > Developer/hex-keyboard-phone/unlocked' < scripts/unlocked
-ssh mac "pkill -f hex-keyboard-phone/unlocked; nohup /usr/bin/python3 -I Developer/hex-keyboard-phone/unlocked $phone >/dev/null 2>&1 </dev/null &"
+if [ -n "$old" ]; then
+  scripts/restore "$phone"
+  ssh mac xcrun devicectl device uninstall app --device "$phone" $old
+  echo "iikb's data moved from $old to com.shahidy.iikb and the old app is gone: add iikb again in Settings › General › Keyboard › Keyboards, with Allow Full Access" >&2
+fi
+ssh mac 'cat > Developer/iikb-phone/unlocked' < scripts/unlocked
+ssh mac "pkill -f iikb-phone/unlocked; nohup /usr/bin/python3 -I Developer/iikb-phone/unlocked $phone >/dev/null 2>&1 </dev/null &"
 echo "$number $(git rev-parse "$commit")" > "$stamp"
 echo "build $number (main $commit) is on the iPhone"

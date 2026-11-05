@@ -1,4 +1,4 @@
-const storageKey = "hex.settings";
+const storageKey = "iikb.settings";
 
 const defaults = {
   autoCapitalization: true,

@@ -8,7 +8,7 @@ The emoji key beside space (on iPad, the bar's emoji tool) opens the emoji panel
 
 ## How to get to it (user POV)
 
-Type "pizza" in any text field with Hex up; or tap the emoji key between 123 and space. Settings › Keyboard › Layout › Emoji Key takes the key away, leaving the bar's emoji.
+Type "pizza" in any text field with iikb up; or tap the emoji key between 123 and space. Settings › Keyboard › Layout › Emoji Key takes the key away, leaving the bar's emoji.
 
 ## Driving it with XCUITest
 

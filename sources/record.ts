@@ -7,7 +7,7 @@
 import { appendFile } from "node:fs/promises";
 import { parseArgs } from "node:util";
 
-/** What Hex sends as you type. */
+/** What iikb sends as you type. */
 export interface Update {
   readonly app?: string | null;
   readonly field: string;

@@ -1,4 +1,4 @@
-# Compares Hex screenshots with the system keyboard, key by key.
+# Compares iikb screenshots with the system keyboard, key by key.
 # Space bars are compared by top and height only: the system one shares its row with keys a third-party keyboard can't have (mic, emoji).
 # uv run --with pillow --with numpy --with scipy scripts/shotdiff.py <tag>
 import glob
@@ -28,10 +28,10 @@ def key_rects(path, scale):
 
 
 def compare(reference, ours, scale):
-    system, hex_ = key_rects(reference, scale), key_rects(ours, scale)
+    system, iikb_ = key_rects(reference, scale), key_rects(ours, scale)
     worst, unmatched = 0.0, 0
     for rect in system:
-        match = min(hex_, key=lambda r: abs(r[0] - rect[0]) + abs(r[1] - rect[1]), default=None)
+        match = min(iikb_, key=lambda r: abs(r[0] - rect[0]) + abs(r[1] - rect[1]), default=None)
         if match is None or abs(match[0] - rect[0]) + abs(match[1] - rect[1]) > 8:
             unmatched += 1
             continue
@@ -39,14 +39,14 @@ def compare(reference, ours, scale):
         if max(rect[2], match[2]) > 150:
             deltas[1] = deltas[2] = 0
         worst = max(worst, *deltas)
-    return len(system), len(hex_), unmatched, worst
+    return len(system), len(iikb_), unmatched, worst
 
 
 tag = sys.argv[1]
 for mode in ('light', 'dark'):
     for reference in sorted(glob.glob(os.path.join(RAW, f'*-ref-system-{mode}.png'))):
         device = os.path.basename(reference).split('-ref-')[0]
-        ours = os.path.join(RAW, f'{device}-{tag}-hex-{mode}.png')
+        ours = os.path.join(RAW, f'{device}-{tag}-iikb-{mode}.png')
         if not os.path.exists(ours):
             continue
         scale = 2 if device.startswith('ipad') else 3

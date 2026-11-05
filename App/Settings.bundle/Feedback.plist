@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>ApplicationGroupContainerIdentifier</key>
-	<string>group.com.shahidy.hexkeyboard</string>
+	<string>group.com.shahidy.iikb</string>
 	<key>PreferenceSpecifiers</key>
 	<array>
 		<dict>

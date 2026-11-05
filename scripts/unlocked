@@ -1,5 +1,5 @@
 #!/usr/bin/python3 -I
-# Runs on the Mac, left running by scripts/phone after an install: starts Hex in the background on the iPhone
+# Runs on the Mac, left running by scripts/phone after an install: starts iikb in the background on the iPhone
 # (argv[1]) now, or the moment it next unlocks, since iOS starts no app on a locked iPhone, so Parakeet compiles for
 # the new build then rather than at the next dictation. It watches SpringBoard's lock state through devicectl, which
 # writes what it observes only to a terminal, at most every 10 seconds when devicectl can't reach the iPhone, and
@@ -15,7 +15,7 @@ deadline = time.time() + 86400
 
 
 def start():
-    launch = ["xcrun", "devicectl", "device", "process", "launch", "--no-activate", "--device", phone, "com.shahidy.hexkeyboard"]
+    launch = ["xcrun", "devicectl", "device", "process", "launch", "--no-activate", "--device", phone, "com.shahidy.iikb"]
     return subprocess.run(launch, capture_output=True).returncode == 0
 
 

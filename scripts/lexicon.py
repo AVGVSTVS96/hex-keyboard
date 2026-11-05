@@ -1,4 +1,4 @@
-"""Builds the English word counts behind Packages/HexKeyboard/Sources/KeyboardEnglish/Resources/en.lexicon.
+"""Builds the English word counts behind Packages/KeyboardModules/Sources/KeyboardEnglish/Resources/en.lexicon.
 
 Words: SCOWL 2020.12.07, English with its American, British and Canadian spellings up to size 60 (the size spell
 checkers use) and proper names up to 50, plus any

@@ -4,20 +4,20 @@
 # LaunchAgent watches Keystroke's folder, so it sends on Keystroke's own saves and at login, never on a clock.
 # Usage: scripts/keystroke [path to Keystroke.app on the Mac]
 set -euo pipefail
-key=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")/Packages/HexKeyboard/Sources/HexStore/Resources/Keys/backup.key
+key=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")/Packages/KeyboardModules/Sources/KeyboardStore/Resources/Keys/backup.key
 [ -f "$key" ] || { echo "$key is missing: the Mac sends with the backup server's address and token (docs/backup.md)" >&2; exit 1; }
-ssh mac 'umask 077 && mkdir -p ~/.config/hex-keyboard && cat > ~/.config/hex-keyboard/backup.key' <"$key"
+ssh mac 'umask 077 && mkdir -p ~/.config/iikb && cat > ~/.config/iikb/backup.key' <"$key"
 ssh mac bash -s "${1:-/Applications/Glaze/Keystroke.app}" <<'MAC'
 set -euo pipefail
 bundle=$(defaults read "$1/Contents/Info" CFBundleIdentifier)
 folder="$HOME/Library/Application Support/$bundle"
-label=com.shahidy.hexkeyboard.keystroke
-send="$HOME/.config/hex-keyboard/send-keystroke"
+label=com.shahidy.iikb.keystroke
+send="$HOME/.config/iikb/send-keystroke"
 cat >"$send" <<'SEND'
 #!/bin/sh
 file="$1/typing-stats.json"
 [ -f "$file" ] || exit 0
-{ read -r url; read -r token; } <"$HOME/.config/hex-keyboard/backup.key"
+{ read -r url; read -r token; } <"$HOME/.config/iikb/backup.key"
 exec /usr/bin/curl -fsS --max-time 30 -X PUT -H "Authorization: Bearer $token" -H "X-Modified: $(stat -f %m "$file")" \
   --data-binary @"$file" "$url/mac/typing-stats.json"
 SEND

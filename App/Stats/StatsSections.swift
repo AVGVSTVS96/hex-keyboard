@@ -46,8 +46,8 @@ struct DeviceStats: View {
         } description: {
             Text(emptyText)
         } actions: {
-            if device == .iPhone, kind == .typed, !HexStatus.shared.fullAccess {
-                Button("Allow Full Access") { HexStatus.openSettings() }
+            if device == .iPhone, kind == .typed, !AppStatus.shared.fullAccess {
+                Button("Allow Full Access") { AppStatus.openSettings() }
                     .buttonStyle(.borderedProminent)
                     .buttonBorderShape(.capsule)
             }
@@ -57,7 +57,7 @@ struct DeviceStats: View {
     private var emptyText: String {
         switch (device, kind) {
         case (.iPhone, .typed):
-            HexStatus.shared.fullAccess
+            AppStatus.shared.fullAccess
                 ? "Type with the keyboard anywhere. Your typing shows up here each time it closes."
                 : "Type with the keyboard anywhere. Your typing shows up here each time it closes, once Allow Full Access is on."
         case (.iPhone, .said): "Tap the mic at the right end of the keyboard’s suggestions and talk."
@@ -105,7 +105,7 @@ private struct Speed: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(kind == .typed ? "Typing speed" : "Talking speed")
                     .font(.subheadline.weight(.medium))
-                    .foregroundStyle(Color.hexSecondary)
+                    .foregroundStyle(Color.appSecondary)
                 HStack(alignment: .firstTextBaseline, spacing: 10) {
                     Text(all.speed.map { "\(Int($0.rounded())) wpm" } ?? "–")
                         .font(.display(52))
@@ -118,9 +118,9 @@ private struct Speed: View {
             }
             Text(caption)
                 .font(.footnote)
-                .foregroundStyle(Color.hexSecondary)
+                .foregroundStyle(Color.appSecondary)
                 .fixedSize(horizontal: false, vertical: true)
-            Rectangle().fill(Color.hexDivider).frame(height: 1)
+            Rectangle().fill(Color.appDivider).frame(height: 1)
             HStack(alignment: .top, spacing: 12) {
                 Figure(value: all.words.formatted(), label: all.words == 1 ? "word \(kind.noun)" : "words \(kind.noun)", size: 24)
                 Figure(value: Self.time(all.seconds), label: kind == .typed ? "typing" : "talking", size: 24)
@@ -185,7 +185,7 @@ private struct WordsADay: View {
                     .contentTransition(.numericText())
                 Text(shown.map { $0.date.formatted(.dateTime.weekday(.wide).month(.abbreviated).day()) } ?? "a day on the \(active.count) of the last 30 you \(kind.verb)")
                     .font(.footnote)
-                    .foregroundStyle(Color.hexSecondary)
+                    .foregroundStyle(Color.appSecondary)
             }
             .accessibilityElement(children: .combine)
             Chart(month) { day in
@@ -201,7 +201,7 @@ private struct WordsADay: View {
             }
             .chartYAxis {
                 AxisMarks(position: .trailing, values: .automatic(desiredCount: 3)) {
-                    AxisGridLine(stroke: StrokeStyle(lineWidth: 1)).foregroundStyle(Color.hexDivider)
+                    AxisGridLine(stroke: StrokeStyle(lineWidth: 1)).foregroundStyle(Color.appDivider)
                     AxisValueLabel()
                 }
             }
@@ -211,8 +211,8 @@ private struct WordsADay: View {
     }
 
     private func color(_ day: Day, picked: Day?) -> Color {
-        if let picked { return day.date == picked.date ? .primary : Color.hexSecondary.opacity(0.35) }
-        return Calendar.current.isDateInToday(day.date) ? .primary : Color.hexSecondary.opacity(0.55)
+        if let picked { return day.date == picked.date ? .primary : Color.appSecondary.opacity(0.35) }
+        return Calendar.current.isDateInToday(day.date) ? .primary : Color.appSecondary.opacity(0.55)
     }
 }
 
@@ -242,7 +242,7 @@ private struct Hours: View {
             Card(header: "When you \(kind.verb)", footer: "Most between \(Self.name(busiest)) and \(Self.name((busiest + 1) % 24)).") {
                 Chart(hours) { hour in
                     BarMark(x: .value("Hour", hour.label), y: .value("Share", hour.share), width: .ratio(0.7))
-                        .foregroundStyle(hour.hour == busiest ? Color.primary : Color.hexSecondary.opacity(0.55))
+                        .foregroundStyle(hour.hour == busiest ? Color.primary : Color.appSecondary.opacity(0.55))
                         .clipShape(UnevenRoundedRectangle(topLeadingRadius: 2, topTrailingRadius: 2, style: .continuous))
                 }
                 .chartXAxis {
@@ -254,7 +254,7 @@ private struct Hours: View {
                 }
                 .chartYAxis {
                     AxisMarks(position: .trailing, values: .automatic(desiredCount: 3)) { value in
-                        AxisGridLine(stroke: StrokeStyle(lineWidth: 1)).foregroundStyle(Color.hexDivider)
+                        AxisGridLine(stroke: StrokeStyle(lineWidth: 1)).foregroundStyle(Color.appDivider)
                         AxisValueLabel {
                             if let share = value.as(Double.self) { Text(share, format: .percent.precision(.fractionLength(0))) }
                         }
@@ -283,11 +283,11 @@ private struct WordSources: View {
         let parts = [
             SegmentedBar.Part(name: "As typed", share: Double(words - corrected - picked) / Double(words), color: TapColor.aim),
             SegmentedBar.Part(name: "Autocorrected", share: Double(corrected) / Double(words), color: TapColor.miss),
-            SegmentedBar.Part(name: "From the bar", share: Double(picked) / Double(words), color: Color.hexSecondary.opacity(0.45)),
+            SegmentedBar.Part(name: "From the bar", share: Double(picked) / Double(words), color: Color.appSecondary.opacity(0.45)),
         ]
         Card(header: "Your typed words", footer: "Taken back: autocorrect’s fixes you undid with the bar. Deleted: the keys you tapped that were delete.") {
             SegmentedBar(parts: parts)
-            Rectangle().fill(Color.hexDivider).frame(height: 1)
+            Rectangle().fill(Color.appDivider).frame(height: 1)
             HStack(alignment: .top, spacing: 12) {
                 Figure(value: channel.corrected > 0 ? share(channel.undone, of: channel.corrected) : "–", label: "taken back", size: 24)
                 Figure(value: channel.keys > 0 ? share(channel.deletes, of: channel.keys) : "–", label: "deleted", size: 24)
@@ -353,7 +353,7 @@ struct SegmentedBar: View {
                 VStack(alignment: .leading, spacing: 4) { legend }
             }
             .font(.footnote)
-            .foregroundStyle(Color.hexSecondary)
+            .foregroundStyle(Color.appSecondary)
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(shown.map { "\($0.name) \(TapMapPalette.percent($0.share))" }.joined(separator: ", "))
@@ -381,7 +381,7 @@ private struct Apps: View {
                             Spacer()
                             Text(app.words.formatted())
                                 .monospacedDigit()
-                                .foregroundStyle(Color.hexSecondary)
+                                .foregroundStyle(Color.appSecondary)
                         }
                         GeometryReader { proxy in
                             Capsule()

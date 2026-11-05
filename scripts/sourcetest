@@ -8,22 +8,22 @@ TYPE=${2:-iPhone-Duo}
 PORT=${PORT:-2599}
 ID=$(scripts/sim ensure "$NAME" "$TYPE")
 scripts/sim boot "$ID"
-scripts/sim use "$ID" hex
+scripts/sim use "$ID" iikb
 scripts/sim allow "$ID"
 slug=$(echo "$NAME" | tr 'A-Z ' 'a-z-')
 mkdir -p shots/raw/source build/uitest
 xcodegen generate -q
-xcodebuild build-for-testing -project HexKeyboard.xcodeproj -scheme Hex -destination "id=$ID" \
+xcodebuild build-for-testing -project iikb.xcodeproj -scheme iikb -destination "id=$ID" \
   -derivedDataPath build/uitest -quiet
-xcrun simctl install "$ID" build/uitest/Build/Products/Debug-iphonesimulator/Hex.app
+xcrun simctl install "$ID" build/uitest/Build/Products/Debug-iphonesimulator/iikb.app
 log=build/uitest/source.jsonl
 : > "$log"
 /usr/bin/python3 scripts/source.py "$PORT" "$log" &
 source=$!
 trap 'kill $source 2>/dev/null || true' EXIT
-TEST_RUNNER_HEX_SOURCE="http://localhost:$PORT/hex" TEST_RUNNER_HEX_SHOTS="$PWD/shots/raw/source/$slug" \
-  xcodebuild test-without-building -project HexKeyboard.xcodeproj -scheme Hex -destination "id=$ID" \
-  -derivedDataPath build/uitest -only-testing:HexUITests/SourceTests > build/uitest/source.log 2>&1 || failed=1
+TEST_RUNNER_IIKB_SOURCE="http://localhost:$PORT/iikb" TEST_RUNNER_IIKB_SHOTS="$PWD/shots/raw/source/$slug" \
+  xcodebuild test-without-building -project iikb.xcodeproj -scheme iikb -destination "id=$ID" \
+  -derivedDataPath build/uitest -only-testing:AppUITests/SourceTests > build/uitest/source.log 2>&1 || failed=1
 grep -E "error:|XCTAssert|Test Case .*(passed|failed)|Executed" build/uitest/source.log || true
 cat "$log"
 [ -n "${KEEP:-}" ] || xcrun simctl shutdown "$ID"

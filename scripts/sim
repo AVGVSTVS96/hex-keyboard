@@ -1,11 +1,11 @@
 #!/bin/bash
 # Runs on the Mac. Headless simulator helpers for screenshots and keyboard checks. Each scripts/mac slot has its own
-# simulators (SIMPREFIX, hexkb<n>), and ensure shuts down the slot's others, so a slot boots one at a time.
+# simulators (SIMPREFIX, iikb<n>), and ensure shuts down the slot's others, so a slot boots one at a time.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-APP=${APP:-build/Build/Products/Debug-iphonesimulator/Hex.app}
-BUNDLE=com.shahidy.hexkeyboard
+APP=${APP:-build/Build/Products/Debug-iphonesimulator/iikb.app}
+BUNDLE=com.shahidy.iikb
 # The iPhone Duo's screens, as Bassim names them: name, hinge angle, Device Hub orientation, display. Slightly folded is
 # the small fold his reports are about.
 DUO_SCREENS="folded-portrait 0 portrait 1
@@ -14,7 +14,7 @@ open-landscape 180 portrait 3
 open-portrait 180 landscape-right 3
 open-landscape-slightly-folded 160 portrait 3
 open-portrait-slightly-folded 160 landscape-right 3"
-PREFIX=${SIMPREFIX:-hexkb}
+PREFIX=${SIMPREFIX:-iikb}
 
 # A simulator's id by name, in RUNTIME if set.
 udid() {
@@ -68,7 +68,7 @@ allow() {
 use() {
   local id=$1 keyboards
   case $2 in
-    hex) keyboards=("com.shahidy.hexkeyboard.keyboard" "en_US@sw=QWERTY;hw=Automatic") ;;
+    iikb) keyboards=("com.shahidy.iikb.keyboard" "en_US@sw=QWERTY;hw=Automatic") ;;
     system) keyboards=("en_US@sw=QWERTY;hw=Automatic") ;;
   esac
   local current expanded
@@ -86,10 +86,10 @@ shoot() {
   xcrun simctl ui "$id" appearance "$appearance"
   xcrun simctl terminate "$id" "$BUNDLE" 2>/dev/null || true
   use "$id" "$keyboard"
-  local attempt orientation=(-HexOrientation portrait)
-  [[ " $* " == *HexOrientation* ]] && orientation=()
+  local attempt orientation=(-iikbOrientation portrait)
+  [[ " $* " == *iikbOrientation* ]] && orientation=()
   for attempt in 1 2 3 4 5; do
-    xcrun simctl launch "$id" "$BUNDLE" -HexFocus YES ${orientation[@]+"${orientation[@]}"} "$@" >/dev/null 2>&1 && break
+    xcrun simctl launch "$id" "$BUNDLE" -iikbFocus YES ${orientation[@]+"${orientation[@]}"} "$@" >/dev/null 2>&1 && break
     [ "$attempt" = 3 ] && xcrun simctl install "$id" "$APP"
     sleep 2
   done
@@ -110,7 +110,7 @@ all() {
     slug=$(echo "$name" | tr 'A-Z ' 'a-z-')
     id=$(ensure "$name" "${spec##*:}")
     boot "$id"
-    for keyboard in ${KEYBOARDS:-system hex}; do
+    for keyboard in ${KEYBOARDS:-system iikb}; do
       for appearance in light dark; do
         shoot "$id" "$keyboard" "$appearance" "shots/raw/$slug-$tag-$keyboard-$appearance.png" "$@"
       done
@@ -124,20 +124,20 @@ variants() {
   for spec in "${DEVICES[@]}"; do [ "${spec%%:*}" = "$name" ] && id=$(ensure "$name" "${spec##*:}"); done
   slug=$(echo "$name" | tr 'A-Z ' 'a-z-')
   boot "$id"
-  for keyboard in ${KEYBOARDS:-system hex}; do
+  for keyboard in ${KEYBOARDS:-system iikb}; do
     while read -r variant args; do
       shoot "$id" "$keyboard" "${APPEARANCE:-light}" "shots/raw/$slug-$tag-$variant-$keyboard.png" $args
     done <<VARIANTS
-return-go -HexReturnKey 1
-return-search -HexReturnKey 6
-return-send -HexReturnKey 7
-return-done -HexReturnKey 9
-return-next -HexReturnKey 4
-type-email -HexKeyboardType 7
-type-url -HexKeyboardType 3
-type-numbers -HexKeyboardType 2
-type-websearch -HexKeyboardType 10
-landscape -HexOrientation landscape
+return-go -iikbReturnKey 1
+return-search -iikbReturnKey 6
+return-send -iikbReturnKey 7
+return-done -iikbReturnKey 9
+return-next -iikbReturnKey 4
+type-email -FullKeyboardType 7
+type-url -FullKeyboardType 3
+type-numbers -FullKeyboardType 2
+type-websearch -FullKeyboardType 10
+landscape -iikbOrientation landscape
 VARIANTS
   done
   [ -n "${KEEP:-}" ] || xcrun simctl shutdown "$id"
@@ -165,12 +165,12 @@ unfold() {
 duo() {
   local tag=$1 id app=; shift
   id=$(ensure "${DUO:-iPhone Duo}" iPhone-Duo)
-  for keyboard in ${KEYBOARDS:-system hex}; do
+  for keyboard in ${KEYBOARDS:-system iikb}; do
     xcrun simctl shutdown "$id" 2>/dev/null || true
     boot "$id"
     [ -z "${LISTENING:-}" ] || allow "$id"
-    if [ -n "${LISTENING:-}" ] && [ "$keyboard" = hex ]; then
-      /usr/bin/python3 scripts/voiceapp.py "$id" "$(xcrun simctl get_app_container "$id" "$BUNDLE" group.com.shahidy.hexkeyboard)" "$([ "$LISTENING" = 1 ] && echo listening || echo "$LISTENING")" &
+    if [ -n "${LISTENING:-}" ] && [ "$keyboard" = iikb ]; then
+      /usr/bin/python3 scripts/voiceapp.py "$id" "$(xcrun simctl get_app_container "$id" "$BUNDLE" group.com.shahidy.iikb)" "$([ "$LISTENING" = 1 ] && echo listening || echo "$LISTENING")" &
       app=$!
     fi
     while read -r screen hinge orientation display; do
@@ -179,7 +179,7 @@ duo() {
       hub "$id" orientation "$orientation"
       for appearance in ${APPEARANCES:-light dark}; do
         DISPLAY_ID=$display shoot "$id" "$keyboard" "$appearance" "shots/raw/duo/$tag-$screen-$keyboard-$appearance.png" \
-          -HexOrientation "$([ "$orientation" = portrait ] && echo portrait || echo landscape)" "$@"
+          -iikbOrientation "$([ "$orientation" = portrait ] && echo portrait || echo landscape)" "$@"
       done
     done <<<"$DUO_SCREENS"
     [ -z "$app" ] || { kill "$app"; wait "$app" 2>/dev/null || true; app=; }
@@ -189,7 +189,7 @@ duo() {
 
 # Screenshots the keyboard in every theme on the iPhone Duo, folded and open, light and dark:
 # shots/raw/themes/<tag>-<theme>-<screen>-<appearance>.png. THEMES and SCREENS (folded-portrait folded-landscape
-# open-landscape open-portrait) pick some; extra arguments go to the app (-HexReturnKey 1).
+# open-landscape open-portrait) pick some; extra arguments go to the app (-iikbReturnKey 1).
 themes() {
   local tag=$1 id; shift
   id=$(ensure "iPhone Duo" iPhone-Duo)
@@ -203,8 +203,8 @@ themes() {
       local name=${theme%%-*} look=automatic
       [ "$name" != "$theme" ] && look=${theme#*-}
       for appearance in ${APPEARANCES:-dark light}; do
-        DISPLAY_ID=$display shoot "$id" hex "$appearance" "shots/raw/themes/$tag-$theme-$screen-$appearance.png" \
-          -HexOrientation "$([ "$orientation" = portrait ] && echo portrait || echo landscape)" -HexTheme "$name" -HexThemeAppearance "$look" "$@"
+        DISPLAY_ID=$display shoot "$id" iikb "$appearance" "shots/raw/themes/$tag-$theme-$screen-$appearance.png" \
+          -iikbOrientation "$([ "$orientation" = portrait ] && echo portrait || echo landscape)" -iikbTheme "$name" -iikbThemeAppearance "$look" "$@"
       done
     done
   done <<<"$DUO_SCREENS"
@@ -216,15 +216,15 @@ themes() {
 # TYPING (JSON lines of hours, as the keyboard shares them) and TRANSCRIPTS (JSON lines, as the app keeps them) fill
 # Stats and Transcripts, MAC (a Keystroke typing-stats.json) Stats' Mac as the copy last read, and CLIPBOARD (a
 # history.json, as ClipboardStore keeps it) Clipboard; PAGES picks the pages; ARGS adds launch arguments to each
-# (-HexScrollToEnd YES shows each page's end); SIM names the simulator.
+# (-iikbScrollToEnd YES shows each page's end); SIM names the simulator.
 duoapp() {
   local tag=$1 id data group; shift
   id=$(ensure "${SIM:-iPhone Duo}" iPhone-Duo)
   boot "$id"
   allow "$id" paste
-  use "$id" hex
+  use "$id" iikb
   unfold "$id" 0
-  group=$(xcrun simctl get_app_container "$id" "$BUNDLE" group.com.shahidy.hexkeyboard)
+  group=$(xcrun simctl get_app_container "$id" "$BUNDLE" group.com.shahidy.iikb)
   data=$(xcrun simctl get_app_container "$id" "$BUNDLE" data)
   [ -n "${TOUCHES:-}" ] && mkdir -p "$group/Library" && cp "$TOUCHES" "$group/Library/touches.json"
   [ -n "${TYPING:-}" ] && mkdir -p "$group/Library" && cp "$TYPING" "$group/Library/typing.jsonl"
@@ -240,32 +240,32 @@ duoapp() {
         [ -n "${PAGES:-}" ] && [[ " $PAGES " != *" $page "* ]] && continue
         xcrun simctl terminate "$id" "$BUNDLE" 2>/dev/null || true
         hub "$id" orientation "$orientation"
-        xcrun simctl launch "$id" "$BUNDLE" -HexOrientation "$([ "$orientation" = portrait ] && echo portrait || echo landscape)" $args ${ARGS:-} >/dev/null 2>&1 || true
+        xcrun simctl launch "$id" "$BUNDLE" -iikbOrientation "$([ "$orientation" = portrait ] && echo portrait || echo landscape)" $args ${ARGS:-} >/dev/null 2>&1 || true
         sleep "${SETTLE:-4}"
         mkdir -p shots/raw/duo/app
         xcrun simctl io "$id" screenshot --display="$display" "shots/raw/duo/app/$tag-$screen-$page-$appearance.png" >/dev/null 2>&1
       done <<PAGES
-home -HexTab home
-typing -HexFocus YES
-settings -HexSettings YES
-keyboard -HexSettings theme
-typing-settings -HexSettings typing
-layout -HexSettings layout
-feedback -HexSettings feedback
-voice -HexSettings model
-writing -HexSettings writing
-dictionary -HexSettings dictionary
-microphone -HexSettings microphone
-mic -HexSettings mic
-transcripts -HexTab transcripts
-clipboard -HexTab clipboard
-stats -HexStats typing
-stats-dictation -HexStats dictation
-stats-mac -HexStats typing -HexStatsDevice mac
-stats-mac-dictation -HexStats dictation -HexStatsDevice mac
-taps -HexTaps YES
-sources -HexSettings sources
-access -HexSettings access
+home -iikbTab home
+typing -iikbFocus YES
+settings -iikbSettings YES
+keyboard -iikbSettings theme
+typing-settings -iikbSettings typing
+layout -iikbSettings layout
+feedback -iikbSettings feedback
+voice -iikbSettings model
+writing -iikbSettings writing
+dictionary -iikbSettings dictionary
+microphone -iikbSettings microphone
+mic -iikbSettings mic
+transcripts -iikbTab transcripts
+clipboard -iikbTab clipboard
+stats -iikbStats typing
+stats-dictation -iikbStats dictation
+stats-mac -iikbStats typing -iikbStatsDevice mac
+stats-mac-dictation -iikbStats dictation -iikbStatsDevice mac
+taps -iikbTaps YES
+sources -iikbSettings sources
+access -iikbSettings access
 PAGES
     done
   done <<<"$DUO_SCREENS"
@@ -280,26 +280,26 @@ taps() {
   id=$(ensure "$name" "$type")
   slug=$(echo "$name" | tr 'A-Z ' 'a-z-')
   boot "$id"
-  group=$(xcrun simctl get_app_container "$id" "$BUNDLE" group.com.shahidy.hexkeyboard)
+  group=$(xcrun simctl get_app_container "$id" "$BUNDLE" group.com.shahidy.iikb)
   mkdir -p "$group/Library" && cp "$touches" "$group/Library/touches.json"
   for appearance in light dark; do
     xcrun simctl ui "$id" appearance "$appearance"
     while read -r variant args; do
       xcrun simctl terminate "$id" "$BUNDLE" 2>/dev/null || true
       for attempt in 1 2 3; do
-        xcrun simctl launch "$id" "$BUNDLE" -HexTaps YES $args >/dev/null 2>&1 && break
+        xcrun simctl launch "$id" "$BUNDLE" -iikbTaps YES $args >/dev/null 2>&1 && break
         sleep 2
       done
       sleep "${SETTLE:-3}"
       xcrun simctl io "$id" screenshot "shots/raw/$slug-$tag-taps-$variant-$appearance.png" >/dev/null 2>&1
     done <<VARIANTS
 heat
-heat-key -HexTapsKey ${KEY:-p} -HexTapsScroll detail
-aim -HexTapsMode aim
-aim-key -HexTapsMode aim -HexTapsKey ${KEY:-p}
-accuracy -HexTapsMode accuracy
-accuracy-key -HexTapsMode accuracy -HexTapsKey ${KEY:-p}
-thumbs -HexTapsScroll bottom
+heat-key -iikbTapsKey ${KEY:-p} -iikbTapsScroll detail
+aim -iikbTapsMode aim
+aim-key -iikbTapsMode aim -iikbTapsKey ${KEY:-p}
+accuracy -iikbTapsMode accuracy
+accuracy-key -iikbTapsMode accuracy -iikbTapsKey ${KEY:-p}
+thumbs -iikbTapsScroll bottom
 VARIANTS
   done
   [ -n "${KEEP:-}" ] || xcrun simctl shutdown "$id"

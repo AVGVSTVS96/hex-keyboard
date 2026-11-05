@@ -6,7 +6,7 @@ A tap on every key press, played with Core Haptics on an engine the keyboard own
 
 ## How to get to it (user POV)
 
-Hex app › Settings › Keyboard › Sound & Haptics › Touch and Sound: Key Haptics, and the Strength slider under it. The Hex tab's Sound & Haptics card opens the same page.
+iikb app › Settings › Keyboard › Sound & Haptics › Touch and Sound: Key Haptics, and the Strength slider under it. The iikb tab's Sound & Haptics card opens the same page.
 
 ## Driving it
 

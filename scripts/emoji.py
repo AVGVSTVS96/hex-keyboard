@@ -2,7 +2,7 @@
 python3 scripts/emoji.py <emoji-test.txt> <annotations en.xml> <emoji-frequency.html> <emojilib emoji-en-US.json>
 <gemoji emoji.json> [word ...]
 
-The index, Packages/HexKeyboard/Sources/KeyboardEnglish/Resources/emoji.txt, is picked by hand: each line is a word, a tab,
+The index, Packages/KeyboardModules/Sources/KeyboardEnglish/Resources/emoji.txt, is picked by hand: each line is a word, a tab,
 then the emoji someone typing the word would want offered, best first, separated by spaces. A word the index lacks
 finds what its singular finds, or none. A word with nothing after its tab finds none even when its singular has emoji
 ("does", not "doe"), and marks a word the sources give emoji as read and given none. It covers the 25,000 most common
@@ -27,7 +27,7 @@ import sys
 
 VS = "️"
 TONES = {chr(c) for c in range(0x1F3FB, 0x1F400)}
-INDEX = os.path.join(os.path.dirname(__file__), "../Packages/HexKeyboard/Sources/KeyboardEnglish/Resources/emoji.txt")
+INDEX = os.path.join(os.path.dirname(__file__), "../Packages/KeyboardModules/Sources/KeyboardEnglish/Resources/emoji.txt")
 
 
 def words(text):

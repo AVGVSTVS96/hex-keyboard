@@ -51,13 +51,13 @@ files against the server when it opens and says whether they're all there.
 
 ## The server
 
-`server/backup.ts` keeps what it's sent in `~/.local/share/hex-keyboard/backup/mirror`, with the modification time it was
+`server/backup.ts` keeps what it's sent in `~/.local/share/iikb/backup/mirror`, with the modification time it was
 sent with. A file sent with other contents moves the one it replaces to `versions/<time>/` (`<time>.001` and on when that second
 already kept one of it); nothing is ever deleted.
-It runs as the user service `hex-keyboard-backup` (dotfiles), on port 2592 behind `tailscale serve` at `/backup`, so
-only the tailnet reaches it, and takes requests with the token in `~/.config/hex-keyboard/backup.env`.
+It runs as the user service `iikb-backup` (dotfiles), on port 2592 behind `tailscale serve` at `/backup`, so
+only the tailnet reaches it, and takes requests with the token in `~/.config/iikb/backup.env`.
 
-A build gets the server from `Packages/HexKeyboard/Sources/HexStore/Resources/Keys/backup.key`, kept out of git: the
+A build gets the server from `Packages/KeyboardModules/Sources/KeyboardStore/Resources/Keys/backup.key`, kept out of git: the
 address on the first line, the token on the second. `scripts/phone` takes it from the main checkout and won't build
 without it, so no install of its leaves the iPhone unbacked. `scripts/sync` leaves it out of the Mac's trees, so a
 simulator's made-up data never reaches the backup. A build without the file sends nothing and shows no Backup section.
@@ -65,13 +65,13 @@ simulator's made-up data never reaches the backup. A build without the file send
 ## Your network
 
 The suggestion bar's network (`en.network`, trained on what people type; `scripts/network`) learns how you write. The
-server keeps a log of what you type (`sources/record.ts`, the user service `hex-keyboard-record`), and
+server keeps a log of what you type (`sources/record.ts`, the user service `iikb-record`), and
 `scripts/personal` fine-tunes a copy of the shipped network on it: only its output side (the embedding that scores the
 next word, the projection and the output biases) learns, from the lines of the log with near-repeats dropped, and the
 pass that best predicts the last tenth of them, kept aside, is the one saved (the shipped network itself if none beats
 it). The LSTM is copied byte for byte, so the file is the same size.
 
-It runs when the log or the shipped network changes, at most once a day: the path unit `hex-keyboard-personal`
+It runs when the log or the shipped network changes, at most once a day: the path unit `iikb-personal`
 (dotfiles) starts the service of the same name, which asks for `--daily`. The network goes to `mirror/personal/en.network`.
 The app fetches it whenever it syncs (the quick check above, in the other direction) into the App Group's
 `Library/Personal/`, which the backup leaves out since the server made it, and the keyboard reads it from there in place
@@ -88,7 +88,7 @@ up first (`scripts/backup`), once it has picked what to put back, so what the iP
 
 A reinstall that starts a new container sends its near-empty files over the good ones as soon as the app starts, so
 the good ones are in `versions/` and the mirror holds the empty ones. Right after each install `scripts/phone` looks in
-Hex's container, and when it's new and empty, as after the app was deleted, it writes the time in `reinstalls` (in the
+iikb's container, and when it's new and empty, as after the app was deleted, it writes the time in `reinstalls` (in the
 backup folder): a shrink in the day after that is taken for the new container, and any other is you (Reset Learned
 Words, a deleted transcript, a cleared clipboard), which backs up and restores as it is. Without `--at`,
 `scripts/restore` leaves out only a file the mirror holds at under half the size of a copy replaced in the day after a

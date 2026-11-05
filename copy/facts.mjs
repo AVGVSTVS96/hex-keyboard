@@ -5,7 +5,7 @@ import { join } from "node:path";
 const root = join(import.meta.dir, "..");
 const read = (path) => readFileSync(join(root, path), "utf8");
 const lines = (path) => read(path).split("\n").filter(Boolean);
-const resources = "Packages/HexKeyboard/Sources/KeyboardEnglish/Resources";
+const resources = "Packages/KeyboardModules/Sources/KeyboardEnglish/Resources";
 
 function find(path, pattern) {
   const match = read(path).match(pattern);
@@ -33,11 +33,11 @@ const curve = (keyboard) =>
     .split(" ")
     .map((pair) => Number(pair.split("/")[1].replace("%", "")));
 
-const themes = [...read(`Packages/HexKeyboard/Sources/KeyboardCore/Keys/Themes.swift`).matchAll(/case \.\w+: "([^"]+)"/g)]
+const themes = [...read(`Packages/KeyboardModules/Sources/KeyboardCore/Keys/Themes.swift`).matchAll(/case \.\w+: "([^"]+)"/g)]
   .map((m) => m[1])
-  .slice(0, find("Packages/HexKeyboard/Sources/KeyboardCore/Keys/Themes.swift", /enum ThemeName[^{]*\{\s*case ([^\n]+)/)[1].split(",").length);
+  .slice(0, find("Packages/KeyboardModules/Sources/KeyboardCore/Keys/Themes.swift", /enum ThemeName[^{]*\{\s*case ([^\n]+)/)[1].split(",").length);
 
-const settings = read("Packages/HexKeyboard/Sources/KeyboardCore/Typing/KeyboardSettings.swift");
+const settings = read("Packages/KeyboardModules/Sources/KeyboardCore/Typing/KeyboardSettings.swift");
 const strengths = [...settings.slice(settings.indexOf("public var strength")).matchAll(/case \.(\w+): ([\d.]+)/g)]
   .filter(([, name]) => name !== "off")
   .map(([, name, value]) => ({ name, share: Number(value) }));
@@ -56,10 +56,10 @@ const count = (dir, pattern) =>
     0,
   );
 
-const phrases = lines("Packages/HexKeyboard/Tests/KeyboardUITests/phrases.txt").length;
+const phrases = lines("Packages/KeyboardModules/Tests/KeyboardUITests/phrases.txt").length;
 const baseline = total("baseline");
 const learning = total("learning");
-const phraseWords = lines("Packages/HexKeyboard/Tests/KeyboardUITests/phrases.txt").join(" ").split(/\s+/).length;
+const phraseWords = lines("Packages/KeyboardModules/Tests/KeyboardUITests/phrases.txt").join(" ").split(/\s+/).length;
 if (baseline.words !== learning.words || learning.words !== 2 * phraseWords) throw new Error("the thumbs run isn't the phrase set typed twice");
 
 const facts = {
@@ -89,8 +89,8 @@ const facts = {
   emojiWords,
   lexiconWords: words,
   tests: {
-    core: count("Packages/HexKeyboard/Tests/KeyboardCoreTests", /@Test\b/g),
-    ui: count("Packages/HexKeyboard/Tests/KeyboardUITests", /@Test\b/g) + count("UITests", /func test\w*\(/g),
+    core: count("Packages/KeyboardModules/Tests/KeyboardCoreTests", /@Test\b/g),
+    ui: count("Packages/KeyboardModules/Tests/KeyboardUITests", /@Test\b/g) + count("UITests", /func test\w*\(/g),
     coreSeconds: Number(find("PROGRESS.md", /runs KeyboardCore's tests on Linux in about (\d+) s/)[1]),
   },
   voice: {
@@ -99,7 +99,7 @@ const facts = {
     writeSeconds: Number(find("PROGRESS.md", /writes ([\d.]+) s of speech in ([\d.]+) s/)[2]),
   },
 };
-find("Packages/HexKeyboard/Tests/KeyboardCoreTests/TypingModelTests.swift", /theSameMissThreeTimesRunningMovesTheKey/);
+find("Packages/KeyboardModules/Tests/KeyboardCoreTests/TypingModelTests.swift", /theSameMissThreeTimesRunningMovesTheKey/);
 
 writeFileSync(join(import.meta.dir, "facts.json"), `${JSON.stringify(facts, null, 2)}\n`);
 console.log(JSON.stringify(facts, null, 2));

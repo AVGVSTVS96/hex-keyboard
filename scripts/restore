@@ -1,8 +1,8 @@
 #!/bin/bash
-# Puts iikb's data from the backup here (~/.local/share/hex-keyboard/backup, docs/backup.md) back on an iPhone the Mac
+# Puts iikb's data from the backup here (~/.local/share/iikb/backup, docs/backup.md) back on an iPhone the Mac
 # reaches, over what's there: every file, or only those named as the backup names them (keyboard/support/typing-memory.json),
 # each as it is now or, with --at, as it was then: the version replaced first after that time, else the one kept now.
-# Without --at it leaves out a copy under half the size of one replaced in the day after an install left Hex a new, empty
+# Without --at it leaves out a copy under half the size of one replaced in the day after an install left iikb a new, empty
 # container (`reinstalls`, written by scripts/phone), as that container's near-empty files sent over good ones leave it,
 # and names the --at that puts back the larger; the rest goes back. A file that shrank any other time was you (Reset Learned Words, a deleted transcript), so it
 # goes back as it is. --at now takes every copy kept now.
@@ -17,7 +17,7 @@ phone=${1:?usage: scripts/restore <iPhone UDID> [--at 2026-11-04T0300|now] [name
 shift
 at=
 if [ "${1:-}" = --at ]; then at=$2; shift 2; fi
-backup=${HEX_BACKUP:-$HOME/.local/share/hex-keyboard/backup}
+backup=${IIKB_BACKUP:-$HOME/.local/share/iikb/backup}
 stage=$(mktemp -d "$backup/restore.XXXX")
 trap 'rm -rf "$stage"; ssh mac rm -rf "/tmp/${stage##*/}"' EXIT
 python3 - "$backup" "$at" "$stage" "$phone" "$@" <<'PY'
@@ -63,7 +63,7 @@ if not at:
         before = lambda stamp: (parse(stamp) - datetime.timedelta(seconds=1)).strftime(form)
         lines = [f"  {name}: {kb(os.path.getsize(picked[name]))} kept now, {kb(size)} replaced {stamp[:17]}\n"
                  f"    scripts/restore {phone} --at {before(stamp)} {name}" for name, (stamp, size) in sorted(larger.items())]
-        print("\n".join(["Leaving these out: the backup's copies are much smaller than ones replaced the day an install left Hex a new, "
+        print("\n".join(["Leaving these out: the backup's copies are much smaller than ones replaced the day an install left iikb a new, "
                           "empty container, whose near-empty files were sent over them. To put back the larger:", *lines,
                           f"or what's kept now anyway: scripts/restore {phone} --at now {' '.join(larger)}"]), file=sys.stderr)
         picked = {name: path for name, path in picked.items() if name not in larger}
@@ -89,7 +89,7 @@ set -eu
 phone=$1 stage=$2
 if [ -d "$stage/app" ]; then
   xcrun devicectl device info processes --device "$phone" --json-output "$stage.json" >/dev/null
-  pid=$(/usr/bin/python3 -c "import json, sys; print(next((str(p['processIdentifier']) for p in json.load(open(sys.argv[1]))['result']['runningProcesses'] if p.get('executable', '').endswith('/Hex.app/Hex')), ''))" "$stage.json")
+  pid=$(/usr/bin/python3 -c "import json, sys; print(next((str(p['processIdentifier']) for p in json.load(open(sys.argv[1]))['result']['runningProcesses'] if p.get('executable', '').endswith('/iikb.app/iikb')), ''))" "$stage.json")
   rm "$stage.json"
   [ -z "$pid" ] || xcrun devicectl device process terminate --device "$phone" --pid "$pid" >/dev/null
 fi
@@ -100,10 +100,10 @@ put() {
     xcrun devicectl device copy to --device "$phone" --domain-type "$2" --domain-identifier "$3" --source "$item" --destination "$4/${item##*/}" >/dev/null
   done
 }
-put app appDataContainer com.shahidy.hexkeyboard "Library/Application Support"
-put app/Preferences appDataContainer com.shahidy.hexkeyboard Library/Preferences
-put keyboard/support appDataContainer com.shahidy.hexkeyboard.keyboard "Library/Application Support"
-put keyboard/Preferences appDataContainer com.shahidy.hexkeyboard.keyboard Library/Preferences
-put group/Library appGroupDataContainer group.com.shahidy.hexkeyboard Library
+put app appDataContainer com.shahidy.iikb "Library/Application Support"
+put app/Preferences appDataContainer com.shahidy.iikb Library/Preferences
+put keyboard/support appDataContainer com.shahidy.iikb.keyboard "Library/Application Support"
+put keyboard/Preferences appDataContainer com.shahidy.iikb.keyboard Library/Preferences
+put group/Library appGroupDataContainer group.com.shahidy.iikb Library
 MAC
 echo "iikb's data is back on the iPhone"

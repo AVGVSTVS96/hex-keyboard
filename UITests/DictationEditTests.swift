@@ -2,7 +2,7 @@ import XCTest
 
 /// What dictations become, against the stand-in for the app (`scripts/edittest`, which leaves each dictation with a
 /// transcript's id and checks what the app kept): a long one edited in the middle, then a short one edited at its end,
-/// each sent with return, which empties the field as a messaging app does (`-HexSends`). The app opens once more at the
+/// each sent with return, which empties the field as a messaging app does (`-iikbSends`). The app opens once more at the
 /// end, so it takes any edit it hadn't yet.
 final class DictationEditTests: XCTestCase {
     private var app: XCUIApplication!
@@ -10,10 +10,10 @@ final class DictationEditTests: XCTestCase {
     private var text: String { field.value as? String ?? "" }
 
     func testWhatDictationsBecomeIsKeptWithTheirTranscripts() throws {
-        guard let ended = ProcessInfo.processInfo.environment["HEX_ENDED"] else { throw XCTSkip("Run through scripts/edittest") }
+        guard let ended = ProcessInfo.processInfo.environment["IIKB_ENDED"] else { throw XCTSkip("Run through scripts/edittest") }
         continueAfterFailure = false
         app = XCUIApplication()
-        app.launchArguments = ["-HexFocus", "YES", "-HexSends", "YES", "-HexOrientation", "portrait", "-HexOneHanded", "off", "-HexMicKey", "NO"]
+        app.launchArguments = ["-iikbFocus", "YES", "-iikbSends", "YES", "-iikbOrientation", "portrait", "-iikbOneHanded", "off", "-iikbMicKey", "NO"]
         app.launch()
         if !key("space").waitForExistence(timeout: 10) {
             app.terminate()
@@ -43,7 +43,7 @@ final class DictationEditTests: XCTestCase {
     }
 
     private func dictate() {
-        let mic = app.buttons["hex.mic"]
+        let mic = app.buttons["iikb.mic"]
         XCTAssertTrue(mic.waitForExistence(timeout: 10), "iikb is not the active keyboard")
         XCTAssertTrue(wait { mic.label == "Dictate" })
         mic.tap()
@@ -63,7 +63,7 @@ final class DictationEditTests: XCTestCase {
     }
 
     private func key(_ name: String) -> XCUIElement {
-        let hex = app.keys.matching(identifier: "hex.\(name)").firstMatch
-        return hex.exists ? hex : app.keys.matching(NSPredicate(format: "label ==[c] %@", name)).firstMatch
+        let iikb = app.keys.matching(identifier: "iikb.\(name)").firstMatch
+        return iikb.exists ? iikb : app.keys.matching(NSPredicate(format: "label ==[c] %@", name)).firstMatch
     }
 }

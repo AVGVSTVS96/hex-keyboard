@@ -3,15 +3,15 @@ import CoreML
 import FluidAudio
 import UIKit
 
-/// `-HexVoiceProbe <ultra|v3|unified|unified-fp16|clean> [-HexVoiceProbeUnits ane|cpu|gpu]` (`scripts/voiceprobe`):
+/// `-iikbVoiceProbe <ultra|v3|unified|unified-fp16|clean> [-iikbVoiceProbeUnits ane|cpu|gpu]` (`scripts/voiceprobe`):
 /// times each of a Parakeet's parts loading on this iPhone (Unified's as a whole, twice), then writes
 /// `Documents/probe.wav` three times, as it is and as dictation does (`Parakeet.dictate`), logging to
 /// `Documents/probe.log`.
 nonisolated enum VoiceProbe {
-    static var asked: Bool { UserDefaults.standard.string(forKey: "HexVoiceProbe") != nil }
+    static var asked: Bool { UserDefaults.standard.string(forKey: "iikbVoiceProbe") != nil }
 
     @MainActor static func runIfAsked() {
-        guard let name = UserDefaults.standard.string(forKey: "HexVoiceProbe") else { return }
+        guard let name = UserDefaults.standard.string(forKey: "iikbVoiceProbe") else { return }
         setvbuf(stdout, nil, _IOLBF, 0)
         try? keepRunning()
         Task.detached {
@@ -23,7 +23,7 @@ nonisolated enum VoiceProbe {
 
     private static let engine = AVAudioEngine()
 
-    /// Plays silence, so iOS doesn't suspend Hex when the probe launched it behind another app or a locked screen.
+    /// Plays silence, so iOS doesn't suspend iikb when the probe launched it behind another app or a locked screen.
     @MainActor private static func keepRunning() throws {
         try AVAudioSession.sharedInstance().setCategory(.playback, options: .mixWithOthers)
         try AVAudioSession.sharedInstance().setActive(true)
@@ -58,7 +58,7 @@ nonisolated enum VoiceProbe {
         if name == "clean" { return removeUnified() }
         if name.hasPrefix("unified") { return try await probeUnified(name, samples) }
         guard let version = VoiceModel.Model(rawValue: name)?.version else { return say("no Parakeet named \(name)") }
-        let units: MLComputeUnits = switch UserDefaults.standard.string(forKey: "HexVoiceProbeUnits") {
+        let units: MLComputeUnits = switch UserDefaults.standard.string(forKey: "iikbVoiceProbeUnits") {
         case "cpu": .cpuOnly
         case "gpu": .cpuAndGPU
         default: .cpuAndNeuralEngine
@@ -85,7 +85,7 @@ nonisolated enum VoiceProbe {
         try await write(samples, with: manager, name: name)
     }
 
-    /// `unified` or `unified-fp16`: Parakeet Unified, the English Parakeet Anomaly's Hex uses, which Hex doesn't offer
+    /// `unified` or `unified-fp16`: Parakeet Unified, the English Parakeet Anomaly's iikb uses, which iikb doesn't offer
     /// because on the iPhone Duo it never ran on the Neural Engine (AGENTS.md), loaded twice: the first time
     /// downloading and compiling it, the second from what the first left. Its download, a gigabyte or two, goes after.
     private static func probeUnified(_ name: String, _ samples: [Float]) async throws {

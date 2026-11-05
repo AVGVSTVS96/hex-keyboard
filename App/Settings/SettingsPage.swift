@@ -1,9 +1,9 @@
-import HexStore
+import KeyboardStore
 import KeyboardCore
 import KeyboardUI
 import SwiftUI
 
-/// Every setting in the app, in one list: the keyboard's, voice typing's, and Hex's own, a page each. Wide, the list
+/// Every setting in the app, in one list: the keyboard's, voice typing's, and iikb's own, a page each. Wide, the list
 /// takes the first pane and the picked page the second; elsewhere a page opens on its own.
 struct SettingsPage: View {
     enum Page: String, CaseIterable, Hashable {
@@ -64,12 +64,12 @@ struct SettingsPage: View {
             case .microphone: MicrophoneChoices.shared.picked?.title ?? "Automatic"
             case .mic: Dictation.title(keepingMicOn: model.keepMicOn)
             case .sources: model.sources.isEmpty ? "None" : model.sources.count.formatted()
-            case .access: HexStatus.shared.isSetUp ? "All Set" : "Needs Setup"
+            case .access: AppStatus.shared.isSetUp ? "All Set" : "Needs Setup"
             case .about: AboutPage.version
             }
         }
 
-        /// The keyboard's pages show Hex drawn as their settings make it, with a field to try it.
+        /// The keyboard's pages show iikb drawn as their settings make it, with a field to try it.
         var showsKeyboard: Bool { [.theme, .layout, .typing, .feedback].contains(self) }
     }
 
@@ -96,7 +96,7 @@ struct SettingsPage: View {
                         }
                 }
             }
-            .hexPage()
+            .appPage()
             .navigationTitle("Settings")
             .toolbarTitleDisplayMode(.inlineLarge)
         }
@@ -118,7 +118,7 @@ private struct SettingsList: View {
                     ForEach(section.pages, id: \.self) { page in
                         Button { open(page) } label: { row(page) }
                             .buttonStyle(.plain)
-                            .background(page == picked ? Color.hexPressed : .clear)
+                            .background(page == picked ? Color.appPressed : .clear)
                             .accessibilityIdentifier(page.rawValue)
                             .accessibilityAddTraits(page == picked ? .isSelected : [])
                     }
@@ -134,13 +134,13 @@ private struct SettingsList: View {
             Spacer(minLength: 8)
             if let value = page.value {
                 Text(value)
-                    .foregroundStyle(Color.hexSecondary)
+                    .foregroundStyle(Color.appSecondary)
                     .lineLimit(1)
             }
             if picked == nil {
                 Image(systemName: "chevron.right")
                     .font(.footnote.weight(.semibold))
-                    .foregroundStyle(Color.hexSecondary)
+                    .foregroundStyle(Color.appSecondary)
                     .accessibilityHidden(true)
             }
         }

@@ -6,7 +6,7 @@ The same history the keyboard's clipboard panel keeps (`ClipboardStore`, in the 
 
 ## How to get to it (user POV)
 
-Copy something in any app with Hex's clipboard turned on, then open Hex › Clipboard.
+Copy something in any app with iikb's clipboard turned on, then open iikb › Clipboard.
 
 ## Driving it
 

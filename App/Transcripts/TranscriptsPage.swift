@@ -46,7 +46,7 @@ struct TranscriptsPage: View {
                     list
                 }
             }
-            .hexPage()
+            .appPage()
             .navigationTitle("Transcripts")
             .toolbarTitleDisplayMode(.inlineLarge)
             .toolbar {
@@ -113,7 +113,7 @@ struct TranscriptsPage: View {
             }
         }
         .buttonStyle(.plain)
-        .background(picked ? Color.hexPressed : .clear)
+        .background(picked ? Color.appPressed : .clear)
         .contextMenu { Actions(transcript: transcript) }
     }
 
@@ -142,7 +142,7 @@ private struct Row: View {
         VStack(alignment: .leading, spacing: 5) {
             Text(transcript.shown)
                 .lineLimit(3)
-                .foregroundStyle(transcript.typed && !transcript.text.isEmpty ? Color.primary : Color.hexSecondary)
+                .foregroundStyle(transcript.typed && !transcript.text.isEmpty ? Color.primary : Color.appSecondary)
             HStack(spacing: 6) {
                 Text(transcript.date, format: .dateTime.hour().minute())
                 Text("·")
@@ -158,7 +158,7 @@ private struct Row: View {
                 }
             }
             .font(.footnote)
-            .foregroundStyle(Color.hexSecondary)
+            .foregroundStyle(Color.appSecondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .row()
@@ -206,10 +206,10 @@ private struct Summary: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Words a day, last 2 weeks")
                     .font(.footnote)
-                    .foregroundStyle(Color.hexSecondary)
+                    .foregroundStyle(Color.appSecondary)
                 Chart(fortnight) { day in
                     BarMark(x: .value("Day", day.date, unit: .day), y: .value("Words", day.words), width: .ratio(0.62))
-                        .foregroundStyle(Calendar.current.isDateInToday(day.date) ? Color.primary : Color.hexSecondary.opacity(0.55))
+                        .foregroundStyle(Calendar.current.isDateInToday(day.date) ? Color.primary : Color.appSecondary.opacity(0.55))
                         .clipShape(.rect(cornerRadius: 3))
                 }
                 .chartXAxis {
@@ -227,8 +227,8 @@ private struct Summary: View {
             }
         }
         .padding(20)
-        .background(Color.hexCard, in: .rect(cornerRadius: HexStyle.cardRadius, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: HexStyle.cardRadius, style: .continuous).strokeBorder(Color.hexEdge))
+        .background(Color.appCard, in: .rect(cornerRadius: AppStyle.cardRadius, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: AppStyle.cardRadius, style: .continuous).strokeBorder(Color.appEdge))
     }
 }
 
@@ -245,7 +245,7 @@ private struct Stat: View {
                 .minimumScaleFactor(0.7)
             Text(title)
                 .font(.footnote)
-                .foregroundStyle(Color.hexSecondary)
+                .foregroundStyle(Color.appSecondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
@@ -263,7 +263,7 @@ private struct TranscriptDetail: View {
             HStack {
                 Text(transcript.date.formatted(.dateTime.weekday(.wide).month(.abbreviated).day().hour().minute()))
                     .font(.subheadline.weight(.medium))
-                    .foregroundStyle(Color.hexSecondary)
+                    .foregroundStyle(Color.appSecondary)
                 Spacer()
                 Button { UIPasteboard.general.string = transcript.text } label: { Image(systemName: "doc.on.doc") }
                     .accessibilityLabel("Copy")
@@ -274,12 +274,12 @@ private struct TranscriptDetail: View {
             .padding(.horizontal, 4)
             Text(transcript.shown)
                 .font(.title3)
-                .foregroundStyle(transcript.text.isEmpty ? Color.hexSecondary : Color.primary)
+                .foregroundStyle(transcript.text.isEmpty ? Color.appSecondary : Color.primary)
                 .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(20)
-                .background(Color.hexCard, in: .rect(cornerRadius: HexStyle.cardRadius, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: HexStyle.cardRadius, style: .continuous).strokeBorder(Color.hexEdge))
+                .background(Color.appCard, in: .rect(cornerRadius: AppStyle.cardRadius, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: AppStyle.cardRadius, style: .continuous).strokeBorder(Color.appEdge))
             Box {
                 Fact(title: "Length", value: Duration.seconds(transcript.seconds).formatted(.time(pattern: .minuteSecond)))
                 Fact(title: "Words", value: transcript.words.formatted())
@@ -294,7 +294,7 @@ private struct TranscriptDetail: View {
                 ActionRow(title: "Delete Transcript", role: .destructive) { confirmsDelete = true }
             }
         }
-        .hexPage()
+        .appPage()
         .confirmationDialog("Delete this transcript?", isPresented: $confirmsDelete, titleVisibility: .visible) {
             Button("Delete", role: .destructive) {
                 Transcripts.shared.delete([transcript.id])

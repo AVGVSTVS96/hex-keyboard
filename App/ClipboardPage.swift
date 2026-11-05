@@ -1,4 +1,4 @@
-import HexStore
+import KeyboardStore
 import KeyboardCore
 import KeyboardUI
 import SwiftUI
@@ -16,7 +16,7 @@ struct ClipboardPage: View {
     @State private var confirmsClear = false
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.arrangement) private var arrangement
-    private let status = HexStatus.shared
+    private let status = AppStatus.shared
 
     private var shown: [ClipboardHistory.Item] {
         let query = query.trimmingCharacters(in: .whitespaces)
@@ -57,7 +57,7 @@ struct ClipboardPage: View {
                     list
                 }
             }
-            .hexPage()
+            .appPage()
             .navigationTitle("Clipboard")
             .toolbarTitleDisplayMode(.inlineLarge)
             .toolbar {
@@ -117,7 +117,7 @@ struct ClipboardPage: View {
     }
 
     /// Keeps what's on the clipboard now, as the keyboard would, once the keyboard has started the history and iOS lets
-    /// Hex read the clipboard without asking.
+    /// iikb read the clipboard without asking.
     private func catchUp() {
         copied = nil
         store.onChange = { refresh() }
@@ -151,7 +151,7 @@ struct ClipboardPage: View {
                     RowText(title: "Keyboard Access", detail: text)
                     Image(systemName: "chevron.right")
                         .font(.footnote.weight(.semibold))
-                        .foregroundStyle(Color.hexSecondary)
+                        .foregroundStyle(Color.appSecondary)
                 }
                 .row()
             }
@@ -162,7 +162,7 @@ struct ClipboardPage: View {
     private func row(_ item: ClipboardHistory.Item) -> some View {
         Button { copy(item) } label: { ClipRow(item: item, copied: item.content == copied, thumbnail: { store.thumbnail($0, side: 128) }) }
             .buttonStyle(.plain)
-            .background(beside && item.content == shownInFull?.content ? Color.hexPressed : .clear)
+            .background(beside && item.content == shownInFull?.content ? Color.appPressed : .clear)
             .contextMenu {
                 Button("Copy", systemImage: "doc.on.doc") { copy(item) }
                 if case .text(let text) = item.content { ShareLink(item: text) }
@@ -224,7 +224,7 @@ private struct ClipDetail: View {
         Column(top: 12) {
             Text(Date(timeIntervalSince1970: item.found).formatted(.dateTime.weekday(.wide).month(.abbreviated).day().hour().minute()))
                 .font(.subheadline.weight(.medium))
-                .foregroundStyle(Color.hexSecondary)
+                .foregroundStyle(Color.appSecondary)
                 .padding(.horizontal, 4)
             Group {
                 switch item.content {
@@ -238,9 +238,9 @@ private struct ClipDetail: View {
                     FullImage(file: store.file(name))
                 }
             }
-            .background(Color.hexCard, in: .rect(cornerRadius: HexStyle.cardRadius, style: .continuous))
-            .clipShape(.rect(cornerRadius: HexStyle.cardRadius, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: HexStyle.cardRadius, style: .continuous).strokeBorder(Color.hexEdge))
+            .background(Color.appCard, in: .rect(cornerRadius: AppStyle.cardRadius, style: .continuous))
+            .clipShape(.rect(cornerRadius: AppStyle.cardRadius, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: AppStyle.cardRadius, style: .continuous).strokeBorder(Color.appEdge))
             Box {
                 ActionRow(title: copied ? "Copied" : "Copy", symbol: copied ? "checkmark" : "doc.on.doc", action: copy)
                 if case .textFile(let name, _) = item.content { ShareLink("Share", item: store.file(name)).row() }
@@ -330,13 +330,13 @@ private struct ClipRow: View {
                     }
                 }
                 .font(.footnote)
-                .foregroundStyle(Color.hexSecondary)
+                .foregroundStyle(Color.appSecondary)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             if item.pinned {
                 Image(systemName: "pin.fill")
                     .font(.footnote)
-                    .foregroundStyle(Color.hexSecondary)
+                    .foregroundStyle(Color.appSecondary)
                     .accessibilityLabel("Pinned")
             }
         }

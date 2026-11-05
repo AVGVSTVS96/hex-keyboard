@@ -2,16 +2,16 @@
 import PackageDescription
 
 let package = Package(
-    name: "HexWeb",
+    name: "KeyboardWeb",
     dependencies: [
-        .package(path: "../Packages/HexKeyboard"),
+        .package(path: "../Packages/KeyboardModules"),
         .package(url: "https://github.com/swiftwasm/JavaScriptKit.git", exact: "0.59.0"),
     ],
     targets: [
         .executableTarget(
-            name: "HexWeb",
+            name: "KeyboardWeb",
             dependencies: [
-                .product(name: "KeyboardCore", package: "HexKeyboard"),
+                .product(name: "KeyboardCore", package: "KeyboardModules"),
                 .product(name: "JavaScriptKit", package: "JavaScriptKit"),
             ],
             swiftSettings: [.enableExperimentalFeature("Extern")],
