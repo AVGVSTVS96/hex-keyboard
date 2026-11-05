@@ -2,9 +2,10 @@
 # Copies iikb's data off the iPhone the Mac reaches into ~/.local/share/hex-keyboard/backup here: the app's, the
 # keyboard's and the App Group's files, all but Parakeet's models. Nothing is deleted there, and a file a backup
 # replaces is kept under versions/<time>, so one wiped on the phone can be put back. scripts/phone runs it before
-# every install. A file the iPhone holds at under half the size of the backup's (over 4 KB), as after a reinstall
-# wiped it, is kept under smaller/<time> rather than over the backup's, which stays for scripts/restore to put back;
-# --smaller takes such files anyway, as after a reset you meant.
+# every install. In the day after an install left Hex a new, empty container (`reinstalls`, written by scripts/phone), a
+# file the iPhone holds at under half the size of the backup's (over 4 KB) is kept under smaller/<time> rather than over
+# the backup's, which stays for scripts/restore to put back; --smaller takes such files anyway. Any other shrink was you
+# (Reset Learned Words, a deleted transcript) and is backed up as it is.
 # Usage: scripts/backup <iPhone UDID> [--smaller]
 set -euo pipefail
 umask 077
@@ -48,8 +49,15 @@ trap 'rm -rf "$incoming"' EXIT
 rsync -a "mac:$staged/" "$incoming/"
 ssh mac rm -rf "$staged"
 [ "$smaller" = --smaller ] || python3 - "$backup" "$incoming" "$time" "$phone" <<'PY'
-import os, sys
+import datetime, os, sys
 backup, incoming, time, phone = sys.argv[1:]
+form = '%Y-%m-%dT%H%M%S'
+try:
+    last = open(os.path.join(backup, 'reinstalls')).read().split()[-1]
+except (OSError, IndexError):
+    sys.exit()
+if datetime.datetime.strptime(time, form) - datetime.datetime.strptime(last, form) >= datetime.timedelta(days=1):
+    sys.exit()
 held = []
 for folder, _, found in os.walk(incoming):
     for name in found:

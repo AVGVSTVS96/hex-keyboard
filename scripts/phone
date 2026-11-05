@@ -6,7 +6,9 @@
 # Never let xtool revoke a certificate to make its own: that breaks what the Mac signs (stdin is closed, so it can't ask).
 # Then it backs up the phone's iikb data here (scripts/backup), and won't install without that backup, and installs it
 # through the Mac on the iPhone the Mac reaches, by cable or Wi-Fi, once no dictation is being recorded or written down
-# there, as the running app's status in the App Group says, checked last thing before the install.
+# there, as the running app's status in the App Group says, checked last thing before the install. An install that left
+# Hex a new, empty container, as one after deleting the app does, is written in the backup's `reinstalls`, so
+# scripts/backup and scripts/restore take the near-empty files sent in the day after it for that rather than for you.
 # Then it starts Hex in the background, now or the moment the iPhone next unlocks (scripts/unlocked), so Parakeet
 # compiles for the new install right away rather than at the next dictation.
 # It builds main's last commit in its own worktree, so agents' branches and uncommitted edits never reach the phone,
@@ -88,6 +90,16 @@ while dictating; do
   sleep 2
 done
 ssh mac xcrun devicectl device install app --device "$phone" Developer/hex-keyboard-phone/Hex.app
+fresh=$(ssh mac sh -s "$phone" <<'MAC'
+xcrun devicectl device info files --device "$1" --domain-type appDataContainer --domain-identifier com.shahidy.hexkeyboard \
+  --subdirectory Library --json-output /tmp/hex-library.json >/dev/null 2>&1 &&
+/usr/bin/python3 -c "import json; print(not any(f['relativePath'].startswith('Application Support/') for f in json.load(open('/tmp/hex-library.json'))['result']['files']))"
+MAC
+) || true
+if [ "$fresh" = True ]; then
+  date +%Y-%m-%dT%H%M%S >> "${HEX_BACKUP:-$HOME/.local/share/hex-keyboard/backup}/reinstalls"
+  echo "the install started Hex in a new, empty container; scripts/restore $phone puts its data back (docs/backup.md)" >&2
+fi
 ssh mac 'cat > Developer/hex-keyboard-phone/unlocked' < scripts/unlocked
 ssh mac "pkill -f hex-keyboard-phone/unlocked; nohup /usr/bin/python3 -I Developer/hex-keyboard-phone/unlocked $phone >/dev/null 2>&1 </dev/null &"
 touch "$stamp"
