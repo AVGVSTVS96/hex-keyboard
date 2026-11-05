@@ -100,7 +100,7 @@ extension Panel {
     }
 
     /// GIF has no SF Symbol: a rounded rect with "GIF" in it, `side` wide (docs/design.md).
-    static func gifGlyph(_ side: CGFloat) -> UIImage {
+    package static func gifGlyph(_ side: CGFloat) -> UIImage {
         let unit = side / 18.4
         let size = CGSize(width: side, height: 14.4 * unit)
         return UIGraphicsImageRenderer(size: size).image { _ in

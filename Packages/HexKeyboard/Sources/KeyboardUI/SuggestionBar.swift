@@ -6,22 +6,22 @@ import KeyboardCore
 /// `BarLayout`. While the app listens, the mic grows into a red capsule over the suggestions holding the time so far and
 /// the waveform of your voice, and lets out a cancel button before it. Once you stop, dictations still waiting for the
 /// model stack as cards in its place.
-final class SuggestionBar: UIView {
-    var onSelect: (Suggestion) -> Void = { _ in }
-    var onEmoji: (String) -> Void = { _ in }
-    var onMic: () -> Void = {}
-    var onCancel: () -> Void = {}
-    var onNotice: () -> Void = {}
-    var onTool: (Panel) -> Void = { _ in }
-    var maximumSlotWidth = CGFloat.infinity { didSet { setNeedsLayout() } }
+public final class SuggestionBar: UIView {
+    public var onSelect: (Suggestion) -> Void = { _ in }
+    public var onEmoji: (String) -> Void = { _ in }
+    public var onMic: () -> Void = {}
+    public var onCancel: () -> Void = {}
+    public var onNotice: () -> Void = {}
+    public var onTool: (Panel) -> Void = { _ in }
+    public var maximumSlotWidth = CGFloat.infinity { didSet { setNeedsLayout() } }
     /// The top row's keys, left to right, as their edges.
-    var keys: [(minX: Double, maxX: Double)] = [] {
+    public var keys: [(minX: Double, maxX: Double)] = [] {
         didSet { if !keys.elementsEqual(oldValue, by: ==) { setNeedsLayout() } }
     }
-    var toolbar = KeyboardMetrics.phone(width: 390).toolbar { didSet { if toolbar != oldValue { setNeedsLayout() } } }
+    public var toolbar = KeyboardMetrics.phone(width: 390).toolbar { didSet { if toolbar != oldValue { setNeedsLayout() } } }
     /// Whether the mic sits at the bar's right, or in the bottom row (Settings › Layout › Record Key), where the bar
     /// has none and the recording runs as the bar's own waveform.
-    var micInBar = true {
+    public var micInBar = true {
         didSet {
             guard micInBar != oldValue else { return }
             mic.isHidden = !micInBar
@@ -48,7 +48,7 @@ final class SuggestionBar: UIView {
     private var noticed = false
     private var theme = KeyboardTheme.lightCurrent
 
-    override init(frame: CGRect) {
+    override public init(frame: CGRect) {
         super.init(frame: frame)
         for slot in slots {
             slot.addAction(UIAction { [unowned self, unowned slot] _ in
@@ -86,7 +86,7 @@ final class SuggestionBar: UIView {
 
     required init?(coder: NSCoder) { fatalError() }
 
-    func update(_ suggestions: [Suggestion], emoji: [String], enabled: Bool, theme: KeyboardTheme) {
+    public func update(_ suggestions: [Suggestion], emoji: [String], enabled: Bool, theme: KeyboardTheme) {
         self.enabled = enabled
         self.theme = theme
         for (index, slot) in slots.enumerated() {
@@ -113,7 +113,7 @@ final class SuggestionBar: UIView {
     /// `notice` (why voice couldn't start, or a source's hint) stands in for the suggestions. Tapping it dismisses it.
     /// `recorded` is how many seconds the app has recorded, for the time beside the waveform; `saved` are the lengths of
     /// the dictations recorded and still to be written, and `waitingFor` what they wait for while the model gets ready.
-    func update(mic: MicButton.Phase, recorded: Double, saved: [Double], waitingFor: String?, notice: String?, theme: KeyboardTheme) {
+    public func update(mic: MicButton.Phase, recorded: Double, saved: [Double], waitingFor: String?, notice: String?, theme: KeyboardTheme) {
         let grows = (mic == .listening) != (self.mic.phase == .listening)
         if mic == .listening { cancel.isHidden = false }
         self.mic.show(mic, theme: theme)
@@ -136,7 +136,7 @@ final class SuggestionBar: UIView {
     }
 
     /// The tools at the bar's left, where there's no pill row for them.
-    func update(tools panels: [Panel], theme: KeyboardTheme) {
+    public func update(tools panels: [Panel], theme: KeyboardTheme) {
         if panels != tools.map(\.panel) {
             tools.forEach { $0.button.removeFromSuperview() }
             tools = panels.map { panel in
@@ -152,7 +152,7 @@ final class SuggestionBar: UIView {
     }
 
     /// The More button at the far left, before the tools.
-    func update(more menu: UIMenu?) {
+    public func update(more menu: UIMenu?) {
         more.menu = menu
         if more.isHidden != (menu == nil) {
             more.isHidden = menu == nil
@@ -160,7 +160,7 @@ final class SuggestionBar: UIView {
         }
     }
 
-    func hear(_ level: Float, recorded: Double) {
+    public func hear(_ level: Float, recorded: Double) {
         waveform.hear(level, recorded: recorded)
         mic.hear(level)
     }
@@ -207,7 +207,7 @@ final class SuggestionBar: UIView {
         }
     }
 
-    override func layoutSubviews() {
+    override public func layoutSubviews() {
         super.layoutSubviews()
         let scale = traitCollection.displayScale
         guard !keys.isEmpty else { return }

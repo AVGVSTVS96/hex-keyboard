@@ -71,7 +71,7 @@ targets:
     sources: [Keyboard]
     dependencies:
       - package: HexKeyboard
-        product: KeyboardUI
+        product: HexKeyboard
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.shahidy.hexkeyboard.keyboard

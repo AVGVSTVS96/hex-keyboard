@@ -1,5 +1,4 @@
 import HexStore
-import KeyboardUI
 
 extension Backup {
     /// Sends the app's files and the group's in the background.

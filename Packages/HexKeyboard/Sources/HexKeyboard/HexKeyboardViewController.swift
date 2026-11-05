@@ -2,6 +2,7 @@ import UIKit
 import HexStore
 import KeyboardCore
 import KeyboardEnglish
+import KeyboardUI
 
 open class HexKeyboardViewController: UIInputViewController {
     open var hapticsEnabled: Bool { hasFullAccess && engine.settings.haptics != .off }
@@ -557,12 +558,4 @@ open class HexKeyboardViewController: UIInputViewController {
         default: .other
         }
     }
-}
-
-/// Links into Hex's app.
-public enum HexLink {
-    /// Opens Settings › Apps › Hex, where Full Access (under Keyboards) and Paste from Other Apps are.
-    public static let settings = URL(string: "hexkeyboard://settings")!
-    /// Opens Hex's app on its keyboard settings.
-    public static let keyboard = URL(string: "hexkeyboard://keyboard")!
 }

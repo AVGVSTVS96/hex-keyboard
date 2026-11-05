@@ -1,6 +1,5 @@
 import Foundation
 import HexStore
-import KeyboardUI
 import Observation
 
 /// Your Mac's typing and dictation as Keystroke (a Mac app that counts both, never what's typed) keeps them in its

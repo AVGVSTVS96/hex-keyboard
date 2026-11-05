@@ -1,6 +1,6 @@
 # Build a keyboard on iikb
 
-iikb's typing lives in `KeyboardCore`: Apple's layouts and key sizes for every iPhone and iPad, shift and caps lock, autocorrect that learns where each thumb lands, and a suggestion bar. It's pure Swift, so you draw the keys however you like and the engine does the rest. `KeyboardUI` is iikb's UIKit side: its keys, bar and panels, and the bridge to the host's text field.
+iikb's typing lives in `KeyboardCore`: Apple's layouts and key sizes for every iPhone and iPad, shift and caps lock, autocorrect that learns where each thumb lands, and a suggestion bar. It's pure Swift, so you draw the keys however you like and the engine does the rest. `KeyboardUI` is iikb's UIKit side: its keys, bar and panels, and the bridge to the host's text field. `HexKeyboard` is iikb's own keyboard, built on both.
 
 There are two ways in:
 
@@ -20,12 +20,12 @@ Then in Xcode, choose File › Add Package Dependencies… › Add Local…, pic
 ## All of iikb
 
 ```swift
-import KeyboardUI
+import HexKeyboard
 
 final class KeyboardViewController: HexKeyboardViewController {}
 ```
 
-This is iikb itself (`Keyboard/KeyboardViewController.swift`), including the parts that belong to iikb's app. The keyboard keeps its settings and what it learns in the App Group `group.com.shahidy.hexkeyboard`, opens its settings at `hexkeyboard://`, and hands voice typing to iikb's app. Unless you ship that app with those IDs, take the second way.
+Link `HexKeyboard` for this. It's iikb itself (`Keyboard/KeyboardViewController.swift`), including the parts that belong to iikb's app. The keyboard keeps its settings and what it learns in the App Group `group.com.shahidy.hexkeyboard`, opens its settings at `hexkeyboard://`, and hands voice typing to iikb's app. Unless you ship that app with those IDs, take the second way.
 
 ## Your own look
 
@@ -103,9 +103,9 @@ engine.suggestionsChanged()
 
 ## What the example leaves out
 
-These all live in `KeyboardUI`'s `KeyboardView`, which isn't public yet: holding delete to repeat, the pop-up over a pressed key, accents on a long press, the space bar trackpad and Slide to Type. If you need them now, subclass `HexKeyboardViewController`. For haptics, `KeyHaptics` plays Apple's keyboard haptics: `start()` it in `viewWillAppear`, `play(.input)` as a key goes down, and `stop()` it in `viewWillDisappear`.
+These all live in `KeyboardUI`'s `KeyboardView`: holding delete to repeat, the pop-up over a pressed key, accents on a long press, the space bar trackpad and Slide to Type. `HexKeyboardViewController` shows how to drive it. For haptics, `KeyHaptics` plays Apple's keyboard haptics: `start()` it in `viewWillAppear`, `play(.input)` as a key goes down, and `stop()` it in `viewWillDisappear`.
 
-Linking `KeyboardUI` turns on UIKit's private keyboard arbiter when an extension loads (`KeyboardArbiter`). iikb uses it to learn which app it's typing in. `KeyboardCore` uses no private API. A keyboard that links `KeyboardUI` runs on your own devices, but App Review may reject it.
+Linking `HexKeyboard` turns on UIKit's private keyboard arbiter when an extension loads (`KeyboardArbiter`). iikb uses it to learn which app it's typing in. `KeyboardCore` and `KeyboardUI` use no private API. A keyboard that links `HexKeyboard` runs on your own devices, but App Review may reject it.
 
 ## Run it
 

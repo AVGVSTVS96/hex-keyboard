@@ -1,6 +1,6 @@
 import Foundation
 
-final class DeleteRepeat {
+public final class DeleteRepeat {
     private static let delay: TimeInterval = 0.5
     private static let characterInterval: TimeInterval = 0.1
     private static let wordInterval: TimeInterval = 0.25
@@ -10,7 +10,7 @@ final class DeleteRepeat {
     private var count = 0
     private let action: (_ words: Bool) -> Void
 
-    init(action: @escaping (_ words: Bool) -> Void) {
+    public init(action: @escaping (_ words: Bool) -> Void) {
         self.action = action
         schedule(after: Self.delay)
     }

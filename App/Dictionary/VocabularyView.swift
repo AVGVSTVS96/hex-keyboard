@@ -1,5 +1,4 @@
 import KeyboardCore
-import KeyboardUI
 import SwiftUI
 
 /// The words the voice model gets wrong, each with what it writes instead, under Add Word.

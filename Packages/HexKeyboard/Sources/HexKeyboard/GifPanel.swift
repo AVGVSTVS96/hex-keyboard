@@ -1,6 +1,7 @@
 import HexStore
 import ImageIO
 import KeyboardCore
+import KeyboardUI
 import UIKit
 import UniformTypeIdentifiers
 

@@ -4,12 +4,12 @@ import KeyboardEnglish
 
 /// The emoji panel's results: ten columns of emoji (more on a wide iPad) scrolling up and down, or one row scrolling
 /// sideways in the compact layout; what you pick most first, then every emoji in Apple's order, or what the search finds.
-final class EmojiPanel: UIView, PanelContent, UICollectionViewDataSource, UICollectionViewDelegate {
+public final class EmojiPanel: UIView, PanelContent, UICollectionViewDataSource, UICollectionViewDelegate {
     /// An emoji tapped, or picked among its skin tones with its untoned version.
-    var onPick: (String, String?) -> Void = { _, _ in }
+    public var onPick: (String, String?) -> Void = { _, _ in }
     /// What you've picked, read as the panel opens and as the search changes, so emoji never move under your finger.
-    var history: () -> EmojiHistory = { EmojiHistory() }
-    let placeholder = "Search emoji"
+    public var history: () -> EmojiHistory = { EmojiHistory() }
+    public let placeholder = "Search emoji"
 
     private let layout = UICollectionViewFlowLayout()
     private lazy var grid = UICollectionView(frame: .zero, collectionViewLayout: layout)
@@ -24,7 +24,7 @@ final class EmojiPanel: UIView, PanelContent, UICollectionViewDataSource, UIColl
     /// How far the finger sat from the tone it started on, so letting go without sliding picks that tone.
     private var slide: CGFloat = 0
 
-    override init(frame: CGRect) {
+    override public init(frame: CGRect) {
         super.init(frame: frame)
         layout.minimumLineSpacing = 0
         layout.minimumInteritemSpacing = 0
@@ -50,11 +50,11 @@ final class EmojiPanel: UIView, PanelContent, UICollectionViewDataSource, UIColl
 
     required init?(coder: NSCoder) { fatalError() }
 
-    func reset() {
+    public func reset() {
         query = nil
     }
 
-    func show(query: String, theme: KeyboardTheme, metrics: KeyboardMetrics) {
+    public func show(query: String, theme: KeyboardTheme, metrics: KeyboardMetrics) {
         self.metrics = metrics
         size = metrics.toolbar.isCompact ? 26 : 30
         let direction: UICollectionView.ScrollDirection = metrics.toolbar.isCompact ? .horizontal : .vertical
@@ -77,7 +77,7 @@ final class EmojiPanel: UIView, PanelContent, UICollectionViewDataSource, UIColl
         grid.contentOffset = .zero
     }
 
-    override func layoutSubviews() {
+    override public func layoutSubviews() {
         super.layoutSubviews()
         grid.frame = bounds
         empty.frame = bounds
@@ -89,15 +89,15 @@ final class EmojiPanel: UIView, PanelContent, UICollectionViewDataSource, UIColl
         }
     }
 
-    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int { shown.count }
+    public func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int { shown.count }
 
-    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+    public func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "emoji", for: indexPath) as! EmojiCell
         cell.show(shown[indexPath.item], size: size, pressed: theme.label.ui.withAlphaComponent(0.12))
         return cell
     }
 
-    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+    public func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         collectionView.deselectItem(at: indexPath, animated: false)
         onPick(shown[indexPath.item], nil)
     }

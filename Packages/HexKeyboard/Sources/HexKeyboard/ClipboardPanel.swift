@@ -1,5 +1,6 @@
 import HexStore
 import KeyboardCore
+import KeyboardUI
 import UIKit
 
 /// The clipboard panel's results (docs/design.md, "Clipboard"): what you copied, pinned items first, as rows scrolling up

@@ -88,7 +88,8 @@ Then on the phone: Settings › General › Keyboard › Keyboards › Add New K
 | Path | What |
 | --- | --- |
 | `Packages/HexKeyboard/Sources/KeyboardCore` | Everything the keyboard does: layouts, typing, autocorrect, the tap model, emoji search. Pure Swift with no Foundation or UIKit, so it also runs in the browser as WebAssembly. Unit tested. |
-| `Packages/HexKeyboard/Sources/KeyboardUI` | Draws the keys, handles touches and haptics, and talks to the app. |
+| `Packages/HexKeyboard/Sources/KeyboardUI` | Draws the keys, handles touches and haptics. |
+| `Packages/HexKeyboard/Sources/HexKeyboard` | iikb's own keyboard on those: talks to the app, and adds GIFs, the clipboard and sources. |
 | `Packages/HexKeyboard/Examples/` | A keyboard of its own built on `KeyboardCore`'s public API, for [docs/build-a-keyboard.md](docs/build-a-keyboard.md). |
 | `Keyboard/` | The keyboard extension. |
 | `App/` | The app: setup and settings, voice typing, Transcripts, Clipboard and Your Taps. |

@@ -33,7 +33,7 @@ let package = Package(
         ),
         .target(
             name: "Keyboard",
-            dependencies: [.product(name: "KeyboardUI", package: "HexKeyboard")],
+            dependencies: [.product(name: "HexKeyboard", package: "HexKeyboard")],
             path: "Keyboard",
             exclude: ["Keyboard.entitlements", "PrivacyInfo.xcprivacy"],
             swiftSettings: settings,

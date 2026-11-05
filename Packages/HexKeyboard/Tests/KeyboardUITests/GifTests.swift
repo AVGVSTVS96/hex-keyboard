@@ -1,7 +1,7 @@
 import Foundation
 import KeyboardCore
 import Testing
-@testable import KeyboardUI
+@testable import HexKeyboard
 
 struct GifTests {
     @Test func aKlipyPageGivesItsGifsInOrderLeavingOutAdsAndGifsMissingARendition() throws {

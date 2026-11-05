@@ -57,7 +57,10 @@ done
 main=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
 backup=$main/Packages/HexKeyboard/Sources/HexStore/Resources/Keys/backup.key
 [ -f "$backup" ] || { echo "$backup is missing, so this build wouldn't back up the iPhone's iikb data (docs/backup.md)" >&2; exit 1; }
-for key in "$main"/Packages/HexKeyboard/Sources/*/Resources/Keys/*.key; do cp "$key" "$build/${key#"$main"/}"; done
+for key in "$main"/Packages/HexKeyboard/Sources/*/Resources/Keys/*.key; do
+  to=$build/${key#"$main"/}
+  [ ! -d "${to%/*}" ] || cp "$key" "$to"
+done
 cd "$build"
 TURN=phone xtool dev build -c release --sign < /dev/null
 for binary in xtool/Hex.app/Hex xtool/Hex.app/PlugIns/Keyboard.appex/Keyboard; do

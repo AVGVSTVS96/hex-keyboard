@@ -1,6 +1,5 @@
 import Foundation
 import HexStore
-import KeyboardUI
 import Observation
 
 struct Transcript: Codable, Identifiable, Hashable {

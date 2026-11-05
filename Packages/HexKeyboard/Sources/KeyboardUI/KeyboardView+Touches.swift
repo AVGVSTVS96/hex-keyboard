@@ -44,7 +44,7 @@ extension KeyboardView {
         }
     }
 
-    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+    override public func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         let start = CACurrentMediaTime()
         defer { TouchTrace.shared.record("began", touches, event, since: start) }
         for touch in touches.inOrder {
@@ -61,7 +61,7 @@ extension KeyboardView {
         }
     }
 
-    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
+    override public func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
         let start = CACurrentMediaTime()
         defer { TouchTrace.shared.record("moved", touches, event, since: start) }
         for touch in touches {
@@ -117,7 +117,7 @@ extension KeyboardView {
         }
     }
 
-    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+    override public func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
         let start = CACurrentMediaTime()
         defer { TouchTrace.shared.record("ended", touches, event, since: start) }
         for touch in touches.inOrder {
@@ -127,7 +127,7 @@ extension KeyboardView {
         }
     }
 
-    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
+    override public func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
         let start = CACurrentMediaTime()
         defer { TouchTrace.shared.record("cancelled", touches, event, since: start) }
         for touch in touches {
@@ -270,7 +270,7 @@ extension KeyboardView {
 
 extension KeyboardEvent {
     /// How the layer menu and the bar's More button show a pick.
-    var symbol: String {
+    public var symbol: String {
         switch self {
         case .pick(.left): "keyboard.onehanded.left"
         case .pick(.right): "keyboard.onehanded.right"
@@ -281,7 +281,7 @@ extension KeyboardEvent {
         }
     }
 
-    var title: String {
+    public var title: String {
         switch self {
         case .pick(.left): "Left"
         case .pick(.right): "Right"

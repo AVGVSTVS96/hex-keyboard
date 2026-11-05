@@ -4,9 +4,13 @@ import UIKit
 /// Where the field the keyboard types into wraps its text, as far as a keyboard can know: iOS gives it the text around
 /// the caret, never the field's width. Every field fits the screen, so this wraps the text in the body font as wide as
 /// the screen within the system's margins; in a narrower field a move up or down lands a few letters off.
-struct HostLayout: LineLayout {
-    var width: CGFloat
-    var font = Self.font
+public struct HostLayout: LineLayout {
+    public var width: CGFloat
+    public var font = Self.font
+
+    public init(width: CGFloat) {
+        self.width = width
+    }
 
     static var font: UIFont { .preferredFont(forTextStyle: .body) }
     /// How far a finger on the space bar moves for the caret to move a line, as far as a line is tall.
@@ -15,12 +19,12 @@ struct HostLayout: LineLayout {
     /// How far it moves for the caret to cross a character, as wide as the character is, as Apple's trackpad keeps the
     /// caret under the finger. A line break is as wide as a space, and so is a character the keyboard can't see (nil):
     /// hosts show only the caret's paragraph, so that is most often the line break at its edge.
-    static func width(of character: Character?) -> CGFloat {
+    public static func width(of character: Character?) -> CGFloat {
         let shown = character.map { $0.isNewline ? " " : String($0) } ?? " "
         return (shown as NSString).size(withAttributes: [.font: font]).width
     }
 
-    func carets(in paragraph: String) -> [Caret] {
+    public func carets(in paragraph: String) -> [Caret] {
         let storage = NSTextStorage(string: paragraph, attributes: [.font: font])
         let manager = NSLayoutManager()
         let container = NSTextContainer(size: CGSize(width: width, height: .greatestFiniteMagnitude))

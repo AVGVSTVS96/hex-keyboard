@@ -3,7 +3,7 @@ import KeyboardCore
 
 /// What a panel shows above its search field. Each panel (emoji, GIFs, the clipboard) brings its own; `PanelView`
 /// draws the search row under it and the keys type into the field.
-protocol PanelContent: UIView {
+public protocol PanelContent: UIView {
     var placeholder: String { get }
     /// The field's leading glyph.
     var glyph: UIImage? { get }
@@ -19,23 +19,23 @@ protocol PanelContent: UIView {
 }
 
 extension PanelContent {
-    var glyph: UIImage? { UIImage(systemName: "magnifyingglass") }
-    var accessories: [UIView] { [] }
-    var notice: String? { nil }
-    func reset() {}
+    public var glyph: UIImage? { UIImage(systemName: "magnifyingglass") }
+    public var accessories: [UIView] { [] }
+    public var notice: String? { nil }
+    public func reset() {}
 }
 
 /// A panel in place of the bar and the pill row: results on top, then a back button and the search field.
-final class PanelView: UIView {
-    var onClose: () -> Void = {}
-    var onClear: () -> Void = {}
-    var block = (minX: CGFloat(0), maxX: CGFloat(0)) { didSet { if block != oldValue { setNeedsLayout() } } }
+public final class PanelView: UIView {
+    public var onClose: () -> Void = {}
+    public var onClear: () -> Void = {}
+    public var block = (minX: CGFloat(0), maxX: CGFloat(0)) { didSet { if block != oldValue { setNeedsLayout() } } }
     private(set) var content: PanelContent?
     private var toolbar = KeyboardMetrics.phone(width: 390).toolbar
     private let back = UIButton(type: .custom)
     private let field = SearchField()
 
-    override init(frame: CGRect) {
+    override public init(frame: CGRect) {
         super.init(frame: frame)
         back.accessibilityIdentifier = "hex.panel.back"
         back.accessibilityLabel = "Back"
@@ -48,7 +48,7 @@ final class PanelView: UIView {
 
     required init?(coder: NSCoder) { fatalError() }
 
-    func open(_ content: PanelContent?) {
+    public func open(_ content: PanelContent?) {
         guard content !== self.content else { return }
         self.content?.removeFromSuperview()
         self.content = content
@@ -59,7 +59,7 @@ final class PanelView: UIView {
         setNeedsLayout()
     }
 
-    func show(query: String, theme: KeyboardTheme, metrics: KeyboardMetrics) {
+    public func show(query: String, theme: KeyboardTheme, metrics: KeyboardMetrics) {
         if metrics.toolbar != toolbar {
             toolbar = metrics.toolbar
             setNeedsLayout()
@@ -69,7 +69,7 @@ final class PanelView: UIView {
         field.show(query, placeholder: content?.placeholder ?? "", glyph: content?.glyph, notice: content?.notice, theme: theme)
     }
 
-    override func layoutSubviews() {
+    override public func layoutSubviews() {
         super.layoutSubviews()
         let width = block.maxX - block.minX
         content?.frame = CGRect(x: block.minX, y: toolbar.top, width: width, height: toolbar.results)
@@ -191,11 +191,11 @@ private final class SearchField: UIView {
 
 /// What a panel says in place of results, like "GIF search needs Full Access.", with Turn On after it when Settings has
 /// the answer; then the whole notice opens Settings. In one row, Turn On follows on the same line, so it fits 46pt.
-final class PanelNotice: UIButton {
-    var onTurnOn: () -> Void = {}
+package final class PanelNotice: UIButton {
+    package var onTurnOn: () -> Void = {}
     private var turnsOn = false
 
-    override init(frame: CGRect) {
+    override package init(frame: CGRect) {
         super.init(frame: frame)
         titleLabel?.numberOfLines = 0
         titleLabel?.textAlignment = .center
@@ -204,11 +204,11 @@ final class PanelNotice: UIButton {
 
     required init?(coder: NSCoder) { fatalError() }
 
-    override var isHighlighted: Bool {
+    override package var isHighlighted: Bool {
         didSet { alpha = isHighlighted && turnsOn ? 0.5 : 1 }
     }
 
-    func show(_ text: String?, turnOn: Bool, oneRow: Bool, theme: KeyboardTheme) {
+    package func show(_ text: String?, turnOn: Bool, oneRow: Bool, theme: KeyboardTheme) {
         turnsOn = turnOn && text != nil
         isHidden = text == nil
         setAttributedTitle(text.map { text in

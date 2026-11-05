@@ -6,8 +6,8 @@ import KeyboardCore
 /// recording, with a white stop where the mic was and a soft red halo that swells as you talk; while the
 /// app writes a dictation down a spinner takes the glyph's place, and a tap still starts the next one. Tap to start or
 /// stop; only the app turns the microphone off.
-final class MicButton: UIControl {
-    enum Phase { case off, on, listening, writing }
+public final class MicButton: UIControl {
+    public enum Phase { case off, on, listening, writing }
 
     /// The face's corner radius, where it takes a key's shape; otherwise round.
     var corner: CGFloat? { didSet { setNeedsLayout() } }
@@ -25,7 +25,7 @@ final class MicButton: UIControl {
     private var glyphSide: CGFloat = 0
     private var voice: CGFloat = 0
 
-    override init(frame: CGRect) {
+    override public init(frame: CGRect) {
         super.init(frame: frame)
         accessibilityIdentifier = "hex.mic"
         isAccessibilityElement = true
@@ -47,7 +47,7 @@ final class MicButton: UIControl {
     required init?(coder: NSCoder) { fatalError() }
 
     /// Pressed, it gives by the same 3 points whatever its width.
-    override var isHighlighted: Bool {
+    override public var isHighlighted: Bool {
         didSet {
             guard isHighlighted != oldValue else { return }
             let scale = isHighlighted ? 1 - 6 / max(bounds.width, 1) : 1
@@ -58,7 +58,7 @@ final class MicButton: UIControl {
     }
 
     /// Into or out of listening it moves on `morph`, the spring the bar grows it on; otherwise it settles.
-    func show(_ phase: Phase, theme: KeyboardTheme) {
+    public func show(_ phase: Phase, theme: KeyboardTheme) {
         let old = self.phase
         self.phase = phase
         self.theme = theme
@@ -116,12 +116,12 @@ final class MicButton: UIControl {
     }
 
     /// The circle is smaller than a fingertip; taps a little around it still reach it.
-    override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
+    override public func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
         bounds.insetBy(dx: -6, dy: -6).contains(point)
     }
 
     /// The glyphs, spinner and dot sit in the square at the right end of the capsule, or in the middle of a circle or key.
-    override func layoutSubviews() {
+    override public func layoutSubviews() {
         super.layoutSubviews()
         face.frame = bounds
         face.layer.cornerRadius = corner ?? bounds.height / 2

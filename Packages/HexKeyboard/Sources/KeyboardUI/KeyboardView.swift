@@ -1,13 +1,13 @@
 import UIKit
 import KeyboardCore
 
-final class KeyboardView: UIView {
-    var onEvent: (KeyboardEvent) -> Void = { _ in }
-    var onGrid: (KeyGrid) -> Void = { _ in }
-    var resolve: (KeyGrid, CGPoint) -> (row: Int, key: Int)? = { grid, point in grid.index(atX: point.x, y: point.y) }
-    var globeTarget: ((UIControl) -> Void)?
+public final class KeyboardView: UIView {
+    public var onEvent: (KeyboardEvent) -> Void = { _ in }
+    public var onGrid: (KeyGrid) -> Void = { _ in }
+    public var resolve: (KeyGrid, CGPoint) -> (row: Int, key: Int)? = { grid, point in grid.index(atX: point.x, y: point.y) }
+    public var globeTarget: ((UIControl) -> Void)?
     /// The record button, placed over the record key where the layout has one, in the key's shape.
-    var micKey: MicButton? {
+    public var micKey: MicButton? {
         didSet {
             oldValue?.removeFromSuperview()
             setNeedsLayout()
@@ -15,7 +15,7 @@ final class KeyboardView: UIView {
     }
     /// How far the space bar trackpad's finger travels to move the caret one character, -1 left or 1 right: the width
     /// of the character it crosses.
-    var advance: (Int) -> CGFloat = { _ in HostLayout.width(of: nil) }
+    public var advance: (Int) -> CGFloat = { _ in HostLayout.width(of: nil) }
 
     private(set) var layout = KeyboardLayout(rows: [])
     private(set) var signature = ""
@@ -33,16 +33,16 @@ final class KeyboardView: UIView {
     private var animatesLayout = false
     var tracked: [ObjectIdentifier: TrackedTouch] = [:]
 
-    var characterPreview = CharacterPreview.attached
-    var slidesToType = true
+    public var characterPreview = CharacterPreview.attached
+    public var slidesToType = true
     /// How far a touch on a letter must travel to be a swipe rather than a tap that wandered, in key widths: past the
     /// key's neighbor, which a tap's drift never reaches.
     static let swipeDistance: CGFloat = 0.8
     /// The keys whose hold opens the layer menu, what it offers, and the layout in use.
-    var menu: (keys: [Key], items: [KeyboardEvent], current: KeyboardEvent?) = ([], [], nil)
+    public var menu: (keys: [Key], items: [KeyboardEvent], current: KeyboardEvent?) = ([], [], nil)
     var showsCallouts: Bool { characterPreview != .none && faceContext.device == .phone }
 
-    override init(frame: CGRect) {
+    override public init(frame: CGRect) {
         super.init(frame: frame)
         isMultipleTouchEnabled = true
         isExclusiveTouch = false
@@ -59,7 +59,7 @@ final class KeyboardView: UIView {
 
     required init?(coder: NSCoder) { fatalError() }
 
-    func update(layout: KeyboardLayout, signature: String, metrics: KeyboardMetrics, faces: KeyFaceContext, theme: KeyboardTheme) {
+    public func update(layout: KeyboardLayout, signature: String, metrics: KeyboardMetrics, faces: KeyFaceContext, theme: KeyboardTheme) {
         let rebuild = layout != self.layout
         let relayout = rebuild || metrics != self.metrics || signature != self.signature || theme != self.theme
         if rebuild {
@@ -100,7 +100,7 @@ final class KeyboardView: UIView {
         grid = KeyGrid(layout, width: bounds.width, metrics: metrics.grid, signature: signature)
     }
 
-    override func layoutSubviews() {
+    override public func layoutSubviews() {
         super.layoutSubviews()
         grid = KeyGrid(layout, width: bounds.width, metrics: metrics.grid, signature: signature)
         onGrid(grid)
@@ -160,7 +160,7 @@ final class KeyboardView: UIView {
     }
 
     /// The top row reaches over what's above the keyboard (`Toolbar.topRowReach`); this view is in front of it.
-    override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
+    override public func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
         bounds.inset(by: UIEdgeInsets(top: -Toolbar.topRowReach, left: 0, bottom: 0, right: 0)).contains(point)
     }
 }

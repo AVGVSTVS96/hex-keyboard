@@ -2,7 +2,7 @@ import Foundation
 import KeyboardCore
 import Testing
 import UIKit
-@testable import KeyboardUI
+@testable import HexKeyboard
 
 /// The GIF panel against `KlipyStub`, which stands in for KLIPY and its media.
 @MainActor
