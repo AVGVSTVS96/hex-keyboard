@@ -121,8 +121,8 @@ import UIKit
     }
 
     /// Downloads the picked Parakeet if it isn't on the iPhone yet, then loads it, unless it's loaded or on its way; one
-    /// that failed is tried again. Its first load compiles it for the Neural Engine, as does the first after an iOS
-    /// update; later ones read that from a cache, installs included (`AsrModelVersion.folder`). It asks iOS for time in the background to finish, since iOS suspends Hex there within seconds
+    /// that failed is tried again. Its first load after an install of a new build or an iOS update compiles it for the
+    /// Neural Engine; later ones read that from a cache. It asks iOS for time in the background to finish, since iOS suspends Hex there within seconds
     /// (after `scripts/phone` starts it, or once you're back in your app with the microphone off) and the compile with it.
     func prepare() {
         guard let load = model.loader else { return state = .ready }

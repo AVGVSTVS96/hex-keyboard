@@ -33,7 +33,7 @@ It's resilient, not lossy:
 ## The model
 
 `VoiceModel.write` writes with the model you pick in Settings: Parakeet v3 (the default) or Parakeet Ultra through FluidAudio, on the Neural Engine, downloaded once from Hugging Face, or Apple's SpeechTranscriber.
-- Apple's never stands in for a Parakeet. A dictation made while the picked Parakeet gets ready (its Neural Engine compile, the first time and after an iOS update, takes 30 s to over 2 minutes) is recorded as any other and written once it's ready; the next one can be recorded meanwhile, and they're typed in the order said.
+- Apple's never stands in for a Parakeet. A dictation made while the picked Parakeet gets ready (its Neural Engine compile, after each install of a new build and each iOS update, takes 30 s to over 2 minutes) is recorded as any other and written once it's ready; the next one can be recorded meanwhile, and they're typed in the order said.
 - Transcribe Again and a recording an ended app left, written as soon as the app starts, go through the same `write`.
 - v3 is loaded when the microphone turns on and let go once it's off with nothing left to write, since it loads again in 0.1 s. Ultra, whose every load takes minutes, is kept. The simulator, which has no Neural Engine, never loads one.
 - Each transcript keeps the model that wrote it.
@@ -42,8 +42,8 @@ It's resilient, not lossy:
 - `scripts/voicebench` scores a change to that path on Bassim's own dictations.
 
 Measured on the iPhone Duo (iOS 27.2):
-- v3's encoder compiles for the Neural Engine in about 37 s once and loads in 0.1 s after, installs included. Core ML keys what it compiles by the OS build and by the literal path a model loads from, and the app's own container moves to a new path with every install, so the Parakeets live in the App Group's container (`Library/Application Support/FluidAudio`, which the backup skips; `AsrModelVersion.folder` moves an old one over by rename and clears Core ML's stale cache), whose path installs keep.
-- Before that, each install compiled all four parts again, writing about 600 MB: 4.3 GB in 97 minutes of installs on Nov 4. `HostApp.written` logs what iikb has written since it started with each load and dictation.
+- v3's encoder compiles for the Neural Engine in about 17 to 37 s after each install of a new build and loads in 0.1 s after. That compile has iikb write about 500 MB (Core ML writes out the encoder's 425 MB of weights to compile them), against iOS's 1 GB a day before it files a disk-writes report: 4.3 GB in 97 minutes of installs on Nov 4. So `scripts/phone` installs only when something iikb is built from has changed. `HostApp.written` logs what iikb has written since it started with each load and dictation.
+- Core ML keys what it compiles by the OS build, by the literal path a model loads from, and, for the parts loaded for the Neural Engine (encoder, decoder, joint), by the install. The app's own container moves to a new path with every install, so the Parakeets live in the App Group's container (`Library/Application Support/FluidAudio`, which the backup skips; `AsrModelVersion.folder` moved them over by rename and cleared Core ML's stale cache), whose path installs keep: that keeps the CPU-only preprocessor's compile and Core ML's path entries, but the other three compile again after every install (Nov 5, builds 448 to 458).
 - Ultra's int8 encoder never caches there and takes 3 to 6 minutes, hot, every load (`scripts/voiceprobe`; FluidAudio #1022).
 - Parakeet Unified, the English Parakeet Anomaly's Hex uses, gets 15% fewer of Bassim's words wrong than v3 (2.06% to 2.41% with um and uh set aside) but isn't offered: in FluidAudio 0.18.0 on the Duo it never runs on the Neural Engine, taking 77 s (int8) or 51 s (fp16) to load after a first compile of 5 to 8 minutes, and 9 to 16 s to write 37 s of talking, where v3 takes 0.05 s.
 

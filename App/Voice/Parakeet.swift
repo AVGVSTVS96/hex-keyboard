@@ -28,8 +28,8 @@ nonisolated extension Parakeet {
 
 nonisolated extension AsrModelVersion {
     /// Where this Parakeet's files live: the App Group's container, whose path outlives an install, where the app's own
-    /// container gets a new one with each. Core ML keys what it compiles for the Neural Engine by the path a model loads
-    /// from, so loaded from the app's container all four parts compiled again after every install, writing about 600 MB.
+    /// container gets a new one with each. Core ML keys what it compiles by the path a model loads from, so here an install
+    /// leaves the preprocessor's compile in place; the parts on the Neural Engine compile again anyway (App/Voice/AGENTS.md).
     var folder: URL {
         let own = AsrModels.defaultCacheDirectory(for: self)
         return Self.shared?.appending(path: "Models").appending(path: own.lastPathComponent) ?? own

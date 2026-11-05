@@ -10,8 +10,9 @@
 # Hex a new, empty container, as one after deleting the app does, is written in the backup's `reinstalls`, so
 # scripts/backup and scripts/restore take the near-empty files sent in the day after it for that rather than for you.
 # Then it starts Hex in the background, now or the moment the iPhone next unlocks (scripts/unlocked), so Parakeet
-# is ready, or compiles when it must, right away rather than at the next dictation; an install alone no longer
-# recompiles it, since its models live in the App Group's container, whose path installs keep (App/Voice/Parakeet.swift).
+# compiles for the new build right away rather than at the next dictation. That compile has iikb write about 500 MB
+# (App/Voice/AGENTS.md), so main is installed only when something iikb is built from has changed since the commit last
+# installed, which the stamp keeps: a commit to docs, tests or scripts alone goes with the next one that changes iikb.
 # It builds main's last commit in its own worktree, so agents' branches and uncommitted edits never reach the phone,
 # and one run at a time, so agents installing at once queue instead of sharing that worktree. The build number is main's
 # commit count, which Settings › About shows as "Version 0.1.0 (<build>)"; when the iPhone already has that build,
@@ -48,6 +49,12 @@ MAC
 )
 if [ "$installed" = "$number" ] && [ "${1:-}" != --reinstall ]; then
   echo "build $number (main $commit) is already on the iPhone"
+  exit 0
+fi
+read -r stamped from < "$stamp" 2>/dev/null || true
+if [ "$installed" = "${stamped:-}" ] && [ "${1:-}" != --reinstall ] && git diff --quiet "$from" "$commit" -- App Keyboard Config/xtool \
+  xtool.yml Package.swift Package.resolved Packages/HexKeyboard/Package.swift Packages/HexKeyboard/Sources ':(exclude)**/AGENTS.md' 2>/dev/null; then
+  echo "build $installed (main $from) is on the iPhone and nothing iikb is built from has changed since, so main $commit waits for a change that needs an install"
   exit 0
 fi
 git -C "$build" checkout -q -f --detach "$commit"
@@ -107,5 +114,5 @@ if [ "$fresh" = True ]; then
 fi
 ssh mac 'cat > Developer/hex-keyboard-phone/unlocked' < scripts/unlocked
 ssh mac "pkill -f hex-keyboard-phone/unlocked; nohup /usr/bin/python3 -I Developer/hex-keyboard-phone/unlocked $phone >/dev/null 2>&1 </dev/null &"
-touch "$stamp"
+echo "$number $(git rev-parse "$commit")" > "$stamp"
 echo "build $number (main $commit) is on the iPhone"
