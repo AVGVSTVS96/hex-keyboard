@@ -33,6 +33,35 @@ struct ArchitectureTests {
         }
     }
 
+    @Test func agentsNamesOnlyCodeThatExists() throws {
+        let files = Self.files(in: ".")
+        var words = Set(files.map { $0.deletingPathExtension().lastPathComponent })
+        for file in files where file.pathExtension != "md" {
+            guard let text = try? String(contentsOf: file, encoding: .utf8) else { continue }
+            let code = file.pathExtension == "swift" ? text.split(separator: "\n").map { $0.split(separator: "//", maxSplits: 1).first ?? "" }.joined(separator: " ") : text
+            words.formUnion(code.split { !($0.isLetter || $0.isNumber || $0 == "_") }.map(String.init))
+        }
+        let agents = try String(contentsOf: Self.root.appending(path: "AGENTS.md"), encoding: .utf8)
+        for quoted in agents.split(separator: "`").enumerated().filter({ $0.offset % 2 == 1 }).map(\.element) {
+            let name = quoted.split(separator: "(").first ?? quoted
+            let parts = name.split(separator: ".", omittingEmptySubsequences: false)
+            guard parts.allSatisfy({ $0.first.map { $0.isLetter || $0 == "_" } == true && $0.allSatisfy { $0.isLetter || $0.isNumber || $0 == "_" } }),
+                  parts.count == 1 || parts[0].first!.isUppercase else { continue }
+            let stale = parts.contains { !words.contains(String($0)) }
+            #expect(!stale, "AGENTS.md names `\(quoted)`, which no code declares or uses; rename it to what replaced it or drop it.")
+        }
+    }
+
+    @Test func noConflictMarkers() {
+        for file in Self.files(in: ".") {
+            guard let text = try? String(contentsOf: file, encoding: .utf8) else { continue }
+            for (number, line) in text.split(separator: "\n", omittingEmptySubsequences: false).enumerated()
+            where ["<<<<<<<", "|||||||", ">>>>>>>"].contains(where: { line == $0 || line.hasPrefix($0 + " ") }) {
+                Issue.record("\(Self.relative(file)):\(number + 1) is a merge conflict marker; keep the side that's right, merge the two, and delete the markers.")
+            }
+        }
+    }
+
     static func files(in folder: String) -> [URL] {
         let skipped: Set = [".git", "build", ".build", ".swiftpm", "DerivedData", "node_modules", "dist", "raw", "xtool", ".scratch", ".vercel"]
         guard let walk = FileManager.default.enumerator(at: root.appending(path: folder), includingPropertiesForKeys: [.isRegularFileKey, .fileSizeKey]) else { return [] }
