@@ -19,7 +19,7 @@ Voice typing, the app's biggest part, has its own doc: Voice/AGENTS.md.
   - what the model wrote, and what the keyboard typed and it ended as once you edited and sent it (`Transcript.field`);
   - its sound as a `Recording`, a 16 kHz WAV written as it's heard (a recording an ended app left with no transcript is written down on the next launch), up to 512 MB;
   - the microphone it came from, whether voice processing heard it (`scripts/voicehealth.py` counts each capture's failures), and the app it was typed into.
-  - The page lists them with a words-a-day chart, and a transcript with its sound can be written again with the model picked now.
+  - The page lists them under a card of how much you dictate (words, this week against the last, two weeks a day, time, pace, today) that opens Stats › Dictation, and a transcript with its sound can be written again with the model picked now.
 - **Clipboard** (`ClipboardPage`): the history the keyboard's clipboard panel keeps, the same `ClipboardStore`, pinned first then by day. A tap copies an item again, and the app keeps what's on the clipboard when it comes forward once the keyboard has started the history.
 - **Stats** (`StatsPage`, docs/stats.md): Typing, Dictation and Taps as pills, the iPhone's or, in the menu beside the title, the Mac's.
   - `DeviceStats` shows an `Activity`: speed, words a day, the hours you type or talk in, then on the iPhone where your typed words came from and the apps typed in, or your dictations and the apps dictated into; on the Mac the apps dictated into.

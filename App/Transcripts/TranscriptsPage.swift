@@ -175,7 +175,9 @@ private struct Actions: View {
     }
 }
 
-/// How much you've dictated: words, time talking and pace overall, and words per day for the last two weeks.
+/// How much you've dictated, in dictation's pink: every word said, how this week compares with the one before, words a
+/// day for the last two weeks with the best day marked, then time talking, pace and today. A tap opens Stats ›
+/// Dictation.
 private struct Summary: View {
     let transcripts: [Transcript]
 
@@ -196,59 +198,109 @@ private struct Summary: View {
         return (0 ..< 14).reversed().compactMap { calendar.date(byAdding: .day, value: -$0, to: today) }.map { Day(date: $0, words: words[$0] ?? 0) }
     }
 
+    /// How many percent more or fewer words the last seven days hold than the seven before, once both have some.
+    private func trend(_ days: [Day]) -> Int? {
+        let before = days.prefix(7).reduce(0) { $0 + $1.words }, lately = days.suffix(7).reduce(0) { $0 + $1.words }
+        guard before > 0, lately > 0 else { return nil }
+        let change = Int((Double(lately - before) / Double(before) * 100).rounded())
+        return change == 0 ? nil : change
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            HStack(alignment: .firstTextBaseline) {
-                Stat(title: "Words", value: words.formatted())
-                Stat(title: "Talking", value: Duration.seconds(seconds).formatted(.units(allowed: [.hours, .minutes, .seconds], width: .narrow, maximumUnitCount: 2)))
-                Stat(title: "Pace", value: seconds >= 1 ? "\(Int((Double(words) / seconds * 60).rounded())) wpm" : "–")
-            }
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Words a day, last 2 weeks")
-                    .font(.footnote)
+        let days = fortnight
+        let today = days.last?.words ?? 0
+        Button { Router.shared.show(StatsPage.Section.dictation) } label: {
+            VStack(alignment: .leading, spacing: 18) {
+                HStack(spacing: 10) {
+                    Glyph(symbol: "waveform", color: .pink, size: 26)
+                    Text("Dictation")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(Color.appSecondary)
+                    Spacer()
+                    HStack(spacing: 3) {
+                        Text("Stats")
+                        Image(systemName: "chevron.right").font(.footnote.weight(.semibold))
+                    }
+                    .font(.subheadline.weight(.medium))
                     .foregroundStyle(Color.appSecondary)
-                Chart(fortnight) { day in
-                    BarMark(x: .value("Day", day.date, unit: .day), y: .value("Words", day.words), width: .ratio(0.62))
-                        .foregroundStyle(Calendar.current.isDateInToday(day.date) ? Color.primary : Color.appSecondary.opacity(0.55))
-                        .clipShape(.rect(cornerRadius: 3))
                 }
-                .chartXAxis {
-                    AxisMarks(values: .stride(by: .day, count: 7)) { _ in
-                        AxisValueLabel(format: .dateTime.month(.abbreviated).day(), centered: true)
-                    }
+                HStack(alignment: .firstTextBaseline, spacing: 10) {
+                    Text(words.formatted())
+                        .font(.display(44))
+                        .tracking(-0.03 * 44)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
+                        .contentTransition(.numericText())
+                    Text(words == 1 ? "word said" : "words said")
+                        .font(.subheadline)
+                        .foregroundStyle(Color.appSecondary)
+                        .lineLimit(1)
+                    Spacer(minLength: 0)
+                    if let trend = trend(days) { TrendChip(points: trend, unit: "% this week") }
                 }
-                .chartYAxis {
-                    AxisMarks(position: .trailing, values: .automatic(desiredCount: 3)) {
-                        AxisGridLine()
-                        AxisValueLabel()
-                    }
+                FortnightChart(days: days.map { ($0.date, $0.words) })
+                Rectangle().fill(Color.appDivider).frame(height: 1)
+                HStack(alignment: .top, spacing: 12) {
+                    Figure(value: Duration.seconds(seconds).formatted(.units(allowed: [.hours, .minutes, .seconds], width: .narrow, maximumUnitCount: 2)), label: "talking", size: 22)
+                    Figure(value: seconds >= 1 ? "\(Int((Double(words) / seconds * 60).rounded())) wpm" : "–", label: "pace", size: 22)
+                    Figure(value: today.formatted(), label: "today", size: 22)
                 }
-                .frame(height: 120)
             }
+            .padding(20)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.appCard, in: .rect(cornerRadius: AppStyle.cardRadius, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: AppStyle.cardRadius, style: .continuous).strokeBorder(Color.appEdge))
+            .contentShape(.rect(cornerRadius: AppStyle.cardRadius))
         }
-        .padding(20)
-        .background(Color.appCard, in: .rect(cornerRadius: AppStyle.cardRadius, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: AppStyle.cardRadius, style: .continuous).strokeBorder(Color.appEdge))
+        .buttonStyle(CardPress())
+        .accessibilityHint("Opens Stats")
     }
 }
 
-private struct Stat: View {
-    let title: String
-    let value: String
+/// Words a day for two weeks in pink, today full and the rest softer, the best day's count over its column and a dashed
+/// line at the average of the days you talked.
+private struct FortnightChart: View {
+    let days: [(date: Date, words: Int)]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(value)
-                .font(.title2.weight(.semibold))
-                .monospacedDigit()
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-            Text(title)
-                .font(.footnote)
-                .foregroundStyle(Color.appSecondary)
+        let active = days.filter { $0.words > 0 }
+        let average = active.isEmpty ? 0 : active.reduce(0) { $0 + $1.words } / active.count
+        let best = days.max { $0.words < $1.words }
+        Chart {
+            ForEach(days, id: \.date) { day in
+                let strength = Calendar.current.isDateInToday(day.date) || day.date == best?.date ? 1.0 : 0.45
+                BarMark(x: .value("Day", day.date, unit: .day), y: .value("Words", day.words), width: .ratio(0.64))
+                    .foregroundStyle(LinearGradient(colors: [.pink.opacity(strength), .purple.opacity(strength)], startPoint: .top, endPoint: .bottom))
+                    .clipShape(UnevenRoundedRectangle(topLeadingRadius: 4, topTrailingRadius: 4, style: .continuous))
+                    .annotation(position: .top, spacing: 4) {
+                        if day.date == best?.date, day.words > 0 {
+                            Text(day.words.formatted(.number.notation(.compactName)))
+                                .font(.caption2.weight(.semibold))
+                                .monospacedDigit()
+                                .foregroundStyle(Color.pink)
+                        }
+                    }
+            }
+            if active.count > 1 {
+                RuleMark(y: .value("Average", average))
+                    .foregroundStyle(Color.appSecondary.opacity(0.6))
+                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
+                    .annotation(position: .top, alignment: .leading, spacing: 2) {
+                        Text("avg \(average.formatted(.number.notation(.compactName)))")
+                            .font(.caption2)
+                            .monospacedDigit()
+                            .foregroundStyle(Color.appSecondary)
+                    }
+            }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityElement(children: .combine)
+        .chartYAxis(.hidden)
+        .chartXAxis {
+            AxisMarks(values: .stride(by: .day, count: 7)) { _ in
+                AxisValueLabel(format: .dateTime.month(.abbreviated).day(), centered: true)
+            }
+        }
+        .frame(height: 112)
+        .accessibilityLabel("Words a day, last 2 weeks")
     }
 }
 

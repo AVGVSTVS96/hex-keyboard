@@ -354,17 +354,18 @@ private struct Meter: View {
 /// How your last taps compare: green and up when they land more often, orange and down when less.
 struct TrendChip: View {
     let points: Int
+    var unit = " lately"
 
     var body: some View {
         let up = points > 0
-        Text("\(up ? "+" : "−")\(abs(points)) lately")
+        Text("\(up ? "+" : "−")\(abs(points))\(unit)")
             .font(.footnote.weight(.semibold))
             .monospacedDigit()
             .foregroundStyle(up ? Color.green : TapColor.miss)
             .padding(.horizontal, 9)
             .padding(.vertical, 4)
             .background((up ? Color.green : TapColor.miss).opacity(0.14), in: .capsule)
-            .accessibilityLabel(up ? "Up \(points) points lately" : "Down \(-points) points lately")
+            .accessibilityLabel("\(up ? "Up" : "Down") \(abs(points))\(unit)")
     }
 }
 
