@@ -57,7 +57,13 @@ import Observation
     /// from a Bluetooth speaker or AirPlay to the iPhone, and music apps pause, so while one plays it hears from one.
     func open() throws {
         guard lock == nil else { return }
-        try begin()
+        do {
+            try begin()
+        } catch {
+            try? engine.inputNode.setVoiceProcessingEnabled(false)
+            try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+            throw error
+        }
         lock = Dictation.lockMic() ?? -1
         Dictation.send(.changed)
     }
