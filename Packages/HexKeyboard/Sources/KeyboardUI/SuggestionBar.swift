@@ -4,7 +4,8 @@ import KeyboardCore
 /// Apple's three suggestions with the word's emoji (as many as fit, and the rest a swipe left away), a round mic at the
 /// right end that starts and stops dictation, and the tools at the left end, all placed on the top row's keys by
 /// `BarLayout`. While the app listens, the mic grows into a red capsule over the suggestions holding the time so far and
-/// the waveform of your voice, with a cancel button before it.
+/// the waveform of your voice, and lets out a cancel button before it. Once you stop, dictations still waiting for the
+/// model stack as cards in its place.
 final class SuggestionBar: UIView {
     var onSelect: (Suggestion) -> Void = { _ in }
     var onEmoji: (String) -> Void = { _ in }
@@ -24,6 +25,7 @@ final class SuggestionBar: UIView {
         didSet {
             guard micInBar != oldValue else { return }
             mic.isHidden = !micInBar
+            waveform.mask = micInBar ? capsule : nil
             setNeedsLayout()
         }
     }
@@ -37,6 +39,9 @@ final class SuggestionBar: UIView {
     private let mic = MicButton()
     private let cancel = CancelButton()
     private let waveform = Waveform()
+    /// The waveform's mask in the bar: the mic's own shape, moved with it, so the recording shows only inside the red.
+    private let capsule = UIView()
+    private let stack = PendingStack()
     private let notice = UILabel()
     private var emojiBeside = false
     private var enabled = true
@@ -62,9 +67,11 @@ final class SuggestionBar: UIView {
         addSubview(strip)
         mic.addAction(UIAction { [unowned self] _ in onMic() }, for: .touchUpInside)
         cancel.addAction(UIAction { [unowned self] _ in onCancel() }, for: .touchUpInside)
-        addSubview(cancel)
-        addSubview(mic)
-        addSubview(waveform)
+        mic.breathes = true
+        capsule.backgroundColor = .black
+        capsule.layer.cornerCurve = .continuous
+        waveform.mask = capsule
+        for view in [stack, cancel, mic, waveform] { addSubview(view) }
         notice.isHidden = true
         notice.font = .systemFont(ofSize: 15)
         notice.textAlignment = .center
@@ -108,17 +115,23 @@ final class SuggestionBar: UIView {
     /// the dictations recorded and still to be written, and `waitingFor` what they wait for while the model gets ready.
     func update(mic: MicButton.Phase, recorded: Double, saved: [Double], waitingFor: String?, notice: String?, theme: KeyboardTheme) {
         let grows = (mic == .listening) != (self.mic.phase == .listening)
+        if mic == .listening { cancel.isHidden = false }
         self.mic.show(mic, theme: theme)
         cancel.paint(theme)
-        waveform.show(mic, recorded: recorded, saved: saved, waitingFor: waitingFor, tint: mic == .listening && micInBar ? .white : theme.label.ui, theme: theme)
+        waveform.show(mic, recorded: recorded, saved: waitingFor == nil ? 0 : saved.count, tint: micInBar ? .white : theme.label.ui)
+        stack.show(mic, saved: saved, waitingFor: waitingFor, theme: theme)
         self.notice.text = notice
         self.notice.textColor = theme.candidate.ui
         noticed = notice != nil
         refresh()
-        guard grows, window != nil else { return }
+        guard grows else { return }
         setNeedsLayout()
-        UIView.animate(springDuration: mic == .listening ? 0.45 : 0.35, bounce: mic == .listening ? 0.12 : 0, options: [.beginFromCurrentState, .allowUserInteraction]) {
-            self.layoutIfNeeded()
+        guard window != nil else {
+            cancel.isHidden = mic != .listening
+            return
+        }
+        morph(growing: mic == .listening, { self.layoutIfNeeded() }) { _ in
+            if self.mic.phase != .listening { self.cancel.isHidden = true }
         }
     }
 
@@ -149,19 +162,21 @@ final class SuggestionBar: UIView {
 
     func hear(_ level: Float, recorded: Double) {
         waveform.hear(level, recorded: recorded)
+        mic.hear(level)
     }
 
-    /// While you dictate, the cancel button sits in its place, before the recording. Otherwise it waits shrunk behind
-    /// the mic, so as the mic grows into the recording it splits off the capsule's leading edge and rides out to its
-    /// place on the same spring, and slides back in when the recording ends, with no fade. Where the mic sits in the
-    /// bottom row, it fades in and out in its place.
+    /// While you dictate, the cancel button sits in its place, before the recording. Otherwise it waits tucked at half
+    /// its size behind the mic, so as the mic grows it comes out from under the capsule's leading edge and rides out to
+    /// its place on the same spring, and tucks back in as the capsule shrinks; it's hidden only once it's behind. Where
+    /// the mic is the Record Key, it fades in and out in its place.
     private func placeCancel(_ place: CGRect, behind mic: CGRect?) {
         let listening = self.mic.phase == .listening
-        let waiting = mic.map { CGPoint(x: $0.midX, y: $0.midY) }
+        let tucked = listening ? nil : mic
         cancel.bounds.size = place.size
-        cancel.center = listening ? CGPoint(x: place.midX, y: place.midY) : waiting ?? CGPoint(x: place.midX, y: place.midY)
-        cancel.transform = listening ? .identity : CGAffineTransform(scaleX: waiting == nil ? 0.9 : 0.5, y: waiting == nil ? 0.9 : 0.5)
-        cancel.alpha = listening || waiting != nil ? 1 : 0
+        cancel.center = CGPoint(x: (tucked ?? place).midX, y: (tucked ?? place).midY)
+        let scale: CGFloat = listening ? 1 : mic == nil ? 0.9 : 0.5
+        cancel.transform = CGAffineTransform(scaleX: scale, y: scale)
+        cancel.alpha = listening || mic != nil ? 1 : 0
     }
 
     @objc private func tapNotice() {
@@ -173,7 +188,6 @@ final class SuggestionBar: UIView {
     private func refresh() {
         let quiet = !enabled || noticed || recording
         notice.isHidden = !noticed || recording
-        waveform.isHidden = !recording
         cancel.shows = mic.phase == .listening
         slots.forEach { $0.isHidden = quiet }
         strip.isHidden = quiet || emoji.isEmpty
@@ -235,10 +249,18 @@ final class SuggestionBar: UIView {
         for (index, divider) in dividers.enumerated() {
             divider.frame = CGRect(x: slots[index].frame.maxX - 0.5, y: row.midY - 14, width: 1, height: 28)
         }
-        let end = layout.mic.map { CGFloat($0.x) - 6 } ?? CGFloat(layout.recording.x + layout.recording.width)
-        let start = CGFloat(layout.recording.x) + 14
-        waveform.bounds.size = CGSize(width: max(end - start, 0), height: row.height)
-        waveform.center = CGPoint(x: (start + end) / 2, y: row.midY)
+        let span = CGRect(layout.recording)
+        if micInBar {
+            waveform.frame = span
+            waveform.insets = (leading: 12, trailing: span.height)
+            capsule.frame = micPlace.offsetBy(dx: -span.minX, dy: -span.minY)
+            capsule.layer.cornerRadius = micPlace.height / 2
+        } else {
+            waveform.frame = CGRect(x: span.minX, y: row.minY, width: span.width, height: row.height)
+            waveform.insets = (leading: 0, trailing: 0)
+        }
+        let waits = layout.mic.map { CGFloat($0.x) - 6 } ?? span.maxX
+        stack.frame = CGRect(x: span.minX, y: row.minY, width: max(waits - span.minX, 0), height: row.height)
         notice.frame = row.insetBy(dx: 4, dy: 0)
     }
 }
@@ -249,8 +271,8 @@ private func loudness(_ level: Float) -> CGFloat {
 }
 
 /// Motion that follows your voice, a quick spring with no bounce, so each level carries on from the last mid-flight.
-private func follow(_ changes: @escaping () -> Void) {
-    UIView.animate(springDuration: 0.18, bounce: 0, options: [.beginFromCurrentState, .allowUserInteraction], animations: changes)
+private func follow(duration: TimeInterval = 0.18, _ changes: @escaping () -> Void) {
+    UIView.animate(springDuration: duration, bounce: 0, options: [.beginFromCurrentState, .allowUserInteraction], animations: changes)
 }
 
 /// A change of state, slower than following your voice, and still interruptible.
@@ -258,37 +280,56 @@ private func settle(bounce: CGFloat = 0, _ changes: @escaping () -> Void, comple
     UIView.animate(springDuration: 0.35, bounce: bounce, options: [.beginFromCurrentState, .allowUserInteraction], animations: changes, completion: completion)
 }
 
+/// The mic growing into the recording, with a little give, or shrinking back without: the capsule, its color, its
+/// glyphs and the cancel button it lets out all move on this one spring, so they never drift apart.
+private func morph(growing: Bool, _ changes: @escaping () -> Void, completion: ((Bool) -> Void)? = nil) {
+    UIView.animate(
+        springDuration: growing ? 0.45 : 0.35, bounce: growing ? 0.12 : 0, options: [.beginFromCurrentState, .allowUserInteraction],
+        animations: changes, completion: completion
+    )
+}
+
 /// The bar's mic: a round button, white on dark and black on light, with a green dot while the app keeps the
 /// microphone on. While it listens it turns record red and grows into a capsule over the suggestions, which holds the
-/// waveform, with a white stop where the mic was; while the app writes a dictation down a spinner takes the glyph's
-/// place, and a tap still starts the next one. Tap to start or stop; only the app turns the microphone off.
+/// recording, with a white stop where the mic was and a soft red halo that swells as you talk; while the
+/// app writes a dictation down a spinner takes the glyph's place, and a tap still starts the next one. Tap to start or
+/// stop; only the app turns the microphone off.
 final class MicButton: UIControl {
     enum Phase { case off, on, listening, writing }
 
     /// The face's corner radius, where it takes a key's shape; otherwise round.
     var corner: CGFloat? { didSet { setNeedsLayout() } }
+    /// Whether a halo swells around it with your voice while it listens: in the bar, never as the Record Key, whose
+    /// neighbors sit too close.
+    var breathes = false
     private(set) var phase = Phase.off
+    private let halo = UIView()
     private let face = UIView()
     private let glyph = UIImageView()
+    private let stop = UIImageView()
     private let dot = UIView()
     private let spinner = UIActivityIndicatorView(style: .medium)
     private var theme = KeyboardTheme.lightCurrent
     private var glyphSide: CGFloat = 0
+    private var voice: CGFloat = 0
 
     override init(frame: CGRect) {
         super.init(frame: frame)
         accessibilityIdentifier = "hex.mic"
         isAccessibilityElement = true
         accessibilityTraits = .button
-        face.isUserInteractionEnabled = false
-        face.layer.cornerCurve = .continuous
-        for view in [face, glyph, dot, spinner] as [UIView] {
+        for view in [halo, face] { view.layer.cornerCurve = .continuous }
+        for view in [halo, face, glyph, stop, dot, spinner] as [UIView] {
             view.isUserInteractionEnabled = false
             addSubview(view)
         }
-        glyph.contentMode = .center
+        halo.alpha = 0
+        stop.alpha = 0
+        stop.tintColor = .white
+        for view in [glyph, stop] { view.contentMode = .center }
         dot.backgroundColor = UIColor(red: 0x30 / 255, green: 0xD1 / 255, blue: 0x58 / 255, alpha: 1)
         spinner.hidesWhenStopped = false
+        spinner.alpha = 0
     }
 
     required init?(coder: NSCoder) { fatalError() }
@@ -304,8 +345,9 @@ final class MicButton: UIControl {
         }
     }
 
+    /// Into or out of listening it moves on `morph`, the spring the bar grows it on; otherwise it settles.
     func show(_ phase: Phase, theme: KeyboardTheme) {
-        let changed = phase != self.phase
+        let old = self.phase
         self.phase = phase
         self.theme = theme
         accessibilityLabel = phase == .listening ? "Stop Dictating" : "Dictate"
@@ -314,37 +356,51 @@ final class MicButton: UIControl {
         case .writing: "Writing"
         case .off, .listening: nil
         }
+        if phase != .listening { voice = 0 }
         if phase == .writing { spinner.startAnimating() }
-        if changed, window != nil {
-            UIView.transition(with: glyph, duration: 0.2, options: [.transitionCrossDissolve, .beginFromCurrentState, .allowUserInteraction]) {
-                self.glyph.image = self.symbol
-            }
-            settle({ self.refresh() }) { _ in if self.phase != .writing { self.spinner.stopAnimating() } }
-        } else {
-            glyph.image = symbol
-            if phase != .writing { spinner.stopAnimating() }
+        let done: (Bool) -> Void = { _ in if self.phase != .writing { self.spinner.stopAnimating() } }
+        guard phase != old, window != nil else {
             refresh()
+            return done(true)
+        }
+        if (phase == .listening) != (old == .listening) {
+            morph(growing: phase == .listening, { self.refresh() }, completion: done)
+        } else {
+            settle({ self.refresh() }, completion: done)
         }
     }
 
-    /// The glyph in proportion with the circle (15 points in a 28 one, the stop 12), and no bigger than 17 and 13 in
-    /// the Record Key's key.
-    private var symbol: UIImage? {
-        let listening = phase == .listening
-        let side = min(bounds.width, bounds.height) > 0 ? min(bounds.width, bounds.height) : 28
-        let size = min((side * (listening ? 0.43 : 0.54)).rounded(), listening ? 13 : 17)
-        return UIImage(systemName: listening ? "stop.fill" : "waveform", withConfiguration: UIImage.SymbolConfiguration(pointSize: size, weight: .semibold))
+    /// The halo swells with your voice, on a softer spring than the bars, so it breathes rather than flickers.
+    func hear(_ level: Float) {
+        guard phase == .listening, breathes else { return }
+        voice = loudness(level)
+        follow(duration: 0.32) { self.layoutHalo() }
     }
 
+    /// The glyphs never change color: the mic's waveform shrinks away in its own color as the stop, always white,
+    /// grows in its place, so neither flashes against the face while it turns red.
     private func refresh() {
-        let listening = phase == .listening
-        glyph.tintColor = listening ? .white : theme.micGlyph.ui
-        glyph.alpha = phase == .writing ? 0 : 1
+        let listening = phase == .listening, idle = phase == .off || phase == .on
         face.backgroundColor = listening ? theme.record.ui : theme.mic.ui
+        halo.backgroundColor = theme.record.ui
+        halo.alpha = listening && breathes ? 0.2 : 0
+        glyph.tintColor = theme.micGlyph.ui
+        glyph.alpha = idle ? 1 : 0
+        glyph.transform = idle ? .identity : CGAffineTransform(scaleX: 0.5, y: 0.5)
+        stop.alpha = listening ? 1 : 0
+        stop.transform = listening ? .identity : CGAffineTransform(scaleX: 0.5, y: 0.5)
         dot.alpha = phase == .on ? 1 : 0
         dot.transform = phase == .on ? .identity : CGAffineTransform(scaleX: 0.5, y: 0.5)
         spinner.color = theme.micGlyph.ui
         spinner.alpha = phase == .writing ? 1 : 0
+        spinner.transform = CGAffineTransform(scaleX: phase == .writing ? 0.75 : 0.5, y: phase == .writing ? 0.75 : 0.5)
+        layoutHalo()
+    }
+
+    /// The glyphs in proportion with the circle (the waveform 15 points in a 28 one, the stop 12), and no bigger than 17
+    /// and 13 in the Record Key's key.
+    private static func symbol(_ name: String, side: CGFloat, ratio: CGFloat, largest: CGFloat) -> UIImage? {
+        UIImage(systemName: name, withConfiguration: UIImage.SymbolConfiguration(pointSize: min((side * ratio).rounded(), largest), weight: .semibold))
     }
 
     /// The circle is smaller than a fingertip; taps a little around it still reach it.
@@ -352,24 +408,36 @@ final class MicButton: UIControl {
         bounds.insetBy(dx: -6, dy: -6).contains(point)
     }
 
-    /// The glyph, spinner and dot sit in the square at the right end of the capsule, or in the middle of a circle or key.
+    /// The glyphs, spinner and dot sit in the square at the right end of the capsule, or in the middle of a circle or key.
     override func layoutSubviews() {
         super.layoutSubviews()
         face.frame = bounds
         face.layer.cornerRadius = corner ?? bounds.height / 2
         let side = min(bounds.width, bounds.height)
         let end = CGRect(x: bounds.width > bounds.height * 1.5 ? bounds.width - side : (bounds.width - side) / 2, y: (bounds.height - side) / 2, width: side, height: side)
-        if glyphSide != side {
+        if glyphSide != side, side > 0 {
             glyphSide = side
-            glyph.image = symbol
+            glyph.image = Self.symbol("waveform", side: side, ratio: 0.54, largest: 17)
+            stop.image = Self.symbol("stop.fill", side: side, ratio: 0.43, largest: 13)
         }
-        glyph.frame = end
+        for view in [glyph, stop] {
+            view.bounds.size = end.size
+            view.center = CGPoint(x: end.midX, y: end.midY)
+        }
         spinner.center = CGPoint(x: end.midX, y: end.midY)
-        spinner.transform = CGAffineTransform(scaleX: 0.75, y: 0.75)
         let dotSide: CGFloat = 6
         dot.bounds = CGRect(x: 0, y: 0, width: dotSide, height: dotSide)
         dot.center = CGPoint(x: end.maxX - dotSide / 2 - end.width * 0.04, y: end.minY + end.width * 0.04 + dotSide / 2)
         dot.layer.cornerRadius = dotSide / 2
+        layoutHalo()
+    }
+
+    /// The halo hugs the capsule, a point out when you're quiet and four when you're loud.
+    private func layoutHalo() {
+        let out = phase == .listening ? 1 + 3 * voice : 0
+        halo.bounds.size = CGSize(width: bounds.width + 2 * out, height: bounds.height + 2 * out)
+        halo.center = CGPoint(x: bounds.midX, y: bounds.midY)
+        halo.layer.cornerRadius = (corner ?? bounds.height / 2) + out
     }
 }
 
@@ -377,7 +445,8 @@ final class MicButton: UIControl {
 /// mic does. `SuggestionBar` moves it, out of the mic and back.
 private final class CancelButton: UIControl {
     private let face = UIView()
-    private let glyph = UIImageView(image: UIImage(systemName: "xmark", withConfiguration: UIImage.SymbolConfiguration(pointSize: 12, weight: .semibold)))
+    private let glyph = UIImageView()
+    private var glyphSide: CGFloat = 0
 
     var shows = false {
         didSet {
@@ -398,6 +467,7 @@ private final class CancelButton: UIControl {
         face.addSubview(glyph)
         isUserInteractionEnabled = false
         accessibilityElementsHidden = true
+        isHidden = true
     }
 
     required init?(coder: NSCoder) { fatalError() }
@@ -420,25 +490,31 @@ private final class CancelButton: UIControl {
         bounds.insetBy(dx: -6, dy: -6).contains(point)
     }
 
+    /// The x as heavy as the stop beside it and in the same proportion: 11 points in a 28 circle.
     override func layoutSubviews() {
         super.layoutSubviews()
         face.bounds = bounds
         face.center = CGPoint(x: bounds.midX, y: bounds.midY)
         face.layer.cornerRadius = bounds.height / 2
         glyph.frame = bounds
+        let side = min(bounds.width, bounds.height)
+        guard side != glyphSide, side > 0 else { return }
+        glyphSide = side
+        glyph.image = UIImage(systemName: "xmark", withConfiguration: UIImage.SymbolConfiguration(pointSize: (side * 0.39).rounded(), weight: .semibold))
     }
 }
 
-/// The suggestions' place while the app listens: the time so far, then bars that trace your voice, newest on the
-/// right, each as bright as it was loud, the older ones fading out to the left. Each level the app publishes enters at
-/// the right edge and the bars glide left one place in the time the app took to hear it, so they move at the speed of
-/// the recording, never on a timer of the keyboard's own. Dictations recorded while the model gets ready are saved:
-/// while you talk the bar counts them at its right, and once you stop they stack as cards, the next to be typed in
-/// front with its length and the rest peeking out behind it, beside what the model is doing; each lifts away as its
-/// dictation is typed, and the next steps forward.
+/// The recording: the time so far, then bars that trace your voice, newest on the right, each as bright as it was loud,
+/// the older ones fading out to the left. Each level the app publishes enters at the right edge and the bars glide left
+/// one place in the time the app took to hear it, so they move at the speed of the recording, never on a timer of the
+/// keyboard's own. While dictations wait for the model, it counts them at its right. In the bar it lies over the mic's
+/// capsule, masked to it, or on its own where the mic is the Record Key, `insets` in from its ends.
 private final class Waveform: UIView {
     private static let pitch: CGFloat = 5
     private static let barWidth: CGFloat = 2.5
+    var insets: (leading: CGFloat, trailing: CGFloat) = (0, 0) {
+        didSet { if insets != oldValue { setNeedsLayout() } }
+    }
     private let time = UILabel()
     private let track = UIView()
     private let strip = UIView()
@@ -449,91 +525,67 @@ private final class Waveform: UIView {
     private var heard = 0
     private var lastRecorded: Double = 0
     private var laidWidth: CGFloat = -1
-    /// How many are saved while you talk; what they wait for once you stop.
-    private let words = UILabel()
-    private var showsWords = false
-    private var chips: [Chip] = []
-    private var lengths: [Double] = []
+    private let saved = UILabel()
     private var recorded: Double = 0
     private var phase = MicButton.Phase.off
-    /// Stopped, with every dictation saved and waiting for the model: their cards take the bars' place.
-    private var waiting = false
-    private var theme = KeyboardTheme.lightCurrent
-    /// The time's, the bars' and the count's color: white on the mic's red, or the label's where the mic isn't in the bar.
     private var tint = UIColor.white
 
     override init(frame: CGRect) {
         super.init(frame: frame)
         isUserInteractionEnabled = false
-        time.font = .monospacedDigitSystemFont(ofSize: 15, weight: .regular)
+        alpha = 0
+        time.font = .monospacedDigitSystemFont(ofSize: 15, weight: .medium)
         time.accessibilityIdentifier = "hex.time"
-        words.font = .systemFont(ofSize: 15)
-        words.adjustsFontSizeToFitWidth = true
-        words.minimumScaleFactor = 0.7
-        words.lineBreakMode = .byTruncatingTail
-        words.accessibilityIdentifier = "hex.saved"
+        saved.font = .systemFont(ofSize: 15, weight: .medium)
+        saved.textAlignment = .right
+        saved.accessibilityIdentifier = "hex.saved"
+        saved.alpha = 0
         fade.startPoint = CGPoint(x: 0, y: 0.5)
         fade.endPoint = CGPoint(x: 1, y: 0.5)
         fade.colors = [UIColor.clear.cgColor, UIColor.black.cgColor, UIColor.black.cgColor, UIColor.clear.cgColor]
         track.layer.mask = fade
         track.addSubview(strip)
-        for view in [time, track, words] { addSubview(view) }
+        for view in [time, track, saved] { addSubview(view) }
     }
 
     required init?(coder: NSCoder) { fatalError() }
 
-    /// `lengths` are the saved dictations' lengths in seconds, oldest first, and `waitingFor` what they wait for.
-    func show(_ phase: MicButton.Phase, recorded: Double, saved lengths: [Double], waitingFor: String?, tint: UIColor, theme: KeyboardTheme) {
+    /// `saved` is how many dictations wait for the model while you talk. A new recording starts from quiet bars and
+    /// comes in as the capsule uncovers it; a stopped one holds still and goes quickly, under the shrinking capsule.
+    func show(_ phase: MicButton.Phase, recorded: Double, saved count: Int, tint: UIColor) {
         let started = phase == .listening && self.phase != .listening
         let stopped = phase != .listening && self.phase == .listening
-        if phase != .listening, phase != .writing { heard = 0 }
-        if phase != .listening, self.phase == .listening { freeze() }
+        if stopped { freeze() }
+        if started { heard = 0 }
         self.phase = phase
         self.recorded = recorded
-        self.theme = theme
         if phase == .listening { self.tint = tint }
-        showsWords = waitingFor != nil && !lengths.isEmpty
-        let wasWaiting = waiting
-        waiting = phase == .writing && !lengths.isEmpty && (showsWords || waiting)
-        words.text = waiting ? waitingFor : "\(lengths.count) saved"
-        words.textColor = waiting ? theme.candidate.ui : self.tint.withAlphaComponent(0.85)
-        time.textColor = self.tint.withAlphaComponent(0.85)
-        let restacked = lengths != self.lengths
-        if restacked { restack(lengths, animated: wasWaiting && waiting) }
-        for chip in chips { chip.paint(theme) }
+        let counted = count > 0 && phase == .listening
+        let text = count > 0 ? "\(count) saved" : saved.text
+        let recounted = counted != (saved.alpha > 0) || text != saved.text
+        saved.text = text
+        saved.textColor = self.tint.withAlphaComponent(0.9)
+        time.textColor = self.tint.withAlphaComponent(0.9)
         tick()
-        guard window != nil else { return place() }
+        guard window != nil else {
+            alpha = phase == .listening ? 1 : 0
+            saved.alpha = counted ? 1 : 0
+            return layoutContent()
+        }
         if started {
             UIView.performWithoutAnimation {
-                for view in [time, track] {
-                    view.alpha = 0
-                    view.transform = CGAffineTransform(translationX: 24, y: 0)
-                }
+                saved.alpha = counted ? 1 : 0
+                layoutContent()
             }
-            UIView.animate(springDuration: 0.4, bounce: 0, initialSpringVelocity: 0, delay: 0.06, options: [.beginFromCurrentState, .allowUserInteraction]) { self.place() }
+            UIView.animate(withDuration: 0.25, delay: 0.05, options: [.curveEaseOut, .beginFromCurrentState, .allowUserInteraction]) { self.alpha = 1 }
         } else if stopped {
-            UIView.animate(withDuration: 0.12, delay: 0, options: [.curveEaseOut, .beginFromCurrentState, .allowUserInteraction]) { self.place() }
-        } else if wasWaiting != waiting || (waiting && restacked) {
-            settle { self.place() }
-        } else {
-            place()
-        }
-    }
-
-    /// Everything where the state puts it: the bars with the time, or the cards, and what they wait for.
-    private func place() {
-        for view in [time, track] {
-            view.alpha = phase == .listening ? 1 : 0
-            view.transform = .identity
-        }
-        words.alpha = showsWords ? 1 : 0
-        if !waiting {
-            for chip in chips {
-                chip.alpha = 0
-                chip.placed = false
+            UIView.animate(withDuration: 0.15, delay: 0, options: [.curveEaseOut, .beginFromCurrentState, .allowUserInteraction]) { self.alpha = 0 }
+        } else if recounted {
+            settle {
+                self.saved.alpha = counted ? 1 : 0
+                self.layoutContent()
             }
         }
-        layoutContent()
     }
 
     func hear(_ level: Float, recorded: Double) {
@@ -584,52 +636,21 @@ private final class Waveform: UIView {
         lastRecorded = recorded
     }
 
+    /// A bar is a dot when you're quiet and at most 16 tall in the 28 capsule, so it keeps 6 clear above and below.
     private func frame(of index: Int) -> CGRect {
         let scale = traitCollection.displayScale
-        let tallest = min(bounds.height - 18, 20)
+        let tallest = max(min(bounds.height - 12, 18), Self.barWidth)
         let height = (Self.barWidth + (tallest - Self.barWidth) * bars[index].level).rounded(scale: scale)
         let number = heard - bars.count + index
         return CGRect(x: CGFloat(number) * Self.pitch, y: ((bounds.height - height) / 2).rounded(scale: scale), width: Self.barWidth, height: height)
     }
 
     private func color(_ level: CGFloat) -> UIColor {
-        tint.withAlphaComponent(0.45 + 0.55 * level)
-    }
-
-    /// The saved dictations' cards, keeping the ones still waiting: when the oldest are typed they lift away, and a
-    /// newly saved one slides in from the mic's side.
-    private func restack(_ lengths: [Double], animated: Bool) {
-        let typed = self.lengths.count - lengths.count
-        var gone: ArraySlice<Chip> = []
-        if typed > 0, Array(self.lengths.dropFirst(typed)) == lengths {
-            gone = chips.prefix(typed)
-            chips.removeFirst(typed)
-            if animated {
-                UIView.animate(springDuration: 0.25, bounce: 0, options: .beginFromCurrentState) {
-                    gone.forEach {
-                        $0.alpha = 0
-                        $0.transform = CGAffineTransform(translationX: 0, y: -10).scaledBy(x: 0.92, y: 0.92)
-                    }
-                } completion: { _ in gone.forEach { $0.removeFromSuperview() } }
-            } else {
-                gone.forEach { $0.removeFromSuperview() }
-            }
-        } else if lengths.starts(with: self.lengths) {
-            chips += lengths.dropFirst(self.lengths.count).map { _ in Chip(in: self) }
-        } else {
-            chips.forEach { $0.removeFromSuperview() }
-            chips = lengths.map { _ in Chip(in: self) }
-        }
-        self.lengths = lengths
-        for (index, chip) in chips.enumerated() {
-            chip.show(length: lengths[index], index: index)
-        }
-        for chip in chips.reversed() + gone { bringSubviewToFront(chip) }
+        tint.withAlphaComponent(0.5 + 0.5 * level)
     }
 
     private func tick() {
         time.text = Self.clock(Int(recorded))
-        time.sizeToFit()
     }
 
     static func clock(_ seconds: Int) -> String {
@@ -644,19 +665,17 @@ private final class Waveform: UIView {
     /// The bars are laid out again only when the track's width changes or a recording starts, so a status update
     /// never cuts short their glide.
     private func layoutContent() {
-        time.bounds.size = CGSize(width: 44, height: bounds.height)
-        time.center = CGPoint(x: 22, y: bounds.midY)
-        if waiting { return layoutChips() }
-        let saved = showsWords ? (words.intrinsicContentSize.width + 12).rounded(.up) : 0
-        words.textAlignment = .right
-        words.frame = CGRect(x: bounds.width - saved, y: 0, width: saved, height: bounds.height)
-        let width = max(bounds.width - 48 - saved, 0)
-        track.bounds.size = CGSize(width: width, height: bounds.height)
-        track.center = CGPoint(x: 48 + width / 2, y: bounds.midY)
+        let end = bounds.width - insets.trailing
+        time.frame = CGRect(x: insets.leading, y: 0, width: 46, height: bounds.height)
+        let count = saved.alpha > 0 ? (saved.intrinsicContentSize.width + 10).rounded(.up) : 0
+        saved.frame = CGRect(x: end - count, y: 0, width: count, height: bounds.height)
+        let start = insets.leading + 48
+        let width = max(end - count - start, 0)
+        track.frame = CGRect(x: start, y: 0, width: width, height: bounds.height)
         CATransaction.begin()
         CATransaction.setDisableActions(true)
         fade.frame = track.bounds
-        fade.locations = [0, 0.4, NSNumber(value: Double(max(1 - 4 / max(width, 1), 0.9))), 1]
+        fade.locations = [0, 0.35, NSNumber(value: Double(max(1 - 4 / max(width, 1), 0.9))), 1]
         CATransaction.commit()
         let refilling = heard == 0 || bars.count < fits + 1
         if refilling { UIView.performWithoutAnimation { refill() } }
@@ -669,76 +688,178 @@ private final class Waveform: UIView {
         }
         if refilling { UIView.performWithoutAnimation { strip.transform = slid } } else { strip.transform = slid }
     }
+}
 
-    /// The cards, centered with what they wait for beside them: the oldest in front with its length, up to three more
-    /// peeking out to its right, each smaller and fainter than the one before.
-    private func layoutChips() {
-        guard let front = chips.first else { return }
+/// Once you stop, the dictations recorded while the model gets ready, as a stack of cards beside what it's doing: the
+/// next to be typed in front with its length, up to three more tucked behind it and peeking out 6 to its right, each a
+/// little smaller and a solid shade further back, so no card shows through another. A new one slides in behind from
+/// the mic's side; the front one lifts away as it's typed, and the next steps forward into its place.
+private final class PendingStack: UIView {
+    private static let peek: CGFloat = 6
+    private static let shades: [Double] = [0, 0.45, 0.7, 0.9]
+    private var cards: [Card] = []
+    private var lengths: [Double] = []
+    private let words = UILabel()
+    /// What the model is doing; the words keep its last text as they fade, once it's done.
+    private var waitingFor: String?
+    private var shows = false
+    private var theme = KeyboardTheme.lightCurrent
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        isUserInteractionEnabled = false
+        alpha = 0
+        words.font = .systemFont(ofSize: 15)
+        words.adjustsFontSizeToFitWidth = true
+        words.minimumScaleFactor = 0.7
+        words.lineBreakMode = .byTruncatingTail
+        words.accessibilityIdentifier = "hex.waiting"
+        words.alpha = 0
+        addSubview(words)
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    /// It shows while the app writes and the model keeps the saved dictations waiting, and stays up as the model takes
+    /// them, until the last is typed.
+    func show(_ phase: MicButton.Phase, saved lengths: [Double], waitingFor: String?, theme: KeyboardTheme) {
+        let shown = shows
+        shows = phase == .writing && !lengths.isEmpty && (waitingFor != nil || shows)
+        self.theme = theme
+        let reworded = waitingFor != self.waitingFor
+        self.waitingFor = waitingFor
+        if let waitingFor { words.text = waitingFor }
+        words.textColor = theme.candidate.ui
+        let restacked = lengths != self.lengths
+        if restacked { restack(lengths, animated: window != nil && shown) }
+        guard window != nil, shown != shows || (shows && (restacked || reworded)) else { return place() }
+        settle { self.place() }
+    }
+
+    /// The saved dictations' cards, keeping the ones still waiting: the oldest typed lift away, and the newly saved join
+    /// at the back.
+    private func restack(_ lengths: [Double], animated: Bool) {
+        let typed = self.lengths.count - lengths.count
+        if typed > 0, Array(self.lengths.dropFirst(typed)) == lengths {
+            let gone = cards.prefix(typed)
+            cards.removeFirst(typed)
+            if animated {
+                UIView.animate(withDuration: 0.22, delay: 0, options: [.curveEaseOut, .beginFromCurrentState]) {
+                    gone.forEach {
+                        $0.alpha = 0
+                        $0.transform = CGAffineTransform(translationX: 0, y: -8).scaledBy(x: 0.94, y: 0.94)
+                    }
+                } completion: { _ in gone.forEach { $0.removeFromSuperview() } }
+            } else {
+                gone.forEach { $0.removeFromSuperview() }
+            }
+        } else if lengths.starts(with: self.lengths) {
+            cards += lengths.dropFirst(self.lengths.count).map { _ in Card(in: self) }
+        } else {
+            cards.forEach { $0.removeFromSuperview() }
+            cards = lengths.map { _ in Card(in: self) }
+        }
+        self.lengths = lengths
+        for (index, card) in cards.enumerated() { card.show(length: lengths[index], index: index) }
+        for card in cards.reversed() { bringSubviewToFront(card) }
+    }
+
+    /// Everything where the state puts it; hidden, the cards forget their places, so they come in afresh next time.
+    private func place() {
+        alpha = shows ? 1 : 0
+        guard shows else {
+            cards.forEach { $0.placed = false }
+            words.alpha = 0
+            return
+        }
+        layoutCards()
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        if shows { layoutCards() }
+    }
+
+    /// The cards, centered with what they wait for beside them. A card new to the stack starts where it will be,
+    /// nudged toward the mic and a little smaller, so it comes in by moving and growing as much as by fading.
+    private func layoutCards() {
+        guard let front = cards.first else { return }
         let scale = traitCollection.displayScale
         let height = min(bounds.height - 12, 26)
         let width = front.width
-        let peeking = min(chips.count - 1, 3)
-        let stack = width + CGFloat(peeking) * 5
-        let wordsWidth = min(words.intrinsicContentSize.width.rounded(.up), bounds.width * 0.6)
-        let row = stack + (showsWords ? wordsWidth + 10 : 0)
-        let minX = ((bounds.width - row) / 2).rounded(scale: scale)
-        for (depth, chip) in chips.enumerated() {
-            let shrink = 1 - 0.1 * CGFloat(min(depth, 4))
-            let size = CGSize(width: width * shrink, height: (height * shrink).rounded(scale: scale))
-            let maxX = minX + width + CGFloat(min(depth, 4)) * 5
-            let frame = CGRect(x: maxX - size.width, y: ((bounds.height - size.height) / 2).rounded(scale: scale), width: size.width, height: size.height)
-            if chip.placed {
-                chip.frame = frame
-            } else {
-                chip.placed = true
+        let stack = width + CGFloat(min(cards.count - 1, Self.shades.count - 1)) * Self.peek
+        let wordsWidth = waitingFor == nil ? 0 : min(words.intrinsicContentSize.width.rounded(.up), bounds.width * 0.6)
+        let minX = ((bounds.width - stack - (wordsWidth > 0 ? wordsWidth + 10 : 0)) / 2).rounded(scale: scale)
+        for (depth, card) in cards.enumerated() {
+            let place = min(depth, Self.shades.count - 1)
+            let shrink = 1 - 0.08 * CGFloat(place)
+            let size = CGSize(width: (width * shrink).rounded(scale: scale), height: (height * shrink).rounded(scale: scale))
+            let center = CGPoint(x: minX + width + CGFloat(place) * Self.peek - size.width / 2, y: bounds.midY)
+            if !card.placed {
+                card.placed = true
                 UIView.performWithoutAnimation {
-                    chip.frame = frame
-                    chip.alpha = 0
-                    chip.transform = CGAffineTransform(translationX: 16, y: 0).scaledBy(x: 0.9, y: 0.9)
+                    card.bounds.size = size
+                    card.center = center
+                    card.alpha = 0
+                    card.backgroundColor = theme.candidatePill.mixed(with: theme.candidateDivider, Self.shades[place]).ui
+                    card.transform = CGAffineTransform(translationX: 12, y: 0).scaledBy(x: 0.9, y: 0.9)
                 }
             }
-            chip.transform = .identity
-            chip.alpha = depth == 0 ? 1 : depth > 3 ? 0 : 0.7 - 0.2 * CGFloat(depth)
-            chip.label.alpha = depth == 0 ? 1 : 0
+            card.bounds.size = size
+            card.center = center
+            card.transform = .identity
+            card.alpha = depth < Self.shades.count ? 1 : 0
+            card.backgroundColor = theme.candidatePill.mixed(with: theme.candidateDivider, Self.shades[place]).ui
+            card.label.textColor = theme.label.ui
+            card.label.alpha = depth == 0 ? 1 : 0
         }
-        words.textAlignment = .left
-        words.frame = CGRect(x: minX + stack + 10, y: 0, width: wordsWidth, height: bounds.height)
+        guard wordsWidth > 0 else {
+            words.alpha = 0
+            return
+        }
+        let frame = CGRect(x: minX + stack + 10, y: 0, width: wordsWidth, height: bounds.height)
+        if words.alpha == 0 { UIView.performWithoutAnimation { words.frame = frame } } else { words.frame = frame }
+        words.alpha = 1
     }
 }
 
 /// One saved dictation's card: its length in a pill.
-private final class Chip: UIView {
+private final class Card: UIView {
     let label = UILabel()
     var placed = false
 
-    init(in waveform: UIView) {
+    init(in stack: UIView) {
         super.init(frame: .zero)
         label.font = .monospacedDigitSystemFont(ofSize: 13, weight: .medium)
         label.textAlignment = .center
         addSubview(label)
         alpha = 0
         layer.cornerCurve = .continuous
-        waveform.addSubview(self)
+        stack.addSubview(self)
     }
 
     required init?(coder: NSCoder) { fatalError() }
 
-    var width: CGFloat { label.intrinsicContentSize.width.rounded(.up) + 18 }
+    var width: CGFloat { label.intrinsicContentSize.width.rounded(.up) + 20 }
 
     func show(length: Double, index: Int) {
         label.text = Waveform.clock(max(Int(length.rounded()), 1))
         label.accessibilityIdentifier = "hex.saved.\(index)"
     }
 
-    func paint(_ theme: KeyboardTheme) {
-        label.textColor = theme.label.ui
-        backgroundColor = theme.candidatePill.ui
-    }
-
     override func layoutSubviews() {
         super.layoutSubviews()
         label.frame = bounds
         layer.cornerRadius = bounds.height / 2
+    }
+}
+
+private extension RGBA {
+    func mixed(with other: RGBA, _ amount: Double) -> RGBA {
+        RGBA(
+            red: red + (other.red - red) * amount, green: green + (other.green - green) * amount,
+            blue: blue + (other.blue - blue) * amount, alpha: alpha + (other.alpha - alpha) * amount
+        )
     }
 }
 

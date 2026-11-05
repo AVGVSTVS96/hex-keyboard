@@ -35,13 +35,14 @@ final class VoiceTests: XCTestCase {
 
         mic.tap()
         XCTAssertTrue(wait(for: mic, label: "Dictate", value: "Writing"), "tapping it again stops, and while that's written down the mic can dictate again")
-        let saved = app.staticTexts["hex.saved"]
+        let waiting = app.staticTexts["hex.waiting"]
         let chip = app.staticTexts["hex.saved.0"]
-        XCTAssertTrue(wait { saved.label == "Model loading…" && chip.exists && chip.label == "0:05" }, "a dictation waiting for the model shows it's saved, with its length")
+        XCTAssertTrue(wait { waiting.label == "Model loading…" && chip.exists && chip.label == "0:05" }, "a dictation waiting for the model shows it's saved, with its length")
         try shot("\(shots)-writing")
 
         mic.tap()
         XCTAssertTrue(wait(for: mic, label: "Stop Dictating", value: nil), "a tap while the last is written down starts the next dictation")
+        let saved = app.staticTexts["hex.saved"]
         XCTAssertTrue(wait { saved.exists && saved.label == "1 saved" }, "while you talk, the bar still counts the one waiting")
         try shot("\(shots)-listening-saved")
         let field = app.textViews.firstMatch
