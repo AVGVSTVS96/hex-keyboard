@@ -17,7 +17,7 @@ extension Bytes {
         mapped(Bundle.module.url(forResource: name, withExtension: type)!)!
     }
 
-    static func mapped(_ url: URL) -> Bytes? {
+    nonisolated static func mapped(_ url: URL) -> Bytes? {
         guard let file = try? NSData(contentsOf: url, options: .alwaysMapped) else { return nil }
         return Bytes(UnsafeRawBufferPointer(start: file.bytes, count: file.length), owner: file)
     }
