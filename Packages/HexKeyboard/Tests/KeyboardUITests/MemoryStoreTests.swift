@@ -58,6 +58,22 @@ struct MemoryStoreTests {
         #expect(await refresh(MemoryStore())?.counts.keys.sorted() == ["their"], "one scripts/restore put back is kept")
     }
 
+    @Test func savesAMemoryHoldingNaN() async throws {
+        try write(words: ["their"])
+        let keyboard = MemoryStore()
+        var memory = try #require(await refresh(keyboard))
+        let decoder = JSONDecoder()
+        decoder.nonConformingFloatDecodingStrategy = .convertFromString(positiveInfinity: "inf", negativeInfinity: "-inf", nan: "nan")
+        memory.touches = try decoder.decode(TouchModel.self, from: Data("""
+            {"layouts":{"standard":{"m":{"all":{"count":2,"meanX":"nan","meanY":2.5,"scatterXX":0.02,"scatterXY":0,\
+            "scatterYY":0.01},"lately":{"count":2,"x":7.5,"y":2.5},"now":{"count":2,"x":7.5,"y":2.5},"weights":[0.3,0.3,0.4]}}}}
+            """.utf8))
+        memory.record("there", after: nil)
+        keyboard.save(memory, sharing: false)
+        #expect(try saved() == ["their", "there"], "one NaN doesn't stop the memory from saving")
+        #expect(await refresh(MemoryStore())?.touches.taps(for: "m", on: .standard) == 2, "and it reads back")
+    }
+
     private func refresh(_ keyboard: MemoryStore) async -> TypingMemory? {
         var memory: TypingMemory?
         keyboard.refresh { memory = $0 }

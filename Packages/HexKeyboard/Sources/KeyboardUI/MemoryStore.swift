@@ -1,6 +1,7 @@
 import Foundation
 import KeyboardCore
 import notify
+import os
 
 /// Keeps what the keyboard learns in the extension's own container, since without Full Access it can't write to the
 /// App Group. The app resets it by sharing a new reset token through `SettingsStore`; the keyboard starts over when the
@@ -19,6 +20,27 @@ public final class MemoryStore {
 
     private static let resetsKey = "memoryResets"
     nonisolated private static let touchesChanged = "com.shahidy.hexkeyboard.touches"
+    nonisolated private static let log = Logger(subsystem: "com.shahidy.hexkeyboard", category: "memory")
+
+    /// JSON has no NaN or infinity, and a plain encoder refuses the whole memory over one number, so such a number is
+    /// logged and kept as a string, which `decoded` reads back.
+    nonisolated private static func encoded(_ value: some Encodable) throws -> Data {
+        do {
+            return try JSONEncoder().encode(value)
+        } catch EncodingError.invalidValue(let number, let context) {
+            let path = context.codingPath.map(\.stringValue).joined(separator: ".")
+            log.fault("\(String(describing: number), privacy: .public) at \(path, privacy: .public) is saved as a string")
+            let encoder = JSONEncoder()
+            encoder.nonConformingFloatEncodingStrategy = .convertToString(positiveInfinity: "inf", negativeInfinity: "-inf", nan: "nan")
+            return try encoder.encode(value)
+        }
+    }
+
+    nonisolated private static func decoded<T: Decodable>(_ type: T.Type, from url: URL) throws -> T {
+        let decoder = JSONDecoder()
+        decoder.nonConformingFloatDecodingStrategy = .convertFromString(positiveInfinity: "inf", negativeInfinity: "-inf", nan: "nan")
+        return try decoder.decode(type, from: Data(contentsOf: url))
+    }
 
     nonisolated private static var url: URL {
         URL.applicationSupportDirectory.appending(path: "typing-memory.json")
@@ -60,7 +82,7 @@ public final class MemoryStore {
             guard version != base, version != written else { return }
             var memory = TypingMemory()
             if version.modified != nil {
-                guard let saved = try? JSONDecoder().decode(Saved.self, from: Data(contentsOf: Self.url)) else { return }
+                guard let saved = try? Self.decoded(Saved.self, from: Self.url) else { return }
                 if saved.resets == nil || saved.resets == resets ?? saved.resets { memory = saved.memory }
             }
             Task { @MainActor in
@@ -76,12 +98,16 @@ public final class MemoryStore {
         Self.queue.async { [self] in
             let url = Self.url, current = Version(modified: Self.modified, resets: resets)
             guard current == base || current == written else { return }
-            try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-            try? JSONEncoder().encode(Saved(resets: resets ?? 0, memory: memory)).write(to: url, options: .atomic)
+            do {
+                try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+                try Self.encoded(Saved(resets: resets ?? 0, memory: memory)).write(to: url, options: .atomic)
+            } catch {
+                Self.log.fault("typing memory not saved: \(String(describing: error), privacy: .public)")
+            }
             written = Version(modified: Self.modified, resets: resets)
             guard let sharedTouchesURL else { return }
             try? FileManager.default.createDirectory(at: sharedTouchesURL.deletingLastPathComponent(), withIntermediateDirectories: true)
-            guard (try? JSONEncoder().encode(memory.touches).write(to: sharedTouchesURL, options: .atomic)) != nil else { return }
+            guard (try? Self.encoded(memory.touches).write(to: sharedTouchesURL, options: .atomic)) != nil else { return }
             notify_post(Self.touchesChanged)
         }
     }
@@ -91,15 +117,15 @@ public final class MemoryStore {
     }
 
     static func loadEmoji() -> EmojiHistory {
-        (try? JSONDecoder().decode(EmojiHistory.self, from: Data(contentsOf: emojiURL))) ?? EmojiHistory()
+        (try? decoded(EmojiHistory.self, from: emojiURL)) ?? EmojiHistory()
     }
 
     /// Never over a history that's there but can't be read, which `loadEmoji` handed over as empty.
     static func save(_ emoji: EmojiHistory) {
         if FileManager.default.fileExists(atPath: emojiURL.path(percentEncoded: false)),
-           (try? JSONDecoder().decode(EmojiHistory.self, from: Data(contentsOf: emojiURL))) == nil { return }
+           (try? decoded(EmojiHistory.self, from: emojiURL)) == nil { return }
         try? FileManager.default.createDirectory(at: emojiURL.deletingLastPathComponent(), withIntermediateDirectories: true)
-        try? JSONEncoder().encode(emoji).write(to: emojiURL, options: .atomic)
+        try? encoded(emoji).write(to: emojiURL, options: .atomic)
     }
 
     public static func reset() {
@@ -111,7 +137,7 @@ public final class MemoryStore {
 
     /// Where your taps land, as the keyboard last shared it.
     public static func sharedTouches() -> TouchModel? {
-        sharedTouchesURL.flatMap { try? JSONDecoder().decode(TouchModel.self, from: Data(contentsOf: $0)) }
+        sharedTouchesURL.flatMap { try? decoded(TouchModel.self, from: $0) }
     }
 
     /// Calls `handler` on the main queue each time the keyboard shares new touches, until the token is cancelled.
