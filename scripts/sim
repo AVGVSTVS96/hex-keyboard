@@ -266,6 +266,7 @@ stats-mac-dictation -iikbStats dictation -iikbStatsDevice mac
 taps -iikbTaps YES
 sources -iikbSettings sources
 access -iikbSettings access
+privacy -iikbSettings privacy
 PAGES
     done
   done <<<"$DUO_SCREENS"

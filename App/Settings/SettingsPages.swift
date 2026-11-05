@@ -162,14 +162,17 @@ struct PrivacyPage: View {
     @State private var confirmsReset = false
     @State private var confirmsDelete = false
     @State private var confirmsDeleteTyping = false
+    @State private var confirmsClearClipboard = false
     @State private var backup: Backup.Outcome?
+    @State private var clipboard = ClipboardStore()
+    @State private var unpinned = 0
     private let transcripts = Transcripts.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 28) {
             Box(header: "What Leaves This iPhone") {
-                Label(Backup.isBuiltIn ? "Learned words, app-specific language and emoji choices, typing counts, dictations and clipboard history stay here and on your backup server." : "Learned words, app-specific language and emoji choices, typing counts, dictations and clipboard history stay here.", systemImage: "iphone").row()
-                Label("iikb goes online to download its voice model, search GIFs, and send the field’s text and app ID to sources you add.", systemImage: "network").row()
+                Label(Backup.isBuiltIn ? "Learned words, app-specific language and emoji choices, typing counts, dictations and clipboard history stay here and on your backup server." : "Learned words, app-specific language and emoji choices, typing counts, dictations and clipboard history stay here.", systemImage: "iphone").labelStyle(.aligned).row()
+                Label("iikb goes online to download its voice model, search GIFs, and send the field’s text and app ID to sources you add.", systemImage: "network").labelStyle(.aligned).row()
             }
             if Backup.isBuiltIn {
                 Box(header: "Backup", footer: "iikb sends what it keeps to your server each time it changes, and the server keeps every version, so a lost iPhone, a reinstall or a bug can’t take it.") {
@@ -191,6 +194,14 @@ struct PrivacyPage: View {
                 ActionRow(title: "Delete All Transcripts", role: .destructive) { confirmsDelete = true }
                     .disabled(transcripts.all.isEmpty)
             }
+            Box(footer: unpinned == 0 ? "Your clipboard history has nothing to clear." : "Deletes \(unpinned == 1 ? "1 item" : "\(unpinned.formatted()) items") from your clipboard history. Pinned items stay.") {
+                ActionRow(title: "Clear Clipboard History", role: .destructive) { confirmsClearClipboard = true }
+                    .disabled(unpinned == 0)
+            }
+        }
+        .onAppear {
+            clipboard.onChange = { unpinned = clipboard.history.items.filter { !$0.pinned }.count }
+            clipboard.reload()
         }
         .confirmationDialog("iikb will forget the words it learned and everything it learned about your taps.", isPresented: $confirmsReset, titleVisibility: .visible) {
             Button("Reset", role: .destructive) { MemoryStore.reset() }
@@ -199,7 +210,12 @@ struct PrivacyPage: View {
             Button("Delete", role: .destructive) { TypingStats.delete() }
         }
         .confirmationDialog("Delete all \(transcripts.all.count) transcripts from this iPhone?", isPresented: $confirmsDelete, titleVisibility: .visible) {
-            Button("Delete All", role: .destructive) { transcripts.delete(Set(transcripts.all.map(\.id))) }
+            Button("Delete All", role: .destructive) { transcripts.deleteAll() }
+        }
+        .confirmationDialog("Clear your clipboard history?", isPresented: $confirmsClearClipboard, titleVisibility: .visible) {
+            Button("Clear History", role: .destructive) {
+                clipboard.removeUnpinned()
+            }
         }
     }
 }
@@ -242,4 +258,18 @@ struct AboutPage: View {
         let info = Bundle.main.infoDictionary
         return "Version \(info?["CFBundleShortVersionString"] as? String ?? "") (\(info?["CFBundleVersion"] as? String ?? ""))"
     }
+}
+
+/// A label whose icon takes a fixed width, so the text of labels stacked in one card starts at the same place.
+private struct AlignedLabel: LabelStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            configuration.icon.frame(width: 24)
+            configuration.title
+        }
+    }
+}
+
+private extension LabelStyle where Self == AlignedLabel {
+    static var aligned: AlignedLabel { AlignedLabel() }
 }

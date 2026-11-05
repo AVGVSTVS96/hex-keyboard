@@ -1,7 +1,8 @@
 import SwiftUI
 
-/// The microphone switch as a page's last trailing toolbar item, beside whatever else the page puts there. Every page
-/// has it except Settings and its pages.
+/// The microphone's switch, alone at a page's trailing edge on every page but Settings and its pages: one glass capsule
+/// iikb draws itself, so it sits in the title row on every screen of the Duo. A page's other actions live in the page
+/// or in Settings, since iOS moves a bar button to the Duo's side bar on some screens and not others.
 struct MicSwitchItem: ToolbarContent {
     var body: some ToolbarContent {
         ToolbarItem(placement: .topBarTrailing) { MicSwitch() }
@@ -18,10 +19,11 @@ struct MicSwitch: View {
     var body: some View {
         let listener = Listener.shared
         let on = flipping ?? (listener.isMicOn && !listener.isTurningMicOff)
-        HStack(spacing: 8) {
+        HStack(spacing: 10) {
             Image(systemName: on ? "mic.fill" : "mic.slash.fill")
-                .font(.subheadline)
-                .foregroundStyle(Color.appSecondary)
+                .font(.body)
+                .foregroundStyle(on ? Color.primary : Color.appSecondary)
+                .frame(width: 20)
                 .contentTransition(.symbolEffect(.replace))
                 .accessibilityHidden(true)
             Toggle("Microphone", isOn: Binding(get: { on }, set: flip))
@@ -30,6 +32,10 @@ struct MicSwitch: View {
                 .tint(.blue)
                 .accessibilityIdentifier("home-mic")
         }
+        .padding(.leading, 14)
+        .padding(.trailing, 7)
+        .frame(height: 44)
+        .glassEffect(.regular, in: .capsule)
         .alert("Couldn’t Turn On the Microphone", isPresented: Binding(get: { failure != nil }, set: { if !$0 { failure = nil } })) {
             Button("Settings") { AppStatus.openSettings() }
             Button("OK", role: .cancel) {}

@@ -13,7 +13,6 @@ struct ClipboardPage: View {
     @State private var matches: [ClipboardHistory.Item] = []
     @State private var copied: ClipboardHistory.Item.Content?
     @State private var picked: ClipboardHistory.Item.Content?
-    @State private var confirmsClear = false
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.arrangement) private var arrangement
     private let status = AppStatus.shared
@@ -60,24 +59,7 @@ struct ClipboardPage: View {
             .appPage()
             .navigationTitle("Clipboard")
             .toolbarTitleDisplayMode(.inlineLarge)
-            .toolbar {
-                if items.contains(where: { !$0.pinned }) {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Menu {
-                            Button("Clear History", systemImage: "trash", role: .destructive) { confirmsClear = true }
-                        } label: {
-                            Label("More", systemImage: "ellipsis")
-                        }
-                    }
-                }
-                MicSwitchItem()
-            }
-            .confirmationDialog(clearTitle, isPresented: $confirmsClear, titleVisibility: .visible) {
-                Button("Clear History", role: .destructive) {
-                    store.removeUnpinned()
-                    refresh()
-                }
-            }
+            .toolbar { MicSwitchItem() }
         }
         .task(id: query) { await search() }
         .onAppear(perform: catchUp)
@@ -109,11 +91,6 @@ struct ClipboardPage: View {
         }
         .scrollDismissesKeyboard(.interactively)
         .defaultScrollAnchor(LaunchOptions.scrollAnchor)
-    }
-
-    private var clearTitle: String {
-        let count = items.filter { !$0.pinned }.count
-        return "Delete \(count == 1 ? "1 item" : "\(count.formatted()) items") from your clipboard history?" + (items.contains(where: \.pinned) ? " Pinned items stay." : "")
     }
 
     /// Keeps what's on the clipboard now, as the keyboard would, once the keyboard has started the history and iOS lets

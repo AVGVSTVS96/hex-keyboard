@@ -8,7 +8,6 @@ import SwiftUI
 struct TranscriptsPage: View {
     private let store = Transcripts.shared
     @State private var query = ""
-    @State private var confirmsDeleteAll = false
     @State private var selected: Transcript.ID?
     @Environment(\.arrangement) private var arrangement
 
@@ -49,18 +48,7 @@ struct TranscriptsPage: View {
             .appPage()
             .navigationTitle("Transcripts")
             .toolbarTitleDisplayMode(.inlineLarge)
-            .toolbar {
-                if !store.all.isEmpty {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Menu {
-                            Button("Delete All Transcripts", systemImage: "trash", role: .destructive) { confirmsDeleteAll = true }
-                        } label: {
-                            Label("More", systemImage: "ellipsis")
-                        }
-                    }
-                }
-                MicSwitchItem()
-            }
+            .toolbar { MicSwitchItem() }
             .navigationDestination(for: Transcript.ID.self) { id in
                 if let transcript = store.all.first(where: { $0.id == id }) {
                     TranscriptDetail(transcript: transcript, beside: false)
@@ -68,9 +56,6 @@ struct TranscriptsPage: View {
                         .navigationBarTitleDisplayMode(.inline)
                         .toolbar { MicSwitchItem() }
                 }
-            }
-            .confirmationDialog("Delete all \(store.all.count) transcripts from this iPhone?", isPresented: $confirmsDeleteAll, titleVisibility: .visible) {
-                Button("Delete All", role: .destructive) { store.deleteAll() }
             }
         }
     }
