@@ -13,7 +13,8 @@ Everything is counted and timed, and nothing is ever written down: no letter of 
   counts on the Mac. Each time the keyboard closes or a message goes, it appends those hours as JSON lines to the App
   Group's `Library/typing.jsonl` (`TypingStats`) and posts a Darwin notification, so Stats takes them at once. A
   keyboard without Full Access can't write the group: it keeps them in its own container and moves them over once it can.
-- **Dictation**: the transcripts (`Transcripts`): words, how long each dictation ran, and when.
+- **Dictation**: the transcripts (`Transcripts`): words, how long each dictation ran, when, and the app it was typed
+  into, which the keyboard names (`KeyboardHost`, `Dictation.host`) as you start and stop it.
 
 Speed is words a minute: for typing, words of five characters (the standard measure) over the time you were typing;
 for dictation, each dictation's words over its length, as Transcripts' pace. Privacy & Data › Delete Typing Stats
