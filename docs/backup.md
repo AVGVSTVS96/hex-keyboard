@@ -37,7 +37,8 @@ files against the server when it opens and says whether they're all there.
 ## The server
 
 `server/backup.ts` keeps what it's sent in `~/.local/share/hex-keyboard/backup/mirror`, with the modification time it was
-sent with. A file sent with other contents moves the one it replaces to `versions/<time>/`; nothing is ever deleted.
+sent with. A file sent with other contents moves the one it replaces to `versions/<time>/` (`<time>.001` and on when that second
+already kept one of it); nothing is ever deleted.
 It runs as the user service `hex-keyboard-backup` (dotfiles), on port 2592 behind `tailscale serve` at `/backup`, so
 only the tailnet reaches it, and takes requests with the token in `~/.config/hex-keyboard/backup.env`.
 
@@ -66,5 +67,6 @@ The network is made from what you type, so it stays on the server and the iPhone
 ## Getting it back
 
 `scripts/restore <udid>` puts the backup on an iPhone the Mac reaches: everything, or only the files named
-(`keyboard/support/typing-memory.json`), as it is now or, with `--at 2026-11-04T0300`, as it was then. It quits the app
-first when the app's files go back. A keyboard that's up reads what was put back the next time it appears.
+(`keyboard/support/typing-memory.json`), as it is now or, with `--at 2026-11-04T0300`, as it was then. It backs the iPhone
+up first (`scripts/backup`), once it has picked what to put back, so what the iPhone hadn't sent yet is kept under
+`versions/` rather than written over. It quits the app first when the app's files go back. A keyboard that's up reads what was put back the next time it appears.

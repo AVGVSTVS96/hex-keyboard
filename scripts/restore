@@ -3,6 +3,8 @@
 # reaches, over what's there: every file, or only those named as the backup names them (keyboard/support/typing-memory.json),
 # each as it is now or, with --at, as it was then: the version replaced first after that time, else the one kept now.
 # The app is quit first when its files go back, since it holds its transcripts in memory and would save over them.
+# What's on the iPhone is backed up first (scripts/backup), after the files to put back are picked, so whatever it
+# hadn't sent yet is kept under versions/ rather than lost, and the restore still puts back what it was asked for.
 # Usage: scripts/restore <iPhone UDID> [--at 2026-11-04T0300] [name…]
 set -euo pipefail
 umask 077
@@ -36,6 +38,7 @@ for name, path in picked.items():
     os.makedirs(os.path.dirname(os.path.join(stage, name)), exist_ok=True)
     os.link(path, os.path.join(stage, name))
 PY
+"$(dirname "$0")/backup" "$phone"
 rsync -a "$stage/" "mac:/tmp/${stage##*/}/"
 ssh mac sh -s "$phone" "/tmp/${stage##*/}" <<'MAC'
 set -eu
