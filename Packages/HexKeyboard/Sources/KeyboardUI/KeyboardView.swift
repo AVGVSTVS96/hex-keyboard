@@ -38,8 +38,8 @@ final class KeyboardView: UIView {
     /// How far a touch on a letter must travel to be a swipe rather than a tap that wandered, in key widths: past the
     /// key's neighbor, which a tap's drift never reaches.
     static let swipeDistance: CGFloat = 0.8
-    /// The key whose hold opens the layer menu, what it offers, and the layout in use.
-    var menu: (key: Key?, items: [KeyboardEvent], current: KeyboardEvent?) = (nil, [], nil)
+    /// The keys whose hold opens the layer menu, what it offers, and the layout in use.
+    var menu: (keys: [Key], items: [KeyboardEvent], current: KeyboardEvent?) = ([], [], nil)
     var showsCallouts: Bool { characterPreview != .none && faceContext.device == .phone }
 
     override init(frame: CGRect) {

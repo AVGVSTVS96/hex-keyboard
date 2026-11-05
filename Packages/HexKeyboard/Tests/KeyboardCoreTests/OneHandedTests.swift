@@ -47,10 +47,10 @@ struct OneHandedTests {
 
     @Test func holdingTheLayerKeyOffersTheHandsOnAPhoneInPortraitOnly() {
         let context = LayoutContext(device: .phone, layer: .letters)
-        #expect(context.menuKey(in: Layouts.layout(for: context))?.action == .layer(.numbers))
+        #expect(context.menuKeys(in: Layouts.layout(for: context)).first?.action == .layer(.numbers))
         #expect(context.menu == [.pick(.left), .pick(.off), .pick(.right), .settings])
         let numbers = LayoutContext(device: .phone, layer: .numbers)
-        #expect(numbers.menuKey(in: Layouts.layout(for: numbers))?.action == .layer(.letters))
+        #expect(numbers.menuKeys(in: Layouts.layout(for: numbers)).first?.action == .layer(.letters))
         #expect(LayoutContext(device: .pad, layer: .letters).menu.isEmpty, "an iPad's globe is its key")
         #expect(LayoutContext(device: .phone, layer: .letters, isLandscape: true).menu == [.keep, .settings], "only a phone in portrait narrows for one hand")
     }
@@ -69,6 +69,24 @@ struct OneHandedTests {
         let settings = engine.settings
         engine.handle(.keep, in: document)
         #expect(engine.layer == .letters && engine.settings == settings)
+    }
+
+    /// Apple's keyboard opens its menu from the globe or emoji key (Apple's guide for the Duo: "long-press the globe or
+    /// emoji key, then tap the left or right layout"), so Hex's opens from them too, beside 123, on every layer.
+    @Test func holdingTheGlobeOrEmojiOpensTheSameMenu() {
+        for screen in Duo.Screen.allCases {
+            for layer in KeyboardLayer.allCases {
+                var settings = KeyboardSettings()
+                settings.split = true
+                let context = LayoutContext(device: .phone, layer: layer, showsGlobe: true, screen: screen.size, settings: settings)
+                let held = context.menuKeys(in: Layouts.layout(for: context)).map(\.action)
+                #expect(held == [.nextKeyboard, .layer(layer == .letters ? .numbers : .letters), .emoji], "\(screen.name), \(layer)")
+            }
+        }
+        var settings = KeyboardSettings()
+        (settings.globeKey, settings.emojiKey) = (false, false)
+        let bare = LayoutContext(device: .phone, layer: .letters, showsGlobe: true, screen: Duo.Screen.foldedPortrait.size, settings: settings)
+        #expect(bare.menuKeys(in: Layouts.layout(for: bare)).map(\.action) == [.layer(.numbers)], "without them, 123 alone")
     }
 
     @Test func pickingAHandBringsTheLettersBack() {

@@ -13,7 +13,7 @@ struct SplitTests {
     @Test func holding123OrMoreOffersFullSplitAndSettings() {
         let open = LayoutContext(device: .phone, layer: .numbers, isLandscape: true, isOpen: true)
         #expect(open.menu == [.split(false), .split(true), .settings])
-        #expect(open.menuKey(in: Layouts.layout(for: open))?.action == .layer(.letters))
+        #expect(open.menuKeys(in: Layouts.layout(for: open)).first?.action == .layer(.letters))
         var engine = TypingEngine()
         let document = TestDocument()
         engine.handle(.down(Key(.layer(.numbers)), tapCount: 1), in: document)

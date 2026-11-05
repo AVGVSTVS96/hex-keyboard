@@ -24,7 +24,7 @@ public struct KeyboardSettings: Hashable, Sendable {
     public var split = false
     public var keySpacing = KeySpacing.standard
     public var keyRoundness = KeyRoundness.standard
-    /// Where the menu of layouts, Next Keyboard and iikb Settings opens: holding 123, the bar's menu button, or both.
+    /// Where the menu of layouts, Next Keyboard and iikb Settings opens: holding 123, the globe or emoji, the bar's menu button, or both.
     public var keyboardMenu = KeyboardMenu.both
     public var theme = ThemeName.standard
     public var themeAppearance = ThemeAppearance.automatic

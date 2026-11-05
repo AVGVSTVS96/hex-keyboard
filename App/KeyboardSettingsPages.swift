@@ -241,7 +241,7 @@ struct LayoutSettings: View {
             ToggleRow(title: "Split Keyboard", isOn: model.binding(\.split))
             MenuRow(title: "One-Handed Keyboard", selection: model.binding(\.oneHanded), choices: OneHanded.allCases, label: Self.title(of:))
         }
-        Box(header: "Keyboard Menu", footer: "Where to open layouts, Next Keyboard and iikb Settings: hold 123 and slide, or tap the menu button above the keys.") {
+        Box(header: "Keyboard Menu", footer: "Where to open layouts, Next Keyboard and iikb Settings: hold 123, the globe or emoji and slide, or tap the menu button above the keys.") {
             ForEach(KeyboardMenu.allCases, id: \.self) { place in
                 ChoiceRow(title: place.title, picked: model.settings.keyboardMenu == place) { model.update { $0.keyboardMenu = place } }
             }

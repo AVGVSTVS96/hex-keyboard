@@ -72,12 +72,16 @@ public struct LayoutContext: Hashable, Sendable {
     /// Like Apple's, only the open Duo in landscape splits its keys.
     public var allowsSplit: Bool { isOpen && isLandscape }
 
-    /// The key whose hold opens the layer menu, as Apple's globe opens its menu: the layer key in the bottom row, Hex's
-    /// own key nearest where the system draws its globe.
-    public func menuKey(in layout: KeyboardLayout) -> Key? {
-        layout.rows.last?.lazy.compactMap { item -> Key? in
-            if case .key(let key) = item, case .layer = key.action { key } else { nil }
-        }.first
+    /// The keys in the bottom row whose hold opens the layer menu: the layer key, Bassim's way in, and the globe and
+    /// emoji keys, whose hold opens Apple's menu with the same layouts (Left and Right folded, Full and Split open).
+    public func menuKeys(in layout: KeyboardLayout) -> [Key] {
+        (layout.rows.last ?? []).compactMap { item -> Key? in
+            guard case .key(let key) = item else { return nil }
+            switch key.action {
+            case .layer, .nextKeyboard, .emoji: return key
+            default: return nil
+            }
+        }
     }
 
     /// What the bar's More button offers, top to bottom: the layouts that apply here (one hand or the other on an

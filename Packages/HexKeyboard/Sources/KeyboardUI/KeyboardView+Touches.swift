@@ -53,7 +53,7 @@ extension KeyboardView {
             guard let view = keyView(at: point) else { continue }
             let tracked = TrackedTouch(keyView: view, start: point, at: touch.timestamp, swipes: slidesToType && startsSwipe(view.key))
             self.tracked[ObjectIdentifier(touch)] = tracked
-            if view.key == menu.key, !menu.items.isEmpty { tracked.menuFrame = view.frame }
+            if menu.keys.contains(view.key), !menu.items.isEmpty { tracked.menuFrame = view.frame }
             press(view, tracked: tracked)
             onEvent(.down(view.key, tapCount: touch.tapCount))
             if case .layer = view.key.action { tracked.mode = .slide }
@@ -225,7 +225,7 @@ extension KeyboardView {
 
     private func scheduleHold(for tracked: TrackedTouch) {
         let key = tracked.key
-        if tracked.mode == .slide, tracked.menuFrame != nil { return scheduleMenu(for: tracked) }
+        if tracked.menuFrame != nil { return scheduleMenu(for: tracked) }
         guard tracked.mode == .typing else { return }
         let isSpace = key.action == .space
         guard isSpace || key.alternates.count > 1 else { return }
@@ -252,7 +252,7 @@ extension KeyboardView {
     private func scheduleMenu(for tracked: TrackedTouch) {
         tracked.hold = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: false) { [weak self, weak tracked] _ in
             MainActor.assumeIsolated {
-                guard let self, let tracked, tracked.mode == .slide, let frame = tracked.menuFrame else { return }
+                guard let self, let tracked, tracked.mode == .slide || tracked.mode == .typing, let frame = tracked.menuFrame else { return }
                 tracked.mode = .menu
                 self.callout.hide()
                 let items = self.menu.items
