@@ -37,7 +37,7 @@ nonisolated public enum Backup {
 
     /// The clipboard history, the taps the keyboard shares, and the settings both sides read.
     public static var group: [Folder] {
-        FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: SettingsStore.appGroup).map { [("group/Library", $0.appending(path: "Library"))] } ?? []
+        AppGroup.library.map { [("group/Library", $0)] } ?? []
     }
 
     /// Parakeet's models and the personal network, which download again, and what iOS may clear.

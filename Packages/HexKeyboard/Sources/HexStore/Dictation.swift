@@ -92,19 +92,15 @@ public enum Dictation {
         }
     }
 
-    private static var library: URL? {
-        FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: SettingsStore.appGroup)?.appending(path: "Library")
-    }
+    private static var statusURL: URL? { AppGroup.library?.appending(path: "dictation.json") }
 
-    private static var statusURL: URL? { library?.appending(path: "dictation.json") }
+    private static var micURL: URL? { AppGroup.library?.appending(path: "mic.lock") }
 
-    private static var micURL: URL? { library?.appending(path: "mic.lock") }
+    private static var notesURL: URL? { AppGroup.library?.appending(path: "notes") }
 
-    private static var notesURL: URL? { library?.appending(path: "notes") }
+    private static var editsURL: URL? { AppGroup.library?.appending(path: "edits") }
 
-    private static var editsURL: URL? { library?.appending(path: "edits") }
-
-    private static var hostURL: URL? { library?.appending(path: "dictation-host.txt") }
+    private static var hostURL: URL? { AppGroup.library?.appending(path: "dictation-host.txt") }
 
     /// The app holds this lock while its microphone is on. The kernel lets go of it when the app ends however it ends,
     /// so the lock, unlike a status the app writes, can't outlive the app.

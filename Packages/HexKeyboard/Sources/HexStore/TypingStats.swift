@@ -25,7 +25,7 @@ public enum TypingStats {
     }
 
     nonisolated private static var sharedURL: URL? {
-        FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: SettingsStore.appGroup)?.appending(path: "Library/typing.jsonl")
+        AppGroup.library?.appending(path: "typing.jsonl")
     }
 
     /// Appends at once rather than on a queue: iOS suspends a keyboard the moment its app goes away, before queued

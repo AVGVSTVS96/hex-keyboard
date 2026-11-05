@@ -22,33 +22,10 @@ public final class MemoryStore {
     nonisolated private static let touchesChanged = "com.shahidy.hexkeyboard.touches"
     nonisolated private static let log = Logger(subsystem: "com.shahidy.hexkeyboard", category: "memory")
 
-    /// JSON has no NaN or infinity, and a plain encoder refuses the whole memory over one number, so such a number is
-    /// logged and kept as a string, which `decoded` reads back.
-    nonisolated private static func encoded(_ value: some Encodable) throws -> Data {
-        do {
-            return try JSONEncoder().encode(value)
-        } catch EncodingError.invalidValue(let number, let context) {
-            let path = context.codingPath.map(\.stringValue).joined(separator: ".")
-            log.fault("\(String(describing: number), privacy: .public) at \(path, privacy: .public) is saved as a string")
-            let encoder = JSONEncoder()
-            encoder.nonConformingFloatEncodingStrategy = .convertToString(positiveInfinity: "inf", negativeInfinity: "-inf", nan: "nan")
-            return try encoder.encode(value)
-        }
-    }
+    nonisolated private static let file = StoredFile<Saved>(URL.applicationSupportDirectory.appending(path: "typing-memory.json"))
 
-    nonisolated private static func decoded<T: Decodable>(_ type: T.Type, from url: URL) throws -> T {
-        let decoder = JSONDecoder()
-        decoder.nonConformingFloatDecodingStrategy = .convertFromString(positiveInfinity: "inf", negativeInfinity: "-inf", nan: "nan")
-        return try decoder.decode(type, from: Data(contentsOf: url))
-    }
-
-    nonisolated private static var url: URL {
-        URL.applicationSupportDirectory.appending(path: "typing-memory.json")
-    }
-
-    /// Under the group's Library, where the keyboard's other files are, since a keyboard can't write the group's root.
-    private static var sharedTouchesURL: URL? {
-        FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: SettingsStore.appGroup)?.appending(path: "Library/touches.json")
+    private static var touches: StoredFile<TouchModel>? {
+        AppGroup.library.map { StoredFile($0.appending(path: "touches.json")) }
     }
 
     private static var resets: Int? { SettingsStore.value(forKey: resetsKey, sharing: false) as? Int }
@@ -71,8 +48,9 @@ public final class MemoryStore {
     /// Reads and writes the file in turn, off the main thread: at 20,000 words each takes a tenth of a second.
     nonisolated package static let queue = DispatchQueue(label: "com.shahidy.hexkeyboard.memory", qos: .userInitiated)
 
+    /// Read from the file system each time: a URL caches its resource values, and `file.url` lives as long as the process.
     nonisolated private static var modified: Date? {
-        try? url.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate
+        try? FileManager.default.attributesOfItem(atPath: file.url.path(percentEncoded: false))[.modificationDate] as? Date
     }
 
     /// Hands `use` the saved memory when it isn't the one this keyboard has: on its first appearance, after another
@@ -84,11 +62,11 @@ public final class MemoryStore {
             guard version != base, version != written else { return }
             var memory = TypingMemory()
             if version.modified != nil {
-                guard var saved = try? Self.decoded(Saved.self, from: Self.url) else { return }
+                guard case .value(var saved) = Self.file.read() else { return }
                 // A restored memory takes the token at once, so a reset made after this read lets it go.
                 if saved.resets == nil {
                     saved.resets = resets ?? 0
-                    if (try? Self.encoded(saved).write(to: Self.url, options: .atomic)) != nil {
+                    if Self.file.save(saved) {
                         version = Version(modified: Self.modified, resets: resets)
                         written = version
                     }
@@ -109,54 +87,37 @@ public final class MemoryStore {
 
     package func save(_ memory: TypingMemory, sharing: Bool) {
         guard let base else { return }
-        let resets = Self.resets, sharedTouchesURL = sharing ? Self.sharedTouchesURL : nil
+        let resets = Self.resets, touches = sharing ? Self.touches : nil
         Self.queue.async { [self] in
-            let url = Self.url, current = Version(modified: Self.modified, resets: resets)
+            let current = Version(modified: Self.modified, resets: resets)
             guard current == base || current == written else { return }
-            do {
-                try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-                try Self.encoded(Saved(resets: resets ?? 0, memory: memory)).write(to: url, options: .atomic)
-            } catch {
-                Self.log.fault("typing memory not saved: \(String(describing: error), privacy: .public)")
-            }
+            Self.file.save(Saved(resets: resets ?? 0, memory: memory))
             written = Version(modified: Self.modified, resets: resets)
-            guard let sharedTouchesURL else { return }
-            try? FileManager.default.createDirectory(at: sharedTouchesURL.deletingLastPathComponent(), withIntermediateDirectories: true)
-            guard (try? Self.encoded(memory.touches).write(to: sharedTouchesURL, options: .atomic)) != nil else { return }
+            guard let touches, touches.save(memory.touches) else { return }
             notify_post(Self.touchesChanged)
         }
     }
 
-    private static var emojiURL: URL {
-        URL.applicationSupportDirectory.appending(path: "emoji-history.json")
-    }
+    private static let emoji = StoredFile<EmojiHistory>(URL.applicationSupportDirectory.appending(path: "emoji-history.json"))
 
     package static func loadEmoji() -> EmojiHistory {
-        (try? decoded(EmojiHistory.self, from: emojiURL)) ?? EmojiHistory()
+        emoji.read().value ?? EmojiHistory()
     }
 
-    /// Never over a history that's there but can't be read, which `loadEmoji` handed over as empty: that one is moved
-    /// aside first, as the Dictionary's is, so the picks from then on are still kept.
     package static func save(_ emoji: EmojiHistory) {
-        if FileManager.default.fileExists(atPath: emojiURL.path(percentEncoded: false)),
-           (try? decoded(EmojiHistory.self, from: emojiURL)) == nil {
-            let aside = emojiURL.deletingLastPathComponent().appending(path: "emoji-history-unread-\(Int(Date.now.timeIntervalSince1970)).json")
-            guard (try? FileManager.default.moveItem(at: emojiURL, to: aside)) != nil else { return }
-        }
-        try? FileManager.default.createDirectory(at: emojiURL.deletingLastPathComponent(), withIntermediateDirectories: true)
-        try? encoded(emoji).write(to: emojiURL, options: .atomic)
+        Self.emoji.save(emoji)
     }
 
     public static func reset() {
         SettingsStore.set(Int.random(in: 1 ... .max), forKey: resetsKey)
-        if let sharedTouchesURL { try? FileManager.default.removeItem(at: sharedTouchesURL) }
+        touches?.remove()
         PersonalNetwork.forget()
         notify_post(touchesChanged)
     }
 
     /// Where your taps land, as the keyboard last shared it.
     public static func sharedTouches() -> TouchModel? {
-        sharedTouchesURL.flatMap { try? decoded(TouchModel.self, from: $0).finite() }
+        touches?.read().value?.finite()
     }
 
     /// Calls `handler` on the main queue each time the keyboard shares new touches, until the token is cancelled.

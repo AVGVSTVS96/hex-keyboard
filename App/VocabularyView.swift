@@ -9,28 +9,15 @@ import SwiftUI
     static let shared = VoiceVocabulary()
 
     private(set) var vocabulary: Vocabulary
-    @ObservationIgnored private let url = URL.applicationSupportDirectory.appending(path: "vocabulary.json")
-    /// The file was there but couldn't be read (cut short, or written by a build that keeps it another way).
-    @ObservationIgnored private var unreadable = false
+    @ObservationIgnored private let file = StoredFile<Vocabulary>(URL.applicationSupportDirectory.appending(path: "vocabulary.json"))
 
     private init() {
-        if let read = try? JSONDecoder().decode(Vocabulary.self, from: Data(contentsOf: url)) {
-            vocabulary = read
-        } else {
-            vocabulary = Vocabulary()
-            unreadable = FileManager.default.fileExists(atPath: url.path(percentEncoded: false))
-        }
+        vocabulary = file.read().value ?? Vocabulary()
     }
 
     func set(_ terms: [Vocabulary.Term]) {
         vocabulary.terms = terms
-        try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-        if unreadable {
-            let aside = url.deletingLastPathComponent().appending(path: "vocabulary-unread-\(Int(Date.now.timeIntervalSince1970)).json")
-            guard (try? FileManager.default.moveItem(at: url, to: aside)) != nil else { return }
-            unreadable = false
-        }
-        try? JSONEncoder().encode(vocabulary).write(to: url, options: .atomic)
+        file.save(vocabulary)
         Backup.syncApp()
     }
 }

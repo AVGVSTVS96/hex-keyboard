@@ -18,7 +18,7 @@ nonisolated public enum PersonalNetwork {
     private static let log = Logger(subsystem: "com.shahidy.hexkeyboard", category: "personal")
 
     private static var url: URL? {
-        FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: SettingsStore.appGroup)?.appending(path: "Library/Personal/en.network")
+        AppGroup.library?.appending(path: "Personal/en.network")
     }
 
     /// The fetched network, read in place, or nil when there is none or it isn't one.

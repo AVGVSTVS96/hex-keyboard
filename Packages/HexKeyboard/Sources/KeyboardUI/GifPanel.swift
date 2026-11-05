@@ -1,3 +1,4 @@
+import HexStore
 import ImageIO
 import KeyboardCore
 import UIKit
@@ -60,7 +61,7 @@ final class GifPanel: UIView, PanelContent, UIScrollViewDelegate {
     required init?(coder: NSCoder) { fatalError() }
 
     func reset() {
-        recents = Self.loadRecents()
+        recents = Self.recentsFile.read().value ?? GifRecents()
         showsRecents = false
         query = nil
         notice = nil
@@ -144,7 +145,7 @@ final class GifPanel: UIView, PanelContent, UIScrollViewDelegate {
 
     private func sent(_ gif: Gif) {
         recents.use(Klipy.base(gif.id), app: app())
-        Self.save(recents)
+        Self.recentsFile.save(recents)
         klipy.shared(gif, search: query ?? "")
     }
 
@@ -183,16 +184,7 @@ final class GifPanel: UIView, PanelContent, UIScrollViewDelegate {
         animateVisible()
     }
 
-    private static var recentsURL: URL { URL.applicationSupportDirectory.appending(path: "gif-recents.json") }
-
-    private static func loadRecents() -> GifRecents {
-        (try? JSONDecoder().decode(GifRecents.self, from: Data(contentsOf: recentsURL))) ?? GifRecents()
-    }
-
-    private static func save(_ recents: GifRecents) {
-        try? FileManager.default.createDirectory(at: recentsURL.deletingLastPathComponent(), withIntermediateDirectories: true)
-        try? JSONEncoder().encode(recents).write(to: recentsURL, options: .atomic)
-    }
+    private static let recentsFile = StoredFile<GifRecents>(URL.applicationSupportDirectory.appending(path: "gif-recents.json"))
 }
 
 private extension GifSearch.Feed {
