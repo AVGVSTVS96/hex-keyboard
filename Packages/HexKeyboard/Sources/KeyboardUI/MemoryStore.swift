@@ -78,14 +78,27 @@ public final class MemoryStore {
     func refresh(_ use: @escaping @MainActor (TypingMemory) -> Void) {
         let base = base, resets = Self.resets
         Self.queue.async { [self] in
-            let version = Version(modified: Self.modified, resets: resets)
+            var version = Version(modified: Self.modified, resets: resets)
             guard version != base, version != written else { return }
             var memory = TypingMemory()
             if version.modified != nil {
-                guard let saved = try? Self.decoded(Saved.self, from: Self.url) else { return }
-                if saved.resets == nil || saved.resets == resets ?? saved.resets { memory = saved.memory }
+                guard var saved = try? Self.decoded(Saved.self, from: Self.url) else { return }
+                // A restored memory takes the token at once, so a reset made after this read lets it go.
+                if saved.resets == nil {
+                    saved.resets = resets ?? 0
+                    if (try? Self.encoded(saved).write(to: Self.url, options: .atomic)) != nil {
+                        version = Version(modified: Self.modified, resets: resets)
+                        written = version
+                    }
+                }
+                if saved.resets == resets ?? saved.resets { memory = saved.memory }
             }
-            Task { @MainActor in
+            let touches = memory.touches.finite()
+            if touches != memory.touches {
+                Self.log.fault("touch model keys holding a NaN or infinity start over")
+                memory.touches = touches
+            }
+            Task { @MainActor [version, memory] in
                 self.base = version
                 use(memory)
             }
@@ -137,7 +150,7 @@ public final class MemoryStore {
 
     /// Where your taps land, as the keyboard last shared it.
     public static func sharedTouches() -> TouchModel? {
-        sharedTouchesURL.flatMap { try? decoded(TouchModel.self, from: $0) }
+        sharedTouchesURL.flatMap { try? decoded(TouchModel.self, from: $0).finite() }
     }
 
     /// Calls `handler` on the main queue each time the keyboard shares new touches, until the token is cancelled.

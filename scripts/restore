@@ -59,8 +59,13 @@ if not at:
                              f"or what's kept now anyway: scripts/restore {phone} --at now {' '.join(names)}".rstrip()]))
 for name, path in picked.items():
     os.makedirs(os.path.dirname(os.path.join(stage, name)), exist_ok=True)
+    saved = None
     if name == 'keyboard/support/typing-memory.json':
-        with open(path) as file: saved = json.load(file)
+        try:
+            with open(path) as file: saved = json.load(file)
+        except ValueError:
+            print(f"{name} isn't JSON the keyboard can read, so it goes back as it is", file=sys.stderr)
+    if isinstance(saved, dict):
         saved.pop('resets', None)
         with open(os.path.join(stage, name), 'w') as file: json.dump(saved, file, separators=(',', ':'))
     else:

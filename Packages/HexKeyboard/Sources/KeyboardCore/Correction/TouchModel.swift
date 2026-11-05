@@ -40,6 +40,16 @@ public struct TouchModel: Codable, Hashable, Sendable {
 
     public var isEmpty: Bool { layouts.isEmpty }
 
+    /// The model without the keys holding a number that isn't finite, which start over. One NaN in a letter's taps
+    /// makes every letter's spread NaN (`Spread` pools them), and with it every letter's likelihood, so the key map
+    /// falls back to the nearest key and the decoder reads nothing.
+    public func finite() -> TouchModel {
+        var model = self
+        model.layouts = layouts.mapValues { $0.filter { $0.value.isFinite } }.filter { !$0.value.isEmpty }
+        model.recent = recent.mapValues { $0.mapValues { $0.filter { $0.x.isFinite && $0.y.isFinite } } }
+        return model
+    }
+
     public func taps(for label: String, on grid: KeyGrid) -> Int {
         Int(layouts[grid.signature]?[label]?.count ?? 0)
     }
@@ -155,6 +165,11 @@ struct KeyTouches: Codable, Hashable, Sendable {
     private(set) var weights = SIMD3<Double>(repeating: 1.0 / 3)
 
     var count: Double { all.count }
+
+    var isFinite: Bool {
+        [all.count, all.meanX, all.meanY, all.scatterXX, all.scatterXY, all.scatterYY, lately.count, lately.x, lately.y,
+         now.count, now.x, now.y, weights.x, weights.y, weights.z].allSatisfy(\.isFinite)
+    }
 
     init() {}
 

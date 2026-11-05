@@ -79,6 +79,7 @@ file rather than the iPhone's, which goes to `smaller/<time>/`, and says so; `--
 reset you meant.
 
 Reset Learned Words and Taps gives the memory a new reset token, and a keyboard lets go of a memory saved under another,
-so `scripts/restore` puts `keyboard/support/typing-memory.json` back without its token, and the keyboard keeps it under
-the one it has: restoring that file alone, from before the reset (`--at`), undoes a reset. Your network comes back with
-the next one the server makes.
+so `scripts/restore` puts `keyboard/support/typing-memory.json` back without its token, and the first keyboard to read it
+saves it at once under the one it has: restoring that file alone, from before the reset (`--at`), undoes a reset, and a
+reset made once a keyboard has read it lets it go as any other. Your network comes back with the next one the server
+makes.

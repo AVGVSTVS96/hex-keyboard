@@ -64,6 +64,25 @@ struct SavedFormatTests {
         #expect(try decode(GifRecents.self, #"{"slugs":["a"]}"#).slugs == ["a"])
     }
 
+    @Test func aKeyHoldingNaNStartsOverAlone() throws {
+        let decoder = JSONDecoder()
+        decoder.nonConformingFloatDecodingStrategy = .convertFromString(positiveInfinity: "inf", negativeInfinity: "-inf", nan: "nan")
+        let key = { (meanX: String) -> String in
+            #"{"all":{"count":2,"meanX":"# + meanX + #","meanY":0.1,"scatterXX":0.02,"scatterXY":0,"scatterYY":0.01},"#
+                + #""lately":{"count":2,"x":0.1,"y":0.1},"now":{"count":2,"x":0.1,"y":0.1},"weights":[0.3,0.3,0.4]}"#
+        }
+        let json: String = #"{"layouts":{"standard":{"m":"# + key(#""nan""#) + #","n":"# + key("0.1") + "}}}"
+        let saved = try decoder.decode(TouchModel.self, from: Data(json.utf8))
+        let grid = KeyGrid.standard
+        let n = try #require(grid.frame(of: "n"))
+        #expect(saved.logLikelihood(x: n.midX, y: n.midY, for: "n", on: grid)?.isNaN == true, "one NaN reaches every letter")
+        let touches = saved.finite()
+        #expect(touches.taps(for: "m", on: grid) == 0)
+        #expect(touches.taps(for: "n", on: grid) == 2)
+        #expect(touches.logLikelihood(x: n.midX, y: n.midY, for: "n", on: grid)?.isFinite == true)
+        #expect(touches.finite() == touches)
+    }
+
     @Test func typingHourAsSaved() throws {
         let hour = try decode(TypingHour.self, """
             {"day":"2026-11-04","hour":21,"app":"com.apple.MobileSMS","seconds":42.5,"tally":{"keys":120,"characters":118,\

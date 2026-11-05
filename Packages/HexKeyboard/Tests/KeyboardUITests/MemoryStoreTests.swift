@@ -56,6 +56,8 @@ struct MemoryStoreTests {
         #expect(await refresh(MemoryStore()) == TypingMemory(), "a memory saved before the reset is let go")
         try write(words: ["their"], resets: nil)
         #expect(await refresh(MemoryStore())?.counts.keys.sorted() == ["their"], "one scripts/restore put back is kept")
+        SettingsStore.set(8, forKey: "memoryResets")
+        #expect(await refresh(MemoryStore()) == TypingMemory(), "and a reset after a keyboard read it lets it go")
     }
 
     @Test func savesAMemoryHoldingNaN() async throws {
@@ -71,7 +73,9 @@ struct MemoryStoreTests {
         memory.record("there", after: nil)
         keyboard.save(memory, sharing: false)
         #expect(try saved() == ["their", "there"], "one NaN doesn't stop the memory from saving")
-        #expect(await refresh(MemoryStore())?.touches.taps(for: "m", on: .standard) == 2, "and it reads back")
+        let read = try #require(await refresh(MemoryStore()))
+        #expect(read.counts.keys.sorted() == ["their", "there"], "and it reads back")
+        #expect(read.touches.taps(for: "m", on: .standard) == 0, "with the key that held the NaN started over")
     }
 
     private func refresh(_ keyboard: MemoryStore) async -> TypingMemory? {
