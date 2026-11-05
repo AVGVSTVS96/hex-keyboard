@@ -1,7 +1,7 @@
 /// P(word | previous word), from the lexicon and what you've typed.
 ///
 /// Every level backs off to the next with Witten-Bell weights, which come from the counts themselves (a context
-/// seen N times with T different words trusts itself N / (N + T)), so there is nothing to tune:
+/// seen N times with T different words trusts itself N / (N + T)), so there is nothing to tune but the network's weight:
 /// your next-word counts → your word counts → the lexicon → a word the lexicon doesn't know, spelled letter by
 /// letter. How often you keep such new words is itself learned: (new + 1) / (all + 2), Laplace's rule of succession.
 struct LanguageModel {
@@ -32,20 +32,23 @@ struct LanguageModel {
 
     /// The same for the word you'll type next, after both words before it, with what the network `expected` from the
     /// text before under your next-word counts. Corrections leave the network out: its vocabulary is the corpus's
-    /// commonest words, so it would push the rest down.
+    /// commonest words, so it would push the rest down. Over the network your counts trust themselves N / (N + 8T):
+    /// it reads the last 16 words where they read one or two, and on Bassim's own messages that weight ranks best.
     /// `previous` is "" at a sentence's start and nil when unknown; `earlier` is the word before it, read the same way.
     func predictor(after previous: String?, earlier: String?, expected: Network.Next?) -> (String) -> Double {
         { word in
             let below = unigram(word)
-            return Math.log(probability(word, after: previous, earlier: earlier, over: expected?.probability(of: word, below: below) ?? below))
+            guard let expected else { return Math.log(probability(word, after: previous, earlier: earlier, over: below)) }
+            return Math.log(probability(word, after: previous, earlier: earlier, over: expected.probability(of: word, below: below), trusting: 8))
         }
     }
 
-    private func probability(_ word: String, after previous: String?, earlier: String?, over corpus: Double) -> Double {
+    private func probability(_ word: String, after previous: String?, earlier: String?, over corpus: Double, trusting trust: Double = 1) -> Double {
         var p = corpus
         for context in TypingMemory.contexts(previous, earlier) {
             let (count, total, types) = memory.count(of: word, after: context)
-            if total > 0 { p = (Double(count) + Double(types) * p) / Double(total + types) }
+            let below = trust * Double(types)
+            if total > 0 { p = (Double(count) + below * p) / (Double(total) + below) }
         }
         return app?.probability(of: word, after: previous, below: p) ?? p
     }
