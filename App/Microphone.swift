@@ -6,10 +6,10 @@ import Observation
 /// it's heard. It knows nothing of the models that write recordings down, so nothing about them can hold up a
 /// recording. While it's on it holds the App Group's mic lock, which tells the keyboard the app is there to dictate.
 @Observable @MainActor final class Microphone {
-    private let engine = AVAudioEngine()
+    private var engine = AVAudioEngine()
     private let feed = Feed()
     private var lock: Int32?
-    /// Another app took the microphone (a call), or the route changed under the engine.
+    /// Another app took the microphone (a call), or the engine couldn't be started again after a change under it.
     var onLost: () -> Void = {}
     /// A speaker or headphones connected while voice processing holds the sound on the iPhone, which can't hand it over
     /// while the microphone is on.
@@ -29,10 +29,16 @@ import Observation
                 self.onSpeaker()
             }
         }
-        center.addObserver(forName: .AVAudioEngineConfigurationChange, object: engine, queue: .main) { [weak self] _ in
+        center.addObserver(forName: .AVAudioEngineConfigurationChange, object: nil, queue: .main) { [weak self] _ in
             Task { @MainActor in
-                guard let self, !self.engine.isRunning else { return }
-                self.onLost()
+                guard let self, self.isOn, !self.engine.isRunning else { return }
+                self.restart()
+            }
+        }
+        center.addObserver(forName: AVAudioSession.mediaServicesWereResetNotification, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor in
+                guard let self, self.isOn else { return }
+                self.restart(rebuilding: true)
             }
         }
     }
@@ -51,6 +57,12 @@ import Observation
     /// from a Bluetooth speaker or AirPlay to the iPhone, and music apps pause, so while one plays it hears from one.
     func open() throws {
         guard lock == nil else { return }
+        try begin()
+        lock = Dictation.lockMic() ?? -1
+        Dictation.send(.changed)
+    }
+
+    private func begin() throws {
         let session = AVAudioSession.sharedInstance()
         try session.setCategory(.playAndRecord, options: [.mixWithOthers, .allowBluetoothA2DP, .allowAirPlay, .defaultToSpeaker])
         try session.setActive(true)
@@ -73,8 +85,22 @@ import Observation
             node.removeTap(onBus: 0)
             throw error
         }
-        lock = Dictation.lockMic() ?? -1
-        Dictation.send(.changed)
+    }
+
+    /// iOS stops the engine when the hardware's format or route changes under it, and every audio object is dead after
+    /// the media services reset: starts again into the same recording, which converts whatever format comes next.
+    private func restart(rebuilding: Bool = false) {
+        if rebuilding {
+            engine = AVAudioEngine()
+        } else {
+            engine.inputNode.removeTap(onBus: 0)
+            engine.stop()
+        }
+        do {
+            try begin()
+        } catch {
+            onLost()
+        }
     }
 
     func close() {
