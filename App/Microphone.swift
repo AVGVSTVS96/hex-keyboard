@@ -77,6 +77,7 @@ import Observation
         if node.isVoiceProcessingEnabled != onIPhone, (try? node.setVoiceProcessingEnabled(onIPhone)) != nil, onIPhone {
             node.voiceProcessingOtherAudioDuckingConfiguration = .init(enableAdvancedDucking: false, duckingLevel: .min)
         }
+        feed.hear(voiceProcessing: node.isVoiceProcessingEnabled)
         try? session.setAllowHapticsAndSystemSoundsDuringRecording(true)
         let heard = node.outputFormat(forBus: 0)
         guard heard.sampleRate > 0, heard.channelCount > 0 else { throw Unrecordable(format: heard.description) }
@@ -160,6 +161,11 @@ nonisolated private struct Unrecordable: LocalizedError {
 nonisolated private final class Feed: @unchecked Sendable {
     private let lock = NSLock()
     private var recorder: AVAudioConverter?
+    /// The format of the buffers coming in, to know when they change.
+    private var heard: AVAudioFormat?
+    /// Channel 0 of a multichannel buffer, the one signal the level meter and the recording share.
+    private var mono: AVAudioPCMBuffer?
+    private var voiceProcessing = false
     /// What's been heard since `start`, nil while nothing is being recorded; kept even when its file can't be written.
     private var recording: [Float]?
     private var file: Recording.File?
@@ -167,9 +173,14 @@ nonisolated private final class Feed: @unchecked Sendable {
     private var stopped: UInt64?
     private var ended: CheckedContinuation<[Float], Never>?
 
+    func hear(voiceProcessing on: Bool) {
+        lock.withLock { voiceProcessing = on }
+    }
+
     func start(file url: URL) {
         lock.withLock {
             recorder = nil
+            heard = nil
             recording = []
             file = Recording.File(url)
             loudness = []
@@ -203,8 +214,14 @@ nonisolated private final class Feed: @unchecked Sendable {
     func yield(_ buffer: AVAudioPCMBuffer, at time: AVAudioTime, loudness level: Float) -> Double? {
         let (took, done) = lock.withLock { () -> (Double?, ([Float], CheckedContinuation<[Float], Never>?)?) in
             guard recording != nil else { return (nil, nil) }
-            if recorder?.inputFormat != buffer.format { recorder = AVAudioConverter(from: buffer.format, to: Recording.format) }
-            if let recorder, let converted = Self.convert(buffer, with: recorder), let channel = converted.floatChannelData?[0] {
+            if heard != buffer.format {
+                heard = buffer.format
+                recorder = nil
+                HostApp.log.notice("recording from \(buffer.format.channelCount) channels at \(buffer.format.sampleRate, format: .fixed(precision: 0)) Hz, voice processing \(self.voiceProcessing ? "on" : "off", privacy: .public)")
+            }
+            let source = channelZero(of: buffer)
+            if recorder == nil, let source { recorder = AVAudioConverter(from: source.format, to: Recording.format) }
+            if let source, let recorder, let converted = Self.convert(source, with: recorder), let channel = converted.floatChannelData?[0] {
                 let samples = UnsafeBufferPointer(start: channel, count: Int(converted.frameLength))
                 recording?.append(contentsOf: samples)
                 file?.append(samples)
@@ -219,11 +236,27 @@ nonisolated private final class Feed: @unchecked Sendable {
         return took
     }
 
+    private func channelZero(of buffer: AVAudioPCMBuffer) -> AVAudioPCMBuffer? {
+        let format = buffer.format
+        if format.channelCount == 1, !format.isInterleaved { return buffer }
+        if mono?.format.sampleRate != format.sampleRate || mono?.frameCapacity ?? 0 < buffer.frameLength {
+            mono = AVAudioFormat(standardFormatWithSampleRate: format.sampleRate, channels: 1).flatMap {
+                AVAudioPCMBuffer(pcmFormat: $0, frameCapacity: max(buffer.frameLength, 4096))
+            }
+        }
+        guard let mono, let from = buffer.floatChannelData?[0], let to = mono.floatChannelData?[0] else { return nil }
+        let stride = buffer.stride
+        for index in 0 ..< Int(buffer.frameLength) { to[index] = from[index * stride] }
+        mono.frameLength = buffer.frameLength
+        return mono
+    }
+
     private func take() -> ([Float], CheckedContinuation<[Float], Never>?) {
         file?.close()
         defer {
             file = nil
             recorder = nil
+            heard = nil
             recording = nil
             loudness = []
             stopped = nil
