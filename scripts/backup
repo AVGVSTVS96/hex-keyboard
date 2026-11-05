@@ -23,9 +23,11 @@ copy() { xcrun devicectl device copy from --device "$phone" --domain-type "$1" -
 list() {
   xcrun devicectl device info files --device "$phone" --domain-type appDataContainer --domain-identifier "$id" \
     --subdirectory "$1" --json-output "$out/list.json" >/dev/null 2>&1 || return 0
-  /usr/bin/python3 -c "import json, sys; print('\n'.join(f['relativePath'] for f in json.load(open(sys.argv[1]))['result']['files'] if '/' not in f['relativePath']))" "$out/list.json"
+  /usr/bin/python3 -c "import json, sys; print('\n'.join(f['relativePath'] for f in json.load(open(sys.argv[1]))['result']['files'] if '/' not in f['relativePath'] and f['relativePath'] != sys.argv[2].rsplit('/', 1)[-1]))" "$out/list.json" "$1"
 }
 mkdir -p "$out/app/recordings" "$out/keyboard" "$out/group"
+IFS='
+'
 for name in $(list "Library/Application Support"); do
   case $name in (FluidAudio|recordings) ;; (*) copy appDataContainer "$id" "Library/Application Support/$name" "app/$name" ;; esac
 done
