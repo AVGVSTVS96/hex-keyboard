@@ -133,10 +133,14 @@ public final class MemoryStore {
         (try? decoded(EmojiHistory.self, from: emojiURL)) ?? EmojiHistory()
     }
 
-    /// Never over a history that's there but can't be read, which `loadEmoji` handed over as empty.
+    /// Never over a history that's there but can't be read, which `loadEmoji` handed over as empty: that one is moved
+    /// aside first, as the Dictionary's is, so the picks from then on are still kept.
     static func save(_ emoji: EmojiHistory) {
         if FileManager.default.fileExists(atPath: emojiURL.path(percentEncoded: false)),
-           (try? decoded(EmojiHistory.self, from: emojiURL)) == nil { return }
+           (try? decoded(EmojiHistory.self, from: emojiURL)) == nil {
+            let aside = emojiURL.deletingLastPathComponent().appending(path: "emoji-history-unread-\(Int(Date.now.timeIntervalSince1970)).json")
+            guard (try? FileManager.default.moveItem(at: emojiURL, to: aside)) != nil else { return }
+        }
         try? FileManager.default.createDirectory(at: emojiURL.deletingLastPathComponent(), withIntermediateDirectories: true)
         try? encoded(emoji).write(to: emojiURL, options: .atomic)
     }
