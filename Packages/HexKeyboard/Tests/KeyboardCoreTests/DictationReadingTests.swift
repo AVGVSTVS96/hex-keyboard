@@ -33,6 +33,11 @@ struct DictationReadingTests {
         #expect(dictate("Nine four one oh five", content: .postalCode) == "94105")
         #expect(dictate("Twenty twenty four", kind: .decimal) == "2024")
         #expect(dictate("(555) 123-4567.", kind: .number) == "5551234567")
+        #expect(dictate("Plus one four one five, five five five, zero one nine nine.", content: .telephoneNumber) == "+14155550199")
+        #expect(dictate("+1 415-555-0199.", kind: .number) == "+14155550199")
+        #expect(dictate("Three point five", kind: .decimal) == "3.5")
+        #expect(dictate("It's 12.75.", kind: .decimal) == "12.75")
+        #expect(dictate("Nine four one oh five.", kind: .number) == "94105")
     }
 
     @Test func aNumberFieldWithNoDigitsTypesProse() {

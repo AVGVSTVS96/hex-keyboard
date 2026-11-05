@@ -46,15 +46,26 @@ enum SpokenAddress {
     }
 
     /// The digits `said` says: number words, digit runs and the digits in what the model wrote ("555-1234"), and nothing
-    /// else; nil when there are none.
-    static func digits(_ said: String) -> String? {
-        let digits = pieces(said, zeros: ["oh", "o"]).map { piece -> String in
+    /// else but a "+" it starts with ("plus one ...") and, in a field that takes one (`point`), the first decimal point,
+    /// said or written; nil when there are no digits.
+    static func digits(_ said: String, point: Bool = false) -> String? {
+        var digits = ""
+        var pointed = !point
+        for piece in pieces(said, zeros: ["oh", "o"]) {
             switch piece {
-            case .number(let digits): digits
-            case .word(let word): String(word.filter(\.isNumber))
-            case .symbol: ""
+            case .number(let number): digits += number
+            case .word("plus") where digits.isEmpty: digits = "+"
+            case .word("point") where !pointed && !digits.isEmpty: digits += "."; pointed = true
+            case .word(let word):
+                for character in word {
+                    if character.isNumber { digits.append(character) }
+                    else if character == "+", digits.isEmpty { digits = "+" }
+                    else if character == ".", !pointed, digits.last?.isNumber == true { digits += "."; pointed = true }
+                }
+            case .symbol: break
             }
-        }.joined()
+        }
+        while let last = digits.last, !last.isNumber { digits.removeLast() }
         return digits.isEmpty ? nil : digits
     }
 
