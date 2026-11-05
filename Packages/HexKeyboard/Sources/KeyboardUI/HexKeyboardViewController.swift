@@ -343,11 +343,10 @@ open class HexKeyboardViewController: UIInputViewController {
         noteTyping()
         let device = device
         let screen = Size(width: screenSize.width, height: screenSize.height)
-        let context = engine.layout(on: device, screen: screen, showsGlobe: showsGlobe)
-        let layout = Layouts.layout(for: context)
-        var metrics = KeyboardMetrics.for(context, screen: screen, window: view.bounds.width, style: .current)
+        let keys = KeyboardGeometry(engine.layout(on: device, screen: screen, showsGlobe: showsGlobe), screen: screen, window: view.bounds.width, style: .current)
+        let (context, layout, height) = (keys.context, keys.layout, keys.height)
+        var metrics = keys.metrics
         let wanted = metrics.toolbar.showing(engine.panel, compact: engine.settings.compactPanels)
-        let height = metrics.height(rows: layout.rows.count, hasNumberRow: layout.hasNumberRow)
         let ask = engine.panel == nil ? wanted.height : wanted.panelHeight
         let room = view.bounds.height
         metrics.toolbar = wanted

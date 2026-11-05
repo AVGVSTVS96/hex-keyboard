@@ -287,18 +287,12 @@ public struct TapBoard {
     public var keys: [(key: Key, frame: Rect)] { Array(grid.rows.joined()) }
 
     public init(_ touches: TouchModel, on context: LayoutContext, screen: CGSize) {
-        let short = min(screen.width, screen.height), long = max(screen.width, screen.height)
-        var held = context.isLandscape ? Size(width: long, height: short) : Size(width: short, height: long)
-        var width = held.width
-        if context.device == .phone, Duo.isDuo(short: short) {
-            let duo = Duo.Screen(open: context.isOpen, landscape: context.isLandscape)
-            (held, width) = (duo.size, duo.keyboardWidth)
-        }
+        let keys = KeyboardGeometry(context, screen: context.screen(on: Size(width: screen.width, height: screen.height)), style: .current)
         self.context = context
-        metrics = KeyboardMetrics.for(context, screen: held, window: width, style: .current)
-        layout = Layouts.layout(for: context)
-        grid = KeyGrid(layout, width: width, metrics: metrics.grid, signature: context.signature)
-        size = CGSize(width: width, height: metrics.height(rows: layout.rows.count, hasNumberRow: layout.hasNumberRow))
+        metrics = keys.metrics
+        layout = keys.layout
+        grid = keys.grid
+        size = CGSize(width: keys.width, height: keys.height)
         aims = touches.aims(on: grid)
     }
 }

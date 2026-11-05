@@ -40,12 +40,12 @@ public final class KeyboardPreviewView: UIView {
         self.screen = Size(width: screen.width, height: screen.height)
         let theme = KeyboardTheme.named(settings.theme, appearance: settings.themeAppearance, dark: dark, style: .current)
         let keys = Self.keys(settings, on: self.screen)
+        let faces = KeyFaceContext(device: keys.context.device, layer: .letters, kind: .text, shift: .off, returnKind: .default, returnEnabled: true)
         keyboard.characterPreview = .none
         keyboard.slidesToType = false
-        keyboard.update(layout: keys.layout, signature: "preview", metrics: keys.metrics, faces: keys.faces, theme: theme)
-        let metrics = keys.metrics
-        bar.toolbar = metrics.toolbar
-        bar.keys = (KeyGrid(keys.layout, width: keys.width, metrics: metrics.grid).rows.first ?? []).map { (minX: $0.frame.x, maxX: $0.frame.x + $0.frame.width) }
+        keyboard.update(layout: keys.layout, signature: "preview", metrics: keys.metrics, faces: faces, theme: theme)
+        bar.toolbar = keys.metrics.toolbar
+        bar.keys = (keys.grid.rows.first ?? []).map { (minX: $0.frame.x, maxX: $0.frame.x + $0.frame.width) }
         bar.update(tools: [.gif, .clipboard], theme: theme)
         bar.update(more: keys.context.showsMoreButton ? UIMenu(children: []) : nil)
         bar.update(mic: .off, recorded: 0, saved: [], waitingFor: nil, notice: nil, theme: theme)
@@ -58,31 +58,27 @@ public final class KeyboardPreviewView: UIView {
     /// How tall the preview is at `width`, keeping the keyboard's shape on a `screen`-sized device.
     public static func height(forWidth width: CGFloat, settings: KeyboardSettings, screen: CGSize) -> CGFloat {
         let keys = keys(settings, on: Size(width: screen.width, height: screen.height))
-        return width * keys.height / keys.width
+        return width * (keys.metrics.toolbar.height + keys.height) / keys.width
     }
 
     override public func layoutSubviews() {
         super.layoutSubviews()
         let keys = Self.keys(settings, on: screen)
         content.transform = .identity
-        content.frame = CGRect(x: 0, y: 0, width: keys.width, height: keys.height)
-        bar.frame = CGRect(x: 0, y: 0, width: keys.width, height: keys.metrics.toolbar.height)
-        keyboard.frame = CGRect(x: 0, y: keys.metrics.toolbar.height, width: keys.width, height: keys.height - keys.metrics.toolbar.height)
+        let top = keys.metrics.toolbar.height
+        content.frame = CGRect(x: 0, y: 0, width: keys.width, height: top + keys.height)
+        bar.frame = CGRect(x: 0, y: 0, width: keys.width, height: top)
+        keyboard.frame = CGRect(x: 0, y: top, width: keys.width, height: keys.height)
         let scale = bounds.width / keys.width
         content.transform = CGAffineTransform(scaleX: scale, y: scale)
         content.center = CGPoint(x: bounds.midX, y: bounds.midY)
     }
 
-    /// The keyboard's own layout and metrics on `screen`, at the width iOS gives it there.
-    private static func keys(_ settings: KeyboardSettings, on screen: Size) -> (context: LayoutContext, layout: KeyboardLayout, metrics: KeyboardMetrics, faces: KeyFaceContext, width: Double, height: Double) {
+    /// The keyboard's own keys on `screen`, at the width iOS gives it there, over the card's bottom.
+    private static func keys(_ settings: KeyboardSettings, on screen: Size) -> KeyboardGeometry {
         let device = DeviceClass(isPad: UIDevice.current.userInterfaceIdiom == .pad, shortSide: min(screen.width, screen.height))
-        let context = LayoutContext(device: device, layer: .letters, showsGlobe: true, screen: screen, settings: settings)
-        let duo = device == .phone ? Duo.Screen(width: screen.width, height: screen.height) : nil
-        let width = duo?.keyboardWidth ?? screen.width
-        var metrics = KeyboardMetrics.for(context, screen: screen, window: width, style: .current)
-        metrics.bottomInset = bottom
-        let layout = Layouts.layout(for: context)
-        let faces = KeyFaceContext(device: device, layer: .letters, kind: .text, shift: .off, returnKind: .default, returnEnabled: true)
-        return (context, layout, metrics, faces, width, metrics.toolbar.height + metrics.height(rows: layout.rows.count, hasNumberRow: layout.hasNumberRow))
+        var keys = KeyboardGeometry(LayoutContext(device: device, layer: .letters, showsGlobe: true, screen: screen, settings: settings), screen: screen, style: .current)
+        keys.metrics.bottomInset = bottom
+        return keys
     }
 }
