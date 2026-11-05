@@ -109,9 +109,14 @@ struct Transcript: Codable, Identifiable, Hashable {
 
     func delete(_ ids: Set<Transcript.ID>) {
         all.removeAll { ids.contains($0.id) }
-        if all.isEmpty { unread = [] }
         save()
         for id in ids { try? FileManager.default.removeItem(at: recording(of: id)) }
+    }
+
+    /// Every transcript, the lines this build can't read included.
+    func deleteAll() {
+        unread = []
+        delete(Set(all.map(\.id)))
     }
 
     /// Puts a new writing of a transcript's recording in its place.

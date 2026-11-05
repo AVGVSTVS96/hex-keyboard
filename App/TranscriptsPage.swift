@@ -70,7 +70,7 @@ struct TranscriptsPage: View {
                 }
             }
             .confirmationDialog("Delete all \(store.all.count) transcripts from this iPhone?", isPresented: $confirmsDeleteAll, titleVisibility: .visible) {
-                Button("Delete All", role: .destructive) { store.delete(Set(store.all.map(\.id))) }
+                Button("Delete All", role: .destructive) { store.deleteAll() }
             }
         }
     }
