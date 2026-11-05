@@ -1,5 +1,6 @@
 import FluidAudio
 import Foundation
+import HexStore
 import KeyboardUI
 
 /// A loaded Parakeet, writing 16 kHz sound down in English.
@@ -38,9 +39,9 @@ nonisolated extension AsrModelVersion {
     /// The App Group's FluidAudio folder. The app's own is moved there the first time, a rename, and Core ML's cache,
     /// every entry of it keyed by a path no longer used, is removed with the move.
     private static let shared: URL? = {
-        guard let group = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: SettingsStore.appGroup) else { return nil }
+        guard let library = AppGroup.library else { return nil }
         let own = URL.applicationSupportDirectory.appending(path: "FluidAudio")
-        let shared = group.appending(path: "Library/Application Support/FluidAudio")
+        let shared = library.appending(path: "Application Support/FluidAudio")
         let files = FileManager.default
         guard files.fileExists(atPath: own.path(percentEncoded: false)), !files.fileExists(atPath: shared.path(percentEncoded: false)) else { return shared }
         try? files.createDirectory(at: shared.deletingLastPathComponent(), withIntermediateDirectories: true)
