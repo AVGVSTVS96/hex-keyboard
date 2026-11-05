@@ -1,15 +1,18 @@
 /// P(word | previous word), from the lexicon and what you've typed.
 ///
 /// Every level backs off to the next with Witten-Bell weights, which come from the counts themselves (a context
-/// seen N times with T different words trusts itself N / (N + T)), so there is nothing to tune but the network's weight:
-/// your next-word counts → your word counts → the lexicon → a word the lexicon doesn't know, spelled letter by
-/// letter. How often you keep such new words is itself learned: (new + 1) / (all + 2), Laplace's rule of succession.
+/// seen N times with T different words trusts itself N / (N + T)): your next-word counts → your word counts → the
+/// lexicon → a word the lexicon doesn't know, spelled letter by letter. Each word's count in a context gives `discount`
+/// to the level below (absolute discounting), since a word seen there once is mostly chance and shouldn't outrank a
+/// word the level below knows far better. How often you keep new words is itself learned: (new + 1) / (all + 2),
+/// Laplace's rule of succession.
 struct LanguageModel {
     let lexicon: Lexicon
     let memory: TypingMemory
     let novelty: Double
     let app: AppWords?
 
+    static let discount = 0.5
     static let spellingLogProbability = -Math.log(Double(Lexicon.alphabet))
 
     /// `novel` is `novel(in:lexicon:)`, when the caller keeps it counted.
@@ -48,7 +51,7 @@ struct LanguageModel {
         for context in TypingMemory.contexts(previous, earlier) {
             let (count, total, types) = memory.count(of: word, after: context)
             let below = trust * Double(types)
-            if total > 0 { p = (Double(count) + below * p) / (Double(total) + below) }
+            if total > 0 { p = (max(Double(count) - Self.discount, 0) + (below + Self.discount * Double(types)) * p) / (Double(total) + below) }
         }
         return app?.probability(of: word, after: previous, below: p) ?? p
     }

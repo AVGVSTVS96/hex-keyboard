@@ -546,14 +546,14 @@ struct DecoderTests {
         #expect(correct("bassin", corrector) == "Bassim")
     }
 
-    @Test func nextWordCountsBackOffWithWittenBell() {
+    @Test func nextWordCountsBackOffWithDiscountedWittenBell() {
         var memory = TypingMemory()
         for _ in 0..<3 { memory.record("home", after: "go") }
         memory.record("work", after: "go")
         let model = LanguageModel(lexicon: testLexicon, memory: memory)
         #expect(abs(model.novelty - 1.0 / 6) < 1e-15, "\(model.novelty) \(memory.total)")
         let unigram = (3 + 2 * model.lexical("home")) / (4 + 2)
-        let expected = (3 + 2 * unigram) / (4 + 2)
+        let expected = (3 - 0.5 + (2 + 2 * 0.5) * unigram) / (4 + 2)
         #expect(abs(Math.exp(model.logProbability("home", after: "go")) - expected) < 1e-12)
     }
 }
