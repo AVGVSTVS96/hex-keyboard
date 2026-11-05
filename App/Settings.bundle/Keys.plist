@@ -134,7 +134,7 @@
 		</dict>
 		<dict>
 			<key>FooterText</key>
-			<string>Where to open layouts, Next Keyboard and iikb Settings: hold 123, the globe or emoji and slide, or tap the menu button above the keys.</string>
+			<string>Where to open layouts, Next Keyboard and iikb Settings: hold 123 or emoji and slide, or tap the menu button above the keys.</string>
 			<key>Type</key>
 			<string>PSGroupSpecifier</string>
 		</dict>

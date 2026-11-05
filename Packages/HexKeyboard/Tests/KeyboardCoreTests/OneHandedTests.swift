@@ -72,19 +72,20 @@ struct OneHandedTests {
     }
 
     /// Apple's keyboard opens its menu from the globe or emoji key (Apple's guide for the Duo: "long-press the globe or
-    /// emoji key, then tap the left or right layout"), so Hex's opens from them too, beside 123, on every layer.
-    @Test func holdingTheGlobeOrEmojiOpensTheSameMenu() {
+    /// emoji key, then tap the left or right layout"), so Hex's opens from emoji too, beside 123, on every layer. The
+    /// globe's hold stays the system's list of keyboards, since `handleInputModeList`'s control takes its touches.
+    @Test func holdingEmojiOpensTheSameMenu() {
         for screen in Duo.Screen.allCases {
             for layer in KeyboardLayer.allCases {
                 var settings = KeyboardSettings()
                 settings.split = true
                 let context = LayoutContext(device: .phone, layer: layer, showsGlobe: true, screen: screen.size, settings: settings)
                 let held = context.menuKeys(in: Layouts.layout(for: context)).map(\.action)
-                #expect(held == [.nextKeyboard, .layer(layer == .letters ? .numbers : .letters), .emoji], "\(screen.name), \(layer)")
+                #expect(held == [.layer(layer == .letters ? .numbers : .letters), .emoji], "\(screen.name), \(layer)")
             }
         }
         var settings = KeyboardSettings()
-        (settings.globeKey, settings.emojiKey) = (false, false)
+        settings.emojiKey = false
         let bare = LayoutContext(device: .phone, layer: .letters, showsGlobe: true, screen: Duo.Screen.foldedPortrait.size, settings: settings)
         #expect(bare.menuKeys(in: Layouts.layout(for: bare)).map(\.action) == [.layer(.numbers)], "without them, 123 alone")
     }

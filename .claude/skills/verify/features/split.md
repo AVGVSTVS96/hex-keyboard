@@ -6,7 +6,7 @@ On the open Duo held wide, the keys in two halves at the sides, as Apple's keybo
 
 ## How to get to it (user POV)
 
-Open the Duo and hold it wide, then hold `123`, the globe or emoji, or tap the bar's menu button, and pick Split (or Full). Or Hex app › Settings › Keyboard › Layout › Split Keyboard.
+Open the Duo and hold it wide, then hold `123` or emoji, or tap the bar's menu button, and pick Split (or Full). Or Hex app › Settings › Keyboard › Layout › Split Keyboard.
 
 ## Driving it
 

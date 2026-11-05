@@ -72,13 +72,14 @@ public struct LayoutContext: Hashable, Sendable {
     /// Like Apple's, only the open Duo in landscape splits its keys.
     public var allowsSplit: Bool { isOpen && isLandscape }
 
-    /// The keys in the bottom row whose hold opens the layer menu: the layer key, Bassim's way in, and the globe and
-    /// emoji keys, whose hold opens Apple's menu with the same layouts (Left and Right folded, Full and Split open).
+    /// The keys in the bottom row whose hold opens the layer menu: the layer key, Bassim's way in, and the emoji key,
+    /// whose hold opens Apple's menu with the same layouts (Left and Right folded, Full and Split open). The globe's
+    /// touches go to the control `handleInputModeList` drives, so holding it opens the system's list of keyboards.
     public func menuKeys(in layout: KeyboardLayout) -> [Key] {
         (layout.rows.last ?? []).compactMap { item -> Key? in
             guard case .key(let key) = item else { return nil }
             switch key.action {
-            case .layer, .nextKeyboard, .emoji: return key
+            case .layer, .emoji: return key
             default: return nil
             }
         }
