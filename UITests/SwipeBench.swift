@@ -1,12 +1,14 @@
 import XCTest
 
 /// Replays recorded human swipes (scripts/swipebench.tsv) through the simulator's keyboard, each as one continuous touch
-/// with its original timing, and records the word typed and the bar: HEX_SWIPE_IN, HEX_SWIPE_OUT, HEX_SWIPE_FIRST,
+/// with its original timing, sampled at 30 Hz, and records the word typed and the bar: HEX_SWIPE_IN, HEX_SWIPE_OUT, HEX_SWIPE_FIRST,
 /// HEX_SWIPE_COUNT, HEX_SWIPE_ORIENTATION (portrait, landscape).
 final class SwipeBench: XCTestCase {
     private static let rows = ["qwertyuiop", "asdfghjkl", "zxcvbnm"]
     private static let rowStart: [Double] = [0.05, 0.1004672897196, 0.2004672897196]
     private static let rowCenter: [Double] = [1.0 / 6, 0.5, 5.0 / 6]
+
+    private static let replayRate = 30.0
 
     private typealias Point = (x: Double, y: Double, t: Double)
 
@@ -22,6 +24,24 @@ final class SwipeBench: XCTestCase {
             swipes.append((String(fields[0]), points))
         }
         return swipes
+    }
+
+    /// The path at an even `hz`, linear between its recorded points. The recorded points come as fast as 3 ms apart, and
+    /// above about 50 events a second the simulator's event injection falls behind and delivers the rest of the swipe
+    /// in one frame, with one timestamp (a third of the swipes, in Apple's keyboard as in iikb), where at 30 Hz every
+    /// swipe arrives over its own length. The model resamples to 60 Hz by linear interpolation itself.
+    private static func resampled(_ points: [Point], hz: Double) -> [Point] {
+        var sampled: [Point] = []
+        var segment = 0
+        var t = 0.0
+        while t <= points.last!.t {
+            while segment < points.count - 2, points[segment + 1].t < t { segment += 1 }
+            let (a, b) = (points[segment], points[segment + 1])
+            let share = b.t > a.t ? min(max((t - a.t) / (b.t - a.t), 0), 1) : 0
+            sampled.append(Point(x: a.x + (b.x - a.x) * share, y: a.y + (b.y - a.y) * share, t: t))
+            t += 1 / hz
+        }
+        return sampled
     }
 
     func testSwipes() throws {
@@ -62,30 +82,43 @@ final class SwipeBench: XCTestCase {
         }
         func text() -> String { field.value as? String ?? "" }
         func clear() {
-            let length = text().count
-            if length > 0 { field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: length)) }
+            for _ in 0..<5 {
+                if !text().isEmpty {
+                    field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: text().count))
+                    let start = Date()
+                    while !text().isEmpty, Date().timeIntervalSince(start) < 2 { Thread.sleep(forTimeInterval: 0.05) }
+                }
+                Thread.sleep(forTimeInterval: 0.5)
+                if text().isEmpty { return }
+            }
+            XCTFail("the field would not stay empty")
         }
-
-        var out = ""
-        for (index, (word, points)) in swipes.enumerated() where index >= first && index < first + count {
-            clear()
+        func settle() -> String {
             let start = Date()
-            while !text().isEmpty, Date().timeIntervalSince(start) < 2 { Thread.sleep(forTimeInterval: 0.05) }
-            let begin = 0.05
-            let path = XCPointerEventPath(forTouchAt: fit.point(points[0].x, points[0].y), offset: begin)
-            for point in points.dropFirst() { path.move(to: fit.point(point.x, point.y), atOffset: begin + point.t) }
-            path.liftUp(atOffset: begin + points.last!.t + 0.02)
-            let record = XCSynthesizedEventRecord(name: word, interfaceOrientation: orientation)
-            record.add(path)
-            try record.synthesize()
+            while text().isEmpty, Date().timeIntervalSince(start) < 10 { Thread.sleep(forTimeInterval: 0.1) }
             var typed = text()
             var stable = 0
-            while stable < 3, Date().timeIntervalSince(start) < 8 {
+            while stable < 3 {
                 Thread.sleep(forTimeInterval: 0.1)
                 let now = text()
                 stable = now == typed ? stable + 1 : 0
                 typed = now
             }
+            return typed
+        }
+
+        var out = ""
+        for (index, (word, points)) in swipes.enumerated() where index >= first && index < first + count {
+            let sampled = Self.resampled(points, hz: Self.replayRate)
+            let begin = 0.05
+            let path = XCPointerEventPath(forTouchAt: fit.point(sampled[0].x, sampled[0].y), offset: begin)
+            for point in sampled.dropFirst() { path.move(to: fit.point(point.x, point.y), atOffset: begin + point.t) }
+            path.liftUp(atOffset: begin + sampled.last!.t + 0.02)
+            let record = XCSynthesizedEventRecord(name: word, interfaceOrientation: orientation)
+            record.add(path)
+            clear()
+            try record.synthesize()
+            let typed = settle()
             let typedWord = typed.trimmingCharacters(in: .whitespacesAndNewlines)
             out += "\(index)\t\(word)\t\(typedWord)\t\(bar().joined(separator: "|"))\n"
             if index % 10 == 9 { try out.write(toFile: output, atomically: true, encoding: .utf8) }
