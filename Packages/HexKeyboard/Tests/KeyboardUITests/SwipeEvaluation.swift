@@ -189,10 +189,12 @@ extension Evaluation {
         }
     }
 
-    /// How much the sentence helps: every swipe of a split read with its sentence's words before it, through the bar's own
-    /// next-word model (`Corrector.continuation`, a fresh memory). The grid search over α, λ and β runs on the validation
-    /// split (`SWIPE_LIMIT` swipes, every few-th, 6000 by default) with the candidates of the first 30 re-scored exactly,
-    /// since the score is linear in λ and β; the test split reports no context against the best settings.
+    /// How much the sentence helps: every swipe of a split read with its sentence's words before it, and again in an empty
+    /// field, through the bar's own next-word model (`Corrector.continuation`, a fresh memory). Three scores meet: the
+    /// decoder alone, the old blend (α·ln P(word | context) with λ and β retuned) and the new one (α times how much the
+    /// context moves ln P(word) from its value at a sentence start). The grid search over α, λ and β runs on the
+    /// validation split (`SWIPE_LIMIT` swipes, every few-th, 6000 by default) with the candidates of the first 30
+    /// re-scored exactly, since the score is linear in λ and β, for the best of the two cases together.
     @Test(.enabled(if: Swipes.exists("dev") && Swipes.exists("test")))
     func swipeContext() throws {
         let layout = Self.layout, model = Swipe.english, lexicon = Lexicon.english
@@ -201,49 +203,108 @@ extension Evaluation {
 
         struct Read {
             let word: String
-            let candidates: [(word: String, score: Double, prior: Double, length: Double, context: Double)]
+            let candidates: [(word: String, score: Double, prior: Double, length: Double, context: Double, empty: Double)]
         }
         func read(_ items: [Swipes.Item]) -> [Read] {
             let ranked = Self.parallel(items.count) { index in
                 model.emissions(of: items[index].path, on: layout).map { Swipe.rank($0, in: lexicon, base, limit: 30) } ?? []
             }
             let corrector = Corrector(source: lexicon, network: .english)
+            let none = corrector.continuation(after: "")
             return zip(items, ranked).map { item, found in
                 let continues = corrector.continuation(after: item.context.isEmpty ? "" : item.context + " ")
                 return Read(word: item.word, candidates: found.map {
-                    ($0.word, $0.score, lexicon.logProbability(of: $0.word) ?? 0, Double($0.word.utf8.count(where: { $0 != 39 })), continues($0.word))
+                    ($0.word, $0.score, lexicon.logProbability(of: $0.word) ?? 0, Double($0.word.utf8.count(where: { $0 != 39 })), continues($0.word), none($0.word))
                 })
             }
         }
-        func accuracy(_ reads: [Read], alpha: Double, lambda: Double, beta: Double) -> Accuracy {
+        enum Blend { case decoder, old, new }
+        func accuracy(_ reads: [Read], _ blend: Blend, context: Bool, alpha: Double, lambda: Double, beta: Double) -> Accuracy {
             var accuracy = Accuracy()
             for item in reads {
                 let words = item.candidates
-                    .map { ($0.word, $0.score + (lambda - base.lambda) * $0.prior + (beta - base.beta) * $0.length + alpha * $0.context) }
+                    .map { candidate -> (String, Double) in
+                        let seen = context ? candidate.context : candidate.empty
+                        let moved: Double = switch blend {
+                        case .decoder: 0
+                        case .old: alpha * seen
+                        case .new: alpha * (seen - candidate.empty)
+                        }
+                        let tuned = blend == .decoder ? 0 : (lambda - base.lambda) * candidate.prior + (beta - base.beta) * candidate.length
+                        return (candidate.word, candidate.score + tuned + moved)
+                    }
                     .sorted { $0.1 > $1.1 }.prefix(3).map { $0.0.lowercased() }
                 accuracy.add(Array(words), item.word)
             }
             return accuracy
         }
+        func both(_ reads: [Read], _ blend: Blend, alpha: Double, lambda: Double, beta: Double) -> Double {
+            [true, false].map { context in
+                let result = accuracy(reads, blend, context: context, alpha: alpha, lambda: lambda, beta: beta)
+                return Double(result.first + result.three) / Double(result.total)
+            }.reduce(0, +)
+        }
 
         let all = try Swipes("dev").placed(on: layout)
         let stride = max(all.count / limit, 1)
         let dev = read((0..<min(limit, all.count)).map { all[$0 * stride] })
-        var best = (alpha: 0.0, lambda: base.lambda, beta: base.beta), bestValue = 0.0
-        for alpha in [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.65, 0.8] {
-            for lambda in [0, 0.03, 0.06, 0.1, 0.15, 0.31] {
-                for beta in [0.5, 0.6, 0.727, 0.85, 1.0] {
-                    let result = accuracy(dev, alpha: alpha, lambda: lambda, beta: beta)
-                    let value = Double(result.first + result.three) / Double(result.total)
-                    if value > bestValue { (best, bestValue) = ((alpha, lambda, beta), value) }
+        var best: [Blend: (alpha: Double, lambda: Double, beta: Double)] = [:]
+        for blend in [Blend.old, .new] {
+            var bestValue = 0.0
+            for alpha in [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.65, 0.8, 1.0] {
+                for lambda in [0, 0.03, 0.06, 0.1, 0.15, base.lambda] {
+                    for beta in [0.5, 0.6, base.beta, 0.727, 0.85, 1.0] {
+                        let value = both(dev, blend, alpha: alpha, lambda: lambda, beta: beta)
+                        if value > bestValue { (best[blend], bestValue) = ((alpha, lambda, beta), value) }
+                    }
                 }
             }
+            print("EVAL swipe context dev=\(dev.count) \(blend) \(best[blend]!)")
         }
-        let tuned = accuracy(dev, alpha: best.alpha, lambda: best.lambda, beta: best.beta)
-        print("EVAL swipe context dev=\(dev.count) none: \(accuracy(dev, alpha: 0, lambda: base.lambda, beta: base.beta).topThree) | alpha=\(best.alpha) lambda=\(best.lambda) beta=\(best.beta): \(tuned.topThree)")
 
         let test = read(try Swipes("test").placed(on: layout))
-        print("EVAL swipe context test=\(test.count) none: \(accuracy(test, alpha: 0, lambda: base.lambda, beta: base.beta).topThree)")
-        print("EVAL swipe context test=\(test.count) alpha=\(best.alpha) lambda=\(best.lambda) beta=\(best.beta): \(accuracy(test, alpha: best.alpha, lambda: best.lambda, beta: best.beta).topThree)")
+        func report(_ name: String, _ blend: Blend, _ given: (alpha: Double, lambda: Double, beta: Double)? = nil) {
+            let setting = given ?? best[blend] ?? (0, base.lambda, base.beta)
+            let with = accuracy(test, blend, context: true, alpha: setting.alpha, lambda: setting.lambda, beta: setting.beta)
+            let without = accuracy(test, blend, context: false, alpha: setting.alpha, lambda: setting.lambda, beta: setting.beta)
+            print("EVAL swipe context test=\(test.count) \(name) alpha=\(setting.alpha) lambda=\(setting.lambda) beta=\(setting.beta): context \(with.topThree) | empty \(without.topThree)")
+        }
+        report("decoder", .decoder)
+        report("before", .old, (0.4, 0, 0.85))
+        report("old", .old)
+        report("new", .new)
+    }
+
+    /// The 400 recorded swipes of `scripts/swipebench.tsv`, each into an empty field through the whole `TypingEngine` on
+    /// the folded Duo in portrait (`SWIPE_BENCH=1 scripts/eval swipeBench`), against the decoder alone on the same grid.
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["SWIPE_BENCH"] != nil))
+    @MainActor func swipeBench() throws {
+        let duo = Duo.Screen.foldedPortrait
+        let context = LayoutContext(device: .phone, layer: .letters, showsGlobe: true, isLandscape: false, isOpen: false, showsEmoji: true)
+        let metrics = KeyboardMetrics.for(context, screen: duo.size, window: duo.keyboardWidth, style: .ios26)
+        let grid = KeyGrid(Layouts.layout(for: context), width: duo.keyboardWidth, metrics: metrics.grid, signature: context.signature)
+        let frame = SwipeLayout(grid: grid)!.frame
+        let url = URL(fileURLWithPath: ProcessInfo.processInfo.environment["SWIPE_BENCH"]!)
+        let rows = try String(contentsOf: url, encoding: .utf8).split(separator: "\n").filter { !$0.hasPrefix("#") }.map { $0.split(separator: "\t") }
+        let model = Swipe.english, lexicon = Lexicon.english
+        var engine = Accuracy(), decoder = Accuracy()
+        for row in rows {
+            let word = String(row[0])
+            let points = row[1].split(separator: ";").map { $0.split(separator: ",").map { Double($0)! } }
+            let path = points.map { SwipePoint(x: frame.x + $0[0] / 1000 * frame.width, y: frame.y + $0[1] / 1000 * frame.height, time: $0[2] / 1000) }
+            if let emissions = model.emissions(of: path, on: SwipeLayout(grid: grid)!) {
+                decoder.add(Swipe.rank(emissions, in: lexicon, .refined, limit: 3).map { $0.word.lowercased() }, word)
+            } else { decoder.total += 1 }
+            var typing = TypingEngine(traits: InputTraits(autocapitalization: .none))
+            typing.corrector = Corrector(source: lexicon, network: .english)
+            typing.swipeModel = model
+            typing.use(grid)
+            let document = Document()
+            typing.documentChanged(document)
+            typing.handle(.swipe(path), in: document)
+            let typed = document.text.lowercased()
+            engine.add([typed] + (typing.swipedWord?.alternatives.map { $0.text.lowercased() }.filter { $0 != typed } ?? []), word)
+        }
+        print("EVAL swipe bench swipes=\(rows.count) decoder \(decoder.topThree) engine \(engine.topThree) (top1 \(engine.first)/\(engine.total), decoder \(decoder.first)/\(decoder.total))")
     }
 }

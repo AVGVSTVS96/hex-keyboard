@@ -39,6 +39,9 @@ EVAL swipe encoder+decoder lexicon=ours top1=90.71 top3=95.28 top10=96.19
 EVAL swipe encoder+decoder lexicon=forced at -25.5 top1=91.98 top3=97.19 top10=98.76
 EVAL swipe encoder+decoder lexicon=forced at -18.0 top1=92.82 top3=97.99 top10=99.17
 EVAL swipe encoder+decoder lexicon=forced at -12.0 top1=93.44 top3=98.28 top10=99.23
-EVAL swipe context dev=6000 none: top1=90.90 top3=95.62 | alpha=0.4 lambda=0.0 beta=0.85: top1=91.98 top3=95.87
-EVAL swipe context test=48355 none: top1=90.71 top3=95.28
-EVAL swipe context test=48355 alpha=0.4 lambda=0.0 beta=0.85: top1=91.93 top3=95.56
+EVAL swipe context dev=6000 old (alpha: 0.1, lambda: 0.15, beta: 0.6)
+EVAL swipe context dev=6000 new (alpha: 0.3, lambda: 0.31, beta: 0.727)
+EVAL swipe context test=48355 decoder alpha=0.0 lambda=0.31 beta=0.727: context top1=90.71 top3=95.28 | empty top1=90.71 top3=95.28
+EVAL swipe context test=48355 before alpha=0.4 lambda=0.0 beta=0.85: context top1=92.19 top3=95.60 | empty top1=89.58 top3=95.15
+EVAL swipe context test=48355 old alpha=0.1 lambda=0.15 beta=0.6: context top1=91.62 top3=95.35 | empty top1=90.76 top3=95.16
+EVAL swipe context test=48355 new alpha=0.3 lambda=0.31 beta=0.727: context top1=91.99 top3=95.54 | empty top1=90.71 top3=95.28
