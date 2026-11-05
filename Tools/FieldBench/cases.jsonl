@@ -77,3 +77,5 @@
 {"field": "prose_digits", "say": "Call me at four one five five five five zero one nine nine.", "expected": "Call me at 415-555-0199.", "id": "prose_digits-76"}
 {"field": "prose_digits", "say": "My number is six five oh, three one two, eight eight four one.", "expected": "My number is 650-312-8841.", "id": "prose_digits-77"}
 {"field": "prose_digits", "say": "The code is four eight two nine.", "expected": "The code is 4829.", "id": "prose_digits-78"}
+{"field": "prose_email", "say": "Write to kestrel one oh one at gmail dot com.", "expected": "Write to kestrel101@gmail.com.", "id": "prose_email-80"}
+{"field": "prose_email", "say": "kestrel one oh one at gmail dot com five five five one two three four", "expected": "kestrel101@gmail.com 5551234", "id": "prose_email-81"}

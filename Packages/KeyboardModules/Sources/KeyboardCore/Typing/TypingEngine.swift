@@ -562,6 +562,8 @@ extension TypingEngine {
         for (index, start) in sentenceStarts(in: heard).enumerated() {
             let word = String(heard[start...].prefix(while: Words.isWordCharacter))
             let opensSentence = index > 0 || startsSentence
+            let next = start + word.count
+            if next + 1 < heard.count, heard[next] == "@" || heard[next] == "." && heard[next + 1].isLetter { continue }
             if !opensSentence || capitals == .none {
                 if word.dropFirst() == word.lowercased().dropFirst(), lexicon?.canonical(word) == word.lowercased() {
                     heard[start] = Character(heard[start].lowercased())

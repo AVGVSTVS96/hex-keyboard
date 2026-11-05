@@ -86,7 +86,7 @@ enum SpokenAddress {
         while let at = words[from...].firstIndex(where: { clean($0) == "at" }) {
             from = at + 1
             guard let host = host(in: words, after: at), let local = local(in: words, before: at) else { continue }
-            let name = words[local ..< at].compactMap { read($0) }.joined()
+            guard let name = read(words[local ..< at].joined(separator: " ")) else { continue }
             guard host.spoken || name.contains(where: { "._-".contains($0) || $0.isNumber }) else { continue }
             let address = name + "@" + host.name
             words.replaceSubrange(local ..< host.end, with: [address + host.tail])
@@ -131,17 +131,21 @@ enum SpokenAddress {
         return (name, end, tail, spoken)
     }
 
-    /// Where the name before an "at" starts: the plain word beside it, and what's spoken as part of one before that.
+    /// Where the name before an "at" starts: the plain word beside it, and what's spoken as part of one before that, or
+    /// the name before digits said after it ("tamsin one oh one at").
     private static func local(in words: [String], before at: Int) -> Int? {
         var start = at
+        var digits = true
         while start > 0 {
             let word = words[start - 1]
             guard word.allSatisfy({ $0.isLetter || $0.isNumber || "_-.".contains($0) }) else { break }
             let first = pieces(word).first
-            let spelled = word.count == 1 || first.map { if case .number = $0 { true } else { false } } == true
+            let number = first.map { if case .number = $0 { true } else { false } } == true || start < at && ["oh", "o"].contains(word.lowercased())
+            let spelled = word.count == 1 || number
             let joins = joiners.contains(word.lowercased()) || start < at && joiners.contains(words[start].lowercased())
-            guard start == at || spelled || joins else { break }
+            guard start == at || spelled || joins || digits else { break }
             start -= 1
+            digits = digits && number
         }
         return start < at ? start : nil
     }

@@ -5,7 +5,8 @@
 ///
 /// With a lexicon, a made-up word the model writes that sounds like a term becomes it too ("kestrul dot run" for
 /// kestrel.run, "IKB" for iikb), as do words like those already in the field (`field`), so a name written once comes out
-/// the same when said again. A real word is only swapped if it's listed, so "sound" stays unless "Astound" lists it.
+/// the same when said again. A real word is only swapped if it's listed, so "sound" stays unless "Astound" lists it. A
+/// name with digits after it, as in an address ("tamsen101"), is matched by its name and keeps its digits.
 public struct Vocabulary: Codable, Equatable, Sendable {
     public struct Term: Codable, Equatable, Hashable, Sendable {
         public var term: String
@@ -63,6 +64,12 @@ public struct Vocabulary: Codable, Equatable, Sendable {
                     possessive = ""
                     term = Self.soundsLike(span.map { String(characters[$0]) }, said: String(characters[start ..< end]),
                                            in: soundsLike, lexicon: lexicon)
+                }
+                if term == nil, count == 1, let (name, number) = Self.numbered(String(characters[start ..< end])),
+                   !Self.isGlued(characters, before: start, after: end, by: Self.glue.subtracting(["@"])) {
+                    possessive = ""
+                    term = (spellings[Self.key(name)] ?? lexicon.flatMap { Self.soundsLike([name], said: name, in: soundsLike, lexicon: $0) })
+                        .map { $0 + number }
                 }
                 guard let term else { continue }
                 var from = start
@@ -156,6 +163,13 @@ public struct Vocabulary: Codable, Equatable, Sendable {
         }
         close()
         return seen.filter { !$0.allSatisfy { $0.isNumber || $0 == "." } }
+    }
+
+    /// A name with digits after it, as the model writes one in an address ("Tamsen101"), apart.
+    private static func numbered(_ word: String) -> (name: String, number: String)? {
+        let name = word.prefix { $0.isLetter }, number = word.dropFirst(name.count)
+        guard !name.isEmpty, !number.isEmpty, number.allSatisfy(\.isNumber) else { return nil }
+        return (String(name), String(number))
     }
 
     /// Where "<word> dot " starts its dot, right before `start`, so a spoken dot joins a name with a dot in it.
