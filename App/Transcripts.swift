@@ -17,6 +17,8 @@ struct Transcript: Codable, Identifiable, Hashable {
     var mic: String?
     /// What the model wrote, when your style or `Vocabulary` changed it.
     var heard: String?
+    /// The bundle ID of the app it was said for; nil when the keyboard couldn't tell, or before Hex kept it.
+    var app: String?
 
     var words: Int { text.split(whereSeparator: \.isWhitespace).count }
 
@@ -73,8 +75,11 @@ struct Transcript: Codable, Identifiable, Hashable {
     /// Keeps a dictation whose `Recording` was written to `recording(of: id)` as it was heard, with its sound, even when
     /// the model wrote nothing: that's when it failed you (a low rumble, speech too quiet, or an "um" your editing left
     /// out), and the sound is the only copy, to write again.
-    func add(_ text: String, heard: String, id: Transcript.ID, at date: Date, seconds: Double, typed: Bool, model: String, mic: String?, recovered: Bool = false) {
-        let transcript = Transcript(id: id, date: date, text: text, seconds: seconds, typed: typed, recovered: recovered ? true : nil, model: model, mic: mic, heard: heard == text ? nil : heard)
+    func add(_ text: String, heard: String, id: Transcript.ID, at date: Date, seconds: Double, typed: Bool, model: String, mic: String?, app: String? = nil, recovered: Bool = false) {
+        let transcript = Transcript(
+            id: id, date: date, text: text, seconds: seconds, typed: typed, recovered: recovered ? true : nil, model: model, mic: mic,
+            heard: heard == text ? nil : heard, app: app
+        )
         all.insert(transcript, at: all.firstIndex { $0.date < date } ?? all.endIndex)
         trim()
         guard let line = try? JSONEncoder().encode(transcript) else { return }

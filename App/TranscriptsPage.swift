@@ -169,6 +169,10 @@ private struct Row: View {
                 Text("·")
                 Text(Duration.seconds(transcript.seconds), format: .time(pattern: .minuteSecond))
                     .monospacedDigit()
+                if transcript.typed, let app = transcript.app {
+                    Text("·")
+                    Text(AppName.of(app)).lineLimit(1)
+                }
                 if !transcript.typed {
                     Text("·")
                     Text(transcript.recovered == true ? "Recovered" : "Not typed")
@@ -303,7 +307,7 @@ private struct TranscriptDetail: View {
                 if transcript.seconds >= 1 {
                     Fact(title: "Pace", value: "\(Int((Double(transcript.words) / transcript.seconds * 60).rounded())) wpm")
                 }
-                Fact(title: "Typed", value: transcript.typed ? "Yes" : transcript.recovered == true ? "No, iikb closed during it" : "No")
+                Fact(title: "Typed", value: transcript.typed ? transcript.app.map { "In \(AppName.of($0))" } ?? "Yes" : transcript.recovered == true ? "No, iikb closed during it" : "No")
                 if let model = transcript.model { Fact(title: "Written by", value: model) }
             }
             RecordingSection(transcript: transcript)

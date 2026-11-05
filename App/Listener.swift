@@ -66,6 +66,7 @@ import UIKit
         micOffOnceWritten = false
         failure = nil
         let take = Take()
+        take.app = Dictation.host
         recording = take
         publish()
         do {
@@ -87,6 +88,7 @@ import UIKit
     func finish(in keyboard: UInt64? = nil) async {
         if let take = recording, tail == nil {
             take.keyboard = keyboard
+            if keyboard != nil { take.app = Dictation.host }
             let tail = Task {
                 let sound = await microphone.stop()
                 (recording, self.tail) = (nil, nil)
@@ -134,7 +136,7 @@ import UIKit
         do {
             let written = try await VoiceModel.shared.write(samples)
             writing.removeAll { $0 === take }
-            Transcripts.shared.add(written.text, heard: written.heard, id: take.id, at: take.started, seconds: seconds, typed: take.typed, model: written.model, mic: take.mic)
+            Transcripts.shared.add(written.text, heard: written.heard, id: take.id, at: take.started, seconds: seconds, typed: take.typed, model: written.model, mic: take.mic, app: take.app)
             if take.typed, written.text.isEmpty {
                 Dictation.leave(.notice("\(written.model) heard nothing: the recording is in iikb › Transcripts"))
             } else if take.typed {
@@ -242,4 +244,6 @@ private final class Take {
     var typed = true
     /// The keyboard you stopped it in, which types it.
     var keyboard: UInt64?
+    /// The app that keyboard was in, or the one you started it in when you stopped it in iikb.
+    var app: String?
 }

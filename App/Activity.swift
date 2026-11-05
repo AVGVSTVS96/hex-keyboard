@@ -89,14 +89,21 @@ extension Activity {
             if !hour.app.isEmpty { apps[hour.app, default: 0] += tally.words }
         }
         let calendar = Calendar.current
+        var said: [String: Int] = [:]
         for transcript in transcripts where !transcript.text.isEmpty {
             let words = transcript.words
+            if transcript.typed, let app = transcript.app { said[app, default: 0] += words }
             var channel = Channel(words: words, characters: transcript.text.count, paced: Double(words), seconds: transcript.seconds, dictations: 1)
             channel.hours[calendar.component(.hour, from: transcript.date)] = Double(transcript.text.count)
             let date = calendar.startOfDay(for: transcript.date)
             days[date, default: Day()].said = days[date, default: Day()].said + channel
         }
-        self.apps[.typed] = apps.map { (name: AppName.of($0.key), words: $0.value) }.filter { $0.words > 0 }.sorted { $0.words > $1.words }
+        self.apps[.typed] = Self.named(apps)
+        self.apps[.said] = Self.named(said)
+    }
+
+    private static func named(_ apps: [String: Int]) -> [(name: String, words: Int)] {
+        apps.map { (name: AppName.of($0.key), words: $0.value) }.filter { $0.words > 0 }.sorted { $0.words > $1.words }
     }
 }
 

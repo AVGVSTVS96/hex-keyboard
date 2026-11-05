@@ -471,12 +471,13 @@ open class HexKeyboardViewController: UIInputViewController {
             voiceNotice = "Voice needs Allow Full Access in Settings › Apps › iikb › Keyboards"
             return render()
         }
+        updateHost()
+        Dictation.host = hostApp
         if dictation.listening { return Dictation.send(.finish, from: keyboard) }
         voiceNotice = nil
         micIsOn = Dictation.micIsOn
         if micIsOn { return Dictation.send(.start) }
         render()
-        updateHost()
         open(Dictation.Request(host: hostApp).url)
     }
 
