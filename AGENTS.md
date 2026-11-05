@@ -38,7 +38,7 @@ scripts/coretest                                # KeyboardCore's tests here on L
 scripts/check                                   # this checkout built for the iPhone here on Linux, unsigned (a few minutes; one at a time)
 scripts/phone                                   # main's last commit built, signed and installed on the iPhone (--reinstall renews the signing)
 scripts/backup <udid>                           # the iPhone's iikb data copied to ~/.local/share/hex-keyboard/backup here, never deleted, replaced files kept in versions/ (scripts/phone runs it first)
-scripts/restore <udid> [--at <time>] [name…]    # the backup put back on the iPhone, all of it or the files named, as it is or as it was at a time (docs/backup.md)
+scripts/restore <udid> [--at <time>|now] [name…]  # the backup put back on the iPhone, all of it or the files named, as it is or as it was at a time; refuses a copy much smaller than one it replaced lately (docs/backup.md)
 scripts/mac scripts/verify                      # what landed, at once, on one iPhone Duo simulator: package and UI tests, light and dark, shots in shots/raw/verify/
 scripts/mac scripts/test                        # KeyboardCore and KeyboardUI package tests on an iOS simulator
 scripts/mac scripts/uitest                      # type through the real extension (the iPhone Duo by default)
