@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 /// Sends iikb's files to the backup server built in as `Resources/Keys/backup.key` (its address on the first line, its
 /// token on the second; docs/backup.md) each time they change, so they outlive a crash, a delete, an install of any kind,
@@ -105,6 +106,7 @@ nonisolated public enum Backup {
         guard let (data, response) = try? await URLSession.shared.data(for: request), (response as? HTTPURLResponse)?.statusCode == 200,
               let held = try? JSONDecoder().decode([String: [Int]].self, from: data)
         else { return .unavailable }
+        Logger(subsystem: "com.shahidy.hexkeyboard", category: "personal").notice("DEBUG keys \(held.count) theirs \(String(describing: held[name]), privacy: .public) after \(after.timeIntervalSince1970)")
         guard let theirs = held[name], theirs.count == 2, Date(timeIntervalSince1970: Double(theirs[1])) > after else { return .current }
         let values = try? url.resourceValues(forKeys: [.fileSizeKey, .contentModificationDateKey])
         if values?.fileSize == theirs[0], values?.contentModificationDate.map({ Int($0.timeIntervalSince1970) }) == theirs[1] { return .current }
