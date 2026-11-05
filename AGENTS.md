@@ -57,6 +57,7 @@ scripts/lexicon                                 # rebuild en.lexicon (downloads 
 scripts/personal record.jsonl [en.network [out]] # fine-tune en.network on your typing (the server does it when the record changes)
 scripts/network                                 # retrain en.network (downloads ~20 GB, about three hours on the Mac's GPU)
 scripts/mac scripts/applebar in.txt out.txt     # Apple's own suggestion bar before each word and after its first two letters, typed through the system keyboard in the simulator, for head-to-heads
+python3 scripts/barmatch.py apple.txt iikb.txt   # the suggestion bar's measure: how many of Apple's bar words iikb's bar shows on the same text, how often the bars are the same, and where each has the word typed next
 uv run --with pillow --with numpy --with scipy scripts/shotdiff.py v7   # key-by-key geometry vs Apple
 ```
 
