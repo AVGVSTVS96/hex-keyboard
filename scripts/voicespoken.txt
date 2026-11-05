@@ -1,0 +1,69 @@
+# The spoken set scripts/voiceloop says with macOS voices and scores through iikb's whole dictation path: `say | typed`,
+# or `field | say | typed` for a field of that kind (email, url, number, webSearch), what iikb must type with the default
+# settings (Casual, As Said, numbered lists, Auto-Capitalization on). A line with {name} is said once for each stand-in
+# below and for names from the Dictionary (filled in outside the repo); {lname} is the name in lowercase. The stand-ins
+# go in the Dictionary for the run, as a contact's name would. Made-up text only, in the forms Bassim dictates.
+names: Tamsin Wrenna Odalys Caspian Thaddeus
+
+# emails
+My email is {name} one oh one at gmail dot com. | My email is {lname}101@gmail.com
+My email's {name} one oh one at gmail dot com, it's three six three six four. | My email's {lname}101@gmail.com, it's 36364
+Send it to {name} at fastmail dot com. | Send it to {lname}@fastmail.com
+You can reach {name} at {name} dot work at proton dot me. | You can reach {name} at {lname}.work@proton.me
+email | {name} one oh one at gmail dot com | {lname}101@gmail.com
+email | {name} dot vale at outlook dot com | {lname}.vale@outlook.com
+email | nora underscore lin at icloud dot com | nora_lin@icloud.com
+
+# phone numbers
+His phone number is nine one five, five zero zero, five three two one. | His phone number is 915-500-5321
+Call {name} at four one five five five five zero one nine nine. | Call {name} at 415-555-0199
+Text me at six five zero, two two two, one three one three. | Text me at 650-222-1313
+Her number is three one zero, eight eight one, four four two zero, call after six. | Her number is 310-881-4420, call after six
+My email is {name} one oh one at gmail dot com, five seven five three two three two three. | My email is {lname}101@gmail.com, 57532323
+number | nine one five five zero zero five three two one | 9155005321
+number | four one five, five five five, zero one nine nine | 4155550199
+
+# codes and PINs
+The code is four eight two nine. | The code is 4829
+My PIN is one three three seven. | My PIN is 1337
+It's three six three six four. | It's 36364
+The verification code is five seven five three two three. | The verification code is 575323
+The gate code is two zero two six, then pound. | The gate code is 2026, then pound
+number | eight one four four seven two | 814472
+
+# models and versions
+Get a fresh Opus five point five agent on it. | Get a fresh Opus 5.5 agent on it
+Run GPT six point one sub agents as judges. | Run GPT 6.1 sub agents as judges
+Switch the reviewer to Sonnet five point five. | Switch the reviewer to Sonnet 5.5
+Is Opus five point five better than GPT six point one here? | Is Opus 5.5 better than GPT 6.1 here?
+Haiku five point five is fast enough for this. | Haiku 5.5 is fast enough for this
+OK, Opus five point five, his phone number is nine one five, five zero zero, five three two one. | OK, Opus 5.5, his phone number is 915-500-5321
+We're on iOS twenty seven point one now. | We're on iOS 27.1 now
+Upgrade to Python three point one three first. | Upgrade to Python 3.13 first
+Pin FluidAudio to zero point eighteen point two. | Pin FluidAudio to 0.18.2
+Use Parakeet v three for dictation. | Use Parakeet v3 for dictation
+
+# domains and links
+It's up on example dot com. | It's up on example.com
+Open github dot com slash {lname} slash notes. | Open github.com/{lname}/notes
+The demo is at iikb dot vercel dot app. | The demo is at iikb.vercel.app
+url | example dot com slash pricing | example.com/pricing
+webSearch | kestrel dot run | kestrel.run
+
+# times and dates
+Let's meet at three thirty PM. | Let's meet at 3:30 PM
+The call is at nine AM tomorrow. | The call is at 9 AM tomorrow
+I'll be there by ten fifteen AM on Friday. | I'll be there by 10:15 AM on Friday
+It's due November fifth. | It's due November 5th
+
+# money and amounts
+It costs twenty five dollars a month. | It costs $25 a month
+The bill was one hundred twenty dollars and fifty cents. | The bill was $120.50
+That's two hundred dollars total. | That's $200 total
+It used fifty percent more tokens. | It used 50% more tokens
+Only two point five percent of runs failed. | Only 2.5% of runs failed
+
+# names in plain sentences
+Tell {name} I'm running late. | Tell {name} I'm running late
+I'm meeting {name} and Sarah for lunch. | I'm meeting {name} and Sarah for lunch
+Did {name} send the notes yet? | Did {name} send the notes yet?

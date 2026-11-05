@@ -1,0 +1,5 @@
+#!/bin/sh
+# iikb's whole dictation path, from the sound to what the keyboard types, scored on Bassim's dictations and on a spoken
+# set, with what it still gets wrong ranked by kind (scripts/voiceloop.py). Parakeet runs on the Mac only for clips it
+# hasn't written with this Parakeet path yet, and --cached leaves those out to never wait on the Mac; the rest runs here.
+exec uv run -q --with numpy python3 -B "$(dirname "$0")/voiceloop.py" "$@"
