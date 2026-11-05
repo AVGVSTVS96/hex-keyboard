@@ -27,6 +27,12 @@ import UIKit
     private var micOffOnceWritten = false
     /// Home's switch turned the microphone on: it stays on until the switch turns it off, whatever Keep Mic On says.
     private var held = false
+    /// The last recording held no sound at all, so the microphone's input is taken to be dead: it goes off once nothing
+    /// is being recorded or written, and the next dictation opens it fresh.
+    private var deaf = false
+    /// None of 628 real dictations came within 200 of 32767 in a sample; a recording with none past 100 is the input gone
+    /// deaf.
+    private static let silence: Float = 100 / 32767
     /// Why the last dictation couldn't be made or written down, for the app's screen.
     private(set) var failure: (title: String, reason: String)?
     var onChange: (() -> Void)?
@@ -135,11 +141,15 @@ import UIKit
     /// One that can't be written now is written the next time the app opens, since its recording is still on disk.
     private func deliver(_ take: Take, _ samples: [Float]) async {
         let seconds = Double(samples.count) / Recording.format.sampleRate
+        let silent = !samples.isEmpty && !samples.contains { abs($0) > Self.silence }
+        deaf = silent
         do {
             let written = try await VoiceModel.shared.write(samples)
             writing.removeAll { $0 === take }
             Transcripts.shared.add(written.text, heard: written.heard, id: take.id, at: take.started, seconds: seconds, typed: take.typed, model: written.model, mic: take.mic, app: take.app)
-            if take.typed, written.text.isEmpty {
+            if take.typed, silent {
+                Dictation.leave(.notice("The microphone gave no sound: tap the mic again"))
+            } else if take.typed, written.text.isEmpty {
                 Dictation.leave(.notice("\(written.model) heard nothing: the recording is in iikb › Transcripts"))
             } else if take.typed {
                 Dictation.leave(.heard(written.text, plain: written.plain, keyboard: take.keyboard))
@@ -160,7 +170,7 @@ import UIKit
         micOff?.cancel()
         guard microphone.isOn, recording == nil, writing.isEmpty, !held else { return }
         let seconds = SettingsStore.keepMicOn
-        guard seconds > 0, !micOffOnceWritten else { return closeMic() }
+        guard seconds > 0, !micOffOnceWritten, !deaf else { return closeMic() }
         guard seconds != Dictation.micForever else { return }
         micOff = Task {
             try? await Task.sleep(for: .seconds(seconds))
@@ -214,6 +224,7 @@ import UIKit
         micOff = nil
         micOffOnceWritten = false
         held = false
+        deaf = false
         microphone.close()
         VoiceModel.shared.micIsOn = false
     }
