@@ -20,11 +20,11 @@ final class SwipeTests: XCTestCase {
     func testASwipeTypesItsWordAndTheBarOffersOthers() throws {
         try swipe("world")
         XCTAssertEqual(settled().lowercased(), "world")
-        XCTAssertTrue(suggestion(1).waitForExistence(timeout: 5))
-        XCTAssertEqual(suggestion(1).label.lowercased(), "world", "the bar's middle slot is the swiped word")
-        let others = [0, 2].filter { suggestion($0).exists }.map { suggestion($0).label }
+        XCTAssertTrue(suggestion(0).waitForExistence(timeout: 5))
+        let others = (0..<3).map(suggestion).filter(\.exists).map(\.label)
+        XCTAssertFalse(others.map { $0.lowercased() }.contains("world"), "the bar offers other words, as Apple's does after a swipe")
         let alternative = try XCTUnwrap(others.first, "no alternative offered")
-        suggestion(suggestion(0).exists && suggestion(0).label == alternative ? 0 : 2).tap()
+        suggestion(0).tap()
         XCTAssertEqual(settled().trimmingCharacters(in: .whitespaces).lowercased(), alternative.lowercased())
     }
 
@@ -50,6 +50,13 @@ final class SwipeTests: XCTestCase {
         record.add(path)
         try record.synthesize()
         XCTAssertEqual(settled().lowercased(), "g")
+    }
+
+    func testADragFromKeyToKeyTypesAWordOnEveryScreen() {
+        let middle = CGVector(dx: 0.5, dy: 0.5)
+        key("t").coordinate(withNormalizedOffset: middle)
+            .press(forDuration: 0.05, thenDragTo: key("o").coordinate(withNormalizedOffset: middle), withVelocity: 600, thenHoldForDuration: 0)
+        XCTAssertEqual(settled().lowercased(), "to")
     }
 
     private func swipe(_ word: String) throws {

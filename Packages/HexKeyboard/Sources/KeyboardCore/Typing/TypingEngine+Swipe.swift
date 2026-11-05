@@ -24,13 +24,12 @@ extension TypingEngine {
             .map { (word: $0.word, score: $0.swipe + Swipe.Scoring.contextWeight * (continues($0.word) - starting($0.word))) }
             .filter { seen.insert($0.word.lowercased()).inserted }
             .sorted { $0.score > $1.score }
-            .prefix(3)
+            .prefix(4)
             .map { written(cased($0.word)) }
         guard let best = words.first else { return false }
         write((joins ? " " : "") + best, in: document)
         tally.characters += best.count + (joins ? 1 : 0)
-        let slots = Array(words.dropFirst().prefix(1)) + [best] + Array(words.dropFirst(2))
-        swiped = Swiped(length: best.count + (joins ? 1 : 0), end: text.before, alternatives: slots.map { Suggestion($0, .candidate) })
+        swiped = Swiped(length: best.count + (joins ? 1 : 0), end: text.before, alternatives: words.dropFirst().map { Suggestion($0, .candidate) })
         refreshShift()
         suggestionsChanged()
         return true

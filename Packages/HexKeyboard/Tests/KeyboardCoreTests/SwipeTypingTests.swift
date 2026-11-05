@@ -85,8 +85,8 @@ struct SwipeTypingTests {
         engine.perform(.space, in: document)
         engine.handle(.swipe(path("hello")), in: document)
         let bar = engine.suggestions.map(\.text)
-        #expect(bar.count == 3 && bar[1] == "hello", "\(bar)")
-        engine.accept(try #require(engine.suggestions.first { $0.text != "hello" }), in: document)
+        #expect(bar.count == 3 && !bar.contains("hello"), "\(bar)")
+        engine.accept(try #require(engine.suggestions.first), in: document)
         #expect(document.text != "a hello" && document.text.hasSuffix(" "))
     }
 
