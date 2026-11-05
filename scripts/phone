@@ -4,9 +4,9 @@
 # key, so xtool (Bassim's fork) makes the profiles for it and signs ad hoc, and scripts/resign signs on the Mac, whose
 # login keychain has the key.
 # Never let xtool revoke a certificate to make its own: that breaks what the Mac signs (stdin is closed, so it can't ask).
-# Then it installs it through the Mac on the iPhone the Mac reaches, by cable or Wi-Fi, once no
-# dictation is going on there: Hex writes a dictation's recording as it's heard, so one written in the last 10 seconds
-# is still going. It backs up the phone's iikb data here first (scripts/backup), and won't install without that backup.
+# Then it backs up the phone's iikb data here (scripts/backup), and won't install without that backup, and installs it
+# through the Mac on the iPhone the Mac reaches, by cable or Wi-Fi, once no dictation is being recorded or written down
+# there, as the running app's status in the App Group says, checked last thing before the install.
 # Then it starts Hex in the background, so Parakeet compiles for the new install right away.
 # It builds main's last commit in its own worktree, so agents' branches and uncommitted edits never reach the phone,
 # and one run at a time, so agents installing at once queue instead of sharing that worktree. The build number is main's
@@ -69,22 +69,23 @@ path = max(glob.glob(os.path.expanduser('~/.config/xtool/data/??????????')), key
 der = plistlib.load(open(path, 'rb'))['certificate']
 print(subprocess.run(['openssl', 'x509', '-inform', 'DER', '-noout', '-serial'], input=der, capture_output=True).stdout.decode().split('=')[1].strip())")
 ssh mac sh -s "$serial" < scripts/resign
+scripts/backup "$phone"
 dictating() {
   ssh mac sh -s "$phone" <<'MAC'
-xcrun devicectl device info files --device "$1" --domain-type appDataContainer --domain-identifier com.shahidy.hexkeyboard \
-  --subdirectory "Library/Application Support/recordings" --json-output /tmp/hex-recordings.json >/dev/null 2>&1 &&
+xcrun devicectl device info processes --device "$1" --json-output /tmp/hex-processes.json >/dev/null 2>&1 &&
+xcrun devicectl device copy from --device "$1" --domain-type appGroupDataContainer --domain-identifier group.com.shahidy.hexkeyboard \
+  --source Library/dictation.json --destination /tmp/hex-dictation.json >/dev/null 2>&1 &&
 /usr/bin/python3 -c "
-import datetime, json, sys
-now = datetime.datetime.now(datetime.timezone.utc)
-files = json.load(open('/tmp/hex-recordings.json'))['result']['files']
-sys.exit(0 if any((now - datetime.datetime.fromisoformat(f['metadata']['lastModDate'].replace('Z', '+00:00'))).total_seconds() < 10 for f in files) else 1)"
+import json, sys
+running = any(p['executable'].endswith('Hex.app/Hex') for p in json.load(open('/tmp/hex-processes.json'))['result']['runningProcesses'])
+status = json.load(open('/tmp/hex-dictation.json'))
+sys.exit(0 if running and (status.get('listening') or status.get('writing')) else 1)"
 MAC
 }
 while dictating; do
-  echo "waiting for the dictation on the iPhone to end, since an install would cut it off" >&2
+  echo "waiting for the dictation on the iPhone to be recorded and written down, since an install would cut it off" >&2
   sleep 2
 done
-scripts/backup "$phone"
 ssh mac xcrun devicectl device install app --device "$phone" Developer/hex-keyboard-phone/Hex.app
 ssh mac xcrun devicectl device process launch --no-activate --device "$phone" com.shahidy.hexkeyboard >/dev/null ||
   echo "Hex is installed but didn't start, so Parakeet gets ready at the next dictation instead" >&2
