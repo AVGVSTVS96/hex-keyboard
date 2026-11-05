@@ -7,12 +7,12 @@ import SwiftUI
 /// takes the first pane and the picked page the second; elsewhere a page opens on its own.
 struct SettingsPage: View {
     enum Page: String, CaseIterable, Hashable {
-        case theme, layout, typing, feedback, model, writing, dictionary, microphone, mic, sources, access, privacy, about
+        case theme, layout, typing, feedback, model, writing, dictionary, microphone, mic, sources, access, privacy, changelog, about
 
         static let sections: [(title: String, pages: [Page])] = [
             ("Keyboard", [.theme, .layout, .typing, .feedback]),
             ("Voice Typing", [.model, .writing, .dictionary, .microphone, .mic]),
-            ("iikb", [.sources, .access, .privacy, .about]),
+            ("iikb", [.sources, .access, .privacy, .changelog, .about]),
         ]
 
         var title: String {
@@ -29,6 +29,7 @@ struct SettingsPage: View {
             case .sources: "Sources"
             case .access: "Keyboard Access"
             case .privacy: "Privacy & Data"
+            case .changelog: "Changelog"
             case .about: "About iikb"
             }
         }
@@ -47,6 +48,7 @@ struct SettingsPage: View {
             case .sources: ("antenna.radiowaves.left.and.right", .teal)
             case .access: ("switch.2", .indigo)
             case .privacy: ("hand.raised.fill", .blue)
+            case .changelog: ("clock.arrow.circlepath", .orange)
             case .about: ("info", .gray)
             }
         }
@@ -56,7 +58,7 @@ struct SettingsPage: View {
             let model = SettingsModel.shared, settings = model.settings, words = VoiceVocabulary.shared.vocabulary.terms.count
             return switch self {
             case .theme: settings.theme.title
-            case .layout, .typing, .privacy: nil
+            case .layout, .typing, .privacy, .changelog: nil
             case .feedback: settings.haptics.title
             case .model: VoiceModel.shared.model.title
             case .writing: settings.dictationStyle.title
@@ -172,6 +174,7 @@ struct SettingsContent: View {
             case .sources: SourcesPage()
             case .access: SetupPage()
             case .privacy: PrivacyPage()
+            case .changelog: ChangelogPage()
             case .about: AboutPage()
             }
         }

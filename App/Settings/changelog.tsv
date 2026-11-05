@@ -1,0 +1,30 @@
+408b3ac	Key Spacing: a knob for the gap between keys, in Layout
+c6d33e5	Key Roundness: how round the keys' corners are, in Layout
+a11a7f1	Keyboard Menu opens by holding 123, the menu button or both
+227270c	GIF panel's Turn On fits, and scrolling loads more GIFs
+2a018e2	Taps is a page of cards, with misses by key
+5b42cff	Autocorrect splits a typo into two words, like great day
+52e348d	Space-bar trackpad moves the caret a letter at a time
+08aca0c	Autocorrect fixes missed spaces, like inalsonuodated
+2550355	The mic turns red, with bars tracing your voice
+0a80791	Cancel drops a dictation, kept in Transcripts
+ac890a0	Globe key can sit dimmed left of 123 as a spacer
+c0e9897	The menu button is Raycast's four rounded squares
+1cf918c	Microphone picks what dictation hears, Bluetooth included
+b85abf3	Music keeps playing on a Bluetooth speaker while the mic is on
+1a4521b	Share Recording sends a transcript's sound as a voice memo
+e8ec52f	The mic switch sits in the header of every page but Settings
+241e18f	Clean drops self-corrections and asides like "you know"
+7a496bc	Lists can be Numbered, Bulleted or Off
+2a60a0d	Email fields type addresses, phone fields digits
+837ca3a	Suggestion bar uses a next-word network, not a phrase table
+e3498e9	The network learns how you write, from your own typing
+84aa899	Slide to type: swipe over the letters to type a word
+a21b1d7	After a swipe, the bar offers the next three readings
+dce3a01	Stats has Typing and Dictation beside Taps
+410ca4f	Holding emoji opens the layout menu, as Apple's does
+e77e304	Character Preview moved to the top of Typing
+67c9ae8	Layout is five cards, and Haptics is apart from Sound
+96c7f24	Transcripts show what each dictation became after edits
+51675a7	Turning the mic on no longer crashes iikb
+7b646e9	The app and keyboard go by iikb everywhere

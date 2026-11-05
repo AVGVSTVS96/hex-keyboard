@@ -260,6 +260,7 @@ open, landscape 951 × 669       open, portrait 669 × 951      folded 466 × 67
     - **Sources**: Add Source and a tapped source open a form, name, https address and secure token, that says what's wrong before Save.
     - **Keyboard Access**: the three switches and Open iikb in Settings.
     - **Privacy & Data**: what stays on the iPhone and what goes online; Reset Learned Words and Taps; Delete All Transcripts.
+    - **Changelog**: each build's changes in a box per day, newest first, the build number beside each; scripts/phone writes them into the app's Info.plist as `IIKBChangelog`, from `Changelog:` trailers and App/Settings/changelog.tsv.
     - **About iikb**.
 - Settings › Apps › iikb has the same pages for the keyboard's switches (Theme; Layout with Split Keyboard and One-Handed Keyboard; Typing; Sound & Haptics; Voice Typing), and says the app also picks the voice model and adds sources.
 - Full Access and Paste from Other Apps are read from TCC, where iOS keeps them for the app (`AppStatus`), and with Add iikb each time the app comes forward, so Home's setup steps check off as you come back from Settings and leave once all three are on.

@@ -29,4 +29,4 @@ Voice typing, the app's biggest part, has its own doc: Voice/AGENTS.md.
 - **Settings** (`SettingsPage`): every setting, in one list of pages under
   - Keyboard: Theme, Layout, Typing, Sound & Haptics, each over a `KeyboardPreviewView` to try (`KeyboardSettingsPages`);
   - Voice Typing: Voice Model, Writing Style, Dictionary, Microphone, Keep Mic On (`VoiceSettingsPages`);
-  - iikb: Sources, Keyboard Access, Privacy & Data, About, which credits the swipe decoder and links its license (`SettingsPages`).
+  - iikb: Sources, Keyboard Access, Privacy & Data, Changelog (`ChangelogPage`), About, which credits the swipe decoder and links its license (`SettingsPages`).

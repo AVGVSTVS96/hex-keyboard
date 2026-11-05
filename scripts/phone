@@ -61,6 +61,25 @@ git -C "$build" checkout -q -f --detach "$commit"
 for plist in Config/xtool/iikb-Info.plist Config/xtool/Keyboard-Info.plist; do
   python3 -c "import plistlib, sys; p = plistlib.load(open(sys.argv[1], 'rb')); p['CFBundleVersion'] = sys.argv[2]; plistlib.dump(p, open(sys.argv[1], 'wb'))" "$build/$plist" "$number"
 done
+python3 - "$build" "$commit" <<'PY'
+import plistlib, subprocess, sys
+build, commit = sys.argv[1], sys.argv[2]
+def git(*args):
+    return subprocess.run(["git", "-C", build, *args], capture_output=True, text=True, check=True).stdout
+entries = []
+for line in git("log", "--format=%h%x1f%cs%x1f%(trailers:key=Changelog,valueonly,separator=%x1e)", commit).splitlines():
+    sha, day, trailers = line.split("\x1f")
+    entries += [(sha, day, change) for change in trailers.split("\x1e") if change]
+for line in open(f"{build}/App/Settings/changelog.tsv", encoding="utf-8"):
+    sha, change = line.rstrip("\n").split("\t", 1)
+    entries.append((sha, git("log", "-1", "--format=%cs", sha).strip(), change))
+rows = [{"build": int(git("rev-list", "--count", sha)), "date": day, "change": change} for sha, day, change in entries]
+rows = sorted(rows, key=lambda row: row["build"], reverse=True)[:60]
+path = f"{build}/Config/xtool/iikb-Info.plist"
+info = plistlib.load(open(path, "rb"))
+info["IIKBChangelog"] = rows
+plistlib.dump(info, open(path, "wb"))
+PY
 main=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
 backup=$main/Packages/KeyboardModules/Sources/KeyboardStore/Resources/Keys/backup.key
 [ -f "$backup" ] || { echo "$backup is missing, so this build wouldn't back up the iPhone's iikb data (docs/backup.md)" >&2; exit 1; }

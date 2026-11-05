@@ -94,3 +94,4 @@ Each rule with what enforces it. When an agent repeats a mistake, fix it at the 
 | Restore only after `scripts/phone`: an old build can't read a memory restored without its token | judgment: nothing enforces it |
 | No comments unless they record a non-obvious fact | judgment: nothing enforces it |
 | Every AGENTS.md names only code that exists, and no file keeps a conflict marker | `ArchitectureTests` |
+| A change you'd notice in the app or keyboard carries a `Changelog:` trailer, one short line (App/Settings/ChangelogPage.swift) | judgment: nothing enforces it |
