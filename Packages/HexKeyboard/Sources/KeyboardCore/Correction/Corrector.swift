@@ -348,8 +348,9 @@ extension Corrector {
         if let cached = keyShares[hit] { return cached }
         guard let frame = grid.frame(of: hit) else { return [] }
         let keys = memory.touches.layout(grid), cell = grid.cell(of: frame), steps = 5
-        let points = (0..<(steps * steps)).map { step in
-            (cell.x + (Double(step / steps) + 0.5) * cell.width / Double(steps), cell.y + (Double(step % steps) + 0.5) * cell.height / Double(steps))
+        let points = (0..<(steps * steps)).map { step -> (Double, Double) in
+            let column = Double(step / steps) + 0.5, row = Double(step % steps) + 0.5
+            return (cell.x + column * cell.width / Double(steps), cell.y + row * cell.height / Double(steps))
         }
         func mass(_ label: String) -> Double {
             points.reduce(-Double.infinity) { Math.logSumExp($0, keys.logLikelihood(x: $1.0, y: $1.1, for: label) ?? -.infinity) }
@@ -484,7 +485,7 @@ extension Corrector {
         var state = context.flatMap { expected(after: $0) == nil ? nil : reading?.state }
         var total = run.likelihood
         for word in run.words {
-            let next = state.flatMap { state in network.map { next(at: state, $0, lexicon) } }
+            let next = state.flatMap { state in network.map { self.next(at: state, $0, lexicon) } }
             total += model.predictor(after: previous, earlier: earlier, expected: next)(word)
             (earlier, previous) = (previous, word.lowercased())
             state = state.flatMap { state in network.map { $0.read([$0.id(of: Words.plain(word).lowercased()) ?? Network.unknown], from: state) } }
