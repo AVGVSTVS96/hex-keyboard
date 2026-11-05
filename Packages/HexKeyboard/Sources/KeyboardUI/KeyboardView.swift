@@ -164,9 +164,3 @@ final class KeyboardView: UIView {
         bounds.inset(by: UIEdgeInsets(top: -Toolbar.topRowReach, left: 0, bottom: 0, right: 0)).contains(point)
     }
 }
-
-extension CGRect {
-    init(_ rect: Rect) {
-        self.init(x: rect.x, y: rect.y, width: rect.width, height: rect.height)
-    }
-}
