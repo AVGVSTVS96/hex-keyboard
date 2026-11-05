@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// The microphone a transcript was said into, and, when Hex kept its sound, writing it again with the voice model picked
-/// now, to keep or not.
+/// The microphone a transcript was said into and whether voice processing heard it, and, when Hex kept its sound,
+/// writing it again with the voice model picked now, to keep or not.
 struct RecordingSection: View {
     let transcript: Transcript
     @State private var again: VoiceModel.Written?
@@ -13,6 +13,7 @@ struct RecordingSection: View {
         if kept || transcript.mic != nil {
             Box(footer: kept ? "iikb keeps the sound of each dictation on this iPhone, so it can be shared as a voice memo or written again with \(VoiceModel.shared.model.title)." : nil) {
                 if let mic = transcript.mic { Fact(title: "Microphone", value: mic) }
+                if let voiceProcessing = transcript.voiceProcessing { Fact(title: "Voice Processing", value: voiceProcessing ? "On" : "Off") }
                 if kept {
                     ActionRow(title: "Share Recording", symbol: "square.and.arrow.up") { share() }
                     ActionRow(title: writing ? VoiceModel.shared.state == .ready ? "Transcribing Again…" : "Transcribing Again once \(VoiceModel.shared.model.title) is ready…" : "Transcribe Again", symbol: "arrow.clockwise") { Task { await write() } }

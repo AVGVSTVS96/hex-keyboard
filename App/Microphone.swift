@@ -48,6 +48,9 @@ import Observation
     /// The input recording now, as iOS names it.
     var input: String? { AVAudioSession.sharedInstance().currentRoute.inputs.first?.portName }
 
+    /// Whether it hears through Apple's voice processing now, all of the iPhone's microphones together as a call does.
+    var voiceProcessing: Bool { engine.inputNode.isVoiceProcessingEnabled }
+
     /// By default it hears from the iPhone and never from a Bluetooth microphone, which would put a speaker or AirPods on
     /// a call (`.allowBluetoothHFP`), and music would drop to call quality or stop. A microphone picked in Settings is
     /// asked for by `PickedMicrophone.matches` and heard from instead: a Bluetooth one is the only pick that allows

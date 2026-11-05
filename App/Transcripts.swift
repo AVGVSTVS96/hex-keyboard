@@ -15,6 +15,8 @@ struct Transcript: Codable, Identifiable, Hashable {
     var model: String?
     /// The microphone it was said into, as iOS names it; nil before Hex kept it.
     var mic: String?
+    /// Whether that microphone was heard through Apple's voice processing, as a call is; nil before Hex kept it.
+    var voiceProcessing: Bool?
     /// What the model wrote, when your style or `Vocabulary` changed it.
     var heard: String?
     /// The bundle ID of the app it was said for; nil when the keyboard couldn't tell, or before Hex kept it.
@@ -88,9 +90,9 @@ struct Transcript: Codable, Identifiable, Hashable {
     /// Keeps a dictation whose `Recording` was written to `recording(of: id)` as it was heard, with its sound, even when
     /// the model wrote nothing: that's when it failed you (a low rumble, speech too quiet, or an "um" your editing left
     /// out), and the sound is the only copy, to write again.
-    func add(_ text: String, heard: String, id: Transcript.ID, at date: Date, seconds: Double, typed: Bool, model: String, mic: String?, app: String? = nil, recovered: Bool = false) {
+    func add(_ text: String, heard: String, id: Transcript.ID, at date: Date, seconds: Double, typed: Bool, model: String, mic: String?, voiceProcessing: Bool? = nil, app: String? = nil, recovered: Bool = false) {
         let transcript = Transcript(
-            id: id, date: date, text: text, seconds: seconds, typed: typed, recovered: recovered ? true : nil, model: model, mic: mic,
+            id: id, date: date, text: text, seconds: seconds, typed: typed, recovered: recovered ? true : nil, model: model, mic: mic, voiceProcessing: voiceProcessing,
             heard: heard == text ? nil : heard, app: app
         )
         all.insert(transcript, at: all.firstIndex { $0.date < date } ?? all.endIndex)

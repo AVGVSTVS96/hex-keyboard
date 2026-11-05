@@ -82,6 +82,7 @@ import UIKit
             try microphone.open()
             VoiceModel.shared.micIsOn = true
             take.mic = microphone.input
+            take.voiceProcessing = microphone.voiceProcessing
             microphone.record(to: Transcripts.shared.recording(of: take.id))
         } catch {
             recording = nil
@@ -149,7 +150,7 @@ import UIKit
         do {
             let written = try await VoiceModel.shared.write(samples)
             writing.removeAll { $0 === take }
-            Transcripts.shared.add(written.text, heard: written.heard, id: take.id, at: take.started, seconds: seconds, typed: take.typed, model: written.model, mic: take.mic, app: take.app)
+            Transcripts.shared.add(written.text, heard: written.heard, id: take.id, at: take.started, seconds: seconds, typed: take.typed, model: written.model, mic: take.mic, voiceProcessing: take.voiceProcessing, app: take.app)
             if take.typed, silent {
                 Dictation.leave(.notice("The microphone gave no sound: tap the mic again"))
             } else if take.typed, written.text.isEmpty {
@@ -271,6 +272,7 @@ private final class Take {
     let started = Date.now
     var stopped = Date.now
     var mic: String?
+    var voiceProcessing: Bool?
     /// Seconds recorded, as the microphone counts them.
     var recorded: Double = 0
     var typed = true
