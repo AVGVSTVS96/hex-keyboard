@@ -146,7 +146,7 @@ struct MicSettings: View {
 /// Which microphone iikb dictates with when there are several.
 struct MicrophoneSettings: View {
     private let choices = MicrophoneChoices.shared
-    @AppStorage("compareMicrophones") private var comparing = false
+    @AppStorage("compareMicrophones") private var comparing = true
 
     var body: some View {
         Box(footer: "Automatic hears from the iPhone, or a wired headset when one is plugged in, never from Bluetooth, so music on AirPods and speakers keeps its full quality while you dictate. A Bluetooth microphone puts its device on a call, at call quality, while the mic is on. A pick is used whenever it’s connected; when it isn’t, the iPhone’s hears.") {
@@ -155,7 +155,7 @@ struct MicrophoneSettings: View {
                 ChoiceRow(title: microphone.title, detail: detail(microphone), picked: choices.isPicked(microphone)) { choices.pick(microphone) }
             }
         }
-        Box(footer: "Each dictation is heard one of three ways, at random: through Apple’s voice processing, as a call is, raw from one microphone, or raw from the front microphones aimed at you. Each transcript keeps which, so what you edit shows which writes your words best. Only while the iPhone’s own microphone hears and nothing plays on its speaker.") {
+        Box(footer: "Each dictation is heard one of two ways, at random: through Apple’s voice processing, as a call is, or as the front microphones hear it, aimed at you, with nothing taken away. Each transcript keeps which, so what you edit shows which writes your words best. Only on an iPhone that can aim its microphones, with Automatic picked, while its own microphone hears and nothing plays on its speaker.") {
             ToggleRow(title: "Compare Microphones", isOn: $comparing)
         }
         .onAppear { choices.reload() }

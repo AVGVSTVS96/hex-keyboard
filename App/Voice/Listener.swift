@@ -82,9 +82,8 @@ import UIKit
             try microphone.open()
             VoiceModel.shared.micIsOn = true
             take.mic = microphone.input
-            take.voiceProcessing = microphone.voiceProcessing
-            take.capture = microphone.capture
             microphone.record(to: Transcripts.shared.recording(of: take.id))
+            take.voiceProcessing = microphone.voiceProcessing
         } catch {
             recording = nil
             closeMic()
@@ -93,14 +92,17 @@ import UIKit
     }
 
     /// Has the dictation written down and typed in `keyboard`, the keyboard you stopped it in (nil from the app's
-    /// screen, for the next keyboard to show), and returns once your last word is in.
-    func finish(in keyboard: UInt64? = nil) async {
+    /// screen, for the next keyboard to show), and returns once your last word is in. `closing` when the microphone
+    /// goes off right after.
+    func finish(in keyboard: UInt64? = nil, closing: Bool = false) async {
         if let take = recording, tail == nil {
             take.keyboard = keyboard
             if keyboard != nil { take.app = Dictation.host }
             let tail = Task {
-                let sound = await microphone.stop()
+                let (sound, heardAs) = await microphone.stop()
+                take.capture = heardAs
                 (recording, self.tail) = (nil, nil)
+                if !closing, staysOn(after: sound) { microphone.next() }
                 return sound
             }
             self.tail = tail
@@ -112,8 +114,10 @@ import UIKit
     /// Types nothing of the dictation being recorded: it's kept in Transcripts only.
     func cancel() {
         guard let take = recording, tail == nil else { return }
-        let sound = microphone.cut()
+        let (sound, heardAs) = microphone.cut()
+        take.capture = heardAs
         recording = nil
+        if staysOn(after: sound) { microphone.next() }
         take.typed = false
         write(take, Task { sound })
     }
@@ -146,8 +150,11 @@ import UIKit
     /// One that can't be written now is written the next time the app opens, since its recording is still on disk.
     private func deliver(_ take: Take, _ samples: [Float]) async {
         let seconds = Double(samples.count) / Recording.format.sampleRate
-        let silent = take.stopped.timeIntervalSince(take.started) >= 1 && !samples.contains { abs($0) > Self.silence }
+        let sounded = samples.contains { abs($0) > Self.silence }
+        let silent = take.stopped.timeIntervalSince(take.started) >= 1 && !sounded
         deaf = silent
+        if silent, take.voiceProcessing == true { microphone.skipsVoiceProcessing = true }
+        if sounded, take.voiceProcessing == false { microphone.skipsVoiceProcessing = false }
         do {
             let written = try await VoiceModel.shared.write(samples)
             writing.removeAll { $0 === take }
@@ -227,8 +234,14 @@ import UIKit
     /// the microphone off now, since it hears nothing more.
     private func lose() async {
         guard microphone.isOn else { return }
-        await finish()
+        await finish(closing: true)
         closeMic()
+    }
+
+    /// Whether the microphone stays on after a dictation of `sound`, to hear the next one another way (`Capture`): not
+    /// when it's turning off, Keep Mic On is Off, or the sound says it went deaf.
+    private func staysOn(after sound: [Float]) -> Bool {
+        !micOffOnceWritten && (held || SettingsStore.keepMicOn > 0) && sound.contains { abs($0) > Self.silence }
     }
 
     private func closeMic() {

@@ -1,43 +1,49 @@
 import AVFoundation
+import KeyboardStore
 
 /// How the iPhone's own microphones are heard, compared dictation by dictation while Settings › Microphone's Compare
-/// Microphones is on (off unless turned on; `-compareMicrophones YES` turns it on for a launch): each dictation draws one at random and its
+/// Microphones is on (`-compareMicrophones NO` turns it off for a launch): each dictation draws one at random and its
 /// transcript keeps which, so the edits made to what each typed score them on the same days, in the same rooms
-/// (`scripts/voicehealth.py`). Only while the iPhone's own microphone hears and nothing plays on its speaker, which
-/// only voice processing keeps out of what it hears.
+/// (`scripts/voicehealth.py`). Both hear on more than one microphone, since on one the folded iPhone Duo upright lost
+/// seconds of speech at a time. Only on an iPhone that offers a cardioid, with no microphone picked, while its own
+/// microphone hears and nothing plays on its speaker, which only voice processing keeps out of what it hears.
 nonisolated enum Capture: String, CaseIterable {
     /// Apple's voice processing, as a call: the microphones beamed toward your voice, the speaker's sound taken away and
     /// the room's noise held down, a quiet room to near digital silence.
     case voiceProcessing
-    /// The microphone iOS picks, in `.measurement` mode, which leaves its signal as heard.
-    case raw
     /// A cardioid, which iOS forms from more than one of the microphones, on the front one, toward the face looking at
-    /// the screen, in `.measurement` mode; only where the iPhone offers one.
+    /// the screen, in `.measurement` mode, which leaves its signal as heard.
     case cardioid
 
     var title: String {
         switch self {
         case .voiceProcessing: "Voice Processing"
-        case .raw: "Raw"
         case .cardioid: "Front Cardioid"
         }
     }
 
     static var comparing: Bool {
-        UserDefaults.standard.bool(forKey: "compareMicrophones")
+        UserDefaults.standard.object(forKey: "compareMicrophones") == nil || UserDefaults.standard.bool(forKey: "compareMicrophones")
     }
 
-    /// One of the ways this iPhone offers, at random.
-    static func draw(_ session: AVAudioSession) -> Capture {
-        allCases.filter { $0 != .cardioid || cardioid(session) != nil }.randomElement() ?? .voiceProcessing
+    /// One of the two at random, nil when this iPhone offers no cardioid.
+    static func draw(_ session: AVAudioSession) -> Capture? {
+        cardioid(session) == nil ? nil : allCases.randomElement()
     }
 
-    /// Whether a dictation may be heard any of the ways now: the setting is on, the iPhone's own microphone hears, and
-    /// nothing plays on its speaker.
-    static func mayCompare(_ session: AVAudioSession) -> Bool {
+    /// Whether a dictation may be heard either way now: the setting is on, no microphone is picked, the iPhone's own
+    /// microphone hears, its sound plays on the iPhone (voice processing hands a Bluetooth speaker's or AirPlay's over to
+    /// it), and nothing plays on its speaker.
+    @MainActor static func mayCompare(_ session: AVAudioSession) -> Bool {
         let route = session.currentRoute
-        return comparing && route.inputs.allSatisfy { $0.portType == .builtInMic }
-            && !(session.isOtherAudioPlaying && route.outputs.contains { [.builtInSpeaker, .builtInReceiver].contains($0.portType) })
+        return comparing && SettingsStore.microphone == nil && route.inputs.allSatisfy { $0.portType == .builtInMic }
+            && route.outputs.allSatisfy { [.builtInSpeaker, .builtInReceiver, .headphones].contains($0.portType) } && !speakerPlays(session)
+    }
+
+    /// Another app's sound plays on the iPhone's own speaker, which its microphones hear unless voice processing takes
+    /// it away.
+    static func speakerPlays(_ session: AVAudioSession) -> Bool {
+        session.isOtherAudioPlaying && session.currentRoute.outputs.contains { [.builtInSpeaker, .builtInReceiver].contains($0.portType) }
     }
 
     /// Points the iPhone's microphone this way: a cardioid on its front microphone, or iOS's own pick of microphone and

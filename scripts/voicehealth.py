@@ -8,7 +8,7 @@ the microphone and whether voice processing heard it, and the last silent ones.
 Last, each way of hearing the dictations were compared in (`Capture`), in loud rooms and quiet ones: how many, and how
 many of the words each typed were changed by the time its field was sent or left (`field.final`, leaving out the ones
 marked uncertain). A room is loud at -40 dBFS or more, measured on the recording; voice processing holds a room down,
-so one it heard takes the room of the raw dictations within 15 minutes of it, and goes uncounted without one.
+so one it heard takes the room of the cardioid's dictations within 15 minutes of it, and goes uncounted without one.
 """
 import datetime
 import json
@@ -81,10 +81,10 @@ def main():
 
 def arms(rows):
     compared = [r for r in rows if r.get("capture") and r.get("room") is not None]
-    raw = [r for r in compared if r["capture"] != "voiceProcessing"]
+    heard = [r for r in compared if r["capture"] != "voiceProcessing"]
     table = defaultdict(lambda: [0, 0, 0])
     for row in compared:
-        rooms = [r["room"] for r in raw if abs(r["date"] - row["date"]) <= NEARBY] if row["capture"] == "voiceProcessing" else [row["room"]]
+        rooms = [r["room"] for r in heard if abs(r["date"] - row["date"]) <= NEARBY] if row["capture"] == "voiceProcessing" else [row["room"]]
         field = row.get("field")
         if not rooms or not field or field.get("uncertain"):
             continue
