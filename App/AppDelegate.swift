@@ -10,6 +10,7 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
         Task {
             await Transcripts.shared.recover()
             Backup.syncApp()
+            await Transcripts.shared.rewriteApple()
         }
         return true
     }

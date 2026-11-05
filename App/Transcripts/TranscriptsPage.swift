@@ -319,6 +319,13 @@ private struct TranscriptDetail: View {
                 Fact(title: "Typed", value: transcript.typed ? transcript.app.map { "In \(AppName.of($0))" } ?? "Yes" : transcript.recovered == true ? "No, iikb closed during it" : "No")
                 if let model = transcript.model { Fact(title: "Written by", value: model) }
             }
+            if let replaced = transcript.replaced {
+                Box(header: "First Written") {
+                    RowText(title: replaced.text.isEmpty ? "Nothing heard" : replaced.text, detail: replaced.model.map { "Written by \($0)" })
+                        .textSelection(.enabled)
+                        .row()
+                }
+            }
             RecordingSection(transcript: transcript)
             Box {
                 ActionRow(title: "Delete Transcript", role: .destructive) { confirmsDelete = true }

@@ -30,6 +30,13 @@ struct Transcript: Codable, Identifiable, Hashable {
     /// What the keyboard typed for it and what that became once its field was sent or left, every edit in it included;
     /// nil until then, when it wasn't typed, or before iikb kept it.
     var field: Field?
+    /// What it was first written as, kept once another writing is put in its place; nil while none has been.
+    var replaced: Replaced?
+
+    struct Replaced: Codable, Hashable {
+        var model: String?
+        var text: String
+    }
 
     struct Field: Codable, Hashable {
         var typed: String
@@ -190,10 +197,23 @@ struct Transcript: Codable, Identifiable, Hashable {
     /// Puts a new writing of a transcript's recording in its place.
     func replace(_ id: Transcript.ID, with text: String, heard: String, model: String) {
         guard let index = all.firstIndex(where: { $0.id == id }), !text.isEmpty else { return }
+        all[index].replaced = all[index].replaced ?? Transcript.Replaced(model: all[index].model, text: all[index].text)
         all[index].text = text
         all[index].heard = heard == text ? nil : heard
         all[index].model = model
         save()
+    }
+
+    /// Writes again with the picked Parakeet each dictation Apple's model wrote while a Parakeet got ready, as builds
+    /// before 4d500d1 (Nov 3) did, one at a time while nothing is being recorded or written; `replace` keeps Apple's
+    /// words. What a dictation interrupts waits for the next launch.
+    func rewriteApple() async {
+        guard VoiceModel.shared.model != .apple else { return }
+        for transcript in all where transcript.model?.hasPrefix("Apple, while") == true && hasRecording(transcript.id) {
+            guard !Listener.shared.isListening, !Listener.shared.isWriting else { return }
+            guard let written = try? await VoiceModel.shared.write(Recording.read(recording(of: transcript.id))), written.model != VoiceModel.Model.apple.title else { continue }
+            replace(transcript.id, with: written.text, heard: written.heard, model: written.model)
+        }
     }
 
     func recording(of id: Transcript.ID) -> URL {
