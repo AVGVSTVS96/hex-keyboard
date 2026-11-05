@@ -105,17 +105,7 @@ path = max(glob.glob(os.path.expanduser('~/.config/xtool/data/??????????')), key
 der = plistlib.load(open(path, 'rb'))['certificate']
 print(subprocess.run(['openssl', 'x509', '-inform', 'DER', '-noout', '-serial'], input=der, capture_output=True).stdout.decode().split('=')[1].strip())")
 ssh mac sh -s "$serial" < scripts/resign
-old=com.shahidy.hexkeyboard
-if ssh mac xcrun devicectl device info apps --device "$phone" --bundle-id $old 2>/dev/null | grep -q $old; then
-  IIKB_APP=$old scripts/backup "$phone"
-  mirror=${IIKB_BACKUP:-$HOME/.local/share/iikb/backup}/mirror
-  mv "$mirror/app/Preferences/$old.plist" "$mirror/app/Preferences/com.shahidy.iikb.plist"
-  mv "$mirror/keyboard/Preferences/$old.keyboard.plist" "$mirror/keyboard/Preferences/com.shahidy.iikb.keyboard.plist"
-  mv "$mirror/group/Library/Preferences/group.$old.plist" "$mirror/group/Library/Preferences/group.com.shahidy.iikb.plist"
-else
-  old=
-  scripts/backup "$phone"
-fi
+scripts/backup "$phone"
 dictating() {
   ssh mac sh -s "$phone" <<'MAC'
 xcrun devicectl device info processes --device "$1" --json-output /tmp/iikb-processes.json >/dev/null 2>&1 &&
@@ -142,11 +132,6 @@ MAC
 if [ "$fresh" = True ]; then
   date +%Y-%m-%dT%H%M%S >> "${IIKB_BACKUP:-$HOME/.local/share/iikb/backup}/reinstalls"
   echo "the install started iikb in a new, empty container; scripts/restore $phone puts its data back (docs/backup.md)" >&2
-fi
-if [ -n "$old" ]; then
-  scripts/restore "$phone"
-  ssh mac xcrun devicectl device uninstall app --device "$phone" $old
-  echo "iikb's data moved from $old to com.shahidy.iikb and the old app is gone: add iikb again in Settings › General › Keyboard › Keyboards, with Allow Full Access" >&2
 fi
 ssh mac 'cat > Developer/iikb-phone/unlocked' < scripts/unlocked
 ssh mac "pkill -f iikb-phone/unlocked; nohup /usr/bin/python3 -I Developer/iikb-phone/unlocked $phone >/dev/null 2>&1 </dev/null &"

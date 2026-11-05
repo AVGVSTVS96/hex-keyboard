@@ -19,10 +19,10 @@ have=$(cd "$backup/mirror/app/recordings" && ls | paste -sd, -)
 read -r -d '' mac <<'MAC' || true
 set -eu
 phone=$1 have=$2 id=$3 out=$(mktemp -d /tmp/iikb-backup.XXXX)
-copy() { xcrun devicectl device copy from --device "$phone" --domain-type "$1" --domain-identifier "$2" --source "$3" --destination "$out/$4" >/dev/null; }
+copy() { xcrun devicectl device copy from --device "$phone" --domain-type "$1" --domain-identifier "$2" --source "$3" --destination "$out/$4" >/dev/null 2>&1 || echo "skipped $3: not on the iPhone yet" >&2; }
 list() {
   xcrun devicectl device info files --device "$phone" --domain-type appDataContainer --domain-identifier "$id" \
-    --subdirectory "$1" --json-output "$out/list.json" >/dev/null
+    --subdirectory "$1" --json-output "$out/list.json" >/dev/null 2>&1 || return 0
   /usr/bin/python3 -c "import json, sys; print('\n'.join(f['relativePath'] for f in json.load(open(sys.argv[1]))['result']['files'] if '/' not in f['relativePath']))" "$out/list.json"
 }
 mkdir -p "$out/app/recordings" "$out/keyboard" "$out/group"
@@ -41,7 +41,7 @@ fi
 copy appDataContainer "$id.keyboard" "Library/Application Support" keyboard/support
 copy appDataContainer "$id.keyboard" Library/Preferences keyboard/Preferences
 copy appGroupDataContainer "group.$id" Library group/Library
-rm "$out/list.json"
+rm -f "$out/list.json"
 echo "$out"
 MAC
 staged=$(ssh mac sh -s "$phone" "$have" "$id" <<<"$mac")

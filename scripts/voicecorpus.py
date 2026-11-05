@@ -4,7 +4,7 @@ beside the backup (never the repo: they're his voice and his words). Run it with
 
 real: every dictation Parakeet v3 wrote and iikb typed, with what it finally became as the reference: its transcript's
 `field.final`, what the keyboard followed it to until its field was sent or changed, or else the span of what was sent
-in the three hours after (the record source's log, and hex's messages) that its words line up with. typed.jsonl is what iikb
+in the three hours after (the record source's log) that its words line up with. typed.jsonl is what iikb
 typed, and clips.jsonl each clip's date, mic, how it was heard (its transcript's `capture`, voice processing, raw or a
 front cardioid; or else its `voiceProcessing`; or, from before iikb kept either, whether it came after voice processing
 went in), its room and speech levels (each a group voicescore splits by) and where its final came from.
@@ -13,7 +13,7 @@ loud: the real set's quiet dictations that went in as typed, mixed with the room
 without speech) at that room's own level, the speech as loud as said there and 6, 12 and 18 dB quieter (a whisper), with
 each clean dictation's final as the reference.
 """
-import datetime, difflib, json, os, random, re, shutil, sqlite3, sys, wave
+import datetime, difflib, json, os, random, re, shutil, sys, wave
 from pathlib import Path
 import numpy as np
 
@@ -56,12 +56,9 @@ def levels(samples):
 
 
 def sent():
-    """Everything sent, oldest first: the record source's log, and hex's messages when they're here."""
+    """Everything sent, oldest first: the record source's log."""
     at = lambda s: datetime.datetime.fromisoformat(s.replace("Z", "+00:00"))
     out = [("record", at(r["at"]), r["text"]) for r in map(json.loads, open(BACKUP.parent / "record.jsonl"))]
-    if (HOME / "hex/state/hex.db").exists():
-        db = sqlite3.connect(f"file:{HOME}/hex/state/hex.db?mode=ro", uri=True)
-        out += [("hex", at(a), body) for a, body in db.execute("select at, body from messages where author = 'owner'")]
     return sorted(out, key=lambda c: c[1])
 
 
@@ -138,7 +135,7 @@ def real():
     lines(folder / "typed.jsonl", typed)
     shutil.copy(MIRROR / "app/vocabulary.json", folder / "vocabulary.json")
     print(f"real: {len(clips)} dictations, {sum(c['room'] == 'loud' for c in clips)} in a loud room,",
-          f"finals {', '.join(f'{s} {sum(c['final'] == s for c in clips)}' for s in ('field', 'record', 'hex'))}")
+          f"finals {', '.join(f'{s} {sum(c['final'] == s for c in clips)}' for s in ('field', 'record'))}")
     return folder, clips, {r["id"]: r["text"] for r in references}, {r["id"]: r["text"] for r in typed}
 
 
