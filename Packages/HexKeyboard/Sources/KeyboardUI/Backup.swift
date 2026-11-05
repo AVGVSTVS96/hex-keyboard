@@ -68,16 +68,20 @@ nonisolated public enum Backup {
               let held = try? JSONDecoder().decode([String: [Int]].self, from: data)
         else { return .unreachable }
         let files = folders.flatMap(contents).filter { !skip($0.name) }
+        var outcome = Outcome.upToDate
         for file in files where held[file.name] != [file.size, file.modified] {
             var put = request
             put.url = server.url.appending(path: file.name)
             put.httpMethod = "PUT"
             put.setValue(String(file.modified), forHTTPHeaderField: "X-Modified")
-            guard let (_, response) = try? await URLSession.shared.upload(for: put, fromFile: file.url),
-                  (response as? HTTPURLResponse)?.statusCode == 204
-            else { return .unreachable }
+            // One file the server turns away, or one deleted since the listing, never keeps the files after it from going.
+            guard let (_, response) = try? await URLSession.shared.upload(for: put, fromFile: file.url) else {
+                if FileManager.default.fileExists(atPath: file.url.path(percentEncoded: false)) { return .unreachable }
+                continue
+            }
+            if (response as? HTTPURLResponse)?.statusCode != 204 { outcome = .unreachable }
         }
-        return .upToDate
+        return outcome
     }
 
     /// A file the Mac sent the server under `mac/`, and when it was last changed there; nil without a server or the file.
