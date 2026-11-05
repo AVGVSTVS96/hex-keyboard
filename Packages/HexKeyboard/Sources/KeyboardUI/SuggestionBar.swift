@@ -683,7 +683,8 @@ private final class Waveform: UIView {
         guard refilling || width != laidWidth else { return }
         laidWidth = width
         UIView.performWithoutAnimation {
-            strip.frame = CGRect(x: 0, y: 0, width: 1, height: bounds.height)
+            strip.bounds = CGRect(x: 0, y: 0, width: 1, height: bounds.height)
+            strip.center = CGPoint(x: 0.5, y: bounds.midY)
             for (index, bar) in bars.enumerated() { bar.view.frame = frame(of: index) }
         }
         if refilling { UIView.performWithoutAnimation { strip.transform = slid } } else { strip.transform = slid }
