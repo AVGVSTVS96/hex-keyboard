@@ -4,7 +4,7 @@ import os
 
 /// The next-word network fine-tuned on your typing: the server makes it from its record of what you type (`scripts/personal`,
 /// docs/backup.md) and gives it back under `personal/en.network`. The app fetches it whenever it syncs into the App Group's
-/// `Personal/` folder, outside `Library` so it isn't sent back, and the keyboard reads it from there in place of the bundled
+/// `Library/Personal/` folder, which the backup leaves out since the server made it, and the keyboard reads it from there in place of the bundled
 /// one. It never leaves the server and this iPhone.
 nonisolated public enum PersonalNetwork {
     private static let name = "personal/en.network"
@@ -12,7 +12,7 @@ nonisolated public enum PersonalNetwork {
     private static let log = Logger(subsystem: "com.shahidy.hexkeyboard", category: "personal")
 
     private static var url: URL? {
-        FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: SettingsStore.appGroup)?.appending(path: "Personal/en.network")
+        FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: SettingsStore.appGroup)?.appending(path: "Library/Personal/en.network")
     }
 
     /// The fetched network, read in place, or nil when there is none or it isn't one.

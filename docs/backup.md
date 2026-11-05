@@ -57,9 +57,9 @@ it). The LSTM is copied byte for byte, so the file is the same size.
 
 It runs when the log or the shipped network changes, at most once a day: the path unit `hex-keyboard-personal`
 (dotfiles) starts the service of the same name, which asks for `--daily`. The network goes to `mirror/personal/en.network`.
-The app fetches it whenever it syncs (the quick check above, in the other direction) into the App Group's `Personal/`
-folder, and the keyboard reads it from there in place of the bundled one the next time it starts, or the bundled one when
-it's absent. Reset Learned Words and Taps removes the copy and takes no network the server made before then.
+The app fetches it whenever it syncs (the quick check above, in the other direction) into the App Group's
+`Library/Personal/`, which the backup leaves out since the server made it, and the keyboard reads it from there in place
+of the bundled one the next time it starts, or the bundled one when it's absent. Reset Learned Words and Taps removes the copy and takes no network the server made before then.
 
 The network is made from what you type, so it stays on the server and the iPhone: never in git, tests or logs.
 
