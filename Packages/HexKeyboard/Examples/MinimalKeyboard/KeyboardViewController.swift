@@ -199,7 +199,7 @@ final class KeysView: UIView {
         setNeedsDisplay()
     }
 
-    /// Types the key a touch went down on, with where it lifted, which is what the touch model learns from.
+    /// Types the key a touch went down on, tapped at `point`: where the touch model learns your thumb lands for it.
     private func lift(_ id: ObjectIdentifier, at point: CGPoint) {
         guard let key = touched.removeValue(forKey: id)?.key else { return }
         if let text = key.action == .space ? " " : key.text(shifted: faces.shift.isUppercase) {

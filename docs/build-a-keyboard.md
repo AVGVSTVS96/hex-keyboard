@@ -1,6 +1,6 @@
 # Build a keyboard on iikb
 
-iikb's typing lives in `KeyboardCore`: Apple's layouts and key sizes for every iPhone and iPad, shift and caps lock, autocorrect that learns where each thumb lands, and a suggestion bar. It's pure Swift, so you draw the keys however you like and the engine does the rest. `KeyboardUI` has iikb's own drawing, and the files that read the host's text field.
+iikb's typing lives in `KeyboardCore`: Apple's layouts and key sizes for every iPhone and iPad, shift and caps lock, autocorrect that learns where each thumb lands, and a suggestion bar. It's pure Swift, so you draw the keys however you like and the engine does the rest. `KeyboardUI` is iikb's UIKit side: its keys, bar and panels, and the bridge to the host's text field.
 
 There are two ways in:
 
@@ -60,7 +60,7 @@ engine.use(grid)
 
 `grid.rows` holds each key's frame. `KeyFace(key, trailing:, context: engine.faces(on: device))` gives each key's label: a letter, a word, or an SF Symbol name. `KeyboardTheme` gives the colors: `.light(.current)` and `.dark(.current)` are Apple's, and `KeyboardTheme.named(_:dark:style:)` returns one of iikb's five themes. Set your keys view's height to `metrics.height(rows:hasNumberRow:)` and the bar's to `metrics.toolbar.height`.
 
-**4. Touches.** Find the key under a finger with `engine.key(atX:y:in: grid)`, not with the frames. It reads the touch model, so a tap that drifts toward the key you aim at goes to that key. Then send:
+**4. Touches.** Find the key under a finger with `engine.key(atX:y:in: grid)`, not with the frames. It reads the touch model, so a tap where your thumb usually lands for a key goes to that key. Then send:
 
 | When | Event |
 | --- | --- |
@@ -91,13 +91,13 @@ Task.detached { [weak self] in
 - iOS doesn't send a keyboard the touches that land on fully transparent pixels. Give the view under your keys a fill (`UIColor(white: 0, alpha: 0.001)`), or taps between keys go nowhere.
 - The keyboard's height comes from the Auto Layout constraints of what's inside it. iOS ignores a plain height constraint on the input view.
 - A keyboard can't draw above its own frame, and can't use the microphone.
-- Haptics (`KeyHaptics`), the network and a shared App Group need Allow Full Access, which you turn on with `RequestsOpenAccess` in the extension's Info.plist.
+- Haptics, the network and writing to a shared App Group need Allow Full Access, which you turn on with `RequestsOpenAccess` in the extension's Info.plist.
 
 ## What the example leaves out
 
-These all live in `KeyboardUI`'s `KeyboardView`, which isn't public yet: holding delete to repeat, the pop-up over a pressed key, accents on a long press, the space bar trackpad, Slide to Type, and haptics. If you need them now, subclass `HexKeyboardViewController`.
+These all live in `KeyboardUI`'s `KeyboardView`, which isn't public yet: holding delete to repeat, the pop-up over a pressed key, accents on a long press, the space bar trackpad and Slide to Type. If you need them now, subclass `HexKeyboardViewController`. For haptics, `KeyHaptics` plays Apple's keyboard haptics: `start()` it when the keyboard appears, then `play(.input)` as a key goes down.
 
-Linking `KeyboardUI` turns on UIKit's private keyboard arbiter when an extension loads (`KeyboardArbiter`). iikb uses it to learn which app it's typing in. `KeyboardCore` uses no private API. Sideloaded builds are fine, but App Review may reject a keyboard that links `KeyboardUI`.
+Linking `KeyboardUI` turns on UIKit's private keyboard arbiter when an extension loads (`KeyboardArbiter`). iikb uses it to learn which app it's typing in. `KeyboardCore` uses no private API. A keyboard that links `KeyboardUI` runs on your own devices, but App Review may reject it.
 
 ## Run it
 
@@ -111,7 +111,7 @@ Linking `KeyboardUI` turns on UIKit's private keyboard arbiter when an extension
 `KeyboardCore` imports no Foundation or UIKit, so it builds anywhere Swift 6.3 or later runs:
 
 ```sh
-cd Packages/HexKeyboard && swift build --target KeyboardCore
+swift build --package-path Packages/HexKeyboard --target KeyboardCore
 scripts/coretest   # its tests, in a package of KeyboardCore alone, since the other targets need UIKit
 ```
 
