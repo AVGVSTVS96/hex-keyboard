@@ -59,7 +59,7 @@ struct Transcript: Codable, Identifiable, Hashable {
     }
 
     private init() {
-        if let data = try? Data(contentsOf: url) {
+        if let data = try? Data(contentsOf: url) { // file: unlisted (transcripts.jsonl: a read that fails leaves the list empty, and the next save writes over the file)
             let decoder = JSONDecoder()
             var unread: [Data] = []
             all = data.split(separator: UInt8(ascii: "\n")).compactMap { (line) -> Transcript? in
@@ -111,7 +111,7 @@ struct Transcript: Codable, Identifiable, Hashable {
         trim()
         guard let line = try? JSONEncoder().encode(transcript) else { return }
         do {
-            let file = try FileHandle(forWritingTo: url)
+            let file = try FileHandle(forWritingTo: url) // file: append-only log (transcripts.jsonl)
             defer { try? file.close() }
             try file.seekToEnd()
             try file.write(contentsOf: line + [UInt8(ascii: "\n")])
@@ -192,7 +192,7 @@ struct Transcript: Codable, Identifiable, Hashable {
         let kept = unread.map { $0 + [UInt8(ascii: "\n")] }
         let lines = kept + all.reversed().compactMap { try? encoder.encode($0) + [UInt8(ascii: "\n")] }
         try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-        try? Data(lines.joined()).write(to: url, options: .atomic)
+        try? Data(lines.joined()).write(to: url, options: .atomic) // file: unlisted (transcripts.jsonl rewritten whole, even over a file init couldn't read)
         Backup.syncApp()
     }
 }

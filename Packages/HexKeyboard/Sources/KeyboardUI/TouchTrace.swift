@@ -64,7 +64,7 @@ package final class TouchTrace: NSObject {
     }
 
     package func flush() {
-        guard isOn, !lines.isEmpty, let handle = try? FileHandle(forWritingTo: url) else { return }
+        guard isOn, !lines.isEmpty, let handle = try? FileHandle(forWritingTo: url) else { return } // file: touch trace log
         handle.seekToEndOfFile()
         handle.write(Data((lines.joined(separator: "\n") + "\n").utf8))
         try? handle.close()

@@ -43,8 +43,8 @@ nonisolated enum VoiceProbe {
     private static func say(_ line: String) {
         let line = "[probe \(Date.now.formatted(date: .omitted, time: .standard))] \(line) · thermal \(ProcessInfo.processInfo.thermalState.rawValue)\n"
         print(line, terminator: "")
-        guard let file = try? FileHandle(forWritingTo: log) else {
-            try? Data(line.utf8).write(to: log)
+        guard let file = try? FileHandle(forWritingTo: log) else { // file: probe log
+            try? Data(line.utf8).write(to: log) // file: probe log
             return
         }
         file.seekToEndOfFile()

@@ -18,7 +18,7 @@ enum RankingProbe {
     }
 
     @MainActor private static func run() throws {
-        let phrases = try String(contentsOf: .documentsDirectory.appendingPathComponent("probe-phrases.txt"), encoding: .utf8)
+        let phrases = try String(contentsOf: .documentsDirectory.appendingPathComponent("probe-phrases.txt"), encoding: .utf8) // file: probe input
             .split(separator: "\n").prefix(100).map { $0.lowercased() }
         let width = 402.0, noise = 0.2
         let grid = KeyGrid(Layouts.layout(for: LayoutContext(device: .phone, layer: .letters)), width: width,
@@ -48,7 +48,7 @@ enum RankingProbe {
         }
         let log = "ranking probe \(Date.now.formatted()) thermal \(ProcessInfo.processInfo.thermalState.rawValue) keys=\(letters.count + spaces.count)\n"
             + "\(summary("letter up", letters))\n\(summary("space up", spaces))\ndone\n"
-        try log.write(to: .documentsDirectory.appendingPathComponent("rank.log"), atomically: true, encoding: .utf8)
+        try log.write(to: .documentsDirectory.appendingPathComponent("rank.log"), atomically: true, encoding: .utf8) // file: probe log
     }
 
     private static func summary(_ name: String, _ samples: [Duration]) -> String {

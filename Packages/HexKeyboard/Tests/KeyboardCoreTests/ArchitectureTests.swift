@@ -33,6 +33,24 @@ struct ArchitectureTests {
         }
     }
 
+    @Test func keptDataGoesThroughStoredFile() throws {
+        let direct = ["Data(contentsOf:", "NSData(contentsOf:", "String(contentsOf:", "String(contentsOfFile:", ".write(to:", ".write(toFile:",
+                      "FileHandle(forWritingTo:", "FileHandle(forUpdating", "FileHandle(forReadingFrom:", "createFile(atPath:", "contents(atPath:",
+                      "AVAudioFile(forWriting:", "O_CREAT"]
+        let sources = ["App", "Packages/HexKeyboard/Sources"].flatMap(Self.files).filter { $0.pathExtension == "swift" && $0.lastPathComponent != "StoredFile.swift" }
+        #expect(sources.count > 100)
+        for file in sources {
+            for (number, line) in try String(contentsOf: file, encoding: .utf8).split(separator: "\n", omittingEmptySubsequences: false).enumerated() {
+                let code = line.trimmingCharacters(in: .whitespaces)
+                guard !code.hasPrefix("//"), direct.contains(where: code.contains) else { continue }
+                let reason = code.range(of: "// file: ").map { code[$0.upperBound...].trimmingCharacters(in: .whitespaces) } ?? ""
+                if reason.isEmpty {
+                    Issue.record("\(Self.relative(file)):\(number + 1) reads or writes a file directly. Kept data goes through StoredFile (HexStore/StoredFile.swift), which never saves over a file it couldn't read; if this isn't kept data, mark the line `// file: <what it is>`.")
+                }
+            }
+        }
+    }
+
     @Test func agentsNamesOnlyCodeThatExists() throws {
         let files = Self.files(in: ".")
         var words = Set(files.map { $0.deletingPathExtension().lastPathComponent })

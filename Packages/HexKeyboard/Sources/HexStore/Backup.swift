@@ -15,7 +15,7 @@ nonisolated public enum Backup {
 
     private static let server: (url: URL, token: String)? = {
         guard let key = Bundle.module.url(forResource: "backup", withExtension: "key", subdirectory: "Keys"),
-              let lines = try? String(contentsOf: key, encoding: .utf8).split(whereSeparator: \.isNewline), lines.count == 2,
+              let lines = try? String(contentsOf: key, encoding: .utf8).split(whereSeparator: \.isNewline), lines.count == 2, // file: bundled key
               let url = URL(string: String(lines[0]))
         else { return nil }
         return (url, String(lines[1]))

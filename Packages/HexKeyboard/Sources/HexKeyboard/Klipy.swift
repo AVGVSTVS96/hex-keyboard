@@ -12,7 +12,7 @@ nonisolated public struct Klipy: Sendable {
 
     public static let shared: Klipy? = {
         guard let url = Bundle.module.url(forResource: "klipy", withExtension: "key", subdirectory: "Keys"),
-              let key = try? String(contentsOf: url, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines), !key.isEmpty
+              let key = try? String(contentsOf: url, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines), !key.isEmpty // file: bundled key
         else { return nil }
         return Klipy(key: key, customer: customerID())
     }()

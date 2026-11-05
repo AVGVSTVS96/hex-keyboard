@@ -102,7 +102,7 @@ public final class ClipboardStore {
     /// Puts an image item back on the clipboard, for you to paste.
     public func copy(image name: String, to pasteboard: UIPasteboard = .general) {
         update { saved, disk in
-            guard let data = try? Data(contentsOf: disk.folder.appending(path: name)), let type = UTType(filenameExtension: (name as NSString).pathExtension) else { return false }
+            guard let data = try? Data(contentsOf: disk.folder.appending(path: name)), let type = UTType(filenameExtension: (name as NSString).pathExtension) else { return false } // file: clipboard blob
             pasteboard.setData(data, forPasteboardType: type.identifier)
             saved.seen = pasteboard.changeCount
             return true
@@ -188,7 +188,7 @@ nonisolated private struct Disk: Sendable {
 
     func locked<T>(_ body: () -> T) -> T {
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        let descriptor = open(folder.appending(path: "lock").path(percentEncoded: false), O_CREAT | O_RDWR, 0o600)
+        let descriptor = open(folder.appending(path: "lock").path(percentEncoded: false), O_CREAT | O_RDWR, 0o600) // file: lock
         guard descriptor >= 0 else { return body() }
         defer { flock(descriptor, LOCK_UN); close(descriptor) }
         flock(descriptor, LOCK_EX)
@@ -210,11 +210,11 @@ nonisolated private struct Disk: Sendable {
             return ClipboardHistory.Item(content: .image(name), found: found.timeIntervalSince1970)
         })
         saved.history.add(files.filter { $0.hasSuffix(".txt") }.compactMap { name in
-            guard let text = try? String(contentsOf: backup.appending(path: name), encoding: .utf8) else { return nil }
+            guard let text = try? String(contentsOf: backup.appending(path: name), encoding: .utf8) else { return nil } // file: clipboard blob
             let found = (try? FileManager.default.attributesOfItem(atPath: backup.appending(path: name).path(percentEncoded: false))[.modificationDate] as? Date) ?? .now
             return ClipboardHistory.Item(content: .textFile(name: name, preview: String(text.prefix(300))), found: found.timeIntervalSince1970)
         })
-        if save(saved) { FileManager.default.createFile(atPath: backup.appending(path: Self.moved).path(percentEncoded: false), contents: nil) }
+        if save(saved) { FileManager.default.createFile(atPath: backup.appending(path: Self.moved).path(percentEncoded: false), contents: nil) } // file: marker that the backup was joined in
         return saved
     }
 
@@ -285,8 +285,8 @@ nonisolated private struct Disk: Sendable {
         switch content {
         case .text(let text): return text
         case .textFile(let name, _):
-            return (try? String(contentsOf: folder.appending(path: name), encoding: .utf8))
-                ?? backup.flatMap { try? String(contentsOf: $0.appending(path: name), encoding: .utf8) }
+            return (try? String(contentsOf: folder.appending(path: name), encoding: .utf8)) // file: clipboard blob
+                ?? backup.flatMap { try? String(contentsOf: $0.appending(path: name), encoding: .utf8) } // file: clipboard blob
         case .image: return nil
         }
     }
@@ -297,7 +297,7 @@ nonisolated private struct Disk: Sendable {
         let name = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined() + ".txt"
         do {
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-            try data.write(to: folder.appending(path: name), options: .atomic)
+            try data.write(to: folder.appending(path: name), options: .atomic) // file: clipboard blob
             return .textFile(name: name, preview: String(text.prefix(300)))
         } catch { return nil }
     }
@@ -305,17 +305,17 @@ nonisolated private struct Disk: Sendable {
     private func saveImage(_ image: (data: Data, type: UTType)) -> ClipboardHistory.Item.Content {
         let name = SHA256.hash(data: image.data).map { String(format: "%02x", $0) }.joined() + "." + (image.type.preferredFilenameExtension ?? "img")
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        try? image.data.write(to: folder.appending(path: name), options: .atomic)
+        try? image.data.write(to: folder.appending(path: name), options: .atomic) // file: clipboard blob
         return .image(name)
     }
 
     private static func read(_ folder: URL) -> ClipboardStore.Saved? {
-        try? JSONDecoder().decode(ClipboardStore.Saved.self, from: Data(contentsOf: folder.appending(path: "history.json")))
+        try? JSONDecoder().decode(ClipboardStore.Saved.self, from: Data(contentsOf: folder.appending(path: "history.json"))) // file: unlisted (clipboard history.json, kept from being written over by hand in update(), not by StoredFile)
     }
 
     @discardableResult private static func write(_ saved: ClipboardStore.Saved, to folder: URL) -> Bool {
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        return (try? JSONEncoder().encode(saved).write(to: folder.appending(path: "history.json"), options: .atomic)) != nil
+        return (try? JSONEncoder().encode(saved).write(to: folder.appending(path: "history.json"), options: .atomic)) != nil // file: unlisted (clipboard history.json, kept from being written over by hand in update(), not by StoredFile)
     }
 
     /// The image as the app copied it, without decoding it.

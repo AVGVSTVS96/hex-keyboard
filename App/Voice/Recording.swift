@@ -25,7 +25,7 @@ nonisolated enum Recording {
     }
 
     static func write(_ samples: [Float], to url: URL) throws {
-        try (header(bytes: samples.count * 2) + pcm(samples)).write(to: url, options: .atomic)
+        try (header(bytes: samples.count * 2) + pcm(samples)).write(to: url, options: .atomic) // file: recording audio
     }
 
     private static func header(bytes: Int) -> Data {
@@ -60,8 +60,8 @@ nonisolated enum Recording {
 
         init?(_ url: URL) {
             try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-            guard FileManager.default.createFile(atPath: url.path, contents: Recording.header(bytes: 0)),
-                  let handle = try? FileHandle(forWritingTo: url)
+            guard FileManager.default.createFile(atPath: url.path, contents: Recording.header(bytes: 0)), // file: recording audio, written as it's heard
+                  let handle = try? FileHandle(forWritingTo: url) // file: recording audio, written as it's heard
             else { return nil }
             _ = try? handle.seekToEnd()
             self.handle = handle
@@ -89,7 +89,7 @@ nonisolated enum Recording {
         let folder = URL.temporaryDirectory.appending(path: UUID().uuidString)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         let memo = folder.appending(path: "\(name).m4a")
-        let file = try AVAudioFile(forWriting: memo, settings: [AVFormatIDKey: kAudioFormatMPEG4AAC, AVSampleRateKey: 16_000, AVNumberOfChannelsKey: 1], commonFormat: .pcmFormatFloat32, interleaved: false)
+        let file = try AVAudioFile(forWriting: memo, settings: [AVFormatIDKey: kAudioFormatMPEG4AAC, AVSampleRateKey: 16_000, AVNumberOfChannelsKey: 1], commonFormat: .pcmFormatFloat32, interleaved: false) // file: voice memo export
         try file.write(from: buffer)
         file.close()
         return memo
@@ -97,7 +97,7 @@ nonisolated enum Recording {
 
     /// A recording `write` saved.
     static func read(_ url: URL) throws -> [Float] {
-        let data = try Data(contentsOf: url)
+        let data = try Data(contentsOf: url) // file: recording audio
         let count = max(0, (data.count - 44) / 2)
         return data.withUnsafeBytes { raw in
             (0 ..< count).map { Float(Int16(littleEndian: raw.loadUnaligned(fromByteOffset: 44 + $0 * 2, as: Int16.self))) / Float(Int16.max) }

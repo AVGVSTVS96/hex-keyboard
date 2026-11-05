@@ -18,7 +18,7 @@ import Observation
     private static let copy = URL.cachesDirectory.appending(path: "mac-stats.json")
 
     private init() {
-        activity = (try? Data(contentsOf: Self.copy)).flatMap(Self.decode)
+        activity = (try? Data(contentsOf: Self.copy)).flatMap(Self.decode) // file: cache of the Mac's stats, fetched again from the server
         asOf = try? Self.copy.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate
     }
 
@@ -30,7 +30,7 @@ import Observation
         self.activity = activity
         asOf = modified
         try? FileManager.default.createDirectory(at: Self.copy.deletingLastPathComponent(), withIntermediateDirectories: true)
-        try? data.write(to: Self.copy, options: .atomic)
+        try? data.write(to: Self.copy, options: .atomic) // file: cache of the Mac's stats, fetched again from the server
         try? FileManager.default.setAttributes([.modificationDate: modified], ofItemAtPath: Self.copy.path(percentEncoded: false))
     }
 

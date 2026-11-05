@@ -106,7 +106,7 @@ public enum Dictation {
     /// so the lock, unlike a status the app writes, can't outlive the app.
     public static func lockMic() -> Int32? {
         guard let micURL else { return nil }
-        let descriptor = open(micURL.path, O_CREAT | O_RDWR, 0o644)
+        let descriptor = open(micURL.path, O_CREAT | O_RDWR, 0o644) // file: lock
         guard descriptor >= 0 else { return nil }
         guard flock(descriptor, LOCK_EX | LOCK_NB) == 0 else {
             close(descriptor)
@@ -133,17 +133,17 @@ public enum Dictation {
     /// Stats. Only the keyboard writes it, before it signals, so the app reads it as the signal comes; nil when the
     /// keyboard couldn't tell (`KeyboardHost`).
     public static var host: String? {
-        get { hostURL.flatMap { try? String(contentsOf: $0, encoding: .utf8) }.flatMap { $0.isEmpty ? nil : $0 } }
-        set { if let hostURL { try? Data((newValue ?? "").utf8).write(to: hostURL, options: .atomic) } }
+        get { hostURL.flatMap { try? String(contentsOf: $0, encoding: .utf8) }.flatMap { $0.isEmpty ? nil : $0 } } // file: dictation channel (the app the keyboard is in)
+        set { if let hostURL { try? Data((newValue ?? "").utf8).write(to: hostURL, options: .atomic) } } // file: dictation channel (the app the keyboard is in)
     }
 
     public static var status: Status {
-        statusURL.flatMap { try? JSONDecoder().decode(Status.self, from: Data(contentsOf: $0)) } ?? Status()
+        statusURL.flatMap { try? JSONDecoder().decode(Status.self, from: Data(contentsOf: $0)) } ?? Status() // file: dictation status, rewritten on each change
     }
 
     public static func publish(_ status: Status) {
         guard let statusURL else { return }
-        try? JSONEncoder().encode(status).write(to: statusURL, options: .atomic)
+        try? JSONEncoder().encode(status).write(to: statusURL, options: .atomic) // file: dictation status, rewritten on each change
         send(.changed)
     }
 
@@ -181,14 +181,14 @@ public enum Dictation {
         for value in values {
             guard let data = try? JSONEncoder().encode(value) else { continue }
             let name = String(format: "%020llu-%@.json", clock_gettime_nsec_np(CLOCK_REALTIME), UUID().uuidString)
-            try? data.write(to: folder.appending(path: name), options: .atomic)
+            try? data.write(to: folder.appending(path: name), options: .atomic) // file: dictation channel (notes and edits, each taken by removing it)
         }
     }
 
     private static func files<Value: Decodable>(in folder: URL?) -> [(file: URL, value: Value)] {
         guard let folder, let files = try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil) else { return [] }
         return files.filter { $0.pathExtension == "json" }.sorted { $0.lastPathComponent < $1.lastPathComponent }.compactMap { file in
-            (try? Data(contentsOf: file)).flatMap { try? JSONDecoder().decode(Value.self, from: $0) }.map { (file, $0) }
+            (try? Data(contentsOf: file)).flatMap { try? JSONDecoder().decode(Value.self, from: $0) }.map { (file, $0) } // file: dictation channel (notes and edits, each taken by removing it)
         }
     }
 
