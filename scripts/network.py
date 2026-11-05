@@ -9,9 +9,9 @@ within its source is dropped by its first 60 characters.
 Tokens: lowercase words (apostrophes kept), a comma, a number, and a sentence's start; the 20,000 commonest words and
 the specials are the vocabulary, every other word one unknown token.
 
-Model: a word embedding (128 wide, also scoring the next word) into one LSTM layer (768 wide) projected back to the
-embedding, trained on 32-token windows, 256 at a time, for 30,000 steps (Adam, one-cycle learning rate to 3e-3).
-About two hours on an M1 Max's GPU; on a CPU, days.
+Model: a word embedding (128 wide, also scoring the next word) into one LSTM layer (1024 wide) projected back to the
+embedding, trained on 32-token windows, 256 at a time, for 40,000 steps (Adam, one-cycle learning rate to 3e-3).
+About three hours on an M1 Max's GPU; on a CPU, days.
 
 Usage: uv run --no-project --with pyarrow --with numpy --with torch python3 scripts/network.py build/network
 Each stage is skipped when its output is there: reddit.txt, wildchat.txt and chat.txt, vocab.txt and tokens.npy, model.pt, then
@@ -47,7 +47,7 @@ SOURCES = {"reddit.txt": 1.0, "wildchat.txt": 1.0, "chat.txt": 0.4}
 VOCABULARY = 20_000
 SPECIALS = ["<s>", "<unk>", "<n>", ","]
 TOKEN = re.compile(r"[a-z0-9]+(?:'[a-z0-9]+)*|[.!?,]")
-WIDTH, HIDDEN, WINDOW, BATCH, STEPS, RATE = 128, 768, 32, 256, 30_000, 3e-3
+WIDTH, HIDDEN, WINDOW, BATCH, STEPS, RATE = 128, 1024, 32, 256, 40_000, 3e-3
 
 out = sys.argv[1]
 os.makedirs(os.path.join(out, "download"), exist_ok=True)

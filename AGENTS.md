@@ -53,7 +53,7 @@ scripts/voiceprobe v3 clip.wav                  # on the iPhone: a Parakeet's lo
 scripts/eval                                    # scorer here on Linux: the phrase corpus typed with tap noise and with biased thumbs, checked against scripts/eval.expected (scripts/mac scripts/eval adds the UITextChecker baseline)
 scripts/web                                     # web demo into web/dist (swift.org 6.4.0 toolchain + its Wasm SDK + binaryen; on the Mac: rsync, then run it there)
 scripts/lexicon                                 # rebuild en.lexicon (downloads ~1 GB, streams ~30 GB of 2-grams)
-scripts/network                                 # retrain en.network (downloads ~20 GB, about two hours on the Mac's GPU)
+scripts/network                                 # retrain en.network (downloads ~20 GB, about three hours on the Mac's GPU)
 scripts/mac scripts/applebar in.txt out.txt     # Apple's own suggestion bar before each word and after its first two letters, typed through the system keyboard in the simulator, for head-to-heads
 uv run --with pillow --with numpy --with scipy scripts/shotdiff.py v7   # key-by-key geometry vs Apple
 ```
