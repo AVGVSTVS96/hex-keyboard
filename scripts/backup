@@ -2,10 +2,14 @@
 # Copies iikb's data off the iPhone the Mac reaches into ~/.local/share/hex-keyboard/backup here: the app's, the
 # keyboard's and the App Group's files, all but Parakeet's models. Nothing is deleted there, and a file a backup
 # replaces is kept under versions/<time>, so one wiped on the phone can be put back. scripts/phone runs it before
-# every install. Usage: scripts/backup <iPhone UDID>
+# every install. A file the iPhone holds at under half the size of the backup's (over 4 KB), as after a reinstall
+# wiped it, is kept under smaller/<time> rather than over the backup's, which stays for scripts/restore to put back;
+# --smaller takes such files anyway, as after a reset you meant.
+# Usage: scripts/backup <iPhone UDID> [--smaller]
 set -euo pipefail
 umask 077
-phone=${1:?usage: scripts/backup <iPhone UDID>}
+phone=${1:?usage: scripts/backup <iPhone UDID> [--smaller]}
+smaller=${2:-}
 backup=${HEX_BACKUP:-$HOME/.local/share/hex-keyboard/backup}
 mkdir -p "$backup/mirror/app/recordings"
 have=$(cd "$backup/mirror/app/recordings" && ls | paste -sd, -)
@@ -38,6 +42,30 @@ rm "$out/list.json"
 echo "$out"
 MAC
 staged=$(ssh mac sh -s "$phone" "$have" <<<"$mac")
-rsync -a --checksum --backup --backup-dir="$backup/versions/$(date +%Y-%m-%dT%H%M%S)" "mac:$staged/" "$backup/mirror/"
+time=$(date +%Y-%m-%dT%H%M%S)
+incoming=$(mktemp -d "$backup/incoming.XXXX")
+trap 'rm -rf "$incoming"' EXIT
+rsync -a "mac:$staged/" "$incoming/"
 ssh mac rm -rf "$staged"
+[ "$smaller" = --smaller ] || python3 - "$backup" "$incoming" "$time" "$phone" <<'PY'
+import os, sys
+backup, incoming, time, phone = sys.argv[1:]
+held = []
+for folder, _, found in os.walk(incoming):
+    for name in found:
+        path = os.path.join(folder, name)
+        name = os.path.relpath(path, incoming)
+        kept = os.path.join(backup, 'mirror', name)
+        if os.path.exists(kept) and 2 * os.path.getsize(path) < os.path.getsize(kept) > 4096:
+            aside = os.path.join(backup, 'smaller', time, name)
+            os.makedirs(os.path.dirname(aside), exist_ok=True)
+            os.rename(path, aside)
+            held.append(f"  {name}: {os.path.getsize(aside):,} bytes on the iPhone, {os.path.getsize(kept):,} in the backup")
+if held:
+    print("\n".join(["These are much smaller on the iPhone than in the backup, as after a reinstall wiped them, so the "
+                     f"backup keeps its own and the iPhone's went to {backup}/smaller/{time}:", *held,
+                     f"scripts/restore {phone} puts the backup's back; scripts/backup {phone} --smaller takes the iPhone's."]),
+          file=sys.stderr)
+PY
+rsync -a --checksum --backup --backup-dir="$backup/versions/$time" "$incoming/" "$backup/mirror/"
 echo "iikb's data is backed up in $backup"

@@ -2,22 +2,26 @@
 # Puts iikb's data from the backup here (~/.local/share/hex-keyboard/backup, docs/backup.md) back on an iPhone the Mac
 # reaches, over what's there: every file, or only those named as the backup names them (keyboard/support/typing-memory.json),
 # each as it is now or, with --at, as it was then: the version replaced first after that time, else the one kept now.
+# Without --at it refuses a copy under half the size of one replaced in the last 30 days, as a reinstall's near-empty
+# files sent over good ones leave it, and names the --at that puts back the larger; --at now takes the copies kept now.
 # The app is quit first when its files go back, since it holds its transcripts in memory and would save over them.
 # What's on the iPhone is backed up first (scripts/backup), after the files to put back are picked, so whatever it
 # hadn't sent yet is kept under versions/ rather than lost, and the restore still puts back what it was asked for.
-# Usage: scripts/restore <iPhone UDID> [--at 2026-11-04T0300] [name…]
+# Usage: scripts/restore <iPhone UDID> [--at 2026-11-04T0300|now] [name…]
 set -euo pipefail
 umask 077
-phone=${1:?usage: scripts/restore <iPhone UDID> [--at 2026-11-04T0300] [name…]}
+phone=${1:?usage: scripts/restore <iPhone UDID> [--at 2026-11-04T0300|now] [name…]}
 shift
 at=
 if [ "${1:-}" = --at ]; then at=$2; shift 2; fi
 backup=${HEX_BACKUP:-$HOME/.local/share/hex-keyboard/backup}
 stage=$(mktemp -d "$backup/restore.XXXX")
 trap 'rm -rf "$stage"; ssh mac rm -rf "/tmp/${stage##*/}"' EXIT
-python3 - "$backup" "$at" "$stage" "$@" <<'PY'
-import os, sys
-backup, at, stage, names = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4:]
+python3 - "$backup" "$at" "$stage" "$phone" "$@" <<'PY'
+import datetime, os, sys
+backup, at, stage, phone, names = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5:]
+versions = os.path.join(backup, 'versions')
+form = '%Y-%m-%dT%H%M%S'
 
 def files(root):
     for folder, _, found in os.walk(root):
@@ -25,15 +29,33 @@ def files(root):
             path = os.path.join(folder, name)
             yield os.path.relpath(path, root), path
 
+def stamps(after):
+    return sorted(s for s in os.listdir(versions) if s > after) if os.path.isdir(versions) else []
+
 picked = dict(files(os.path.join(backup, 'mirror')))
+if at == 'now':
+    at = datetime.datetime.now().strftime(form)
 if at:
-    versions = os.path.join(backup, 'versions')
-    for stamp in sorted((s for s in os.listdir(versions) if s > at), reverse=True):
+    for stamp in reversed(stamps(at)):
         picked.update(files(os.path.join(versions, stamp)))
 if names:
     missing = [name for name in names if name not in picked]
     if missing: sys.exit(f"not in the backup: {' '.join(missing)}")
     picked = {name: picked[name] for name in names}
+if not at:
+    larger = {}
+    for stamp in stamps((datetime.datetime.now() - datetime.timedelta(days=30)).strftime(form)):
+        for name, path in files(os.path.join(versions, stamp)):
+            size = os.path.getsize(path)
+            if name in picked and 2 * os.path.getsize(picked[name]) < size > 4096: larger[name] = stamp, size
+    if larger:
+        kb = lambda size: f"{size / 1e6:.1f} MB" if size >= 1e6 else f"{size / 1e3:.1f} KB" if size >= 1e3 else f"{size} bytes"
+        before = lambda stamp: (datetime.datetime.strptime(stamp[:17], form) - datetime.timedelta(seconds=1)).strftime(form)
+        lines = [f"  {name}: {kb(os.path.getsize(picked[name]))} kept now, {kb(size)} replaced {stamp[:17]}\n"
+                 f"    scripts/restore {phone} --at {before(stamp)} {name}" for name, (stamp, size) in sorted(larger.items())]
+        sys.exit("\n".join(["Not restoring: the backup's copies of these are much smaller than ones it replaced lately, as when "
+                             "a reinstall's near-empty files are sent over good ones. To put back the larger:", *lines,
+                             f"or what's kept now anyway: scripts/restore {phone} --at now {' '.join(names)}".rstrip()]))
 for name, path in picked.items():
     os.makedirs(os.path.dirname(os.path.join(stage, name)), exist_ok=True)
     os.link(path, os.path.join(stage, name))

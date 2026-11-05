@@ -70,3 +70,10 @@ The network is made from what you type, so it stays on the server and the iPhone
 (`keyboard/support/typing-memory.json`), as it is now or, with `--at 2026-11-04T0300`, as it was then. It backs the iPhone
 up first (`scripts/backup`), once it has picked what to put back, so what the iPhone hadn't sent yet is kept under
 `versions/` rather than written over. It quits the app first when the app's files go back. A keyboard that's up reads what was put back the next time it appears.
+
+A reinstall that starts a new container sends its near-empty files over the good ones as soon as the app starts, so
+the good ones are in `versions/` and the mirror holds the empty ones. Without `--at`, `scripts/restore` refuses a file
+the mirror holds at under half the size of a copy replaced in the last 30 days (one over 4 KB), and prints the `--at`
+that puts each larger copy back; `--at now` takes the mirror as it is. `scripts/backup` keeps the mirror's copy of such a
+file rather than the iPhone's, which goes to `smaller/<time>/`, and says so; `--smaller` takes the iPhone's, as after a
+reset you meant.
