@@ -122,7 +122,10 @@ import UIKit
         writing.append(take)
         publish()
         let before = written
+        nonisolated(unsafe) var background = UIBackgroundTaskIdentifier.invalid
+        background = UIApplication.shared.beginBackgroundTask { UIApplication.shared.endBackgroundTask(background) }
         written = Task {
+            defer { UIApplication.shared.endBackgroundTask(background) }
             await before?.value
             await deliver(take, await sound.value)
         }
@@ -131,8 +134,6 @@ import UIKit
     /// Writes a dictation down, keeps it in Transcripts, and leaves it for the keyboard to type unless you canceled it.
     /// One that can't be written now is written the next time the app opens, since its recording is still on disk.
     private func deliver(_ take: Take, _ samples: [Float]) async {
-        let background = UIApplication.shared.beginBackgroundTask()
-        defer { UIApplication.shared.endBackgroundTask(background) }
         let seconds = Double(samples.count) / Recording.format.sampleRate
         do {
             let written = try await VoiceModel.shared.write(samples)
