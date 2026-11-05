@@ -67,7 +67,8 @@ The same app identity serves:
 - **Suggestions and autocorrect:** words and word pairs you keep are counted for that app as well as globally. App-specific counts rank completions, correction candidates and next-word suggestions, backing off to your shared language and then the lexicon. A new or unknown app keeps the shared behavior. Correctly typed words keep the same touch-evidence protection.
 - **Emoji:** the bar and panel put emoji you choose in this app first, with shared favorites underneath. Skin-tone preferences stay shared.
 - **GIF recents:** GIFs shared in this app come first, followed by your other recent GIFs. The app ID is used locally; it is not sent to KLIPY.
-- **Voice typing:** the keyboard passes the same identity to the recording app so it can return you to the right app.
+- **Typing stats:** each hour of typing is counted under its app, for Stats › Typing's Where you type.
+- **Voice typing:** the keyboard passes the same identity to the recording app so it can return you to the right app, and writes it beside each start and stop (`Dictation.host`), so each transcript keeps the app it was typed into, for Transcripts and Stats › Dictation's Where you dictate.
 
 App-specific learning stays on the phone. Reset Learned Words and Taps also clears the per-app word counts. Touch calibration, explicit kept spellings, text replacements, voice writing settings and skin tones remain shared preferences. Field behavior follows the traits iOS reports, rather than guesses based on an app’s name. Clipboard entries have no app-of-origin label: the app where the keyboard reads the clipboard does not establish where something was copied.
 
