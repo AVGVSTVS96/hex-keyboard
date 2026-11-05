@@ -40,6 +40,7 @@ import UIKit
 
     private init() {
         microphone.onLost = { Task { await Listener.shared.lose() } }
+        microphone.onSpeaker = { Listener.shared.yieldSound() }
         microphone.onLevel = { level, recorded in
             Listener.shared.recording?.recorded = recorded
             Listener.shared.onLevel?(level)
@@ -185,6 +186,15 @@ import UIKit
         guard microphone.isOn else { return }
         micOffOnceWritten = true
         await finish()
+        keepMicOn()
+    }
+
+    /// A speaker or headphones connected while the microphone holds the sound on the iPhone: it goes off once what
+    /// you're saying is written down, so music plays there, and the next dictation opens the app to hear without
+    /// holding it.
+    private func yieldSound() {
+        held = false
+        micOffOnceWritten = true
         keepMicOn()
     }
 

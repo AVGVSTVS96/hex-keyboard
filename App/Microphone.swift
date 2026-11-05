@@ -11,6 +11,9 @@ import Observation
     private var lock: Int32?
     /// Another app took the microphone (a call), or the route changed under the engine.
     var onLost: () -> Void = {}
+    /// A speaker or headphones connected while voice processing holds the sound on the iPhone, which can't hand it over
+    /// while the microphone is on.
+    var onSpeaker: () -> Void = {}
     var onLevel: (_ loudness: Float, _ recorded: Double) -> Void = { _, _ in }
 
     init() {
@@ -18,6 +21,13 @@ import Observation
         center.addObserver(forName: AVAudioSession.interruptionNotification, object: nil, queue: .main) { [weak self] note in
             guard note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt == AVAudioSession.InterruptionType.began.rawValue else { return }
             Task { @MainActor in self?.onLost() }
+        }
+        center.addObserver(forName: AVAudioSession.routeChangeNotification, object: nil, queue: .main) { [weak self] note in
+            guard note.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt == AVAudioSession.RouteChangeReason.newDeviceAvailable.rawValue else { return }
+            Task { @MainActor in
+                guard let self, self.isOn, self.engine.inputNode.isVoiceProcessingEnabled else { return }
+                self.onSpeaker()
+            }
         }
         center.addObserver(forName: .AVAudioEngineConfigurationChange, object: engine, queue: .main) { [weak self] _ in
             Task { @MainActor in
@@ -32,18 +42,21 @@ import Observation
     /// The input recording now, as iOS names it.
     var input: String? { AVAudioSession.sharedInstance().currentRoute.inputs.first?.portName }
 
-    /// Mixes with whatever else is playing, so music keeps going while you talk. While any app records, iOS mutes every
-    /// app's haptics, the keyboard's included, unless the recording session allows them. It hears through Apple's voice
-    /// processing, which picks up your voice from all of the iPhone's microphones as a call does: from one microphone,
-    /// the folded iPhone Duo in portrait lost his voice for seconds at a time, 12% of the time, leaving a low rumble
-    /// that Parakeet writes as nothing.
+    /// Mixes with whatever else is playing, so music keeps going while you talk, wherever it plays: a Bluetooth
+    /// microphone would put a speaker or AirPods on a call, so you're heard on the iPhone's own. While any app records,
+    /// iOS mutes every app's haptics, the keyboard's included, unless the recording session allows them. While the
+    /// iPhone plays the sound itself, it hears through Apple's voice processing, which picks up your voice from all of
+    /// its microphones as a call does: from one microphone, the folded iPhone Duo in portrait lost his voice for seconds
+    /// at a time, 12% of the time, leaving a low rumble that Parakeet writes as nothing. Voice processing takes the sound
+    /// from a Bluetooth speaker or AirPlay to the iPhone, and music apps pause, so while one plays it hears from one.
     func open() throws {
         guard lock == nil else { return }
         let session = AVAudioSession.sharedInstance()
-        try session.setCategory(.playAndRecord, options: [.mixWithOthers, .allowBluetoothHFP, .defaultToSpeaker])
+        try session.setCategory(.playAndRecord, options: [.mixWithOthers, .allowBluetoothA2DP, .allowAirPlay, .defaultToSpeaker])
         try session.setActive(true)
         let node = engine.inputNode
-        if !node.isVoiceProcessingEnabled, (try? node.setVoiceProcessingEnabled(true)) != nil {
+        let onIPhone = session.currentRoute.outputs.allSatisfy { [.builtInSpeaker, .builtInReceiver, .headphones].contains($0.portType) }
+        if node.isVoiceProcessingEnabled != onIPhone, (try? node.setVoiceProcessingEnabled(onIPhone)) != nil, onIPhone {
             node.voiceProcessingOtherAudioDuckingConfiguration = .init(enableAdvancedDucking: false, duckingLevel: .min)
         }
         try? session.setAllowHapticsAndSystemSoundsDuringRecording(true)
