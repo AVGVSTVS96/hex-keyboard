@@ -50,6 +50,8 @@ Shop at example.com for it. | Shop at example.com for it
 Look at the logs at noon. | Look at the logs at noon
 
 # times and plain numbers stay as written
+Call me at nine A.M. tomorrow. | Call me at nine A.M. tomorrow
+The meeting is at 3:30 p.m. | The meeting is at 3:30 p.m.
 It ran for twenty four hours. | It ran for twenty four hours
 That's $250 in credits. | That's $250 in credits
 

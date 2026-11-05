@@ -585,7 +585,8 @@ extension TypingEngine {
     }
 
     /// Where each sentence's first word starts in dictated text: at its start, and after a period, question mark,
-    /// exclamation mark or line break, past any spaces and openers.
+    /// exclamation mark or line break, past any spaces and openers, but not after "A.M." or "e.g." the model went on
+    /// from in lowercase.
     private static func sentenceStarts(in text: [Character]) -> [Int] {
         var starts: [Int] = []
         var expecting = true
@@ -594,7 +595,7 @@ extension TypingEngine {
                 if character.isLetter { starts.append(at) }
                 expecting = false
             } else if character.isNewline || sentenceEnders.contains(character) && (at + 1 == text.count || text[at + 1].isWhitespace) {
-                expecting = true
+                expecting = !Words.closesAbbreviation(text, at: at) || text[(at + 1)...].first { !$0.isWhitespace }?.isLowercase != true
             } else if expecting, !character.isWhitespace, !Words.openers.contains(character), character != "•" {
                 expecting = false
             }

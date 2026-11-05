@@ -21,6 +21,11 @@ enum Words {
         return words
     }
 
+    /// Whether the period at `at` closes letters each with its own period, as "A.M.", "p.m." and "e.g." do.
+    static func closesAbbreviation(_ text: [Character], at: Int) -> Bool {
+        at >= 3 && text[at] == "." && text[at - 1].isLetter && text[at - 2] == "." && text[at - 3].isLetter && (at == 3 || !text[at - 4].isLetter)
+    }
+
     /// The word with straight apostrophes, as the lexicon and what you've typed are kept.
     static func plain(_ word: String) -> String {
         word.contains("’") ? String(word.map { $0 == "’" ? "'" : $0 }) : word

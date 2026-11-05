@@ -20,7 +20,7 @@ public enum DictationStyle: String, CaseIterable, Hashable, Sendable {
             text = Self.marksSingled(text)
             if let last = text.last, last.isLetter || last.isNumber { text.append(".") }
         case .casual, .veryCasual:
-            if text.last == ".", text.dropLast().last != "." { text.removeLast() }
+            if text.last == ".", text.dropLast().last != ".", !Words.closesAbbreviation(text, at: text.count - 1) { text.removeLast() }
         case .excited:
             text = Self.exclaimed(Self.marksSingled(text))
         }
