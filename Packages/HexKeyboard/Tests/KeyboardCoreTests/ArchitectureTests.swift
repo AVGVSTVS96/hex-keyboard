@@ -59,14 +59,18 @@ struct ArchitectureTests {
             let code = file.pathExtension == "swift" ? text.split(separator: "\n").map { $0.split(separator: "//", maxSplits: 1).first ?? "" }.joined(separator: " ") : text
             words.formUnion(code.split { !($0.isLetter || $0.isNumber || $0 == "_") }.map(String.init))
         }
-        let agents = try String(contentsOf: Self.root.appending(path: "AGENTS.md"), encoding: .utf8)
-        for quoted in agents.split(separator: "`").enumerated().filter({ $0.offset % 2 == 1 }).map(\.element) {
-            let name = quoted.split(separator: "(").first ?? quoted
-            let parts = name.split(separator: ".", omittingEmptySubsequences: false)
-            guard parts.allSatisfy({ $0.first.map { $0.isLetter || $0 == "_" } == true && $0.allSatisfy { $0.isLetter || $0.isNumber || $0 == "_" } }),
-                  parts.count == 1 || parts[0].first!.isUppercase else { continue }
-            let stale = parts.contains { !words.contains(String($0)) }
-            #expect(!stale, "AGENTS.md names `\(quoted)`, which no code declares or uses; rename it to what replaced it or drop it.")
+        let docs = files.filter { $0.lastPathComponent == "AGENTS.md" }
+        #expect(docs.count > 5)
+        for doc in docs {
+            let agents = try String(contentsOf: doc, encoding: .utf8)
+            for quoted in agents.split(separator: "`").enumerated().filter({ $0.offset % 2 == 1 }).map(\.element) {
+                let name = quoted.split(separator: "(").first ?? quoted
+                let parts = name.split(separator: ".", omittingEmptySubsequences: false)
+                guard parts.allSatisfy({ $0.first.map { $0.isLetter || $0 == "_" } == true && $0.allSatisfy { $0.isLetter || $0.isNumber || $0 == "_" } }),
+                      parts.count == 1 || parts[0].first!.isUppercase else { continue }
+                let stale = parts.contains { !words.contains(String($0)) }
+                #expect(!stale, "\(Self.relative(doc)) names `\(quoted)`, which no code declares or uses; rename it to what replaced it or drop it.")
+            }
         }
     }
 

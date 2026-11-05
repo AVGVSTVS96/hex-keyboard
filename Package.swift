@@ -28,7 +28,7 @@ let package = Package(
                 .product(name: "FluidAudio", package: "FluidAudio"),
             ],
             path: "App",
-            exclude: ["Assets.xcassets", "Settings.bundle", "Hex.entitlements", "PrivacyInfo.xcprivacy"],
+            exclude: ["AGENTS.md", "Voice/AGENTS.md", "Assets.xcassets", "Settings.bundle", "Hex.entitlements", "PrivacyInfo.xcprivacy"],
             swiftSettings: settings
         ),
         .target(

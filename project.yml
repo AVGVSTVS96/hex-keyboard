@@ -28,7 +28,9 @@ targets:
   Hex:
     type: application
     platform: iOS
-    sources: [App]
+    sources:
+      - path: App
+        excludes: ["**/AGENTS.md"]
     dependencies:
       - target: Keyboard
       - package: HexKeyboard
