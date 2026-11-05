@@ -1,7 +1,7 @@
 import AVFoundation
 
 /// How the iPhone's own microphones are heard, compared dictation by dictation while Settings › Microphone's Compare
-/// Microphones is on (`-compareMicrophones NO` turns it off for a launch): each dictation draws one at random and its
+/// Microphones is on (off unless turned on; `-compareMicrophones YES` turns it on for a launch): each dictation draws one at random and its
 /// transcript keeps which, so the edits made to what each typed score them on the same days, in the same rooms
 /// (`scripts/voicehealth.py`). Only while the iPhone's own microphone hears and nothing plays on its speaker, which
 /// only voice processing keeps out of what it hears.
@@ -24,7 +24,7 @@ nonisolated enum Capture: String, CaseIterable {
     }
 
     static var comparing: Bool {
-        UserDefaults.standard.object(forKey: "compareMicrophones") == nil || UserDefaults.standard.bool(forKey: "compareMicrophones")
+        UserDefaults.standard.bool(forKey: "compareMicrophones")
     }
 
     /// One of the ways this iPhone offers, at random.

@@ -146,7 +146,7 @@ struct MicSettings: View {
 /// Which microphone iikb dictates with when there are several.
 struct MicrophoneSettings: View {
     private let choices = MicrophoneChoices.shared
-    @AppStorage("compareMicrophones") private var comparing = true
+    @AppStorage("compareMicrophones") private var comparing = false
 
     var body: some View {
         Box(footer: "Automatic hears from the iPhone, or a wired headset when one is plugged in, never from Bluetooth, so music on AirPods and speakers keeps its full quality while you dictate. A Bluetooth microphone puts its device on a call, at call quality, while the mic is on. A pick is used whenever it’s connected; when it isn’t, the iPhone’s hears.") {
