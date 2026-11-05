@@ -10,6 +10,7 @@ struct BarLayoutTests {
         /// The keyboard's window, where iOS gives it less than the screen.
         var window: Double
         var oneHanded = OneHanded.off
+        var split = false
     }
 
     private static let screens: [Screen] = [
@@ -17,6 +18,7 @@ struct BarLayoutTests {
         Screen(name: "Duo folded, landscape", device: .phone, width: 678, height: 466, window: 528),
         Screen(name: "Duo open, portrait", device: .phone, width: 669, height: 951, window: 669),
         Screen(name: "Duo open, landscape", device: .phone, width: 951, height: 669, window: 801),
+        Screen(name: "Duo open, landscape, split", device: .phone, width: 951, height: 669, window: 801, split: true),
         Screen(name: "iPhone 17", device: .phone, width: 402, height: 874, window: 402),
         Screen(name: "iPhone 17 Pro Max", device: .phone, width: 440, height: 956, window: 440),
         Screen(name: "iPhone 17 landscape", device: .phone, width: 874, height: 402, window: 874),
@@ -28,9 +30,9 @@ struct BarLayoutTests {
     ]
 
     private func layouts(_ screen: Screen) -> [(metrics: KeyboardMetrics, layout: BarLayout, keys: [(minX: Double, maxX: Double)], label: String)] {
-        var metrics = KeyboardMetrics.for(screen.device, width: screen.width, height: screen.height, oneHanded: screen.oneHanded)
+        var metrics = KeyboardMetrics.for(screen.device, width: screen.width, height: screen.height, oneHanded: screen.oneHanded, split: screen.split)
         metrics = metrics.fitted(screen: screen.width, window: screen.window)
-        let context = LayoutContext(device: screen.device, layer: .letters, isLandscape: screen.width > screen.height, oneHanded: screen.oneHanded)
+        let context = LayoutContext(device: screen.device, layer: .letters, isLandscape: screen.width > screen.height, isOpen: screen.split, oneHanded: screen.oneHanded, isSplit: screen.split)
         let grid = KeyGrid(Layouts.layout(for: context), width: screen.window, metrics: metrics.grid)
         let keys = grid.rows[0].map { (minX: $0.frame.x, maxX: $0.frame.x + $0.frame.width) }
         // An iPhone's emoji open from the key beside space, so its bar has two tools at most.
