@@ -3,7 +3,7 @@ import KeyboardCore
 
 extension KeyboardStyle {
     /// The system keyboard's look on this iOS, which sizes and colors follow.
-    public static var current: KeyboardStyle {
+    nonisolated public static var current: KeyboardStyle {
         if #available(iOS 27, *) { .ios27 } else { .ios26 }
     }
 }

@@ -14,6 +14,10 @@ final class KeyboardViewController: UIInputViewController {
     private lazy var keysHeight = keys.heightAnchor.constraint(equalToConstant: 0)
     private var theme = KeyboardTheme.light(.current)
     private var ranking = false
+    private var shown: (suggestions: [Suggestion], theme: KeyboardTheme)?
+    /// From viewWillAppear to viewWillDisappear. iOS tears the text document proxy down once the keyboard goes, while
+    /// this controller lives on, and reading it then crashes, so nothing that lands later (a ranking, a layout) draws.
+    private var isShown = false
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -38,8 +42,17 @@ final class KeyboardViewController: UIInputViewController {
         ])
         engine.corrector = Corrector(source: Lexicon.english, network: .english)
         engine.defersSuggestions = true
+        // The emoji key opens the engine's emoji panel, whose search the keys then type into; this keyboard draws no panels.
+        engine.settings.emojiKey = false
         keys.resolve = { [unowned self] grid, point in engine.key(atX: point.x, y: point.y, in: grid) }
         keys.onEvent = { [unowned self] in handle($0) }
+        registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (self: Self, _) in self.render() }
+        Task { [weak self] in
+            guard let lexicon = await self?.requestSupplementaryLexicon() else { return }
+            self?.engine.corrector?.learn(lexicon)
+            self?.engine.suggestionsChanged()
+            self?.render()
+        }
     }
 
     override func viewWillLayoutSubviews() {
@@ -49,6 +62,7 @@ final class KeyboardViewController: UIInputViewController {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        isShown = true
         sync()
     }
 
@@ -58,11 +72,15 @@ final class KeyboardViewController: UIInputViewController {
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
+        isShown = false
         engine.endSession()
     }
 
     private func handle(_ event: KeyboardEvent) {
-        if case .trigger(let key) = event, key.action == .nextKeyboard { return advanceToNextInputMode() }
+        if case .trigger(let key) = event {
+            if key.action == .nextKeyboard { return advanceToNextInputMode() }
+            if key.action == .dismiss { return dismissKeyboard() }
+        }
         if engine.handle(event, in: document) { render() }
     }
 
@@ -74,6 +92,7 @@ final class KeyboardViewController: UIInputViewController {
     }
 
     private func render() {
+        guard isShown else { return }
         let screen = view.window?.windowScene?.screen.bounds.size ?? view.bounds.size
         let size = Size(width: screen.width, height: screen.height)
         let device = DeviceClass(isPad: traitCollection.userInterfaceIdiom == .pad, shortSide: min(size.width, size.height))
@@ -84,8 +103,9 @@ final class KeyboardViewController: UIInputViewController {
         theme = dark ? .dark(.current) : .light(.current)
         keys.show(KeyGrid(layout, width: view.bounds.width, metrics: metrics.grid, signature: context.signature), faces: engine.faces(on: device), metrics: metrics, theme: theme)
         engine.use(keys.grid)
-        barHeight.constant = metrics.toolbar.height
-        keysHeight.constant = metrics.height(rows: layout.rows.count, hasNumberRow: layout.hasNumberRow)
+        let heights = (bar: metrics.toolbar.height, keys: metrics.height(rows: layout.rows.count, hasNumberRow: layout.hasNumberRow))
+        if barHeight.constant != heights.bar { barHeight.constant = heights.bar }
+        if keysHeight.constant != heights.keys { keysHeight.constant = heights.keys }
         rank()
     }
 
@@ -107,10 +127,14 @@ final class KeyboardViewController: UIInputViewController {
         rank()
     }
 
+    /// Makes the bar's buttons again only when what they show changed, since render runs on every layout pass.
     private func showSuggestions() {
+        guard isShown else { return }
+        let suggestions = engine.showsSuggestions ? Array(engine.suggestions.prefix(3)) : []
+        if let shown, shown.suggestions == suggestions, shown.theme == theme { return }
+        shown = (suggestions, theme)
         bar.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        guard engine.showsSuggestions else { return }
-        for suggestion in engine.suggestions.prefix(3) {
+        for suggestion in suggestions {
             let button = UIButton(primaryAction: UIAction(title: suggestion.title) { [unowned self] _ in
                 engine.accept(suggestion, in: document)
                 render()
@@ -187,8 +211,14 @@ final class KeysView: UIView {
         setNeedsDisplay()
     }
 
+    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
+        for touch in touches { touched[ObjectIdentifier(touch)]?.point = touch.location(in: self) }
+    }
+
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
-        for touch in touches { lift(ObjectIdentifier(touch), at: touch.location(in: self)) }
+        for touch in touches.sorted(by: { $0.timestamp < $1.timestamp }) {
+            lift(ObjectIdentifier(touch), at: touch.location(in: self))
+        }
         setNeedsDisplay()
     }
 

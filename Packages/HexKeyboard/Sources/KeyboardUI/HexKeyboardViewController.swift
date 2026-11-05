@@ -545,14 +545,6 @@ open class HexKeyboardViewController: UIInputViewController {
     }
 }
 
-private extension Corrector {
-    func learn(_ lexicon: UILexicon) {
-        let entries = lexicon.entries
-        setReplacements(entries.filter { $0.userInput != $0.documentText }.map { ($0.userInput, $0.documentText) })
-        setNames(entries.filter { $0.userInput == $0.documentText }.map(\.documentText))
-    }
-}
-
 /// Links into Hex's app.
 public enum HexLink {
     /// Opens Settings › Apps › Hex, where Full Access (under Keyboards) and Paste from Other Apps are.

@@ -104,3 +104,12 @@ extension Autocapitalization {
         }
     }
 }
+
+extension Corrector {
+    /// Takes the person's Text Replacements and contact names, from the keyboard's `requestSupplementaryLexicon()`.
+    public func learn(_ lexicon: UILexicon) {
+        let entries = lexicon.entries
+        setReplacements(entries.filter { $0.userInput != $0.documentText }.map { ($0.userInput, $0.documentText) })
+        setNames(entries.filter { $0.userInput == $0.documentText }.map(\.documentText))
+    }
+}
