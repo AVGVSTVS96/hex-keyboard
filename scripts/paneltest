@@ -1,6 +1,6 @@
 #!/bin/bash
 # Runs on the Mac. OPEN=1 unfolds the iPhone Duo first. The GIF and clipboard panels through the real keyboard, light and dark, screenshotting
-# each step into shots/raw/panels/: scripts/paneltest ["iPhone Duo"] [iPhone-Duo] (RUNTIME picks the iOS; ORIENTATION=landscape; COMPACT=1 turns on Compact Emoji & GIFs)
+# each step into shots/raw/panels/: scripts/paneltest ["iPhone Duo"] [iPhone-Duo] (RUNTIME picks the iOS; ORIENTATION=landscape; COMPACT=1 turns on Compact Emoji & GIFs; TRANSCRIPTS, JSON lines as the app keeps them, fills Transcripts)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 NAME=${1:-iPhone Duo}
@@ -16,6 +16,10 @@ scripts/sim boot "$ID"
 scripts/sim use "$ID" iikb
 [ -n "${OPEN:-}" ] && scripts/sim unfold "$ID"
 scripts/sim allow "$ID"
+if [ -n "${TRANSCRIPTS:-}" ]; then
+  data=$(xcrun simctl get_app_container "$ID" com.shahidy.iikb data)
+  mkdir -p "$data/Library/Application Support" && cp "$TRANSCRIPTS" "$data/Library/Application Support/transcripts.jsonl"
+fi
 for appearance in ${APPEARANCES:-light dark}; do
   xcrun simctl ui "$ID" appearance "$appearance"
   TEST_RUNNER_IIKB_SHOTS="$PWD/shots/raw/panels/$slug-${ORIENTATION:-portrait}${COMPACT:+-compact}-$appearance" TEST_RUNNER_IIKB_ORIENTATION="${ORIENTATION:-portrait}" TEST_RUNNER_IIKB_COMPACT="${COMPACT:-}" \

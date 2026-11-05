@@ -90,4 +90,29 @@ public struct ClipboardHistory: Codable, Hashable, Sendable {
         guard let (size, unit) = steps.first(where: { minutes >= $0.0 }) else { return "now" }
         return "\(minutes / size)\(unit)"
     }
+
+    /// How long a text is, as a row shows it beside its age: "1 word", "48 words", "312 chars", "1.2K chars".
+    public static func length(of text: String, in unit: ClipboardLength) -> String {
+        let count = unit == .words ? text.split(whereSeparator: { $0.isWhitespace || $0.isNewline }).count : text.count
+        let name = unit == .words ? (count == 1 ? "word" : "words") : (count == 1 ? "char" : "chars")
+        return "\(short(count)) \(name)"
+    }
+
+    /// A text item's length; nil for an image, and for a text kept in a file, of which a row has only the start.
+    public static func length(of content: Item.Content, in unit: ClipboardLength) -> String? {
+        guard case .text(let text) = content else { return nil }
+        return length(of: text, in: unit)
+    }
+
+    /// 312, 1.2K, 48K, 1.5M: a count in at most four characters.
+    static func short(_ count: Int) -> String {
+        func tenths(_ unit: Int, _ suffix: String) -> String {
+            let tenths = (count + unit / 20) / (unit / 10)
+            return tenths % 10 == 0 ? "\(tenths / 10)\(suffix)" : "\(tenths / 10).\(tenths % 10)\(suffix)"
+        }
+        if count < 1000 { return "\(count)" }
+        if count < 9950 { return tenths(1000, "K") }
+        if count < 999_500 { return "\((count + 500) / 1000)K" }
+        return tenths(1_000_000, "M")
+    }
 }

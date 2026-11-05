@@ -11,6 +11,15 @@ struct ClipboardHistoryTests {
         #expect(history.items.first?.found == 3)
     }
 
+    @Test func aRowSaysHowLongItsTextIsInWordsOrCharacters() {
+        #expect(ClipboardHistory.length(of: "hello", in: .words) == "1 word")
+        #expect(ClipboardHistory.length(of: "see you\nat  noon", in: .words) == "4 words")
+        #expect(ClipboardHistory.length(of: "a", in: .characters) == "1 char")
+        #expect(ClipboardHistory.length(of: "café 👋🏽", in: .characters) == "6 chars", "a character is what you see, so an emoji with its tone is one")
+        #expect(ClipboardHistory.length(of: String(repeating: "x", count: 1234), in: .characters) == "1.2K chars")
+        #expect([999, 1000, 9949, 9950, 48_400, 999_499, 999_500, 1_500_000].map(ClipboardHistory.short) == ["999", "1K", "9.9K", "10K", "48K", "999K", "1M", "1.5M"])
+    }
+
     @Test func largeCopiesAreKept() {
         var history = ClipboardHistory()
         let log = String(repeating: "x", count: 10_000_000)

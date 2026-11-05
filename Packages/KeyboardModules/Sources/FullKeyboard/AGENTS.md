@@ -6,6 +6,8 @@ iikb's own keyboard, on KeyboardUI and KeyboardStore, and the only target that l
 - Its panels besides `EmojiPanel`:
   - `GifPanel` searches KLIPY (`Klipy`, its key in `Resources/Keys/klipy.key`, kept out of git; one request out at a time, `GifSearch`) and puts a tapped GIF on the clipboard (`GifClipboard`), since a keyboard can only type text, or drags a held one into the app's field.
   - `ClipboardPanel` shows what `ClipboardStore` kept of what you copied, read when the keyboard appears and when the panel opens, on a queue of its own, never the main thread. iOS refuses that read silently unless Settings › Apps › iikb › Paste from Other Apps is Allow.
+  - `TranscriptsPanel` shows what you dictated, from the copy the app writes for it (`TranscriptFeed`), in `ClipboardPanel`'s rows; each one's field switches to the other (`DrawerSwitch`).
+- The clipboard's tool lets out the bar's tray first (`SuggestionBar.Edit`): cut, copy and paste through `UIPasteboard` and the engine, then the two panels.
 - `Sources`: the sources you add in the app (docs/sources.md). Each gets the field you type in as JSON, off the main thread, and its hint stands in for the suggestions until tapped. Only with Full Access, never password or code fields.
 - `KeyboardHost`: the app the keyboard is in, from the moment it appears (docs/sources.md, "Which app you're typing in").
 

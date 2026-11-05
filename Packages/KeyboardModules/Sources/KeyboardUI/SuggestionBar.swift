@@ -5,14 +5,41 @@ import KeyboardCore
 /// right end that starts and stops dictation, and the tools at the left end, all placed on the top row's keys by
 /// `BarLayout`. While the app listens, the mic grows into a red capsule over the suggestions holding the time so far and
 /// the waveform of your voice, and lets out a cancel button before it. Once you stop, dictations still waiting for the
-/// model stack as cards in its place.
+/// model stack as cards in its place. The clipboard's button grows the same way into a tray of its tools over the
+/// suggestions: cut, copy and paste, then its history and your transcripts.
 public final class SuggestionBar: UIView {
+    /// What the clipboard's tray does.
+    public enum Edit: CaseIterable, Sendable {
+        case cut, copy, paste, history, transcripts
+    }
+
+    /// Which of the tray's edits can be done now: cut and copy with a selection, paste with text on the clipboard.
+    public struct Edits: Equatable, Sendable {
+        public var cut, copy, paste: Bool
+
+        public init(cut: Bool, copy: Bool, paste: Bool) {
+            self.cut = cut
+            self.copy = copy
+            self.paste = paste
+        }
+
+        func allows(_ edit: Edit) -> Bool {
+            switch edit {
+            case .cut: cut
+            case .copy: copy
+            case .paste: paste
+            case .history, .transcripts: true
+            }
+        }
+    }
+
     public var onSelect: (Suggestion) -> Void = { _ in }
     public var onEmoji: (String) -> Void = { _ in }
     public var onMic: () -> Void = {}
     public var onCancel: () -> Void = {}
     public var onNotice: () -> Void = {}
     public var onTool: (Panel) -> Void = { _ in }
+    public var onEdit: (Edit) -> Void = { _ in }
     public var maximumSlotWidth = CGFloat.infinity { didSet { setNeedsLayout() } }
     /// The top row's keys, left to right, as their edges.
     public var keys: [(minX: Double, maxX: Double)] = [] {
@@ -36,6 +63,15 @@ public final class SuggestionBar: UIView {
     private let strip = ButtonScrollView()
     private var tools: [(panel: Panel, button: BarButton)] = []
     private let more = BarButton("More", draw: Panel.moreGlyph)
+    /// The clipboard's tray while it's out, nil while it's tucked into the clipboard's button.
+    private var edits: Edits?
+    private let tray = UIView()
+    private let trayDivider = UIView()
+    private let editButtons: [(edit: Edit, button: BarButton)] = Edit.allCases.map { edit in
+        let button = BarButton(edit.title) { Panel.symbol(edit.symbol, $0) }
+        button.accessibilityIdentifier = "iikb.edit.\(edit)"
+        return (edit, button)
+    }
     private let mic = MicButton()
     private let cancel = CancelButton()
     private let waveform = Waveform()
@@ -58,6 +94,14 @@ public final class SuggestionBar: UIView {
             addSubview(slot)
         }
         dividers.forEach(addSubview)
+        tray.layer.cornerCurve = .continuous
+        tray.isUserInteractionEnabled = false
+        addSubview(tray)
+        addSubview(trayDivider)
+        for (edit, button) in editButtons {
+            button.addAction(UIAction { [unowned self] _ in onEdit(edit) }, for: .touchUpInside)
+            addSubview(button)
+        }
         more.showsMenuAsPrimaryAction = true
         more.isHidden = true
         more.accessibilityIdentifier = "iikb.more"
@@ -151,6 +195,21 @@ public final class SuggestionBar: UIView {
         tools.forEach { $0.button.theme = theme }
     }
 
+    /// The clipboard's tray: out of the clipboard's button while `edits` says what it can do, tucked back in with nil.
+    public func update(edits: Edits?, theme: KeyboardTheme) {
+        let moves = (edits == nil) != (self.edits == nil)
+        if edits != self.edits { setNeedsLayout() }
+        self.edits = edits
+        tray.backgroundColor = theme.key.ui
+        trayDivider.backgroundColor = theme.candidateDivider.ui
+        for (edit, button) in editButtons {
+            button.theme = theme
+            button.isEnabled = edits?.allows(edit) ?? false
+        }
+        guard moves, window != nil else { return }
+        morph(growing: edits != nil) { self.layoutIfNeeded() }
+    }
+
     /// The More button at the far left, before the tools.
     public func update(more menu: UIMenu?) {
         more.menu = menu
@@ -177,6 +236,39 @@ public final class SuggestionBar: UIView {
         let scale: CGFloat = listening ? 1 : mic == nil ? 0.9 : 0.5
         cancel.transform = CGAffineTransform(scaleX: scale, y: scale)
         cancel.alpha = listening || mic != nil ? 1 : 0
+    }
+
+    /// Out, the tray runs from the clipboard's button over the suggestions, a button's pitch apart, closer where the bar
+    /// is short of room; tucked, it's the button's own circle, its tools shrunk into it. The suggestions fade under it.
+    private func placeTray(pitch: Double, end: CGFloat, reach: UIEdgeInsets) {
+        guard let clip = tools.first(where: { $0.panel == .clipboard })?.button.frame else {
+            tray.isHidden = true
+            editButtons.forEach { $0.button.isHidden = true }
+            return
+        }
+        let out = edits != nil
+        let step = min(CGFloat(pitch), (end - clip.maxX) / CGFloat(editButtons.count))
+        let places = editButtons.indices.map { clip.offsetBy(dx: CGFloat($0 + 1) * step, dy: 0) }
+        let inset = (step - clip.width) / 2
+        let around = UIEdgeInsets(top: reach.top, left: -inset, bottom: reach.bottom, right: -inset)
+        tray.isHidden = false
+        tray.frame = out ? CGRect(x: clip.minX, y: clip.minY, width: places[places.count - 1].maxX - clip.minX, height: clip.height) : clip
+        tray.layer.cornerRadius = clip.height / 2
+        tray.alpha = out ? 1 : 0
+        for ((_, button), place) in zip(editButtons, places) {
+            button.isHidden = false
+            button.transform = .identity
+            button.place(place, glyph: toolbar.glyph, reach: around)
+            button.center = out ? CGPoint(x: place.midX, y: place.midY) : CGPoint(x: clip.midX, y: clip.midY)
+            button.transform = out ? .identity : CGAffineTransform(scaleX: 0.4, y: 0.4)
+            button.alpha = out ? (button.isEnabled ? 1 : 0.3) : 0
+            button.isUserInteractionEnabled = out
+        }
+        let paste = places[2], history = places[3]
+        trayDivider.frame = CGRect(x: ((paste.maxX + history.minX) / 2).rounded(scale: traitCollection.displayScale) - 0.5, y: clip.midY - 8, width: 1, height: 16)
+        trayDivider.alpha = out ? 1 : 0
+        let under: CGFloat = out ? 0 : 1
+        (slots + dividers + [strip, notice, stack] as [UIView]).forEach { $0.alpha = under }
     }
 
     @objc private func tapNotice() {
@@ -223,6 +315,7 @@ public final class SuggestionBar: UIView {
         )
         for (tool, frame) in zip(tools, layout.tools) { tool.button.place(CGRect(frame), glyph: toolbar.glyph, reach: reach) }
         if let frame = layout.more { more.place(CGRect(frame), glyph: toolbar.glyph, reach: reach) }
+        placeTray(pitch: layout.pitch, end: CGFloat(layout.mic.map { $0.x - BarLayout.gap } ?? layout.maxX), reach: reach)
         for (slot, frame) in zip(slots, layout.slots) {
             let minX = CGFloat(frame.x).rounded(scale: scale), maxX = CGFloat(frame.x + frame.width).rounded(scale: scale)
             slot.frame = CGRect(x: minX, y: frame.y, width: maxX - minX, height: frame.height)
@@ -371,5 +464,27 @@ private final class SuggestionSlot: UIControl {
         let baseline = (bounds.midY + font.capHeight / 2).rounded(scale: traitCollection.displayScale)
         let width = min(label.intrinsicContentSize.width, bounds.width - 8)
         label.frame = CGRect(x: (bounds.width - width) / 2, y: baseline - font.ascender, width: width, height: font.lineHeight)
+    }
+}
+
+extension SuggestionBar.Edit {
+    var title: String {
+        switch self {
+        case .cut: "Cut"
+        case .copy: "Copy"
+        case .paste: "Paste"
+        case .history: "Clipboard History"
+        case .transcripts: "Transcripts"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .cut: "scissors"
+        case .copy: "doc.on.doc"
+        case .paste: "doc.on.clipboard"
+        case .history: "clock.arrow.circlepath"
+        case .transcripts: "waveform"
+        }
     }
 }

@@ -31,9 +31,9 @@ public struct Toolbar: Hashable, Sendable {
     /// The side of each of the bar's buttons, the mic's filled circle and the tools' pressed one: about three quarters of
     /// the bar, an even number of points so it centers on whole ones (28 in a 38 bar, 24 in a 32).
     public var button: Double { 2 * (bar * 0.37).rounded() }
-    /// The side of the square every tool's glyph is drawn to fit, its longer side on it, so they read as one size (18 in
-    /// a 38 bar, 16 in a 32).
-    public var glyph: Double { 2 * (bar * 0.24).rounded() }
+    /// The side of the square every tool's glyph is drawn to fit, its longer side on it, so they read as one size (20 in
+    /// a 38 bar, 18 in a 32).
+    public var glyph: Double { 2 * (bar * 0.27).rounded() }
     public var panelHeight: Double { top + results + Self.fieldGap + field }
     /// Where height is short, a panel's results are one row.
     public var isCompact: Bool { results < Self.phone.results }

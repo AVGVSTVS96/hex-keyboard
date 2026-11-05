@@ -1,7 +1,7 @@
 import UniformTypeIdentifiers
 import XCTest
 
-/// The GIF and clipboard panels through the real keyboard, with Full Access on (scripts/paneltest turns it on). With
+/// The GIF, clipboard and Transcripts panels and the clipboard's tray through the real keyboard, with Full Access on (scripts/paneltest turns it on). With
 /// IIKB_SHOTS set, screenshots each step.
 final class ToolPanelTests: XCTestCase {
     private var shots: String?
@@ -77,6 +77,7 @@ final class ToolPanelTests: XCTestCase {
         let tool = app.buttons["iikb.tool.clipboard"]
         XCTAssertTrue(tool.waitForExistence(timeout: 3))
         tool.tap()
+        app.buttons["iikb.edit.history"].tap()
         let message = app.buttons["iikb.clipboard.message"]
         if message.waitForExistence(timeout: 2), message.label.contains("Paste from Other Apps") {
             try shot("clipboard-refused")
@@ -86,9 +87,11 @@ final class ToolPanelTests: XCTestCase {
             try allowPasteFromOtherApps()
             app = launch()
             tool.tap()
+            app.buttons["iikb.edit.history"].tap()
         }
         let row = app.descendants(matching: .any).matching(identifier: "iikb.clip.Meet at Sightglass on 7th, 4pm?").firstMatch
         XCTAssertTrue(row.waitForExistence(timeout: 5), "what you copied in another app is kept")
+        XCTAssertTrue(row.staticTexts["iikb.clip.detail"].label.hasPrefix("31 chars · "), "a row says how long its text is, then how long ago")
         try shot("clipboard")
 
         for letter in "sight" { key(String(letter), in: app).tap() }
@@ -111,6 +114,64 @@ final class ToolPanelTests: XCTestCase {
         pin.label == "Pin" ? pin.tap() : row.tap()
         XCTAssertTrue(wait { !pin.exists })
         try shot("clipboard-pinned")
+    }
+
+    func testTheClipboardButtonLetsOutCutCopyAndPasteAndTucksThemBackOnceUsed() throws {
+        UIPasteboard.general.string = "Sightglass"
+        let app = launch()
+        let field = app.textViews.firstMatch
+        let tool = app.buttons["iikb.tool.clipboard"]
+        XCTAssertTrue(tool.waitForExistence(timeout: 3))
+        for letter in "hi" { key(String(letter), in: app).tap() }
+        key("space", in: app).tap()
+        let paste = app.buttons["iikb.edit.paste"], cut = app.buttons["iikb.edit.cut"]
+        XCTAssertFalse(paste.isHittable, "the tray is tucked into the clipboard's button")
+        tool.tap()
+        XCTAssertTrue(wait { paste.isHittable }, "the clipboard's button lets out its tray")
+        XCTAssertFalse(cut.isEnabled, "nothing selected, nothing to cut")
+        try shot("tray")
+        paste.tap()
+        XCTAssertTrue(wait { (field.value as? String)?.hasSuffix("hi Sightglass") == true }, "Paste types what's on the clipboard")
+        XCTAssertTrue(wait { !paste.isHittable }, "and the tray tucks back in")
+
+        tool.tap()
+        XCTAssertTrue(wait { paste.isHittable })
+        key("a", in: app).tap()
+        XCTAssertTrue(wait { !paste.isHittable }, "a key tucks the tray back in")
+
+        field.doubleTap()
+        tool.tap()
+        XCTAssertTrue(wait { cut.isHittable && cut.isEnabled }, "with a selection, Cut and Copy can")
+        try shot("tray-selected")
+        cut.tap()
+        XCTAssertTrue(wait { (field.value as? String)?.contains("Sightglass") == false }, "Cut takes the selection out")
+        tool.tap()
+        XCTAssertTrue(wait { paste.isHittable && paste.isEnabled })
+        paste.tap()
+        XCTAssertTrue(wait { (field.value as? String)?.contains("Sightglass") == true }, "and Paste puts back what Cut copied")
+    }
+
+    func testTranscriptsOpenFromTheClipboardsTrayAndTypeWhatYouPick() throws {
+        let app = launch()
+        let tool = app.buttons["iikb.tool.clipboard"]
+        XCTAssertTrue(tool.waitForExistence(timeout: 3))
+        tool.tap()
+        app.buttons["iikb.edit.transcripts"].tap()
+        XCTAssertTrue(app.collectionViews["iikb.transcripts"].waitForExistence(timeout: 3), "the tray opens Transcripts")
+        let row = app.descendants(matching: .any).matching(identifier: "iikb.transcript.0").firstMatch
+        guard row.waitForExistence(timeout: 5) else {
+            XCTAssertTrue(app.buttons["iikb.transcripts.message"].exists, "with nothing dictated, the drawer says so")
+            return try shot("transcripts-empty")
+        }
+        XCTAssertTrue(row.staticTexts["iikb.clip.detail"].label.contains(" words · ") || row.staticTexts["iikb.clip.detail"].label.contains(" word · "), "a row says its words, then how long ago")
+        try shot("transcripts")
+        let text = row.staticTexts["iikb.clip.text"].label
+        row.tap()
+        let field = app.textViews.firstMatch
+        XCTAssertTrue(wait { (field.value as? String)?.contains(text.prefix(20)) == true }, "a tap types it into the app")
+        app.buttons["iikb.transcripts.clipboard"].tap()
+        XCTAssertTrue(app.collectionViews["iikb.clipboard"].waitForExistence(timeout: 3), "the field's button switches to the clipboard")
+        try shot("transcripts-to-clipboard")
     }
 
     private func launch() -> XCUIApplication {

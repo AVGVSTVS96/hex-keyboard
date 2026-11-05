@@ -15,8 +15,11 @@ open class FullKeyboardViewController: UIInputViewController {
     private var observers: [Int32] = []
     /// Who this keyboard is to the app, new each time it appears: dictations you stop here are typed here.
     private var keyboard = UInt64.random(in: 1 ... .max)
-    /// What the app told you about a dictation, until you tap it or a key.
-    private var voiceNotice: String?
+    /// What the app told you about a dictation, or why copy or paste couldn't, until you tap it or a key.
+    private var notice: String?
+    /// The clipboard's tray is out of its button (docs/design.md, "The tools"), until one of its tools is used or a key
+    /// is touched.
+    private var trayOut = false
     private let suggestionBar = SuggestionBar()
     /// The record button in the bottom row, where Settings › Layout › Record Key puts it in the globe's place.
     private let keyMic = MicButton()
@@ -51,10 +54,23 @@ open class FullKeyboardViewController: UIInputViewController {
         }
         panel.onTurnOn = { [unowned self] in open(AppLink.settings) }
         panel.changed = { [unowned self] in render() }
+        panel.length = { [unowned self] in engine.settings.clipboardLength }
+        panel.onTranscripts = { [unowned self] in open(.transcripts) }
+        return panel
+    }()
+    private lazy var transcriptsPanel: TranscriptsPanel = {
+        let panel = TranscriptsPanel()
+        panel.fullAccess = { [unowned self] in hasFullAccess }
+        panel.onPaste = { [unowned self] in
+            feedback(.input)
+            handle(.paste($0))
+        }
+        panel.onTurnOn = { [unowned self] in open(AppLink.settings) }
+        panel.onClipboard = { [unowned self] in open(.clipboard) }
         return panel
     }()
     /// The panels this keyboard has, in the tools' order. GIFs need a KLIPY key built in.
-    private lazy var panels: [Panel: PanelContent] = [.emoji: emojiPanel, .gif: gifPanel, .clipboard: clipboardPanel].compactMapValues { $0 }
+    private lazy var panels: [Panel: PanelContent] = [.emoji: emojiPanel, .gif: gifPanel, .clipboard: clipboardPanel, .transcripts: transcriptsPanel].compactMapValues { $0 }
     private lazy var document = ProxyDocument { [unowned self] in textDocumentProxy }
     private var engine = TypingEngine()
     private var typingLog = TypingLog()
@@ -98,11 +114,12 @@ open class FullKeyboardViewController: UIInputViewController {
             keysMinimumConstraint,
         ])
         suggestionBar.onMic = { [unowned self] in toggleVoice() }
-        suggestionBar.onTool = { [unowned self] in open($0) }
+        suggestionBar.onTool = { [unowned self] in tool($0) }
+        suggestionBar.onEdit = { [unowned self] in edit($0) }
         panelView.onClose = { [unowned self] in handle(.panel(nil)) }
         panelView.onClear = { [unowned self] in handle(.panel(engine.panel)) }
         suggestionBar.onNotice = { [unowned self] in
-            if voiceNotice != nil { voiceNotice = nil } else { sources.dismissHint() }
+            if notice != nil { notice = nil } else { sources.dismissHint() }
             render()
         }
         sources.onHint = { [unowned self] in render() }
@@ -223,6 +240,7 @@ open class FullKeyboardViewController: UIInputViewController {
         Dictation.keep(engine.takeDraft(), in: field)
         field = nil
         engine.handle(.panel(nil), in: document)
+        trayOut = false
         haptics.stop()
         TouchTrace.shared.flush()
         saveMemory()
@@ -388,7 +406,7 @@ open class FullKeyboardViewController: UIInputViewController {
             toolbar = metrics.toolbar
             view.setNeedsLayout()
         }
-        let tools = Panel.allCases.filter { panels[$0] != nil && ($0 != .emoji || engine.settings.emojiKey && device != .phone) }
+        let tools = Panel.tools.filter { panels[$0] != nil && ($0 != .emoji || engine.settings.emojiKey && device != .phone) }
         let panel = engine.panel.flatMap { panels[$0] }
         panelView.open(panel)
         panelView.isHidden = panel == nil
@@ -397,7 +415,8 @@ open class FullKeyboardViewController: UIInputViewController {
         suggestionBar.toolbar = toolbar
         suggestionBar.maximumSlotWidth = device == .phone ? .infinity : 154.5
         suggestionBar.update(tools: tools, theme: theme)
-        suggestionBar.update(mic: mic, recorded: recorded, saved: dictation.writing, waitingFor: dictation.waiting, notice: voiceNotice ?? hint, theme: theme)
+        suggestionBar.update(edits: trayOut && panel == nil ? edits : nil, theme: theme)
+        suggestionBar.update(mic: mic, recorded: recorded, saved: dictation.writing, waitingFor: dictation.waiting, notice: notice ?? hint, theme: theme)
         keyMic.show(mic, theme: theme)
         if panel != nil { panelView.show(query: engine.query, theme: theme, metrics: metrics) }
     }
@@ -417,6 +436,55 @@ open class FullKeyboardViewController: UIInputViewController {
     private func open(_ panel: Panel) {
         feedback(.other)
         handle(.panel(panel))
+    }
+
+    /// A tool in the bar opens its panel, but the clipboard's lets out its tray first.
+    private func tool(_ panel: Panel) {
+        guard panel == .clipboard else { return open(panel) }
+        feedback(.other)
+        trayOut.toggle()
+        render()
+    }
+
+    /// What the tray can do now. Without Full Access a keyboard can't reach the clipboard, so every edit is offered and
+    /// a tap says why it can't.
+    private var edits: SuggestionBar.Edits {
+        guard hasFullAccess else { return .init(cut: true, copy: true, paste: true) }
+        let selected = !selection.isEmpty
+        return .init(cut: selected, copy: selected, paste: UIPasteboard.general.hasStrings)
+    }
+
+    private var selection: String {
+        let selected = textDocumentProxy.selectedText ?? ""
+        return selected.isEmpty ? engine.text.selected : selected
+    }
+
+    /// One of the tray's tools, after which it tucks back in. What you copy or cut joins the clipboard's history.
+    private func edit(_ edit: SuggestionBar.Edit) {
+        trayOut = false
+        switch edit {
+        case .history: return open(.clipboard)
+        case .transcripts: return open(.transcripts)
+        case .cut, .copy, .paste: feedback(.other)
+        }
+        guard hasFullAccess else {
+            notice = "Copy and paste need Allow Full Access in Settings › Apps › iikb › Keyboards"
+            return render()
+        }
+        if edit == .paste {
+            guard let text = UIPasteboard.general.string else {
+                notice = "To paste, set Settings › Apps › iikb › Paste from Other Apps to Allow"
+                return render()
+            }
+            return handle(.paste(text))
+        }
+        let text = selection
+        if !text.isEmpty {
+            UIPasteboard.general.string = text
+            clipboard.catchUp()
+            if edit == .cut { engine.perform(.delete, in: document) }
+        }
+        render()
     }
 
     private var theme: KeyboardTheme {
@@ -455,8 +523,9 @@ open class FullKeyboardViewController: UIInputViewController {
         case .down(let key, _):
             feedback(Self.haptic(for: key))
             if key.action == .delete { startDeleteRepeat() }
-            if voiceNotice != nil {
-                voiceNotice = nil
+            if notice != nil || trayOut {
+                notice = nil
+                trayOut = false
                 render()
             }
         case .up(let key) where key.action == .delete:
@@ -475,6 +544,8 @@ open class FullKeyboardViewController: UIInputViewController {
             SettingsStore.set(split, for: \.split, sharing: hasFullAccess)
         case .settings:
             open(AppLink.keyboard)
+        case .panel:
+            trayOut = false
         case .nextKeyboard:
             advanceToNextInputMode()
         case .cursorLines:
@@ -491,13 +562,14 @@ open class FullKeyboardViewController: UIInputViewController {
     /// the microphone and iOS starts a recording only in an app in front.
     private func toggleVoice() {
         guard hasFullAccess else {
-            voiceNotice = "Voice needs Allow Full Access in Settings › Apps › iikb › Keyboards"
+            notice = "Voice needs Allow Full Access in Settings › Apps › iikb › Keyboards"
             return render()
         }
         updateHost()
+        trayOut = false
         Dictation.host = hostApp
         if dictation.listening { return Dictation.send(.finish, from: keyboard) }
-        voiceNotice = nil
+        notice = nil
         micIsOn = Dictation.micIsOn
         if micIsOn { return Dictation.send(.start) }
         render()
@@ -528,9 +600,9 @@ open class FullKeyboardViewController: UIInputViewController {
             case .heard(let text, let plain, let keyboard, let id) where keyboard == nil || keyboard == self.keyboard:
                 engine.handle(.dictated(text, plain: plain, id: textDocumentProxy.isPrivate ? nil : id?.uuidString), in: document)
             case .heard:
-                voiceNotice = "Not typed here: it’s in iikb › Transcripts"
+                notice = "Not typed here: it’s in iikb › Transcripts"
             case .notice(let notice):
-                voiceNotice = notice
+                self.notice = notice
             }
         }
         render()

@@ -244,11 +244,12 @@ private struct LayoutSettings: View {
                 ChoiceRow(title: globe.title, picked: model.settings.globeKey == globe) { model.update { $0.globeKey = globe } }
             }
         }
-        Box(header: "Emoji and GIFs") {
+        Box(header: "Emoji, GIFs and Clipboard") {
             MenuRow(title: "Skin Tone", selection: model.binding(\.skinTone), choices: [nil] + SkinTone.allCases.map(Optional.some)) { tone in
                 "✋\(tone.map { String($0.modifier) } ?? "") \(tone?.title ?? "Default")"
             }
             ToggleRow(title: "Compact Emoji & GIFs", detail: "One row that scrolls sideways, as in landscape, so the keyboard stays short in portrait too.", isOn: model.binding(\.compactPanels))
+            MenuRow(title: "Clipboard Length", selection: model.binding(\.clipboardLength), choices: ClipboardLength.allCases) { $0.title }
         }
         Box(header: "Split and One-Handed", footer: "Split puts half the keys under each thumb on the open iPhone Duo in landscape. One-Handed moves them toward one thumb on an iPhone in portrait, on the Duo only folded. The keyboard’s menu has both too.") {
             ToggleRow(title: "Split Keyboard", isOn: model.binding(\.split))

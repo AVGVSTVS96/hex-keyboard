@@ -58,6 +58,7 @@ extension Panel {
         case .emoji: "Emoji"
         case .gif: "GIFs"
         case .clipboard: "Clipboard"
+        case .transcripts: "Transcripts"
         }
     }
 
@@ -67,11 +68,12 @@ extension Panel {
         case .emoji: Self.symbol("face.smiling", side)
         case .gif: Self.gifGlyph(side)
         case .clipboard: Self.symbol("list.clipboard", side)
+        case .transcripts: Self.symbol("waveform", side)
         }
     }
 
     /// A symbol scaled so its glyph, without the margins a symbol image carries, is `side` long on its longer side.
-    private static func symbol(_ name: String, _ side: CGFloat) -> UIImage? {
+    static func symbol(_ name: String, _ side: CGFloat) -> UIImage? {
         guard let image = UIImage(systemName: name, withConfiguration: UIImage.SymbolConfiguration(pointSize: side, weight: .regular)) else { return nil }
         let ink = CGRect(origin: .zero, size: image.size).inset(by: image.alignmentRectInsets)
         let scale = side / max(ink.width, ink.height)

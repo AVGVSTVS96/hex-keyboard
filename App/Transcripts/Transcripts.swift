@@ -57,7 +57,7 @@ struct Transcript: Codable, Identifiable, Hashable {
 /// each as a `Recording` beside it, written as it's heard, up to 512 MB (about 4½ hours of talking), past which the oldest
 /// lose their sound. A recording with no transcript, left by an app that ended mid-dictation, is written down the next
 /// time the app starts, and the keyboard says so. Nothing leaves the iPhone but for the backup server a build may have
-/// (`Backup`): the keyboard never reads it, and the app's only download is the voice model.
+/// (`Backup`): the keyboard reads only the texts, from the copy `share` writes, and the app's only download is the voice model.
 @Observable final class Transcripts {
     static let shared = Transcripts()
 
@@ -85,6 +85,7 @@ struct Transcript: Codable, Identifiable, Hashable {
             MainActor.assumeIsolated { Transcripts.shared.takeEdits() }
         }
         guard loaded else { return }
+        share()
         let ids = Set(all.map(\.id)).union(unread.compactMap { try? JSONDecoder().decode(Named.self, from: $0).id })
         unwritten = ((try? FileManager.default.contentsOfDirectory(at: recordings, includingPropertiesForKeys: nil)) ?? []).filter { file in
             UUID(uuidString: file.deletingPathExtension().lastPathComponent).map { !ids.contains($0) } ?? false
@@ -252,7 +253,16 @@ struct Transcript: Codable, Identifiable, Hashable {
         try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         try? Data(lines.joined()).write(to: url, options: .atomic) // file: transcripts.jsonl rewritten whole, only once read or set aside
         Backup.syncApp()
+        share()
     }
+
+    /// The keyboard's copy, for its Transcripts panel, written in order off the main thread.
+    private func share() {
+        let entries = all.filter { !$0.text.isEmpty }.map { TranscriptFeed.Entry(id: $0.id.uuidString, date: $0.date.timeIntervalSince1970, text: $0.text) }
+        Self.sharing.async { TranscriptFeed.share(entries) }
+    }
+
+    private static let sharing = DispatchQueue(label: "com.shahidy.iikb.transcripts", qos: .utility)
 
     /// Moves a file that can't be read though nothing locks it to `transcripts-unread-<seconds>.jsonl`, as `StoredFile`
     /// does, so the backup still sends it. Whether the file can now be written.

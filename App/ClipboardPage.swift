@@ -197,9 +197,17 @@ private struct ClipDetail: View {
     let changed: () -> Void
     @State private var fullText: String?
 
+    /// When it was copied, and how long all of it is, once a text kept in a file is read.
+    private var detail: String {
+        let time = Date(timeIntervalSince1970: item.found).formatted(.dateTime.weekday(.wide).month(.abbreviated).day().hour().minute())
+        let unit = SettingsModel.shared.settings.clipboardLength
+        let length = fullText.map { ClipboardHistory.length(of: $0, in: unit) } ?? ClipboardHistory.length(of: item.content, in: unit)
+        return length.map { "\(time) · \($0)" } ?? time
+    }
+
     var body: some View {
         Column(top: 12) {
-            Text(Date(timeIntervalSince1970: item.found).formatted(.dateTime.weekday(.wide).month(.abbreviated).day().hour().minute()))
+            Text(detail)
                 .font(.subheadline.weight(.medium))
                 .foregroundStyle(Color.appSecondary)
                 .padding(.horizontal, 4)
@@ -303,7 +311,9 @@ private struct ClipRow: View {
                     if copied {
                         Label("Copied", systemImage: "checkmark")
                     } else {
-                        Text(Date(timeIntervalSince1970: item.found), format: item.pinned ? .dateTime.month(.abbreviated).day().hour().minute() : .dateTime.hour().minute())
+                        let time = Date(timeIntervalSince1970: item.found).formatted(item.pinned ? .dateTime.month(.abbreviated).day().hour().minute() : .dateTime.hour().minute())
+                        Text(ClipboardHistory.length(of: item.content, in: SettingsModel.shared.settings.clipboardLength).map { "\(time) · \($0)" } ?? time)
+                            .monospacedDigit()
                     }
                 }
                 .font(.footnote)

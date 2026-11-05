@@ -18,6 +18,8 @@ public struct KeyboardSettings: Hashable, Sendable {
     public var micKey = false
     /// The emoji and GIF panels as one row that scrolls sideways on every screen, as they are in landscape.
     public var compactPanels = false
+    /// What a clipboard item's length is counted in, beside its age in the keyboard's clipboard and the app's.
+    public var clipboardLength = ClipboardLength.characters
     public var oneHanded = OneHanded.off
     /// The open Duo's keys in two halves in landscape, as Apple's More button's Split picks.
     public var split = false
@@ -71,6 +73,17 @@ public enum KeyboardMenu: String, CaseIterable, Hashable, Sendable {
         case .both: "Both"
         case .hold: "Hold 123"
         case .button: "Menu Button"
+        }
+    }
+}
+
+public enum ClipboardLength: String, CaseIterable, Hashable, Sendable {
+    case characters, words
+
+    public var title: String {
+        switch self {
+        case .characters: "Characters"
+        case .words: "Words"
         }
     }
 }
