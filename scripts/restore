@@ -7,6 +7,7 @@
 # The app is quit first when its files go back, since it holds its transcripts in memory and would save over them.
 # What's on the iPhone is backed up first (scripts/backup), after the files to put back are picked, so whatever it
 # hadn't sent yet is kept under versions/ rather than lost, and the restore still puts back what it was asked for.
+# The memory goes back without the reset token it was saved under (MemoryStore), so it's kept even after a reset.
 # Usage: scripts/restore <iPhone UDID> [--at 2026-11-04T0300|now] [name…]
 set -euo pipefail
 umask 077
@@ -18,7 +19,7 @@ backup=${HEX_BACKUP:-$HOME/.local/share/hex-keyboard/backup}
 stage=$(mktemp -d "$backup/restore.XXXX")
 trap 'rm -rf "$stage"; ssh mac rm -rf "/tmp/${stage##*/}"' EXIT
 python3 - "$backup" "$at" "$stage" "$phone" "$@" <<'PY'
-import datetime, os, sys
+import datetime, json, os, sys
 backup, at, stage, phone, names = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5:]
 versions = os.path.join(backup, 'versions')
 form = '%Y-%m-%dT%H%M%S'
@@ -58,7 +59,12 @@ if not at:
                              f"or what's kept now anyway: scripts/restore {phone} --at now {' '.join(names)}".rstrip()]))
 for name, path in picked.items():
     os.makedirs(os.path.dirname(os.path.join(stage, name)), exist_ok=True)
-    os.link(path, os.path.join(stage, name))
+    if name == 'keyboard/support/typing-memory.json':
+        with open(path) as file: saved = json.load(file)
+        saved.pop('resets', None)
+        with open(os.path.join(stage, name), 'w') as file: json.dump(saved, file, separators=(',', ':'))
+    else:
+        os.link(path, os.path.join(stage, name))
 PY
 "$(dirname "$0")/backup" "$phone"
 rsync -a "$stage/" "mac:/tmp/${stage##*/}/"

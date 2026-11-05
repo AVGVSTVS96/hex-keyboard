@@ -71,6 +71,11 @@ The network is made from what you type, so it stays on the server and the iPhone
 up first (`scripts/backup`), once it has picked what to put back, so what the iPhone hadn't sent yet is kept under
 `versions/` rather than written over. It quits the app first when the app's files go back. A keyboard that's up reads what was put back the next time it appears.
 
+Reset Learned Words and Taps gives the memory a new reset token, and a keyboard lets go of a memory saved under another,
+so `scripts/restore` puts `keyboard/support/typing-memory.json` back without its token, and the keyboard keeps it under
+the one it has: restoring that file alone, from before the reset (`--at`), undoes a reset. Your network comes back with
+the next one the server makes.
+
 A reinstall that starts a new container sends its near-empty files over the good ones as soon as the app starts, so
 the good ones are in `versions/` and the mirror holds the empty ones. Without `--at`, `scripts/restore` refuses a file
 the mirror holds at under half the size of a copy replaced in the last 30 days (one over 4 KB), and prints the `--at`

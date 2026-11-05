@@ -11,7 +11,9 @@ import notify
 /// holds: iOS makes a new controller each time the keyboard comes up, often in a process whose last one read the file.
 public final class MemoryStore {
     nonisolated private struct Saved: Codable {
-        var resets: Int
+        /// None in a memory `scripts/restore` put back, which is kept under whichever token there is now, so a restore
+        /// undoes a reset.
+        var resets: Int?
         var memory: TypingMemory
     }
 
@@ -59,7 +61,7 @@ public final class MemoryStore {
             var memory = TypingMemory()
             if version.modified != nil {
                 guard let saved = try? JSONDecoder().decode(Saved.self, from: Data(contentsOf: Self.url)) else { return }
-                if saved.resets == resets ?? saved.resets { memory = saved.memory }
+                if saved.resets == nil || saved.resets == resets ?? saved.resets { memory = saved.memory }
             }
             Task { @MainActor in
                 self.base = version

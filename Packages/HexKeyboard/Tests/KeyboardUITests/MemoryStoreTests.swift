@@ -49,6 +49,15 @@ struct MemoryStoreTests {
         #expect(await refresh(keyboard) == TypingMemory(), "with no file at all, a keyboard starts fresh")
     }
 
+    @Test func aRestoredMemoryOutlastsAReset() async throws {
+        SettingsStore.set(7, forKey: "memoryResets")
+        defer { SettingsStore.set(0, forKey: "memoryResets") }
+        try write(words: ["their"])
+        #expect(await refresh(MemoryStore()) == TypingMemory(), "a memory saved before the reset is let go")
+        try write(words: ["their"], resets: nil)
+        #expect(await refresh(MemoryStore())?.counts.keys.sorted() == ["their"], "one scripts/restore put back is kept")
+    }
+
     private func refresh(_ keyboard: MemoryStore) async -> TypingMemory? {
         var memory: TypingMemory?
         keyboard.refresh { memory = $0 }
@@ -56,12 +65,14 @@ struct MemoryStoreTests {
         return memory
     }
 
-    private func write(words: [String]) throws {
+    private func write(words: [String], resets: Int? = 0) throws {
         var memory = TypingMemory()
         for word in words { memory.record(word, after: nil) }
         let saved = try JSONSerialization.jsonObject(with: JSONEncoder().encode(memory))
         try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-        try JSONSerialization.data(withJSONObject: ["resets": 0, "memory": saved]).write(to: url)
+        var file: [String: Any] = ["memory": saved]
+        file["resets"] = resets
+        try JSONSerialization.data(withJSONObject: file).write(to: url)
     }
 
     private func saved() throws -> [String] {
