@@ -1,11 +1,13 @@
 import Foundation
+import KeyboardCore
 import notify
 
 /// Voice typing runs in the app, because a keyboard can't use the microphone: the keyboard opens the app with a
 /// `Request`, the app listens until the keyboard (or the app) says it's done, and leaves what it wrote down in the App
 /// Group for the keyboard to type. Each side tells the other through a Darwin notification. The app alone writes the
-/// `Status`, the keyboard alone its `host`, and the app leaves each `Note` in a file of its own that the keyboard takes
-/// by removing it, so the two never write the same file.
+/// `Status`, the keyboard alone its `host`; the app leaves each `Note` in a file of its own that the keyboard takes by
+/// removing it, and the keyboard leaves what each dictation became the same way for the app (`edits`), so the two never
+/// write the same file.
 public enum Dictation {
     /// What the app is doing. Recording and writing are separate: the app records a new dictation while the ones before
     /// are still being written down, and has them typed in the order you said them.
@@ -29,7 +31,8 @@ public enum Dictation {
         /// `finish`), so it never lands in a field you didn't say it for; one stopped in the app (its Done)
         /// is typed by the next keyboard to see it.
         /// `plain` is what the model wrote with your vocabulary, no style or lists, which a field of addresses or digits reads.
-        case heard(String, plain: String, keyboard: UInt64?)
+        /// `id` is its transcript's, which the keyboard leaves beside what the dictation became (`edits`).
+        case heard(String, plain: String, keyboard: UInt64?, id: UUID?)
         /// Something to tell you about a dictation: why it couldn't be made or written down, or where it went.
         case notice(String)
     }
@@ -48,6 +51,8 @@ public enum Dictation {
         case appeared = "com.shahidy.hexkeyboard.dictation.appeared"
         /// How loud you are and how much has been recorded, carried in the notification's state (`level`).
         case level = "com.shahidy.hexkeyboard.dictation.level"
+        /// The keyboard left what dictations became (`edits`).
+        case edited = "com.shahidy.hexkeyboard.dictation.edited"
     }
 
     /// How long the app may keep the microphone on after you dictate, in seconds, so the next dictation starts right
@@ -96,6 +101,8 @@ public enum Dictation {
     private static var micURL: URL? { library?.appending(path: "mic.lock") }
 
     private static var notesURL: URL? { library?.appending(path: "notes") }
+
+    private static var editsURL: URL? { library?.appending(path: "edits") }
 
     private static var hostURL: URL? { library?.appending(path: "dictation-host.txt") }
 
@@ -146,24 +153,47 @@ public enum Dictation {
 
     /// Leaves a note for the keyboard, after the ones before it.
     public static func leave(_ note: Note) {
-        guard let notesURL, let data = try? JSONEncoder().encode(note) else { return }
-        try? FileManager.default.createDirectory(at: notesURL, withIntermediateDirectories: true)
-        let name = String(format: "%020llu-%@.json", clock_gettime_nsec_np(CLOCK_REALTIME), UUID().uuidString)
-        try? data.write(to: notesURL.appending(path: name), options: .atomic)
+        leave([note], in: notesURL)
         send(.changed)
     }
 
     /// The notes the app has left, oldest first, each where `take` finds it.
     public static var notes: [(file: URL, note: Note)] {
-        guard let notesURL, let files = try? FileManager.default.contentsOfDirectory(at: notesURL, includingPropertiesForKeys: nil) else { return [] }
-        return files.filter { $0.pathExtension == "json" }.sorted { $0.lastPathComponent < $1.lastPathComponent }.compactMap { file in
-            (try? Data(contentsOf: file)).flatMap { try? JSONDecoder().decode(Note.self, from: $0) }.map { (file, $0) }
+        files(in: notesURL).map { ($0.file, $0.value) }
+    }
+
+    /// Leaves what each dictation typed became once its field was sent or left, for the app to keep with its transcript.
+    public static func leave(_ edits: [DictationDraft.Outcome]) {
+        guard !edits.isEmpty else { return }
+        leave(edits, in: editsURL)
+        send(.edited)
+    }
+
+    /// What the keyboard says dictations became, oldest first, each where `take` finds it.
+    public static var edits: [(file: URL, edit: DictationDraft.Outcome)] {
+        files(in: editsURL).map { ($0.file, $0.value) }
+    }
+
+    /// Takes a note or an edit, true for the one taker: removing its file succeeds once.
+    public static func take(_ file: URL) -> Bool {
+        (try? FileManager.default.removeItem(at: file)) != nil
+    }
+
+    private static func leave(_ values: [some Encodable], in folder: URL?) {
+        guard let folder else { return }
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        for value in values {
+            guard let data = try? JSONEncoder().encode(value) else { continue }
+            let name = String(format: "%020llu-%@.json", clock_gettime_nsec_np(CLOCK_REALTIME), UUID().uuidString)
+            try? data.write(to: folder.appending(path: name), options: .atomic)
         }
     }
 
-    /// Takes a note, true for the one taker: removing its file succeeds once.
-    public static func take(_ file: URL) -> Bool {
-        (try? FileManager.default.removeItem(at: file)) != nil
+    private static func files<Value: Decodable>(in folder: URL?) -> [(file: URL, value: Value)] {
+        guard let folder, let files = try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil) else { return [] }
+        return files.filter { $0.pathExtension == "json" }.sorted { $0.lastPathComponent < $1.lastPathComponent }.compactMap { file in
+            (try? Data(contentsOf: file)).flatMap { try? JSONDecoder().decode(Value.self, from: $0) }.map { (file, $0) }
+        }
     }
 
     public static func send(_ signal: Signal) {

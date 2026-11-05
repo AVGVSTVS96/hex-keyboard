@@ -19,13 +19,28 @@ gives them:
 | `personal/` | the server (`scripts/personal`) | `en.network`, the next-word network fine-tuned on your typing (below); made there, so the iPhone only reads it |
 | `mac/` | the Mac (`scripts/keystroke`) | Keystroke's `typing-stats.json`, for Stats (docs/stats.md); given back to the app, never put on the iPhone |
 
+## Transcripts
+
+`app/transcripts.jsonl` holds every dictation, one JSON line each, oldest first:
+
+| Field | What it holds |
+|---|---|
+| `id`, `date`, `seconds` | the dictation (its recording is `app/recordings/<id>.wav`) and when it began, in seconds since 2001 |
+| `heard` | what the model wrote, when Writing Style, Lists or the Dictionary changed it; otherwise it's `text` |
+| `text` | what the model wrote as your style and Dictionary write it |
+| `typed` | whether it was typed where you said it (false when canceled or recovered) |
+| `model`, `mic`, `app`, `recovered` | the model that wrote it, the microphone, the app it was typed into, and whether it was written down after iikb ended mid-dictation |
+| `field` | `typed`: what the keyboard typed (`text` as the field reads it, with its capitals and spacing); `final`: what that became by the time the field was sent or left, every edit inside it included, and any typing that runs on from either end; `sent`: whether the field was emptied after it, as sending a message does, or left |
+
+The keyboard follows each dictation it types until its field is sent, it moves to another field, or it goes away (`DictationDraft`), and leaves what it became in the App Group; the app writes it into the transcript as soon as it's told, or the next time it starts, and that sends it here like any other change. A dictation the keyboard never typed, typed into a password or code field, or typed before iikb kept this has no `field`.
+
 ## When
 
 When something changes, never on a clock:
 
 - the keyboard, each time it goes away, after saving what it learned (Full Access only, since a keyboard can't go online
   without it);
-- the app, as it starts, each time it writes down a dictation or changes the transcripts, and each time you change the
+- the app, as it starts, each time it writes down a dictation, keeps what one became, or changes the transcripts, and each time you change the
   Dictionary;
 - `scripts/phone`, before every install (`scripts/backup`, which copies the same files through the Mac).
 

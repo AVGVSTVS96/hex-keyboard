@@ -156,7 +156,7 @@ import UIKit
             } else if take.typed, written.text.isEmpty {
                 Dictation.leave(.notice("\(written.model) heard nothing: the recording is in iikb › Transcripts"))
             } else if take.typed {
-                Dictation.leave(.heard(written.text, plain: written.plain, keyboard: take.keyboard))
+                Dictation.leave(.heard(written.text, plain: written.plain, keyboard: take.keyboard, id: take.id))
             }
             publish()
             HostApp.log.notice("\(written.model, privacy: .public) wrote \(seconds, format: .fixed(precision: 1))s down \(Date.now.timeIntervalSince(take.stopped), format: .fixed(precision: 2))s after the stop")

@@ -38,6 +38,10 @@ public struct TypingEngine {
     public private(set) var text = TextState()
     /// What your typing did so far, as counts, for the app's stats.
     public internal(set) var tally = TypingTally()
+    /// The dictations typed into this field, followed until it's sent or left.
+    private var draft: DictationDraft?
+    /// What dictations became once their field was sent or left, for the keyboard to keep (`takeDictations`).
+    private var dictations: [DictationDraft.Outcome] = []
 
     /// The space just before the caret, if the keyboard just put it there: one you typed, or one a pick from the bar
     /// added after its word, which punctuation typed next goes before, as on Apple's keyboard.
@@ -218,14 +222,22 @@ public struct TypingEngine {
             insertWhole(emoji, in: document)
         case .paste(let text):
             insertWhole(text, in: document)
-        case .dictated(let heard, let plain):
+        case .dictated(let heard, let plain, let id):
             let lexicon = corrector?.lexicon
             let capitals = settings.dictation.capitals(in: traits.autocapitalization)
             let traits = traits
-            insertWhole(in: document) {
-                DictationReading.typed(plain ?? heard, in: traits, after: $0.before)
-                    ?? Self.fitted(SpokenAddress.inline(heard), between: $0.before, and: $0.after, lexicon: lexicon, capitals: capitals)
+            attach(document)
+            if id != nil, draft?.isLost != false {
+                finishDraft(sent: false)
+                draft = DictationDraft(text)
             }
+            var typed = ""
+            insertWhole(in: document) {
+                typed = DictationReading.typed(plain ?? heard, in: traits, after: $0.before)
+                    ?? Self.fitted(SpokenAddress.inline(heard), between: $0.before, and: $0.after, lexicon: lexicon, capitals: capitals)
+                return typed
+            }
+            if let id { draft?.add(id, typed: typed) }
         }
         return true
     }
@@ -290,6 +302,7 @@ public struct TypingEngine {
     mutating func moveCaret(by offset: Int, in document: some TextDocument) {
         document.moveCursor(by: offset)
         text.moveCursor(by: offset)
+        draft?.moveCursor(by: offset)
     }
 
     /// Moves the caret down `count` lines, up when negative, as the space bar trackpad does.
@@ -352,6 +365,7 @@ public struct TypingEngine {
 
     /// Learns from the last words you kept, the one in progress too. Call when the keyboard goes away.
     public mutating func endSession() {
+        finishDraft(sent: false)
         guard !sessionEnded else { return }
         keepWord(in: text)
         typing = WordTaps()
@@ -375,7 +389,7 @@ public struct TypingEngine {
     @discardableResult
     public mutating func documentChanged(_ document: some TextDocument) -> TextState.Report {
         let known = text
-        let report = text.reconcile(before: document.textBeforeInput, after: document.textAfterInput, selected: document.selectedText)
+        let report = reconcile(document)
         if report == .changed {
             if text.isEmpty, !sessionEnded { keepWord(in: known) }
             sessionEnded = false
@@ -405,17 +419,49 @@ public struct TypingEngine {
         if count > 0 {
             document.deleteBackward(count)
             text.deleteBackward(count)
+            draft?.deleteBackward(count)
         }
         if !string.isEmpty {
             document.insert(string)
             text.insert(string)
+            draft?.insert(string)
         }
     }
 
     /// Reads the host once, the first time the engine meets it.
     mutating func attach(_ document: some TextDocument) {
         guard !text.isKnown else { return }
-        text.reconcile(before: document.textBeforeInput, after: document.textAfterInput, selected: document.selectedText)
+        reconcile(document)
+    }
+
+    /// Takes the host's report into `text`, and into the draft when the keyboard's edits don't explain it or the draft
+    /// lost the caret: an emptied field was sent.
+    @discardableResult
+    private mutating func reconcile(_ document: some TextDocument) -> TextState.Report {
+        let report = text.reconcile(before: document.textBeforeInput, after: document.textAfterInput, selected: document.selectedText)
+        if report == .changed, text.isEmpty {
+            finishDraft(sent: true)
+        } else if report == .changed || report == .current && draft?.isLost == true {
+            draft?.place(before: text.before, selected: text.selected, after: text.after ?? "")
+        }
+        return report
+    }
+
+    /// The keyboard is in another field now: what the dictations typed into the last one became is what they are.
+    public mutating func leaveField() {
+        finishDraft(sent: false)
+    }
+
+    private mutating func finishDraft(sent: Bool) {
+        guard let draft else { return }
+        dictations += draft.outcomes(sent: sent)
+        self.draft = nil
+    }
+
+    /// What dictations became since the last take, once each one's field was sent or left.
+    public mutating func takeDictations() -> [DictationDraft.Outcome] {
+        defer { dictations = [] }
+        return dictations
     }
 
     private mutating func forgetWord() {

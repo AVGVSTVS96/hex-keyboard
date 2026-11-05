@@ -65,6 +65,8 @@ open class HexKeyboardViewController: UIInputViewController {
     private let clipboard = ClipboardStore(backup: ClipboardStore.own)
     private let sources = Sources()
     private var hostApp: String?
+    /// The field the keyboard is typing in (`documentIdentifier`), so dictations end with the field they were typed in.
+    private var field: String?
 
     override open func loadView() {
         inputView = KeyboardInputView(frame: .zero, inputViewStyle: .default)
@@ -214,6 +216,7 @@ open class HexKeyboardViewController: UIInputViewController {
         super.viewWillDisappear(animated)
         isShown = false
         engine.endSession()
+        keepDictations()
         engine.handle(.panel(nil), in: document)
         haptics.stop()
         TouchTrace.shared.flush()
@@ -261,12 +264,18 @@ open class HexKeyboardViewController: UIInputViewController {
 
     private func syncWithDocument() {
         engine.update(InputTraits(textDocumentProxy))
+        if textDocumentProxy.field != field {
+            field = textDocumentProxy.field
+            engine.leaveField()
+            keepDictations()
+        }
         let known = engine.text.before.count
         let report = engine.documentChanged(document)
         if report == .changed { tellSources(.app) }
         if report == .changed, engine.text.isEmpty {
             saveMemory()
             saveTyping()
+            keepDictations()
         }
         TouchTrace.shared.record(report, host: textDocumentProxy.documentContextBeforeInput?.count ?? 0, known: known)
         render()
@@ -275,6 +284,10 @@ open class HexKeyboardViewController: UIInputViewController {
     /// When the keyboard goes away and when a message is sent, so what was learned outlives the keyboard being ended.
     private func saveMemory() {
         if let memory = engine.corrector?.memory { memoryStore.save(memory, sharing: hasFullAccess) }
+    }
+
+    private func keepDictations() {
+        Dictation.leave(engine.takeDictations())
     }
 
     private func saveTyping() {
@@ -505,8 +518,8 @@ open class HexKeyboardViewController: UIInputViewController {
         recorded = Dictation.level.recorded
         for (file, note) in Dictation.notes where Dictation.take(file) {
             switch note {
-            case .heard(let text, let plain, let keyboard) where keyboard == nil || keyboard == self.keyboard:
-                engine.handle(.dictated(text, plain: plain), in: document)
+            case .heard(let text, let plain, let keyboard, let id) where keyboard == nil || keyboard == self.keyboard:
+                engine.handle(.dictated(text, plain: plain, id: textDocumentProxy.isPrivate ? nil : id?.uuidString), in: document)
             case .heard:
                 voiceNotice = "Not typed here: it’s in iikb › Transcripts"
             case .notice(let notice):
