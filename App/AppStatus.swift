@@ -33,13 +33,6 @@ import UIKit
         return unsafeBitCast(preflight, to: Preflight.self)(service as CFString, nil) == 0
     }
 
-    var summary: String {
-        guard isAdded else { return "Not added yet" }
-        return fullAccess ? "On, with Full Access" : "On, without Full Access"
-    }
-
-    var color: Color { isAdded ? (fullAccess ? .green : .yellow) : .orange }
-
     static func openSettings() {
         UIApplication.shared.open(URL(string: UIApplication.openSettingsURLString)!)
     }

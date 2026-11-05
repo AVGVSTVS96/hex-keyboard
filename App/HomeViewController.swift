@@ -114,17 +114,8 @@ struct HomeView: View {
         }
         .appPage()
         .navigationTitle("iikb")
-        .navigationSubtitle(status.summary)
         .toolbarTitleDisplayMode(.inlineLarge)
-        .toolbar {
-            if !status.isAdded {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Turn On", systemImage: "keyboard.badge.ellipsis") { AppStatus.openSettings() }
-                        .buttonStyle(.borderedProminent)
-                }
-            }
-            MicSwitchItem()
-        }
+        .toolbar { MicSwitchItem() }
     }
 
     private var tryIt: some View {

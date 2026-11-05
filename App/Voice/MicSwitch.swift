@@ -22,7 +22,7 @@ struct MicSwitch: View {
         HStack(spacing: 10) {
             Image(systemName: on ? "mic.fill" : "mic.slash.fill")
                 .font(.body)
-                .foregroundStyle(on ? Color.primary : Color.appSecondary)
+                .foregroundStyle(on ? Color.green : Color.appSecondary)
                 .frame(width: 20)
                 .contentTransition(.symbolEffect(.replace))
                 .accessibilityHidden(true)
