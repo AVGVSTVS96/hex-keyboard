@@ -19,7 +19,7 @@ public struct TypingMemory: Codable, Hashable, Sendable {
         counts[word, default: 0] += 1
         total += 1
         for context in Self.contexts(previous, earlier) { following[context, default: [:]][word, default: 0] += 1 }
-        if counts.count > Self.capacity { forgetRarest() }
+        if counts.count > Self.capacity { forgetRarest(keeping: word) }
     }
 
     public mutating func forget(_ word: String, after previous: String?, earlier: String? = nil) {
@@ -85,13 +85,27 @@ public struct TypingMemory: Codable, Hashable, Sendable {
         (following[previous] ?? [:]).filter { $0.value > 1 }.sorted(by: Self.frequent).map(\.key)
     }
 
-    private mutating func forgetRarest() {
-        counts = counts.filter { $0.value > 1 || isKept($0.key) }
-        total = counts.values.reduce(0, +)
-        following = following.compactMapValues { next in
-            let frequent = next.filter { $0.value > 1 }
-            return frequent.isEmpty ? nil : frequent
+    /// Drops the rarest words, and the next-word counts that name them, until the words are back at `capacity`. Kept words
+    /// and the word just typed stay.
+    private mutating func forgetRarest(keeping word: String) {
+        let kept = kept
+        var gone: Set<String> = []
+        while counts.count - gone.count > Self.capacity,
+              let rarest = counts.lazy.filter({ !gone.contains($0.key) && $0.key != word && !kept.contains(Words.plain($0.key).lowercased()) }).min(by: Self.rarer) {
+            gone.insert(rarest.key)
         }
+        guard !gone.isEmpty else { return }
+        for word in gone { counts[word] = nil }
+        total = counts.values.reduce(0, +)
+        following = following.reduce(into: [:]) { result, entry in
+            guard entry.key.split(separator: " ").allSatisfy({ !gone.contains(String($0)) }) else { return }
+            let next = entry.value.filter { !gone.contains($0.key) }
+            if !next.isEmpty { result[entry.key] = next }
+        }
+    }
+
+    private static func rarer(_ a: (key: String, value: Int), _ b: (key: String, value: Int)) -> Bool {
+        a.value != b.value ? a.value < b.value : a.key > b.key
     }
 
     private static func frequent(_ a: (key: String, value: Int), _ b: (key: String, value: Int)) -> Bool {

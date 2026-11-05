@@ -43,4 +43,21 @@ struct MemoryCodingTests {
         #expect(loaded.scores == history.scores)
         #expect(loaded.tones.isEmpty)
     }
+
+    @Test func fullMemoryForgetsOnlyAsMuchAsItMust() {
+        var memory = TypingMemory()
+        for i in 0..<TypingMemory.capacity { memory.record("w\(i)", after: i == 0 ? nil : "w\(i - 1)") }
+        for _ in 0..<3 { memory.record("often", after: "w0") }
+        memory.keep("w5")
+        #expect(memory.counts.count == TypingMemory.capacity)
+        memory.record("fresh", after: "often")
+        #expect(memory.counts.count == TypingMemory.capacity)
+        #expect(memory.counts["fresh"] == 1)
+        #expect(memory.counts["often"] == 3)
+        #expect(memory.counts["w5"] == 1)
+        #expect(memory.total == memory.counts.values.reduce(0, +))
+        #expect(memory.predictions(after: "w0").contains("often"))
+        #expect(memory.following.values.allSatisfy { $0.keys.allSatisfy { memory.counts[$0] != nil } })
+    }
 }
+
