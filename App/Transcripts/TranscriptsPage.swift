@@ -135,27 +135,6 @@ struct TranscriptsPage: View {
     }
 }
 
-/// Raycast's search field: a magnifier and the query in a rounded card.
-struct SearchField: View {
-    @Binding var text: String
-
-    var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "magnifyingglass").foregroundStyle(Color.hexSecondary)
-            TextField("Search", text: $text)
-                .submitLabel(.search)
-            if !text.isEmpty {
-                Button { text = "" } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(Color.hexSecondary) }
-                    .buttonStyle(.plain)
-            }
-        }
-        .padding(.horizontal, 14)
-        .frame(height: 44)
-        .background(Color.hexCard, in: .capsule)
-        .overlay(Capsule().strokeBorder(Color.hexEdge))
-    }
-}
-
 private struct Row: View {
     let transcript: Transcript
 
@@ -322,21 +301,5 @@ private struct TranscriptDetail: View {
                 if !beside { dismiss() }
             }
         }
-    }
-}
-
-/// A fact about something, its name on the left and its value in gray on the right.
-struct Fact: View {
-    let title: String
-    let value: String
-
-    var body: some View {
-        HStack {
-            Text(title)
-            Spacer()
-            Text(value).foregroundStyle(Color.hexSecondary).multilineTextAlignment(.trailing)
-        }
-        .row()
-        .accessibilityElement(children: .combine)
     }
 }

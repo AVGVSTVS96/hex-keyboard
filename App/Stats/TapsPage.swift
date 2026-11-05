@@ -281,45 +281,6 @@ enum TapColor {
     static let miss = Color(TapMapPalette.miss)
 }
 
-/// A card in the app's look, its content padded, under a gray header and over a gray footer.
-struct Card<Content: View>: View {
-    var header: String? = nil
-    var footer: String? = nil
-    @ViewBuilder var content: Content
-
-    var body: some View {
-        Box(header: header, footer: footer) {
-            VStack(alignment: .leading, spacing: 16) { content }
-                .padding(20)
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
-}
-
-/// A big number with its label under it, flush left.
-struct Figure: View {
-    let value: String
-    let label: String
-    var size: CGFloat = 30
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(value)
-                .font(.display(size))
-                .tracking(-0.02 * size)
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
-                .contentTransition(.numericText())
-            Text(label)
-                .font(.footnote)
-                .foregroundStyle(Color.hexSecondary)
-                .lineLimit(1)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityElement(children: .combine)
-    }
-}
-
 /// How often your letters land on the key you meant, large, over a meter of it and how your last taps compare, then
 /// how many taps it's learned from and how far you aim from the keys' centers.
 private struct Numbers: View {
