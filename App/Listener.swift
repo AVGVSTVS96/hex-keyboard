@@ -30,8 +30,8 @@ import UIKit
     /// The last recording held no sound at all, so the microphone's input is taken to be dead: it goes off once nothing
     /// is being recorded or written, and the next dictation opens it fresh.
     private var deaf = false
-    /// None of 628 real dictations came within 200 of 32767 in a sample; a recording with none past 100 is the input gone
-    /// deaf.
+    /// Every one of 628 real dictations had a sample past 200 of 32767; a recording of a second or more with none past
+    /// 100, or with no sound at all, is the input gone deaf.
     private static let silence: Float = 100 / 32767
     /// Why the last dictation couldn't be made or written down, for the app's screen.
     private(set) var failure: (title: String, reason: String)?
@@ -129,9 +129,12 @@ import UIKit
         publish()
         let before = written
         nonisolated(unsafe) var background = UIBackgroundTaskIdentifier.invalid
-        background = UIApplication.shared.beginBackgroundTask { UIApplication.shared.endBackgroundTask(background) }
+        background = UIApplication.shared.beginBackgroundTask {
+            UIApplication.shared.endBackgroundTask(background)
+            background = .invalid
+        }
         written = Task {
-            defer { UIApplication.shared.endBackgroundTask(background) }
+            defer { if background != .invalid { UIApplication.shared.endBackgroundTask(background) } }
             await before?.value
             await deliver(take, await sound.value)
         }
@@ -141,7 +144,7 @@ import UIKit
     /// One that can't be written now is written the next time the app opens, since its recording is still on disk.
     private func deliver(_ take: Take, _ samples: [Float]) async {
         let seconds = Double(samples.count) / Recording.format.sampleRate
-        let silent = !samples.isEmpty && !samples.contains { abs($0) > Self.silence }
+        let silent = take.stopped.timeIntervalSince(take.started) >= 1 && !samples.contains { abs($0) > Self.silence }
         deaf = silent
         do {
             let written = try await VoiceModel.shared.write(samples)
@@ -164,13 +167,15 @@ import UIKit
     }
 
     /// Starts Keep Mic On's countdown over, or turns the microphone off now when it's Off, once nothing is being
-    /// recorded or written, unless Home's switch holds it on. Until then the microphone stays on: that keeps Hex
-    /// running in the background to write, and its lock tells the keyboard Hex is still there.
+    /// recorded or written, unless Home's switch holds it on and it isn't deaf. Until then the microphone stays on: that
+    /// keeps Hex running in the background to write, and its lock tells the keyboard Hex is still there.
     func keepMicOn() {
         micOff?.cancel()
-        guard microphone.isOn, recording == nil, writing.isEmpty, !held else { return }
+        guard microphone.isOn, recording == nil, writing.isEmpty else { return }
+        guard !deaf else { return closeMic() }
+        guard !held else { return }
         let seconds = SettingsStore.keepMicOn
-        guard seconds > 0, !micOffOnceWritten, !deaf else { return closeMic() }
+        guard seconds > 0, !micOffOnceWritten else { return closeMic() }
         guard seconds != Dictation.micForever else { return }
         micOff = Task {
             try? await Task.sleep(for: .seconds(seconds))
