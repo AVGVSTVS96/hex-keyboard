@@ -1,13 +1,25 @@
 #!/bin/sh
-# Scores iikb's dictation path against FluidAudio's own on a corpus of real dictations, at full loudness and 10 and 30
-# times quieter: scripts/voicebench <corpus>, where <corpus> holds clips.jsonl ({id, audio_path}), the audio and
-# references.jsonl ({id, text}). Runs Tools/VoiceBench on the Mac (Neural Engine) and scores here (scripts/voicescore.py).
+# Scores iikb's dictation path, and ways to change it, on a corpus of real dictations: scripts/voicebench <corpus>
+# [way[-percent loudness]…], where <corpus> holds clips.jsonl ({id, audio_path} and labels to group by), the audio,
+# references.jsonl ({id, text}), and when it has them typed.jsonl (what iikb typed) and vocabulary.json (the Dictionary);
+# scripts/voicecorpus.py builds Bassim's own, real and loud, in voicebench/ beside the backup. Without ways it
+# runs FluidAudio's own and iikb's at full loudness and 10 and 30 times quieter. Each runs on the Mac (Neural Engine),
+# one at a time in a turn, with Tools/VoiceBench, and only what this run wrote comes back to be scored here
+# (scripts/voicescore.py), beside the corpus's earlier outputs (scripts/voicecorpus.py clears them when it rebuilds).
 set -e
-[ -d "$1" ] || { echo "usage: scripts/voicebench <corpus>" >&2; exit 1; }
+[ -d "$1" ] || { echo "usage: scripts/voicebench <corpus> [way[-percent]…]" >&2; exit 1; }
+corpus=$(cd "$1" && pwd)
+name=${corpus##*/}
+shift
+[ $# -gt 0 ] || set -- asis-100 asis-10 asis-3 dictation-100 dictation-10 dictation-3
 cd "$(dirname "$0")/.."
 rsync -aL --delete --exclude .build Tools/VoiceBench/ mac:Developer/voicebench/tool/
-rsync -a --exclude outputs "$1"/ mac:Developer/voicebench/corpus/
-ssh mac 'cd ~/Developer/voicebench && swift build -c release --package-path tool >/dev/null &&
-  for way in asis dictation; do for loudness in 100 10 3; do tool/.build/release/VoiceBench corpus $way $loudness; done; done'
-rsync -a mac:Developer/voicebench/corpus/outputs/ "$1"/outputs/
-python3 -I scripts/voicescore.py "$1"
+rsync -a --exclude outputs "$corpus"/ mac:Developer/voicebench/"$name"/
+ssh mac 'cd ~/Developer/voicebench && swift build -c release --package-path tool >/dev/null'
+mkdir -p "$corpus"/outputs
+for run; do
+  case $run in *-[0-9]*) ;; *) run=$run-100 ;; esac
+  ssh mac "cd ~/Developer/voicebench && ~/.local/bin/turn tool/.build/release/VoiceBench $name ${run%-*} ${run##*-}"
+  rsync -a mac:Developer/voicebench/"$name"/outputs/"$run".jsonl "$corpus"/outputs/
+done
+python3 -I scripts/voicescore.py "$corpus"
