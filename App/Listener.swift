@@ -180,7 +180,7 @@ import UIKit
         guard seconds > 0, !micOffOnceWritten else { return closeMic() }
         guard seconds != Dictation.micForever else { return }
         micOff = Task {
-            try? await Task.sleep(for: .seconds(seconds))
+            try? await Task.sleep(for: .seconds(seconds)) // timer: Keep Mic On
             guard !Task.isCancelled, recording == nil, writing.isEmpty else { return }
             closeMic()
         }

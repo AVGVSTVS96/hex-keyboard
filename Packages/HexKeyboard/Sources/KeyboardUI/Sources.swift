@@ -124,7 +124,7 @@ final class Sources {
     nonisolated private static let session = URLSession(configuration: .ephemeral)
 
     @concurrent nonisolated private static func post(_ update: FieldUpdate, to source: Source) async -> Answer? {
-        var request = URLRequest(url: source.url, timeoutInterval: 10)
+        var request = URLRequest(url: source.url, timeoutInterval: 10) // timer: source answer
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         if let token = source.token { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }

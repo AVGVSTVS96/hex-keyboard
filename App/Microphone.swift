@@ -240,7 +240,7 @@ nonisolated private final class Feed: @unchecked Sendable {
         guard lock.withLock({ recording != nil }) else { return stop() }
         let stopped = mach_absolute_time()
         let loud = Task {
-            guard (try? await Task.sleep(for: .seconds(1))) != nil else { return }
+            guard (try? await Task.sleep(for: .seconds(1))) != nil else { return } // timer: stop waits for quiet
             _ = self.stop()
         }
         defer { loud.cancel() }

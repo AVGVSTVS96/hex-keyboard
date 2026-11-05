@@ -229,7 +229,7 @@ extension KeyboardView {
         guard tracked.mode == .typing else { return }
         let isSpace = key.action == .space
         guard isSpace || key.alternates.count > 1 else { return }
-        tracked.hold = Timer.scheduledTimer(withTimeInterval: isSpace ? 0.4 : 0.45, repeats: false) { [weak self, weak tracked] _ in
+        tracked.hold = Timer.scheduledTimer(withTimeInterval: isSpace ? 0.4 : 0.45, repeats: false) { [weak self, weak tracked] _ in // timer: long-press
             MainActor.assumeIsolated {
                 guard let self, let tracked, tracked.mode == .typing, let view = tracked.keyView else { return }
                 if isSpace {
@@ -250,7 +250,7 @@ extension KeyboardView {
     }
 
     private func scheduleMenu(for tracked: TrackedTouch) {
-        tracked.hold = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: false) { [weak self, weak tracked] _ in
+        tracked.hold = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: false) { [weak self, weak tracked] _ in // timer: long-press
             MainActor.assumeIsolated {
                 guard let self, let tracked, tracked.mode == .slide || tracked.mode == .typing, let frame = tracked.menuFrame else { return }
                 tracked.mode = .menu
