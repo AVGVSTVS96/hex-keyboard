@@ -2,7 +2,8 @@
 # Runs on the Mac, left running by scripts/phone after an install: starts Hex in the background on the iPhone
 # (argv[1]) now, or the moment it next unlocks, since iOS starts no app on a locked iPhone, so Parakeet compiles for
 # the new install then rather than at the next dictation. It watches SpringBoard's lock state through devicectl, which
-# writes what it observes only to a terminal, and gives up after a day.
+# writes what it observes only to a terminal, at most every 10 seconds when devicectl can't reach the iPhone, and
+# gives up after a day.
 import os
 import pty
 import subprocess
@@ -35,4 +36,6 @@ def lock_changes():
 
 
 while not start() and time.time() < deadline:
+    began = time.time()
     lock_changes()
+    time.sleep(max(0, 10 - (time.time() - began)))
