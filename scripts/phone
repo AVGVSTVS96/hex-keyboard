@@ -54,9 +54,10 @@ git -C "$build" checkout -q -f --detach "$commit"
 for plist in Config/xtool/Hex-Info.plist Config/xtool/Keyboard-Info.plist; do
   python3 -c "import plistlib, sys; p = plistlib.load(open(sys.argv[1], 'rb')); p['CFBundleVersion'] = sys.argv[2]; plistlib.dump(p, open(sys.argv[1], 'wb'))" "$build/$plist" "$number"
 done
-keys=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")/Packages/HexKeyboard/Sources/KeyboardUI/Resources/Keys
-[ -f "$keys/backup.key" ] || { echo "$keys/backup.key is missing, so this build wouldn't back up the iPhone's iikb data (docs/backup.md)" >&2; exit 1; }
-cp "$keys"/*.key "$build/Packages/HexKeyboard/Sources/KeyboardUI/Resources/Keys/"
+main=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
+backup=$main/Packages/HexKeyboard/Sources/HexStore/Resources/Keys/backup.key
+[ -f "$backup" ] || { echo "$backup is missing, so this build wouldn't back up the iPhone's iikb data (docs/backup.md)" >&2; exit 1; }
+for key in "$main"/Packages/HexKeyboard/Sources/*/Resources/Keys/*.key; do cp "$key" "$build/${key#"$main"/}"; done
 cd "$build"
 TURN=phone xtool dev build -c release --sign < /dev/null
 for binary in xtool/Hex.app/Hex xtool/Hex.app/PlugIns/Keyboard.appex/Keyboard; do

@@ -1,4 +1,5 @@
 import UIKit
+import HexStore
 import KeyboardCore
 import KeyboardEnglish
 

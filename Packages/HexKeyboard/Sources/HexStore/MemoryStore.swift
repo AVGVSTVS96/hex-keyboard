@@ -61,13 +61,15 @@ public final class MemoryStore {
         var resets: Int?
     }
 
+    package init() {}
+
     /// The version this keyboard's memory was read from; none until its first read lands, or while the file can't be read.
     private var base: Version?
     /// The version this keyboard last saved, kept on `queue`.
     nonisolated(unsafe) private var written: Version?
 
     /// Reads and writes the file in turn, off the main thread: at 20,000 words each takes a tenth of a second.
-    nonisolated static let queue = DispatchQueue(label: "com.shahidy.hexkeyboard.memory", qos: .userInitiated)
+    nonisolated package static let queue = DispatchQueue(label: "com.shahidy.hexkeyboard.memory", qos: .userInitiated)
 
     nonisolated private static var modified: Date? {
         try? url.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate
@@ -75,7 +77,7 @@ public final class MemoryStore {
 
     /// Hands `use` the saved memory when it isn't the one this keyboard has: on its first appearance, after another
     /// app's keyboard saved, or after the app reset it. A file that's there but can't be read is never handed over.
-    func refresh(_ use: @escaping @MainActor (TypingMemory) -> Void) {
+    package func refresh(_ use: @escaping @MainActor (TypingMemory) -> Void) {
         let base = base, resets = Self.resets
         Self.queue.async { [self] in
             var version = Version(modified: Self.modified, resets: resets)
@@ -105,7 +107,7 @@ public final class MemoryStore {
         }
     }
 
-    func save(_ memory: TypingMemory, sharing: Bool) {
+    package func save(_ memory: TypingMemory, sharing: Bool) {
         guard let base else { return }
         let resets = Self.resets, sharedTouchesURL = sharing ? Self.sharedTouchesURL : nil
         Self.queue.async { [self] in
@@ -129,13 +131,13 @@ public final class MemoryStore {
         URL.applicationSupportDirectory.appending(path: "emoji-history.json")
     }
 
-    static func loadEmoji() -> EmojiHistory {
+    package static func loadEmoji() -> EmojiHistory {
         (try? decoded(EmojiHistory.self, from: emojiURL)) ?? EmojiHistory()
     }
 
     /// Never over a history that's there but can't be read, which `loadEmoji` handed over as empty: that one is moved
     /// aside first, as the Dictionary's is, so the picks from then on are still kept.
-    static func save(_ emoji: EmojiHistory) {
+    package static func save(_ emoji: EmojiHistory) {
         if FileManager.default.fileExists(atPath: emojiURL.path(percentEncoded: false)),
            (try? decoded(EmojiHistory.self, from: emojiURL)) == nil {
             let aside = emojiURL.deletingLastPathComponent().appending(path: "emoji-history-unread-\(Int(Date.now.timeIntervalSince1970)).json")

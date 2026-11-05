@@ -1,4 +1,5 @@
 import AVFoundation
+import HexStore
 import KeyboardUI
 import Observation
 

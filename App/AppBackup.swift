@@ -1,3 +1,4 @@
+import HexStore
 import KeyboardUI
 
 extension Backup {

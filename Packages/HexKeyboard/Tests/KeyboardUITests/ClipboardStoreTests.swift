@@ -3,7 +3,7 @@ import KeyboardCore
 import Testing
 import UIKit
 import UniformTypeIdentifiers
-@testable import KeyboardUI
+@testable import HexStore
 
 @MainActor
 struct ClipboardStoreTests {

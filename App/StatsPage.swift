@@ -1,5 +1,6 @@
 import KeyboardCore
 import Charts
+import HexStore
 import KeyboardUI
 import SwiftUI
 import notify

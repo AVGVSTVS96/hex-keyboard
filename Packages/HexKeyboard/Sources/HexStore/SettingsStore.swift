@@ -125,7 +125,7 @@ public enum SettingsStore {
         microphone = nil
     }
 
-    static func value(forKey key: String, sharing: Bool) -> Any? {
+    package static func value(forKey key: String, sharing: Bool) -> Any? {
         let seen = "seen." + key
         if let shared = group.object(forKey: key) as? NSObject {
             if !shared.isEqual(own.object(forKey: seen)) {
@@ -139,7 +139,7 @@ public enum SettingsStore {
         return own.object(forKey: key)
     }
 
-    static func set(_ value: Any, forKey key: String, sharing: Bool = true) {
+    package static func set(_ value: Any, forKey key: String, sharing: Bool = true) {
         own.set(value, forKey: key)
         guard sharing else { return }
         group.set(value, forKey: key)

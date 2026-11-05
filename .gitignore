@@ -14,7 +14,7 @@ xcuserdata/
 .progress-note.txt
 /Config/Team.xcconfig
 /xtool/
-/Packages/HexKeyboard/Sources/KeyboardUI/Resources/Keys/*.key
+/Packages/HexKeyboard/Sources/*/Resources/Keys/*.key
 /.scratch/
 node_modules/
 /brand/og/out/parts-*

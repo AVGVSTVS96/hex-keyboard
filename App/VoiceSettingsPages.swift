@@ -1,3 +1,4 @@
+import HexStore
 import KeyboardCore
 import KeyboardEnglish
 import KeyboardUI

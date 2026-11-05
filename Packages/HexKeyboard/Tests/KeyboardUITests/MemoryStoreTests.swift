@@ -1,7 +1,7 @@
 import Foundation
 import KeyboardCore
 import Testing
-@testable import KeyboardUI
+@testable import HexStore
 
 /// Each store stands for a keyboard view controller; iOS makes a new one in the same process each time the keyboard
 /// comes up.

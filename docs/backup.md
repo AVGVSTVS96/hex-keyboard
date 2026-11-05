@@ -57,7 +57,7 @@ already kept one of it); nothing is ever deleted.
 It runs as the user service `hex-keyboard-backup` (dotfiles), on port 2592 behind `tailscale serve` at `/backup`, so
 only the tailnet reaches it, and takes requests with the token in `~/.config/hex-keyboard/backup.env`.
 
-A build gets the server from `Packages/HexKeyboard/Sources/KeyboardUI/Resources/Keys/backup.key`, kept out of git: the
+A build gets the server from `Packages/HexKeyboard/Sources/HexStore/Resources/Keys/backup.key`, kept out of git: the
 address on the first line, the token on the second. `scripts/phone` takes it from the main checkout and won't build
 without it, so no install of its leaves the iPhone unbacked. `scripts/sync` leaves it out of the Mac's trees, so a
 simulator's made-up data never reaches the backup. A build without the file sends nothing and shows no Backup section.

@@ -30,7 +30,7 @@ public enum TypingStats {
 
     /// Appends at once rather than on a queue: iOS suspends a keyboard the moment its app goes away, before queued
     /// work runs, and a few hundred bytes take no time.
-    static func save(_ hours: [TypingHour], sharing: Bool) {
+    package static func save(_ hours: [TypingHour], sharing: Bool) {
         guard !hours.isEmpty else { return }
         let encoder = JSONEncoder()
         let lines = Data(hours.compactMap { try? encoder.encode($0) + [UInt8(ascii: "\n")] }.joined())

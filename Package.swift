@@ -23,6 +23,7 @@ let package = Package(
             name: "Hex",
             dependencies: [
                 .product(name: "KeyboardEnglish", package: "HexKeyboard"),
+                .product(name: "HexStore", package: "HexKeyboard"),
                 .product(name: "KeyboardUI", package: "HexKeyboard"),
                 .product(name: "FluidAudio", package: "FluidAudio"),
             ],

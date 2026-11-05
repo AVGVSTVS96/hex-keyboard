@@ -4,7 +4,7 @@
 # LaunchAgent watches Keystroke's folder, so it sends on Keystroke's own saves and at login, never on a clock.
 # Usage: scripts/keystroke [path to Keystroke.app on the Mac]
 set -euo pipefail
-key=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")/Packages/HexKeyboard/Sources/KeyboardUI/Resources/Keys/backup.key
+key=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")/Packages/HexKeyboard/Sources/HexStore/Resources/Keys/backup.key
 [ -f "$key" ] || { echo "$key is missing: the Mac sends with the backup server's address and token (docs/backup.md)" >&2; exit 1; }
 ssh mac 'umask 077 && mkdir -p ~/.config/hex-keyboard && cat > ~/.config/hex-keyboard/backup.key' <"$key"
 ssh mac bash -s "${1:-/Applications/Glaze/Keystroke.app}" <<'MAC'
