@@ -1,0 +1,14 @@
+#!/bin/sh
+# Scores what a dictation types in each kind of field, before and after reading it for the field (DictationReading):
+# says Tools/FieldBench/cases.jsonl in two voices on the Mac, writes it down with Hex's own dictation path
+# (Tools/VoiceBench, Neural Engine), and scores here with KeyboardCore's FieldBenchTests, as exact matches per field.
+set -e
+cd "$(dirname "$0")/.."
+rsync -aL --delete --exclude .build Tools/VoiceBench/ mac:Developer/voicebench/tool/
+rsync -a Tools/FieldBench/ mac:Developer/fieldbench/
+ssh mac 'cd ~/Developer/fieldbench && python3 make.py corpus cases.jsonl &&
+  cd ~/Developer/voicebench && swift build -c release --package-path tool >/dev/null &&
+  tool/.build/release/VoiceBench ~/Developer/fieldbench/corpus dictation 100'
+mkdir -p build/fieldbench
+rsync -a mac:Developer/fieldbench/corpus/outputs/dictation-100.jsonl build/fieldbench/
+FIELD_CASES=$PWD/Tools/FieldBench/cases.jsonl FIELD_BENCH=$PWD/build/fieldbench/dictation-100.jsonl scripts/coretest --filter FieldBenchTests

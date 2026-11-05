@@ -280,7 +280,7 @@ public enum DictationEditing: String, CaseIterable, Hashable, Sendable {
     }
 
     /// "um", "uh", "uhm", "erm" and "hmm", however long they're drawn out, as whole words written lowercase or
-    /// capitalized, with the comma after them. A capital passes to the next word, and "uh-huh" stays.
+    /// capitalized, with the comma after them. A capital passes to the next word, and "uh-huh" and "mm hmm" stay.
     static func withoutFillers(_ text: [Character]) -> [Character] {
         var text = text
         while let filler = Words.ranges(in: text).first(where: { isFiller(text, $0) }) {
@@ -309,6 +309,8 @@ public enum DictationEditing: String, CaseIterable, Hashable, Sendable {
         guard !glued, text[word].dropFirst().allSatisfy(\.isLowercase) else { return false }
         var drawn: [Character] = []
         for letter in text[word].map({ Character($0.lowercased()) }) where letter != drawn.last { drawn.append(letter) }
+        if drawn == ["h", "m"], word.lowerBound >= 3, text[word.lowerBound - 1] == " ", String(text[word.lowerBound - 3 ..< word.lowerBound - 1]).lowercased() == "mm",
+           word.lowerBound == 3 || !text[word.lowerBound - 4].isLetter { return false }
         return ["um", "uh", "uhm", "erm", "hm"].contains(String(drawn))
     }
 
@@ -316,9 +318,11 @@ public enum DictationEditing: String, CaseIterable, Hashable, Sendable {
     /// that", "had had" and "very very" stay, and so does one a comma parts, as in "when you press it, it opens".
     static func withoutRepeats(_ text: [Character]) -> [Character] {
         var text = text
-        for (first, second) in zip(Words.ranges(in: text), Words.ranges(in: text).dropFirst()).reversed() {
+        let words = Words.ranges(in: text)
+        for (index, (first, second)) in zip(words, words.dropFirst()).enumerated().reversed() {
             let word = String(text[first]).lowercased()
             guard repeatable.contains(word), word == String(text[second]).lowercased() else { continue }
+            guard !asides.contains(where: { phrase(text, words, at: index + 1, is: $0) }) else { continue }
             guard text[first.upperBound ..< second.lowerBound].allSatisfy({ $0 == " " }) else { continue }
             text.removeSubrange(first.upperBound ..< second.upperBound)
         }
@@ -383,7 +387,7 @@ public enum DictationEditing: String, CaseIterable, Hashable, Sendable {
                 end += 1
                 while end < text.count, text[end] == " " { end += 1 }
                 if text[start].isUppercase, end < text.count, text[end].isLowercase { text[end] = Character(text[end].uppercased()) }
-            } else if start >= 2, text[start - 2] == ",", text[start - 1] == " ", end < text.count, text[end] == "," || TypingEngine.sentenceEnders.contains(text[end]) {
+            } else if start >= 2, text[start - 2] == ",", text[start - 1] == " ", end < text.count, text[end] == "," || text[end] != "?" && TypingEngine.sentenceEnders.contains(text[end]) {
                 start -= 2
                 if text[end] == "," { end += 1 }
             } else {

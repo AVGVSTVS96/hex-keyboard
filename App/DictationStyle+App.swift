@@ -7,6 +7,11 @@ extension DictationWriting {
     static func typed(_ heard: String) -> String {
         VoiceVocabulary.shared.vocabulary.corrected(SettingsStore.load().dictation.written(heard))
     }
+
+    /// What the voice model wrote, with your vocabulary's words and nothing of the style or lists.
+    static func plain(_ heard: String) -> String {
+        VoiceVocabulary.shared.vocabulary.corrected(heard)
+    }
 }
 
 extension DictationStyle {

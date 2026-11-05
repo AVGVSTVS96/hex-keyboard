@@ -5,54 +5,49 @@
   </picture>
 </h1>
 
-**An iPhone keyboard that types like Apple's and learns where your thumbs land.**
+**The best iOS keyboard. In the world.**
 
-iikb types like Apple's keyboard and looks like Raycast's. It learns where each of your taps really lands, so it fixes more typos and leaves the words you meant alone.
+That's what we're building. iikb learns your thumbs, writes what you say, and puts your clipboard, emoji, GIFs and tools beside the words you're typing. Apple and Raycast set a high bar. We want to raise it.
 
-It's open source under MIT, a base to build your own keyboard on. For iPhone and iPad on iOS 26 and later, and the iPhone Duo in every pose. Type with its engine in your browser at [iikb.vercel.app](https://iikb.vercel.app).
+Open source under MIT. For iPhone and iPad on iOS 26 and later, including the Duo folded or open. [See the keyboard layouts and features](https://iikb.vercel.app). iikb is in active development; the ambition is the best keyboard in the world, and the work is public.
 
-Apple's keyboard on the left, iikb on the right, on the iPhone Duo's cover:
+| iPhone | iPad |
+| --- | --- |
+| ![iikb's iPhone keyboard layout](web/site/shots/iphone-light.webp) | ![iikb's iPad keyboard layout with a number row and flick characters](web/site/shots/ipad-light.webp) |
 
-![Apple's keyboard and iikb on the iPhone Duo's cover](docs/apple-and-hex.png)
+Keyboard layout crops from simulator captures. The app continues to evolve.
 
-## It feels like Apple's
+## Familiar under your thumbs
 
 Layouts, pop-ups, accents, the space bar cursor and the suggestion bar work as Apple's do, measured against Apple's keyboard in the same simulator on every iPhone and iPad size and each of the Duo's screens, in light and dark. Keys sit where Apple's do, except where the look moves them on purpose: Raycast's bottom-row widths, and on the Duo, keys that grow into the room each screen gives ([docs/design.md](docs/design.md) has every size). Haptics start at the strength Apple's keyboard uses, read off a real iPhone, with three steps softer and three stronger. Settings have Apple's names and defaults, except that auto-capitalization and auto-correction start off. Your Text Replacements still work.
 
-## It looks like Raycast's
+## Make it yours
 
-Raycast's five themes (Default, Clear, Physical, Mechanical and iOS 5), its key shapes, and one bar with the tools at its left and the mic at its end.
+Five themes inspired by Raycast (Default, Clear, Physical, Mechanical and iOS 5), with controls for key spacing, roundness and haptic strength. The tools sit beside the suggestions, with dictation at the bar's right edge.
 
-![iikb's five themes on the iPhone Duo's cover](docs/themes.png)
+![The Default theme](web/site/shots/theme-default.webp)
 
-## Made for the iPhone Duo
+## Every screen gets its space
 
-iikb fits each of the Duo's screens: the cover upright and on its side, open and held wide or tall, and half folded. Open and held wide, hold 123 to split the keys for two thumbs. The app lays out every page for the screen it's on, in two panes beside the hinge when there's room.
+iPhone gets familiar key positions. iPad gets a number row and flick-down secondary characters. iikb also fits each of the Duo's screens: the cover upright and on its side, open and held wide or tall, and half folded. Open and held wide, hold 123 to split the keys for two thumbs. The app lays out every page for the screen it's on, in two panes beside the hinge when there's room.
 
-![iikb on the iPhone Duo's cover and open screen, upright and on its side](docs/duo.png)
+![The expanded Duo keyboard layout](web/site/shots/duo-dark.webp)
 
 ## It learns where you tap
 
 Each key remembers where your thumb really lands, from the words you keep and the letters you fix. If your grip changes, it catches up within a few taps. Autocorrect reads every tap with that in mind, and it only changes a word you spelled right when your taps fit another word better.
 
-A test types 500 phrases twice with off-target thumbs. A keyboard that takes the nearest key and corrects with Apple's spell checker gets 85.2% of words right; iikb gets 97.6%. [PROGRESS.md](PROGRESS.md) has the numbers and how they're measured.
+A test types 500 phrases twice with off-target thumbs. A keyboard that takes the nearest key and corrects with Apple's spell checker gets 85.2% of words right; iikb gets 97.7%. This is a recorded simulated-tap benchmark against a spell-checker baseline, not a comparison with Apple's complete keyboard. [PROGRESS.md](PROGRESS.md) has the numbers and how they're measured.
 
-The suggestion bar guesses your next word from the two before it, and from what you usually type.
+The suggestion bar combines a small on-device language model with your learned word and phrase counts. It offers completions, next words, and corrections for runs with missed or mistyped spaces. Learning can use the host app when its identity is available.
 
 The app's Your Taps tab shows what it learned: a heat map of where your thumbs press, where each key's taps land, and the keys you miss most.
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/taps-dark.png">
-  <img alt="Your Taps in the iikb app: a heat map of where your thumbs press" src="docs/taps-light.png" width="400">
-</picture>
-
 ## Talk instead of typing
 
-Tap the mic beside the suggestions. iOS doesn't let keyboards use the microphone, so the first time, iikb opens its app to start listening, then goes back to your app while you keep talking. The app can keep the mic on for as long as you pick, and while it's on, the mic starts and stops dictation right there, in any app; hold it to turn the mic off.
+Tap the mic beside the suggestions. iOS doesn't let keyboards use the microphone, so the first time, iikb opens its app to start listening, then goes back to your app while you keep talking. The app can keep the mic on for as long as you pick, and while it's on, the mic starts and stops dictation right there, in any app; use the microphone switch in the app to turn it off. Cancel discards a recording without inserting it; its transcript is still kept for review.
 
-What you say becomes text on the iPhone, written by the voice model you pick in the app's Settings › Voice Model: NVIDIA's [Parakeet v3](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3) (the default) or moondream's [Parakeet Ultra](https://huggingface.co/moondream/parakeet-ultra), run on the Neural Engine by [FluidAudio](https://github.com/FluidInference/FluidAudio), or Apple's own. Parakeet v3 downloads once, about 500 MB; a dictation made while it gets ready is saved and written once it is. The Transcripts tab keeps every transcript, with the model that wrote it.
-
-<img alt="The bar while dictating: the time and a waveform in place of the suggestions, and a red stop button" src="docs/voice.png" width="400">
+What you say becomes text on the iPhone, written by the voice model you pick in the app's Settings › Voice Model: NVIDIA's [Parakeet v3](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3) (the default) or moondream's [Parakeet Ultra](https://huggingface.co/moondream/parakeet-ultra), run on the Neural Engine by [FluidAudio](https://github.com/FluidInference/FluidAudio), or Apple's own. Parakeet v3 downloads once, about 500 MB; a dictation made while it gets ready is saved and written once it is. Pick a dictation style, punctuation, editing level and list formatting. The Transcripts tab keeps every transcript with its model, the original words when editing changes them, and available recordings for playback and sharing.
 
 ## Emoji
 
@@ -69,9 +64,9 @@ A source is a web service you plug into the keyboard. iikb sends it the text of 
 - One-handed keyboard: hold 123 and slide left or right.
 - Hold the space bar and slide to move the cursor, hold delete to erase whole words, flick down on iPad keys for their second character.
 - Return, email, URL and search fields get the keys Apple gives them.
-- iikb goes online only to download its voice model once, search GIFs and reach the sources you add. Without a source, nothing you type, say or copy leaves your iPhone.
+- Typing predictions and Parakeet speech recognition run on device. Network access covers model downloads, GIF search, sources you configure, and a backup server in builds configured with one. Sources receive field text; configured backups can include typing data, clipboard history, transcripts and recordings. See [backup behavior](docs/backup.md).
 
-Not built yet: swipe typing, and languages other than English.
+Swipe typing is in development. Languages other than English aren't available yet.
 
 ## Install
 
@@ -96,7 +91,8 @@ Then on the phone: Settings › General › Keyboard › Keyboards › Add New K
 | `Packages/HexKeyboard/Sources/KeyboardUI` | Draws the keys, handles touches and haptics, and talks to the app. |
 | `Keyboard/` | The keyboard extension. |
 | `App/` | The app: setup and settings, voice typing, Transcripts, Clipboard and Your Taps. |
-| `web/` | The browser demo. |
+| `web/site/` | The product site and keyboard layout showcase. `scripts/site` builds it into `web/dist`. |
+| `web/Sources/` | The WebAssembly typing-engine tooling. `scripts/web` compiles the engine alongside the site. |
 | `UITests/` | Types through the real keyboard in the simulator. |
 | `brand/`, `copy/` | The logo, README header and site images, and the words they use. `bun copy/facts.mjs` counts every number the copy cites. |
 

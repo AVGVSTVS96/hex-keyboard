@@ -167,6 +167,8 @@ import UIKit
         var text: String
         /// As the model wrote it.
         var heard: String
+        /// As the model wrote it, with your vocabulary and no style or lists: what a field of addresses or digits reads.
+        var plain: String
         var model: String
     }
 
@@ -184,7 +186,7 @@ import UIKit
             do {
                 let heard: String
                 if let parakeet { heard = try await parakeet.value.dictate(recording) } else { heard = try await AppleSpeech.write(recording) }
-                return Written(text: DictationWriting.typed(heard), heard: heard, model: model.title)
+                return Written(text: DictationWriting.typed(heard), heard: heard, plain: DictationWriting.plain(heard), model: model.title)
             } catch {
                 guard self.model != model else { throw error }
             }

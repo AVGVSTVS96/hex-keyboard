@@ -100,6 +100,7 @@ public final class MemoryStore {
     public static func reset() {
         SettingsStore.set(Int.random(in: 1 ... .max), forKey: resetsKey)
         if let sharedTouchesURL { try? FileManager.default.removeItem(at: sharedTouchesURL) }
+        PersonalNetwork.forget()
         notify_post(touchesChanged)
     }
 

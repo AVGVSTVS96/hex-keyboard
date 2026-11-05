@@ -74,7 +74,7 @@ import UIKit
             try microphone.open()
             VoiceModel.shared.micIsOn = true
             take.mic = microphone.input
-            try microphone.record(to: Transcripts.shared.recording(of: take.id))
+            microphone.record(to: Transcripts.shared.recording(of: take.id))
         } catch {
             recording = nil
             closeMic()
@@ -138,7 +138,7 @@ import UIKit
             if take.typed, written.text.isEmpty {
                 Dictation.leave(.notice("\(written.model) heard nothing: the recording is in iikb › Transcripts"))
             } else if take.typed {
-                Dictation.leave(.heard(written.text, keyboard: take.keyboard))
+                Dictation.leave(.heard(written.text, plain: written.plain, keyboard: take.keyboard))
             }
             publish()
             HostApp.log.notice("\(written.model, privacy: .public) wrote \(seconds, format: .fixed(precision: 1))s down \(Date.now.timeIntervalSince(take.stopped), format: .fixed(precision: 2))s after the stop")

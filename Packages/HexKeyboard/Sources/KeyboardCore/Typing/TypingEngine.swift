@@ -218,10 +218,14 @@ public struct TypingEngine {
             insertWhole(emoji, in: document)
         case .paste(let text):
             insertWhole(text, in: document)
-        case .dictated(let heard):
+        case .dictated(let heard, let plain):
             let lexicon = corrector?.lexicon
             let capitals = settings.dictation.capitals(in: traits.autocapitalization)
-            insertWhole(in: document) { Self.fitted(heard, between: $0.before, and: $0.after, lexicon: lexicon, capitals: capitals) }
+            let traits = traits
+            insertWhole(in: document) {
+                DictationReading.typed(plain ?? heard, in: traits, after: $0.before)
+                    ?? Self.fitted(SpokenAddress.inline(heard), between: $0.before, and: $0.after, lexicon: lexicon, capitals: capitals)
+            }
         }
         return true
     }

@@ -5,7 +5,7 @@ import UIKit
 @main
 final class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        guard !VoiceProbe.asked else { return true }
+        guard !VoiceProbe.asked, !RankingProbe.asked else { return true }
         if VoiceModel.hasNeuralEngine { VoiceModel.shared.prepare() }
         Task {
             await Transcripts.shared.recover()
@@ -49,6 +49,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         LaunchOptions.applyLook()
         HexStyle.applyTitles()
         VoiceProbe.runIfAsked()
+        RankingProbe.runIfAsked()
         let tabs = UITabBarController(tabs: [
             UITab(title: "iikb", image: UIImage(systemName: "house"), identifier: Router.Destination.home.rawValue) { _ in HomeViewController() },
             UITab(title: "Transcripts", image: UIImage(systemName: "waveform"), identifier: Router.Destination.transcripts.rawValue) { _ in

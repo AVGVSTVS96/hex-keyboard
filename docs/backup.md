@@ -16,7 +16,8 @@ gives them:
 | `keyboard/support/` | the keyboard's `Library/Application Support` | what it learned (words, taps), emoji and GIF picks, its clipboard copy |
 | `keyboard/Preferences/` | the keyboard's `Library/Preferences` | the keyboard's settings |
 | `group/Library/` | the App Group's `Library` | the clipboard history, the taps and typing counts the app shows, the settings both read |
-| `mac/` | the Mac (`scripts/keystroke`) | Keystroke's `typing-stats.json`, for Stats (docs/stats.md); the only files the server gives back, and never put on the iPhone |
+| `personal/` | the server (`scripts/personal`) | `en.network`, the next-word network fine-tuned on your typing (below); made there, so the iPhone only reads it |
+| `mac/` | the Mac (`scripts/keystroke`) | Keystroke's `typing-stats.json`, for Stats (docs/stats.md); given back to the app, never put on the iPhone |
 
 ## When
 
@@ -44,6 +45,23 @@ A build gets the server from `Packages/HexKeyboard/Sources/KeyboardUI/Resources/
 address on the first line, the token on the second. `scripts/phone` takes it from the main checkout and won't build
 without it, so no install of its leaves the iPhone unbacked. `scripts/sync` leaves it out of the Mac's trees, so a
 simulator's made-up data never reaches the backup. A build without the file sends nothing and shows no Backup section.
+
+## Your network
+
+The suggestion bar's network (`en.network`, trained on what people type; `scripts/network`) learns how you write. The
+server keeps a log of what you type (`sources/record.ts`, the user service `hex-keyboard-record`), and
+`scripts/personal` fine-tunes a copy of the shipped network on it: only its output side (the embedding that scores the
+next word, the projection and the output biases) learns, from the lines of the log with near-repeats dropped, and the
+pass that best predicts the last tenth of them, kept aside, is the one saved (the shipped network itself if none beats
+it). The LSTM is copied byte for byte, so the file is the same size.
+
+It runs when the log or the shipped network changes, at most once a day: the path unit `hex-keyboard-personal`
+(dotfiles) starts the service of the same name, which asks for `--daily`. The network goes to `mirror/personal/en.network`.
+The app fetches it whenever it syncs (the quick check above, in the other direction) into the App Group's
+`Library/Personal/`, which the backup leaves out since the server made it, and the keyboard reads it from there in place
+of the bundled one the next time it starts, or the bundled one when it's absent. Reset Learned Words and Taps removes the copy and takes no network the server made before then.
+
+The network is made from what you type, so it stays on the server and the iPhone: never in git, tests or logs.
 
 ## Getting it back
 

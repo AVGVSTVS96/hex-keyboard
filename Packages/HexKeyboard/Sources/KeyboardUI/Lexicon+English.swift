@@ -6,7 +6,9 @@ extension Lexicon {
 }
 
 extension Network {
-    static let english = Network(bytes: .mapped("en", "network"))!
+    public static let english = Network(bytes: .mapped("en", "network"))!
+    /// The network the keyboard uses: the one fine-tuned on your typing when the app has fetched it (`PersonalNetwork`), else the bundled one.
+    public static let current = PersonalNetwork.load() ?? english
 }
 
 extension Swipe {
@@ -16,7 +18,11 @@ extension Swipe {
 extension Bytes {
     /// A resource mapped into memory, read in place.
     static func mapped(_ name: String, _ type: String) -> Bytes {
-        let file = try! NSData(contentsOf: Bundle.module.url(forResource: name, withExtension: type)!, options: .alwaysMapped)
+        mapped(Bundle.module.url(forResource: name, withExtension: type)!)!
+    }
+
+    nonisolated static func mapped(_ url: URL) -> Bytes? {
+        guard let file = try? NSData(contentsOf: url, options: .alwaysMapped) else { return nil }
         return Bytes(UnsafeRawBufferPointer(start: file.bytes, count: file.length), owner: file)
     }
 }

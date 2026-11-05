@@ -116,7 +116,7 @@ open class HexKeyboardViewController: UIInputViewController {
             engine.accept(emoji: $0, in: document)
             render()
         }
-        engine.corrector = Corrector(source: Lexicon.english, network: .english)
+        engine.corrector = Corrector(source: Lexicon.english, network: .current)
         engine.swipeModel = .english
         Task { [weak self] in
             let catalog = await Task.detached(priority: .userInitiated) { EmojiCatalog.english }.value
@@ -503,8 +503,8 @@ open class HexKeyboardViewController: UIInputViewController {
         recorded = Dictation.level.recorded
         for (file, note) in Dictation.notes where Dictation.take(file) {
             switch note {
-            case .heard(let text, let keyboard) where keyboard == nil || keyboard == self.keyboard:
-                engine.handle(.dictated(text), in: document)
+            case .heard(let text, let plain, let keyboard) where keyboard == nil || keyboard == self.keyboard:
+                engine.handle(.dictated(text, plain: plain), in: document)
             case .heard:
                 voiceNotice = "Not typed here: it’s in iikb › Transcripts"
             case .notice(let notice):

@@ -1,3 +1,14 @@
+const picker = document.querySelector(".screen-picker");
+const layouts = [...document.querySelectorAll(".layout-shot")];
+for (const button of picker.querySelectorAll("button")) {
+  button.addEventListener("click", () => {
+    for (const control of picker.querySelectorAll("button")) control.setAttribute("aria-pressed", String(control === button));
+    for (const layout of layouts) layout.hidden = layout.id !== button.dataset.screen;
+  });
+}
+for (const layout of layouts) layout.hidden = layout.id !== "iphone";
+picker.hidden = false;
+
 const facts = await fetch("facts.json").then((response) => response.json());
 const get = (path) => path.split(".").reduce((value, key) => value?.[key], facts);
 const format = (value) => (typeof value === "number" ? value.toLocaleString("en-US") : value);
@@ -13,6 +24,7 @@ const svg = "http://www.w3.org/2000/svg";
 
 function draw() {
   const width = chart.clientWidth;
+  if (!width) return;
   const narrow = width < 560;
   const height = narrow ? 260 : 340;
   const left = 36;

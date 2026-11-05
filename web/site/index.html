@@ -6,168 +6,68 @@
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#f2f2f5" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
-<title>iikb</title>
-<meta name="description" content="An open-source iPhone keyboard that types like Apple’s, looks like Raycast’s, and learns where your thumbs land. Try its real engine in your browser.">
+<title>iikb · The best iOS keyboard. In the world.</title>
+<meta name="description" content="Building the best iOS keyboard in the world. Adaptive typing, on-device dictation, and tools worth switching for. Open source for iPhone and iPad.">
 <link rel="canonical" href="https://iikb.vercel.app/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="iikb">
 <meta property="og:title" content="iikb">
-<meta property="og:description" content="An iPhone keyboard that learns where your thumbs land. Type with its real engine in your browser.">
+<meta property="og:description" content="Building the best iOS keyboard in the world. Adaptive typing, on-device dictation, and tools worth switching for. Open source for iPhone and iPad.">
 <meta property="og:url" content="https://iikb.vercel.app/">
-<meta property="og:image" content="https://iikb.vercel.app/og.png?v=1">
-<meta property="og:image:secure_url" content="https://iikb.vercel.app/og.png?v=1">
+<meta property="og:image" content="https://iikb.vercel.app/og.png?v=2">
+<meta property="og:image:secure_url" content="https://iikb.vercel.app/og.png?v=2">
 <meta property="og:image:type" content="image/png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="iikb, an iPhone keyboard">
-<meta property="og:video" content="https://iikb.vercel.app/og.mp4?v=1">
-<meta property="og:video:secure_url" content="https://iikb.vercel.app/og.mp4?v=1">
-<meta property="og:video:type" content="video/mp4">
-<meta property="og:video:width" content="1200">
-<meta property="og:video:height" content="630">
+<meta property="og:image:alt" content="iikb. The best iOS keyboard. In the world.">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="iikb">
-<meta name="twitter:description" content="An iPhone keyboard that learns where your thumbs land. Type with its real engine in your browser.">
-<meta name="twitter:image" content="https://iikb.vercel.app/og.png?v=1">
-<meta name="twitter:image:alt" content="iikb, an iPhone keyboard">
+<meta name="twitter:description" content="Building the best iOS keyboard in the world. Adaptive typing, on-device dictation, and tools worth switching for. Open source for iPhone and iPad.">
+<meta name="twitter:image" content="https://iikb.vercel.app/og.png?v=2">
+<meta name="twitter:image:alt" content="iikb. The best iOS keyboard. In the world.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="preload" href="en.lexicon" as="fetch" crossorigin>
 <link rel="stylesheet" href="page.css">
-<link rel="stylesheet" href="style.css">
 <script type="module" src="page.js"></script>
-<script type="module" src="app.js"></script>
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="wordmark" viewBox="0 0 147.2 72.7"><path transform="translate(-5.8 71.4)" d="M5.80-59.70L20-59.70L20-71.40L5.80-71.40L5.80-59.70M20-51.70L5.80-51.70L5.80 0L20 0L20-51.70M27.10-59.70L41.30-59.70L41.30-71.40L27.10-71.40L27.10-59.70M41.30-51.70L27.10-51.70L27.10 0L41.30 0L41.30-51.70M63.50-71.40L49.30-71.40L49.30 0L63.50 0L63.50-17.80L69-23.10L83.20 0L100.40 0L78.70-32.70L98.20-51.70L81.40-51.70L63.50-33.10L63.50-71.40M138.80-25.80Q138.80-22.60 138.10-19.60Q137.40-16.60 135.90-14.30Q134.40-12 132.15-10.65Q129.90-9.30 126.70-9.30Q123.60-9.30 121.30-10.65Q119-12 117.50-14.30Q116-16.60 115.30-19.60Q114.60-22.60 114.60-25.80Q114.60-29.10 115.30-32.10Q116-35.10 117.50-37.40Q119-39.70 121.30-41.05Q123.60-42.40 126.70-42.40Q129.90-42.40 132.15-41.05Q134.40-39.70 135.90-37.40Q137.40-35.10 138.10-32.10Q138.80-29.10 138.80-25.80M115.10-71.40L100.90-71.40L100.90 0L114.40 0L114.40-6.60L114.60-6.60Q116.90-2.30 121.40-0.50Q125.90 1.30 131.60 1.30Q135.50 1.30 139.30-0.30Q143.10-1.90 146.15-5.20Q149.20-8.50 151.10-13.65Q153-18.80 153-25.90Q153-33 151.10-38.15Q149.20-43.30 146.15-46.60Q143.10-49.90 139.30-51.50Q135.50-53.10 131.60-53.10Q126.80-53.10 122.35-51.25Q117.90-49.40 115.30-45.40L115.10-45.40"/></symbol></svg>
-
 <header class="top wrap">
-  <a class="mark" href="/" aria-label="iikb"><svg viewBox="0 0 147.2 72.7"><use href="#wordmark"/></svg></a>
-  <a href="https://github.com/AVGVSTVS96/iikb">GitHub</a>
+<a class="mark" href="/" aria-label="iikb"><svg viewBox="0 0 147.2 72.7"><use href="#wordmark"/></svg></a>
+<nav aria-label="Main"><a href="#screens">Screens</a><a href="#typing">Typing</a><a href="#voice">Voice</a><a href="https://github.com/AVGVSTVS96/iikb">GitHub</a></nav>
 </header>
-
 <main>
-<section class="hero wrap grid">
-  <div class="hero-text">
-    <h1><svg class="wordmark" viewBox="0 0 147.2 72.7" role="img" aria-label="iikb"><use href="#wordmark"/></svg></h1>
-    <p class="lede">An iPhone keyboard that types like Apple’s and learns where your thumbs land.</p>
-    <p class="caption">The real typing engine, running in your browser. What it learns lasts until you leave the page.</p>
-  </div>
-  <div class="demo" id="demo">
-  <div class="stage">
-  <div class="screen" id="screen">
-    <header class="nav">
-      <h2 class="title">iikb</h2>
-      <button class="glass" id="open-settings" aria-label="Keyboard settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
-    </header>
-    <textarea id="field" inputmode="none" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Text" placeholder="Type here. iikb learns where you tap."></textarea>
-    <section class="keyboard" id="keyboard" aria-label="iikb keyboard">
-      <div class="bar" id="bar"></div>
-      <div class="keys" id="keys"></div>
-      <div class="system" aria-hidden="true"><span class="globe"></span><span class="mic"></span></div>
-      <p class="status" id="status">Loading the typing engine…</p>
-    </section>
-    <div class="settings" id="settings">
-      <div class="scrim"></div>
-      <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="settings-title">
-        <header class="nav">
-          <h2 id="settings-title">Keyboards</h2>
-          <button class="glass done" aria-label="Done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.6 4.6 4.6L19 7.4"/></svg></button>
-        </header>
-        <div class="sections"></div>
-      </div>
-    </div>
-  </div>
-  </div>
-  </div>
+<section class="hero wrap">
+<h1>The best iOS keyboard.<br>In the world.</h1>
+<div class="hero-bottom"><p>That’s what we’re building. A keyboard that learns your thumbs, writes what you say, and earns its place on your iPhone and iPad.</p><a class="button" href="https://github.com/AVGVSTVS96/iikb#install">Build iikb</a></div>
+<p class="challenge">Apple, Raycast: we’re coming for the space bar.</p>
 </section>
-
-<section class="number wrap grid" aria-labelledby="number-title">
-  <h2 id="number-title" class="big"><span class="figure"><span data-fact="accuracy.iikb">97.6</span>%</span> <span class="rest">of words right, from thumbs that miss.</span></h2>
-  <p class="line">The same taps through the nearest key and Apple’s spell checker get <span data-fact="accuracy.baseline">85.2</span>%.</p>
-  <figure class="chart" id="chart" aria-label="Words right per 500 words typed: iikb between 96.4% and 99.0%, nearest key and Apple’s spell checker between 83.2% and 87.4%."></figure>
-  <p class="note">Simulated thumbs with a steady lean (m toward n, b into the space bar, o toward i, every tap a little low) type the <span data-fact="accuracy.phrases">500</span> phrases of MacKenzie and Soukoreff’s set twice, <span data-fact="accuracy.words">5,428</span> words, and never fix a mistake. Measured by <code>scripts/eval</code>; every run is in <a href="https://github.com/AVGVSTVS96/iikb/blob/main/PROGRESS.md">PROGRESS.md</a>.</p>
+<section class="showcase wrap" id="screens" aria-labelledby="screens-title">
+<div class="section-top"><h2 id="screens-title">Every screen. Your keyboard.</h2><p>iPhone, iPad, and the Duo folded or open. Pick a layout to take a closer look.</p></div>
+<div class="screen-picker" role="group" aria-label="Keyboard layout" hidden><button type="button" aria-pressed="true" data-screen="iphone">iPhone</button><button type="button" aria-pressed="false" data-screen="ipad">iPad</button><button type="button" aria-pressed="false" data-screen="duo">Duo</button></div>
+<div class="screen-stage">
+<figure id="iphone" class="layout-shot"><picture><source media="(prefers-color-scheme: dark)" srcset="shots/iphone-dark.webp"><img src="shots/iphone-light.webp" alt="iikb’s iPhone layout with suggestions and the space bar cursor control" width="1206" height="997" fetchpriority="high"></picture><figcaption>iPhone · Familiar key positions, adaptive touch targets.</figcaption></figure>
+<figure id="ipad" class="layout-shot"><picture><source media="(prefers-color-scheme: dark)" srcset="shots/ipad-dark.webp"><img src="shots/ipad-light.webp" alt="iikb’s wide iPad layout with a number row and secondary characters on the keys" width="1600" height="619" loading="lazy"></picture><figcaption>iPad · A number row and flick-down characters, with room for both hands.</figcaption></figure>
+<figure id="duo" class="layout-shot"><img src="shots/duo-dark.webp" alt="iikb’s expanded Duo layout with clipboard, GIF search, emoji and dictation controls" width="1600" height="865" loading="lazy"><figcaption>Duo · Keys that fill the room the screen gives them.</figcaption></figure>
+</div>
+<p class="note">Keyboard layout captures from the simulator. The app continues to evolve.</p>
 </section>
-
-<section class="aim wrap grid" aria-labelledby="aim-title">
-  <div class="aim-text">
-    <h2 id="aim-title" class="head">It moves with your grip.</h2>
-    <p class="line">Miss a key the same way three times and it moves to meet you.</p>
-    <p class="note">The app’s Your Taps page: where your thumbs land on each key, and where iikb now aims for you. Made-up taps.</p>
-  </div>
-  <figure class="phone heat">
-    <picture><source media="(prefers-color-scheme: dark)" srcset="shots/taps-heat-dark.webp"><img src="shots/taps-heat-light.webp" alt="Your Taps, Heat: a glow over each key where the taps landed" width="1236" height="1278" loading="lazy"></picture>
-    <figcaption>Heat</figcaption>
-  </figure>
-  <figure class="phone aimview">
-    <picture><source media="(prefers-color-scheme: dark)" srcset="shots/taps-aim-dark.webp"><img src="shots/taps-aim-light.webp" alt="Your Taps, Aim: each key’s learned center and spread" width="1236" height="1278" loading="lazy"></picture>
-    <figcaption>Aim</figcaption>
-  </figure>
+<section class="typing wrap" id="typing" aria-labelledby="typing-title">
+<div class="section-top"><h2 id="typing-title">It learns your thumbs.</h2><p>The keys stay familiar. Their touch targets learn where you actually land, then follow as your grip changes.</p></div>
+<div class="typing-details"><p>Autocorrect reads your taps, not just the nearest letter. Next-word suggestions combine an on-device language model with the words and phrases you keep.</p><p>Missed a space? The suggestion bar can offer the words you meant. Your Taps shows where you press and what the keyboard has learned.</p></div>
+<details class="benchmark"><summary><span data-fact="accuracy.iikb">97.7</span>% of words right in the off-target thumbs test <span aria-hidden="true">+</span></summary>
+<p>Recorded benchmark: the same simulated taps through the nearest key and Apple’s spell checker score <span data-fact="accuracy.baseline">85.2</span>%. This compares a spell-checker baseline, rather than Apple’s complete keyboard.</p>
+<figure class="chart" id="chart" aria-label="Recorded word accuracy per 500 words: iikb compared with nearest key and Apple’s spell checker."></figure>
+<p class="note">500 phrases typed twice, 5,428 words, with deliberately biased taps and no manual corrections. <a href="https://github.com/AVGVSTVS96/iikb/blob/main/scripts/eval.expected">Recorded results</a> · <a href="https://github.com/AVGVSTVS96/iikb/blob/main/PROGRESS.md">Method and development log</a>.</p></details>
 </section>
-
-<section class="voice wrap grid" aria-labelledby="voice-title">
-  <h2 id="voice-title" class="head">Talk, and it types.</h2>
-  <p class="line">Parakeet v3 writes <span data-fact="voice.speechSeconds">8.2</span> seconds of speech in <span data-fact="voice.writeSeconds">0.05</span> seconds on the iPhone’s Neural Engine. The sound never leaves the phone.</p>
-  <figure class="step listening">
-    <picture><source media="(prefers-color-scheme: dark)" srcset="shots/voice-listening-dark.webp"><img src="shots/voice-listening-light.webp" alt="The suggestion bar while dictating: a waveform beside the red mic" width="1206" height="360" loading="lazy"></picture>
-    <figcaption><span class="live"></span>Listening</figcaption>
-  </figure>
-  <figure class="step typed">
-    <picture><source media="(prefers-color-scheme: dark)" srcset="shots/voice-typed-dark.webp"><img src="shots/voice-typed-light.webp" alt="The words typed into the field" width="1206" height="360" loading="lazy"></picture>
-    <figcaption>Typed</figcaption>
-  </figure>
-  <p class="credit">Voice by <a href="https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3">NVIDIA’s Parakeet</a>, run on the Neural Engine by <a href="https://github.com/FluidInference/FluidAudio">FluidAudio</a>.</p>
+<section class="voice-band" id="voice" aria-labelledby="voice-title"><div class="wrap voice">
+<h2 id="voice-title">Say it your way.</h2><div><p class="statement">On-device dictation. Your choice of voice model. Your punctuation, editing, and writing style.</p><p>Start and stop from the keyboard. Cancel a recording without inserting it. Keep the microphone ready between dictations, then switch it off in the app.</p><p>Transcripts keep the words and available recordings for review. Speech recognition runs on your device with NVIDIA’s Parakeet through FluidAudio, or Apple’s model.</p></div>
+</div></section>
+<section class="tools wrap" aria-labelledby="tools-title"><h2 id="tools-title">Worth the switch.</h2>
+<div class="tool-list"><article><h3>Keep what you copy.</h3><p>Clipboard history in the keyboard and app, with pinned items and full text kept for large copies.</p></article><article><h3>Find the right reaction.</h3><p>Emoji suggestions as you type, searchable emoji with skin tones, and GIF search beside your words.</p></article><article><h3>Make the keys yours.</h3><p>Five themes, key spacing and roundness, haptic strength, a number row, and one-handed layouts.</p></article><article><h3>Bring your own tools.</h3><p>Connect a source that reads the field you’re writing in and returns a hint above the keys. <a href="https://github.com/AVGVSTVS96/iikb/blob/main/docs/sources.md">See the source API</a>.</p></article></div>
+<div class="themes"><figure><img src="shots/theme-default.webp" alt="Default keyboard theme" width="424" height="274" loading="lazy"><figcaption>Default</figcaption></figure><figure><img src="shots/theme-clear.webp" alt="Clear keyboard theme" width="424" height="274" loading="lazy"><figcaption>Clear</figcaption></figure><figure><img src="shots/theme-physical.webp" alt="Physical keyboard theme" width="424" height="274" loading="lazy"><figcaption>Physical</figcaption></figure><figure><img src="shots/theme-mechanical.webp" alt="Mechanical keyboard theme" width="424" height="274" loading="lazy"><figcaption>Mechanical</figcaption></figure><figure><img src="shots/theme-ios5.webp" alt="iOS 5 keyboard theme" width="424" height="274" loading="lazy"><figcaption>iOS 5</figcaption></figure></div><p class="note">The keyboard’s look takes inspiration from <a href="https://www.raycast.com/">Raycast</a>.</p>
 </section>
-
-<section class="sources wrap grid" aria-labelledby="sources-title">
-  <h2 id="sources-title" class="head">Plug in your own service.</h2>
-  <p class="line">A source reads the field you’re typing in and answers with a hint above the keys. One JSON request, one answer.</p>
-  <div class="exchange">
-    <div class="code">
-      <p class="label">iikb sends</p>
-<pre><code>POST https://your.source/hint
-{
-  "field": "6F1C2D0E-8A3B-4C5D-…",
-  "before": "honestly I hate",
-  "after": "",
-  "by": "keyboard",
-  "kind": "text",
-  "returnKey": "default",
-  "at": "2026-10-20T07:13:02.120Z"
-}</code></pre>
-      <p class="label">Your source answers</p>
-<pre><code>{ "hint": "This might come across harsher than you mean." }</code></pre>
-    </div>
-    <figure class="hint">
-      <picture><source media="(prefers-color-scheme: dark)" srcset="shots/source-hint-dark.webp"><img src="shots/source-hint-light.webp" alt="The hint shown above the keys in place of the suggestions" width="1206" height="300" loading="lazy"></picture>
-      <figcaption>The hint takes the suggestions’ place until you tap it.</figcaption>
-    </figure>
-  </div>
-  <p class="note"><a href="https://github.com/AVGVSTVS96/iikb/blob/main/docs/sources.md">docs/sources.md</a> has every field and answer.</p>
-</section>
-
-<section class="looks wrap grid" aria-labelledby="looks-title">
-  <h2 id="looks-title" class="head">Raycast’s five themes, on every screen.</h2>
-  <p class="line">Default, Clear, Physical, Mechanical and iOS 5, fitted to each of the iPhone Duo’s screens, folded or open.</p>
-  <ol class="themes">
-    <li><img src="shots/theme-default.webp" alt="The Default theme" width="424" height="274" loading="lazy"><span>Default</span></li>
-    <li><img src="shots/theme-clear.webp" alt="The Clear theme" width="424" height="274" loading="lazy"><span>Clear</span></li>
-    <li><img src="shots/theme-physical.webp" alt="The Physical theme" width="424" height="274" loading="lazy"><span>Physical</span></li>
-    <li><img src="shots/theme-mechanical.webp" alt="The Mechanical theme" width="424" height="274" loading="lazy"><span>Mechanical</span></li>
-    <li><img src="shots/theme-ios5.webp" alt="The iOS 5 theme" width="424" height="274" loading="lazy"><span>iOS 5</span></li>
-  </ol>
-  <div class="duo">
-    <figure class="cover"><picture><source media="(prefers-color-scheme: dark)" srcset="shots/duo-cover-dark.webp"><img src="shots/duo-cover-light.webp" alt="iikb on the iPhone Duo’s cover screen" width="1236" height="2232" loading="lazy"></picture><figcaption>Cover</figcaption></figure>
-    <figure class="open"><picture><source media="(prefers-color-scheme: dark)" srcset="shots/duo-open-dark.webp"><img src="shots/duo-open-light.webp" alt="iikb on the iPhone Duo open, on its side" width="2232" height="1600" loading="lazy"></picture><figcaption>Open, on its side</figcaption></figure>
-  </div>
-  <p class="credit">The look follows <a href="https://www.raycast.com/">Raycast</a>’s keyboard.</p>
-</section>
+<section class="install wrap" aria-labelledby="install-title"><h2 id="install-title">Make room for iikb.</h2><div><p>Open source. MIT licensed. For iPhone and iPad on iOS 26 and later.</p><p>iikb is in active development and isn’t on the App Store yet. Build it from source and help make the keyboard better.</p><a class="button" href="https://github.com/AVGVSTVS96/iikb#install">Build iikb</a><p class="note">English typing today. Swipe typing is in development; more languages aren’t available yet.</p></div></section>
 </main>
-
-<footer class="foot wrap grid">
-  <p class="line">Open source under MIT. iikb isn’t on the App Store; build it from the code on GitHub.</p>
-  <nav class="links"><a href="https://github.com/AVGVSTVS96/iikb">GitHub</a><a href="https://github.com/AVGVSTVS96/iikb/blob/main/PROGRESS.md">PROGRESS.md</a><a href="https://github.com/AVGVSTVS96/iikb/blob/main/docs/sources.md">docs/sources.md</a></nav>
-  <svg class="wordmark" viewBox="0 0 147.2 72.7" aria-hidden="true"><use href="#wordmark"/></svg>
-</footer>
-</body>
-</html>
+<footer class="foot wrap"><p>Building the best iOS keyboard in the world.</p><nav aria-label="Footer"><a href="https://github.com/AVGVSTVS96/iikb">GitHub</a><a href="https://github.com/AVGVSTVS96/iikb/blob/main/PROGRESS.md">Development log</a><a href="https://github.com/AVGVSTVS96/iikb/blob/main/LICENSE">MIT license</a></nav><svg class="wordmark" viewBox="0 0 147.2 72.7" aria-hidden="true"><use href="#wordmark"/></svg></footer>
+</body></html>

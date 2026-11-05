@@ -1,0 +1,10 @@
+#!/bin/sh
+# Build the presentation site without the optional WebAssembly demo toolchain.
+set -eu
+cd "$(dirname "$0")/.."
+mkdir -p web/dist
+cp web/site/index.html web/site/page.css web/site/page.js web/site/favicon.svg web/site/apple-touch-icon.png web/site/icon-512.png web/site/og.png web/dist/
+cp -R web/site/fonts web/site/shots web/dist/
+cp copy/facts.json web/dist/
+cp brand/og/index.html web/dist/link-preview.html
+cp brand/logo/out/wordmark-paper.svg web/dist/

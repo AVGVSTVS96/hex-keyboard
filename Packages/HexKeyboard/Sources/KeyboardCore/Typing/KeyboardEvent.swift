@@ -27,6 +27,7 @@ public enum KeyboardEvent: Hashable, Sendable {
     case emoji(String, base: String?)
     /// Text from the clipboard panel, typed as it is.
     case paste(String)
-    /// Text that dictation heard.
-    case dictated(String)
+    /// Text that dictation heard in its style, and as the model wrote it with the person's vocabulary (`plain`, which
+    /// the field's reading takes: `DictationReading`), the same when nil.
+    case dictated(String, plain: String? = nil)
 }

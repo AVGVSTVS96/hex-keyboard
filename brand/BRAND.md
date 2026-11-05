@@ -6,7 +6,7 @@ The app was already most of the way there (black pages, near-black cards, gray s
 
 ## Personality
 
-- **Plain.** Says what the keyboard does, with the numbers that show it. No marketing voice.
+- **Confident.** Building the best iOS keyboard in the world. Say what it does and show the work behind the ambition.
 - **Built on a grid.** A keyboard is rows of equal keys. Pages are rows of equal columns. Things line up on one left edge.
 - **Quiet, then exact.** Big type for the one thing that matters on a screen, small type for everything else, nothing in between.
 - **Apple's where it's Apple's.** The keys, the system fonts in the app's rows and the iOS controls stay iOS. The brand lives in titles, numbers, the mark and the site.
@@ -58,7 +58,7 @@ Dark is the app's dark: a black page, near-black cards. It follows the system th
 1. **The wordmark flush left on a bottom margin.** The icon, the OG image and the video's end card all place iikb the same way: left margin = bottom margin, the name as wide as the margins allow.
 2. **The key grid.** The keyboard's rows are the page's module. Sections line up to the keys' columns where a keyboard is on screen.
 3. **One big number.** A section with a number leads with it in display type (97.6%), the comparison beside it in gray.
-4. **The real thing.** The demo runs the real engine; screenshots are the real app in its current version.
+4. **The real thing.** The site shows real keyboard layout captures, labeled as such. New screenshots should show the current app and use synthetic content.
 
 ## Logo
 

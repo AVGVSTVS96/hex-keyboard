@@ -8,13 +8,17 @@
  *
  * GET /         every file it holds, as { "app/transcripts.jsonl": [size, modified], … }, times in seconds
  * PUT /<name>   a file, with its modification time in X-Modified
- * GET /mac/<name>  a file the Mac sent, with its time in Last-Modified, for the app's Stats (docs/stats.md); the
- *               iPhone's own files are never read back out, so its token can't take them
+ * GET /mac/<name>  a file the Mac sent, with its time in Last-Modified, for the app's Stats (docs/stats.md)
+ * GET /personal/<name>  a file made here for the iPhone (`scripts/personal`'s network), the same way; the iPhone's
+ *               own files are never read back out, so its token can't take them
  */
 import { mkdir, readdir, rename, rm, stat, utimes } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join, relative, sep } from "node:path";
 import { parseArgs } from "node:util";
+
+/** What the server gives back: what the Mac sent and what it makes for the iPhone. */
+const given = ["mac", "personal"];
 
 export type Held = Record<string, [size: number, modified: number]>;
 
@@ -47,7 +51,7 @@ export const backup =
     const file = join(mirror, name);
     if (request.method === "GET") {
       const sent = Bun.file(file);
-      if (!file.startsWith(join(mirror, "mac") + sep) || !(await sent.exists())) return new Response(null, { status: 404 });
+      if (!given.some((folder) => file.startsWith(join(mirror, folder) + sep)) || !(await sent.exists())) return new Response(null, { status: 404 });
       return new Response(sent, { headers: { "last-modified": new Date((await stat(file)).mtimeMs).toUTCString() } });
     }
     const modified = Number(request.headers.get("x-modified"));
