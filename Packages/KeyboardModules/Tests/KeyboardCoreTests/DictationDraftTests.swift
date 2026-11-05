@@ -143,6 +143,31 @@ struct DictationDraftTests {
         #expect(outcome.map(\.final) == ["The keys are under the mat."])
     }
 
+    /// Punctuation typed against a dictation's end is what its style left out that you wanted; the space after isn't it.
+    @Test func punctuationTypedAgainstADictationIsPartOfIt() {
+        var engine = TypingEngine()
+        let document = ClippedDocument()
+        dictate("See you at noon", into: document, in: &engine)
+        engine.type("? thanks", in: document)
+        #expect(send(document, &engine).map(\.final) == ["See you at noon?"])
+    }
+
+    @Test func wordsRetypedAtTheEndKeepTheirSpacesButNotTheLast() {
+        var engine = TypingEngine()
+        let document = ClippedDocument()
+        dictate("See you at noon.", into: document, in: &engine)
+        for _ in 0..<8 { engine.perform(.delete, in: document) }
+        engine.type("by six ", in: document)
+        #expect(send(document, &engine).map(\.final) == ["See you by six"])
+    }
+
+    /// An edit a build from before `uncertain` left in the App Group is still read, as certain.
+    @Test func anOutcomeWithoutUncertainIsCertain() throws {
+        let old = #"{"id":"a","typed":"See you","final":"See you there","sent":true}"#
+        let outcome = try JSONDecoder().decode(DictationDraft.Outcome.self, from: Data(old.utf8))
+        #expect(outcome == .init(id: "a", typed: "See you", final: "See you there", sent: true, uncertain: false))
+    }
+
     @Test func twoDictationsInOneFieldAreEachFollowed() {
         var engine = TypingEngine()
         let document = ClippedDocument(window: 30)

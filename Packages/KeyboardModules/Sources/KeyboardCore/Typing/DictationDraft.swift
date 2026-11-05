@@ -10,7 +10,8 @@ public struct DictationDraft: Codable, Sendable {
         /// What the keyboard typed for it.
         public var typed: String
         /// What it is in the field now: what was typed, with every edit inside it. Typing that runs on from either end
-        /// isn't in it, unless it retypes what was deleted at that end; once all of it is deleted it stays empty.
+        /// isn't in it, unless it retypes what was deleted at that end, but punctuation typed against its end is, and
+        /// whitespace typed at its end is only when more retyping follows it; once all of it is deleted it stays empty.
         public var final: String
         /// The field was emptied after it, as sending a message does; false when it was left.
         public var sent: Bool
@@ -233,7 +234,8 @@ public struct DictationDraft: Codable, Sendable {
     }
 
     /// Replaces `range` of the draft. An edit inside a dictation changes it, and so does typing at an end of one that was
-    /// just deleted into; typing at either end otherwise isn't part of it, and an edit over all of it leaves it empty.
+    /// just deleted into, up to the last of it that isn't whitespace; punctuation typed against its end is part of it too;
+    /// typing at either end otherwise isn't, and an edit over all of it leaves it empty.
     private mutating func replace(_ range: Range<Int>, with new: some Collection<Character>) {
         let (a, b, n) = (range.lowerBound, range.upperBound, new.count)
         let delta = n - (b - a)
@@ -249,6 +251,13 @@ public struct DictationDraft: Codable, Sendable {
                 piece.openEnd = false
             } else if b < s || b == s && !(inserted && piece.openStart) {
                 piece.range = s + delta..<e + delta
+            } else if inserted, a >= e, text[e..<a].allSatisfy(\.isWhitespace) {
+                let added = text[e..<a + n]
+                if piece.openEnd, let last = added.lastIndex(where: { !$0.isWhitespace }) {
+                    piece.range = s..<last + 1
+                } else if a == e {
+                    piece.range = s..<e + added.prefix(while: \.isPunctuation).count
+                }
             } else if a > e || a == e && !(inserted && piece.openEnd) {
             } else {
                 piece.range = min(s, a)..<(e >= b ? e + delta : a + n)
@@ -282,5 +291,17 @@ public struct DictationDraft: Codable, Sendable {
             pieces[index].range = pieces[index].range.lowerBound + lead.count..<pieces[index].range.upperBound + lead.count
         }
         caret = caret.map { $0.lowerBound + lead.count..<$0.upperBound + lead.count }
+    }
+}
+
+extension DictationDraft.Outcome {
+    /// An outcome left by a build from before `uncertain` was kept is certain.
+    public init(from decoder: any Swift.Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        typed = try container.decode(String.self, forKey: .typed)
+        final = try container.decode(String.self, forKey: .final)
+        sent = try container.decode(Bool.self, forKey: .sent)
+        uncertain = try container.decodeIfPresent(Bool.self, forKey: .uncertain) ?? false
     }
 }
