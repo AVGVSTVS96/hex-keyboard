@@ -1,0 +1,48 @@
+# What a dictation types for what Parakeet writes, in a message field with the default settings (Casual drops the last
+# period) and a Dictionary of kestrel.run: `heard | typed`, or `field | heard | typed` for an email, url, search or
+# decimal field. FormatTests runs them, in scripts/coretest and in scripts/formats, which scripts/phone runs before
+# installing. Made-up text only; Parakeet's own forms (it writes "Opus 5.5" and "Opus five point five" alike).
+
+# versions and decimals
+Try Opus 5.5 on high. | Try Opus 5.5 on high
+Use GPT-6.1 for the review. | Use GPT-6.1 for the review
+I got 3.5 stars and 4.25 back. | I got 3.5 stars and 4.25 back
+
+# "point" that stays a word
+At one point five people left. | At one point five people left
+That's one point I'd make. | That's one point I'd make
+The point is five of them came. | The point is five of them came
+We scored three points to five. | We scored three points to five
+It's a five point plan. | It's a five point plan
+Make one point, then stop. | Make one point, then stop
+
+# percentages
+It uses 50% less. | It uses 50% less
+I'm a hundred percent sure. | I'm a hundred percent sure
+What percent of it failed? | What percent of it failed?
+
+# domains and the word "dot"
+Go to proxy.kestrel.run now. | Go to proxy.kestrel.run now
+Open kestrul dot run now. | Open kestrel.run now
+My dot files are synced. | My dot files are synced
+Put a dot here and a dash there. | Put a dot here and a dash there
+The dot is selected, so go. | The dot is selected, so go
+The dot com bubble burst. | The dot com bubble burst
+
+# emails and the word "at"
+Email me at jane at example dot com. | Email me at jane@example.com
+Send it to Theo99 at fastmail.com. | Send it to theo99@fastmail.com
+Write to jane.doe at gmail.com today. | Write to jane.doe@gmail.com today
+Meet me at home at five. | Meet me at home at five
+Shop at example.com for it. | Shop at example.com for it
+Look at the logs at noon. | Look at the logs at noon
+
+# times and plain numbers stay as written
+It ran for twenty four hours. | It ran for twenty four hours
+That's $250 in credits. | That's $250 in credits
+
+# fields
+email | John dot Smith at Gmail dot com. | john.smith@gmail.com
+url | w w w dot example dot com slash pricing | www.example.com/pricing
+search | kestrel dot run | kestrel.run
+decimal | three point five | 3.5

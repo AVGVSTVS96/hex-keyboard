@@ -15,6 +15,7 @@ It builds the app and keyboard with [xtool](https://github.com/xtool-org/xtool) 
 - signs them with a free-team profile that xtool renews on every run. It covers every device the team has registered; a new phone gets registered by one direct `xtool install` to it.
 - stamps main's commit count as the build number (Settings › About shows it); an iPhone that already has that build is left alone.
 - installs them through the Mac with `devicectl` on the iPhone the Mac reaches, by cable or Wi-Fi, once the running app's status in the App Group (`Dictation.Status`) says no dictation is being recorded or written down, checked last thing before the install, after the backup, so an install never cuts off a dictation.
+- installs nothing that fails `scripts/gate` (the bar) or then `scripts/formats` (dictation's versions, decimals, percentages and addresses), each run on the commit it builds; the second reuses the first's build, so it adds seconds.
 - then starts iikb in the background, now or the moment the iPhone next unlocks (`scripts/unlocked`, left running on the Mac, which watches SpringBoard's lock state), so Parakeet's compile for the new install begins then rather than at the next dictation.
 
 It needs:

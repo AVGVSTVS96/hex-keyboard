@@ -22,7 +22,7 @@
 # Installs go out at most once every 10 minutes: a run soon after the last install waits out the rest, then installs
 # main as it is by then, so builds that finish meanwhile land as one batch and the runs queued behind it find their
 # build already on the iPhone. --now skips the wait.
-# Before building it runs scripts/gate on that commit, and installs nothing that fails it.
+# Before building it runs scripts/gate and then scripts/formats on that commit, and installs nothing that fails either.
 set -e
 cd "$(dirname "$0")/.."
 build=../iikb-build
@@ -60,6 +60,7 @@ if [ "$installed" = "${stamped:-}" ] && [ "${1:-}" != --reinstall ] && git diff 
 fi
 git -C "$build" checkout -q -f --detach "$commit"
 "$build/scripts/gate" || { echo "build $number (main $commit) fails scripts/gate, so it isn't installed" >&2; exit 1; }
+"$build/scripts/formats" || { echo "build $number (main $commit) fails scripts/formats, so it isn't installed" >&2; exit 1; }
 for plist in Config/xtool/iikb-Info.plist Config/xtool/Keyboard-Info.plist; do
   python3 -c "import plistlib, sys; p = plistlib.load(open(sys.argv[1], 'rb')); p['CFBundleVersion'] = sys.argv[2]; plistlib.dump(p, open(sys.argv[1], 'wb'))" "$build/$plist" "$number"
 done

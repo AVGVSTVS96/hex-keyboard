@@ -17,4 +17,4 @@ let package = Package(name: "Core", targets: [
 ])
 SWIFT
 cd "$pkg"
-swift test -c release -Xswiftc -enable-testing "$@" 2>&1 | grep -E "error:|✘|↳|Test run with|^SWIPE|^GATE" | grep -vE "^↳ (Testing Library Version|Target Platform):"
+swift test -c release -Xswiftc -enable-testing "$@" 2>&1 | grep -E "error:|✘|↳|Test run with|^SWIPE|^GATE|^FORMAT" | grep -vE "^↳ (Testing Library Version|Target Platform):"
