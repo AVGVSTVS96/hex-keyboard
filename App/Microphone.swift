@@ -47,7 +47,9 @@ import Observation
             node.voiceProcessingOtherAudioDuckingConfiguration = .init(enableAdvancedDucking: false, duckingLevel: .min)
         }
         try? session.setAllowHapticsAndSystemSoundsDuringRecording(true)
-        node.installTap(onBus: 0, bufferSize: 4096, format: node.outputFormat(forBus: 0), block: Self.tap(feed) { [weak self] level, recorded in
+        let heard = node.outputFormat(forBus: 0)
+        guard heard.sampleRate > 0, heard.channelCount > 0 else { throw Unrecordable(format: heard.description) }
+        node.installTap(onBus: 0, bufferSize: 4096, format: nil, block: Self.tap(feed) { [weak self] level, recorded in
             Dictation.publish(level: level, recorded: recorded)
             Task { @MainActor in self?.onLevel(level, recorded) }
         })
@@ -74,9 +76,8 @@ import Observation
     }
 
     /// Records from the next sound on into `url`.
-    func record(to url: URL) throws {
-        let natural = engine.inputNode.outputFormat(forBus: 0)
-        guard feed.start(from: natural, file: url) else { throw Unrecordable(format: natural.description) }
+    func record(to url: URL) {
+        feed.start(file: url)
         Dictation.publish(level: 0, recorded: 0)
     }
 
@@ -120,15 +121,13 @@ nonisolated private final class Feed: @unchecked Sendable {
     private var stopped: UInt64?
     private var ended: CheckedContinuation<[Float], Never>?
 
-    func start(from natural: AVAudioFormat, file url: URL) -> Bool {
-        guard let recorder = AVAudioConverter(from: natural, to: Recording.format) else { return false }
+    func start(file url: URL) {
         lock.withLock {
-            self.recorder = recorder
+            recorder = nil
             recording = []
             file = Recording.File(url)
             loudness = []
         }
-        return true
     }
 
     /// Everything heard since `start`.
@@ -142,7 +141,7 @@ nonisolated private final class Feed: @unchecked Sendable {
     /// and on until you're quiet, since a stop tapped as you finish speaking lands on your last word. A room that never
     /// gets quiet, or a microphone that stops sending, ends it a second after the stop.
     @MainActor func stopOnceQuiet() async -> [Float] {
-        guard lock.withLock({ recorder != nil }) else { return stop() }
+        guard lock.withLock({ file != nil }) else { return stop() }
         let stopped = mach_absolute_time()
         let loud = Task {
             guard (try? await Task.sleep(for: .seconds(1))) != nil else { return }
@@ -157,8 +156,9 @@ nonisolated private final class Feed: @unchecked Sendable {
     /// How many seconds the recording holds with the buffer, nil when there's no recording to take it.
     func yield(_ buffer: AVAudioPCMBuffer, at time: AVAudioTime, loudness level: Float) -> Double? {
         let (took, done) = lock.withLock { () -> (Double?, ([Float], CheckedContinuation<[Float], Never>?)?) in
-            guard let recorder else { return (nil, nil) }
-            if let converted = Self.convert(buffer, with: recorder), let channel = converted.floatChannelData?[0] {
+            guard file != nil else { return (nil, nil) }
+            if recorder?.inputFormat != buffer.format { recorder = AVAudioConverter(from: buffer.format, to: Recording.format) }
+            if let recorder, let converted = Self.convert(buffer, with: recorder), let channel = converted.floatChannelData?[0] {
                 let samples = UnsafeBufferPointer(start: channel, count: Int(converted.frameLength))
                 recording.append(contentsOf: samples)
                 file?.append(samples)

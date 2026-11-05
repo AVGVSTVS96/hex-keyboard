@@ -74,7 +74,7 @@ import UIKit
             try microphone.open()
             VoiceModel.shared.micIsOn = true
             take.mic = microphone.input
-            try microphone.record(to: Transcripts.shared.recording(of: take.id))
+            microphone.record(to: Transcripts.shared.recording(of: take.id))
         } catch {
             recording = nil
             closeMic()
