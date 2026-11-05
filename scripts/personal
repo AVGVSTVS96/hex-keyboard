@@ -1,0 +1,5 @@
+#!/bin/sh
+# Fine-tunes the shipped next-word network on your own typing (scripts/personal.py): scripts/personal record.jsonl [en.network [out]]
+set -e
+cd "$(dirname "$0")/.."
+exec nice -n 19 uv run --no-project --with numpy --with torch python3 scripts/personal.py "$@"

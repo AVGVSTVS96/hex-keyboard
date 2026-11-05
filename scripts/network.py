@@ -49,8 +49,7 @@ SPECIALS = ["<s>", "<unk>", "<n>", ","]
 TOKEN = re.compile(r"[a-z0-9]+(?:'[a-z0-9]+)*|[.!?,]")
 WIDTH, HIDDEN, WINDOW, BATCH, STEPS, RATE = 128, 1024, 32, 256, 40_000, 3e-3
 
-out = sys.argv[1]
-os.makedirs(os.path.join(out, "download"), exist_ok=True)
+out = ""
 
 
 def path(name):
@@ -243,6 +242,8 @@ def export():
 
 
 if __name__ == "__main__":
+    out = sys.argv[1]
+    os.makedirs(os.path.join(out, "download"), exist_ok=True)
     corpus()
     prepare()
     train()

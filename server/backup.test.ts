@@ -68,3 +68,12 @@ test("gives back only what the Mac sent, with the time it was sent with", async 
   expect((await send("GET", "/mac/missing.json")).status).toBe(404);
   expect((await send("GET", "/mac/typing-stats.json", undefined, 0, "wrong")).status).toBe(401);
 });
+
+test("gives back what it made for the iPhone, under personal/", async () => {
+  const { send } = await server();
+  await send("PUT", "/personal/en.network", "net", 1_762_000_321);
+  const personal = await send("GET", "/backup/personal/en.network");
+  expect(await personal.text()).toBe("net");
+  expect(new Date(personal.headers.get("last-modified")!).getTime()).toBe(1_762_000_321_000);
+  expect((await send("GET", "/personal/../app/x")).status).toBe(404);
+});

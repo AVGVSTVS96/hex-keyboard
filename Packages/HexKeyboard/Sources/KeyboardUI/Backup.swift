@@ -91,6 +91,33 @@ nonisolated public enum Backup {
         return (data, modified)
     }
 
+    /// Fetches a file the server made for the iPhone (under `personal/`) to `url`, when the server holds it at another size
+    /// or modification time than the copy there (the quick check `send` uses) and made it after `after`; the copy gets the
+    /// server's time. True when it replaced the copy.
+    @discardableResult
+    public static func pull(_ name: String, to url: URL, after: Date = .distantPast) async -> Bool {
+        guard let server else { return false }
+        var request = URLRequest(url: server.url, cachePolicy: .reloadIgnoringLocalCacheData)
+        request.setValue("Bearer \(server.token)", forHTTPHeaderField: "Authorization")
+        guard let (data, response) = try? await URLSession.shared.data(for: request), (response as? HTTPURLResponse)?.statusCode == 200,
+              let held = try? JSONDecoder().decode([String: [Int]].self, from: data), let theirs = held[name], theirs.count == 2,
+              Date(timeIntervalSince1970: Double(theirs[1])) > after
+        else { return false }
+        let values = try? url.resourceValues(forKeys: [.fileSizeKey, .contentModificationDateKey])
+        if values?.fileSize == theirs[0], values?.contentModificationDate.map({ Int($0.timeIntervalSince1970) }) == theirs[1] { return false }
+        request.url = server.url.appending(path: name)
+        guard let (downloaded, response) = try? await URLSession.shared.download(for: request), (response as? HTTPURLResponse)?.statusCode == 200,
+              (try? downloaded.resourceValues(forKeys: [.fileSizeKey]))?.fileSize == theirs[0]
+        else { return false }
+        let manager = FileManager.default
+        try? manager.setAttributes([.modificationDate: Date(timeIntervalSince1970: Double(theirs[1]))], ofItemAtPath: downloaded.path(percentEncoded: false))
+        try? manager.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        if manager.fileExists(atPath: url.path(percentEncoded: false)) {
+            return (try? manager.replaceItemAt(url, withItemAt: downloaded)) != nil
+        }
+        return (try? manager.moveItem(at: downloaded, to: url)) != nil
+    }
+
     private static func httpDate(_ text: String) -> Date? {
         let format = DateFormatter()
         format.locale = Locale(identifier: "en_US_POSIX")

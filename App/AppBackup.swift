@@ -4,11 +4,13 @@ extension Backup {
     /// Sends the app's files and the group's in the background.
     static func syncApp() {
         sync(app + group, skip: unwritten)
+        Task { await PersonalNetwork.fetch() }
     }
 
     /// Sends the app's files and the group's and says how it went.
     static func sendApp() async -> Outcome? {
-        await send(app + group, skip: unwritten)
+        await PersonalNetwork.fetch()
+        return await send(app + group, skip: unwritten)
     }
 
     /// Recordings still being made, which go once written down.
