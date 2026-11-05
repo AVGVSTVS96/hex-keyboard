@@ -1,30 +1,32 @@
 import UIKit
 import KeyboardCore
 
-final class ProxyDocument: TextDocument {
+/// The host's field, through the keyboard's `textDocumentProxy`, as the `TextDocument` that `TypingEngine` edits.
+public final class ProxyDocument: TextDocument {
     private let proxy: () -> UITextDocumentProxy
 
-    init(_ proxy: @escaping () -> UITextDocumentProxy) {
+    public init(_ proxy: @escaping () -> UITextDocumentProxy) {
         self.proxy = proxy
     }
 
-    var textBeforeInput: String? { proxy().documentContextBeforeInput }
+    public var textBeforeInput: String? { proxy().documentContextBeforeInput }
 
-    var textAfterInput: String? { proxy().documentContextAfterInput }
+    public var textAfterInput: String? { proxy().documentContextAfterInput }
 
-    var selectedText: String? { proxy().selectedText }
+    public var selectedText: String? { proxy().selectedText }
 
-    func insert(_ text: String) { proxy().insertText(text) }
+    public func insert(_ text: String) { proxy().insertText(text) }
 
-    func deleteBackward(_ count: Int) {
+    public func deleteBackward(_ count: Int) {
         for _ in 0..<count { proxy().deleteBackward() }
     }
 
-    func moveCursor(by offset: Int) { proxy().adjustTextPosition(byCharacterOffset: offset) }
+    public func moveCursor(by offset: Int) { proxy().adjustTextPosition(byCharacterOffset: offset) }
 }
 
 extension InputTraits {
-    init(_ proxy: UITextDocumentProxy) {
+    /// What the host's field asks for: its keyboard, return key, capitals, and whether it takes corrections.
+    public init(_ proxy: UITextDocumentProxy) {
         let kind = InputKind(proxy.keyboardType ?? .default)
         let returnKind = ReturnKind(proxy.returnKeyType ?? .default)
         let content: UITextContentType? = proxy.textContentType ?? nil
