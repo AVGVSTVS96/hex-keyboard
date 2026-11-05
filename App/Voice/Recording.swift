@@ -10,18 +10,24 @@ nonisolated enum Recording {
     /// dictations made 30 dB quieter, v3 lost 651 words instead of 42 (11.8% wrong instead of 2.5%). A room lifted
     /// louder than that comes back as "Thank you."
     static func leveled(_ samples: [Float]) -> [Float] {
+        guard let (room, speech) = levels(samples) else { return samples }
+        let peak = samples.reduce(0) { max($0, abs($1)) }
+        guard speech > 0, peak > 0 else { return samples }
+        let gain = min(0.1 / speech, room > 0 ? 0.001_78 / room : .infinity, 0.99 / peak)
+        return gain > 1 ? samples.map { $0 * gain } : samples
+    }
+
+    /// The room and the speech: the quietest tenth and the loudest twentieth of the recording's 20 ms stretches, each
+    /// the root mean square about its mean; nil when it's shorter than one.
+    static func levels(_ samples: [Float]) -> (room: Float, speech: Float)? {
         let frame = 320
-        guard samples.count >= frame else { return samples }
+        guard samples.count >= frame else { return nil }
         let levels = stride(from: 0, to: samples.count - frame + 1, by: frame).map { start in
             let slice = samples[start ..< start + frame]
             let mean = slice.reduce(0, +) / Float(frame)
             return (slice.reduce(0) { $0 + ($1 - mean) * ($1 - mean) } / Float(frame)).squareRoot()
         }.sorted()
-        let (room, speech) = (levels[levels.count / 10], levels[levels.count * 95 / 100])
-        let peak = samples.reduce(0) { max($0, abs($1)) }
-        guard speech > 0, peak > 0 else { return samples }
-        let gain = min(0.1 / speech, room > 0 ? 0.001_78 / room : .infinity, 0.99 / peak)
-        return gain > 1 ? samples.map { $0 * gain } : samples
+        return (levels[levels.count / 10], levels[levels.count * 95 / 100])
     }
 
     static func write(_ samples: [Float], to url: URL) throws {

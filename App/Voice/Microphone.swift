@@ -9,6 +9,9 @@ import Observation
     private var engine = AVAudioEngine()
     private let feed = Feed()
     private var lock: Int32?
+    /// The way the next dictation is heard when it may be compared (`Capture`), drawn as the microphone opens and
+    /// after each dictation.
+    private var planned: Capture?
     /// Another app took the microphone (a call), or the engine couldn't be started again after a change under it.
     var onLost: () -> Void = {}
     /// A speaker or headphones connected while voice processing holds the sound on the iPhone, which can't hand it over
@@ -51,6 +54,9 @@ import Observation
     /// Whether it hears through Apple's voice processing now, all of the iPhone's microphones together as a call does.
     var voiceProcessing: Bool { engine.inputNode.isVoiceProcessingEnabled }
 
+    /// The way it hears now, nil while it isn't comparing them (`Capture.mayCompare`).
+    private(set) var capture: Capture?
+
     /// By default it hears from the iPhone and never from a Bluetooth microphone, which would put a speaker or AirPods on
     /// a call (`.allowBluetoothHFP`), and music would drop to call quality or stop. A microphone picked in Settings is
     /// asked for by `PickedMicrophone.matches` and heard from instead: a Bluetooth one is the only pick that allows
@@ -68,6 +74,7 @@ import Observation
     /// (`render err: -1`, 43 a second), so while it's on the output plays the main mixer's silence.
     func open() throws {
         guard lock == nil else { return }
+        planned = nil
         do {
             try beginOnAnyEngine()
         } catch {
@@ -105,7 +112,16 @@ import Observation
         let node = engine.inputNode
         let onIPhone = session.currentRoute.outputs.allSatisfy { [.builtInSpeaker, .builtInReceiver, .headphones].contains($0.portType) }
             && input.map { $0.portType == .builtInMic } ?? true
-        if node.isVoiceProcessingEnabled != onIPhone, (try? node.setVoiceProcessingEnabled(onIPhone)) != nil, onIPhone {
+        if planned == nil { planned = Capture.draw(session) }
+        capture = onIPhone && Capture.mayCompare(session) ? planned : nil
+        do {
+            try (capture ?? .voiceProcessing).point(session)
+        } catch {
+            HostApp.log.error("couldn't hear \(self.capture?.rawValue ?? "uncompared", privacy: .public): \(error.localizedDescription, privacy: .public)")
+            capture = nil
+        }
+        let processing = onIPhone && capture ?? .voiceProcessing == .voiceProcessing
+        if node.isVoiceProcessingEnabled != processing, (try? node.setVoiceProcessingEnabled(processing)) != nil, processing {
             node.voiceProcessingOtherAudioDuckingConfiguration = .init(enableAdvancedDucking: false, duckingLevel: .min)
         }
         if node.isVoiceProcessingEnabled {
@@ -128,6 +144,9 @@ import Observation
             node.removeTap(onBus: 0)
             throw error
         }
+        let route = session.currentRoute.inputs.first
+        let source = route?.selectedDataSource
+        HostApp.log.notice("hearing \(self.capture?.rawValue ?? "uncompared", privacy: .public) from \(route?.portType.rawValue ?? "nothing", privacy: .public) \(source?.dataSourceName ?? "", privacy: .public) \(source?.selectedPolarPattern?.rawValue ?? "", privacy: .public), other audio \(session.isOtherAudioPlaying ? "playing" : "silent", privacy: .public)")
     }
 
     /// iOS stops the engine when the hardware's format or route changes under it, and every audio object is dead after
@@ -167,12 +186,24 @@ import Observation
 
     /// Everything recorded since `record`, through your last word (`Feed.stopOnceQuiet`).
     func stop() async -> [Float] {
-        engine.isRunning ? await feed.stopOnceQuiet() : feed.stop()
+        let sound = engine.isRunning ? await feed.stopOnceQuiet() : feed.stop()
+        drawNext()
+        return sound
     }
 
     /// Everything recorded since `record`, up to now.
     func cut() -> [Float] {
-        feed.stop()
+        defer { drawNext() }
+        return feed.stop()
+    }
+
+    /// Draws the next dictation's way, and starts the engine again in it while nothing's recorded, when it's another;
+    /// or in voice processing once the iPhone's speaker plays.
+    private func drawNext() {
+        guard isOn, let capture else { return }
+        let session = AVAudioSession.sharedInstance()
+        planned = Capture.draw(session)
+        if (Capture.mayCompare(session) ? planned : .voiceProcessing) != capture { restart() }
     }
 
     /// Runs on the audio thread: hands each buffer to the recording, if there is one, and says how loud it was and how

@@ -4,6 +4,11 @@ Per day: dictations, ones whose recording holds no sound at all (no sample past 
 that quiet, and none of 628 dictations with speech came within 200), ones written down as nothing, ones recovered after
 iikb ended mid-dictation, and ones whose recording file is shorter than the dictation was. Then the same per capture,
 the microphone and whether voice processing heard it, and the last silent ones.
+
+Last, each way of hearing the dictations were compared in (`Capture`), in loud rooms and quiet ones: how many, and how
+many of the words each typed were changed by the time its field was sent or left (`field.final`, leaving out the ones
+marked uncertain). A room is loud at -40 dBFS or more, measured on the recording; voice processing holds a room down,
+so one it heard takes the room of the raw dictations within 15 minutes of it, and goes uncounted without one.
 """
 import datetime
 import json
@@ -12,8 +17,12 @@ import struct
 import sys
 from collections import defaultdict
 
+from voicescore import edits, words
+
 APP = os.path.expanduser("~/.local/share/iikb/backup/mirror/app")
 SILENT = 100
+LOUD_ROOM = -40
+NEARBY = 15 * 60
 EPOCH = datetime.datetime(2001, 1, 1, tzinfo=datetime.timezone.utc)
 
 
@@ -67,6 +76,26 @@ def main():
         print(f"{capture}: " + ", ".join(f"{captures[capture][c]} {c}" for c in columns if captures[capture][c]))
     for when, row in silent[-10:]:
         print(f"silent {when:%m-%d %H:%M:%S} {row['seconds']:5.1f}s {row.get('mic') or '?'} {row.get('app') or ''}")
+    arms(rows)
+
+
+def arms(rows):
+    compared = [r for r in rows if r.get("capture") and r.get("room") is not None]
+    raw = [r for r in compared if r["capture"] != "voiceProcessing"]
+    table = defaultdict(lambda: [0, 0, 0])
+    for row in compared:
+        rooms = [r["room"] for r in raw if abs(r["date"] - row["date"]) <= NEARBY] if row["capture"] == "voiceProcessing" else [row["room"]]
+        field = row.get("field")
+        if not rooms or not field or field.get("uncertain"):
+            continue
+        typed = words(field["typed"])
+        cell = table[row["capture"], "loud" if sorted(rooms)[len(rooms) // 2] >= LOUD_ROOM else "quiet"]
+        cell[0] += 1
+        cell[1] += len(typed)
+        cell[2] += sum(edits(typed, words(field["final"])))
+    print(f"\n{'compared as':<18}{'room':<7}{'dictations':>11}{'words':>8}{'edited':>9}")
+    for (capture, room), (count, total, edited) in sorted(table.items()):
+        print(f"{capture:<18}{room:<7}{count:>11}{total:>8}{edited / max(total, 1) * 100:>8.2f}%")
 
 
 main()

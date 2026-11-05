@@ -18,14 +18,19 @@ def edits(reference, hypothesis):
         rows = row
     return rows[-1][1:]
 
-corpus = Path(sys.argv[1])
-references = {r["id"]: r["text"] for r in map(json.loads, (corpus / "references.jsonl").open())}
-print(f"{'way':<16}{'clips':>6}{'wrong':>8}{'dropped':>9}{'added':>7}")
-for path in sorted((corpus / "outputs").glob("*.jsonl")):
-    total = subs = drops = adds = clips = 0
-    for row in map(json.loads, path.open()):
-        if row["id"] not in references: continue
-        reference = words(references[row["id"]])
-        s, d, n = edits(reference, words(row["text"]))
-        total, subs, drops, adds, clips = total + len(reference), subs + s, drops + d, adds + n, clips + 1
-    print(f"{path.stem:<16}{clips:>6}{(subs + drops + adds) / max(total, 1) * 100:>7.2f}%{drops:>9}{adds:>7}")
+def main():
+    corpus = Path(sys.argv[1])
+    references = {r["id"]: r["text"] for r in map(json.loads, (corpus / "references.jsonl").open())}
+    print(f"{'way':<16}{'clips':>6}{'wrong':>8}{'dropped':>9}{'added':>7}")
+    for path in sorted((corpus / "outputs").glob("*.jsonl")):
+        total = subs = drops = adds = clips = 0
+        for row in map(json.loads, path.open()):
+            if row["id"] not in references: continue
+            reference = words(references[row["id"]])
+            s, d, n = edits(reference, words(row["text"]))
+            total, subs, drops, adds, clips = total + len(reference), subs + s, drops + d, adds + n, clips + 1
+        print(f"{path.stem:<16}{clips:>6}{(subs + drops + adds) / max(total, 1) * 100:>7.2f}%{drops:>9}{adds:>7}")
+
+
+if __name__ == "__main__":
+    main()
