@@ -28,8 +28,9 @@ struct LayoutTests {
         #expect(KeyboardMetrics.for(.phone, width: 402, height: 874).fitted(screen: 402, window: 402) == KeyboardMetrics.for(.phone, width: 402, height: 874))
     }
 
-    /// Where iOS wants a way to the next keyboard, an iPhone's globe sits left of 123, away from the emoji key, and
-    /// leaves the menu; with Settings' Globe Key off, the menu offers it instead.
+    /// Where iOS wants a way to the next keyboard, an iPhone's globe sits left of 123, away from the emoji key: as a
+    /// spacer by default, with Next Keyboard in the menu, or switching keyboards, out of the menu; hidden, only the menu
+    /// offers it.
     @Test func thePhonesGlobeSitsLeftOf123OrInTheMenu() {
         var settings = KeyboardSettings()
         let duo = { LayoutContext(device: .phone, layer: .letters, showsGlobe: true, screen: Size(width: 466, height: 678), settings: settings) }
@@ -37,15 +38,20 @@ struct LayoutTests {
             var context = duo()
             context.layer = layer
             let row = Layouts.layout(for: context).rows.last!.compactMap { if case .key(let key) = $0 { key.action } else { nil } }
-            #expect(row.prefix(3) == [.nextKeyboard, .layer(layer == .letters ? .numbers : .letters), .emoji], "\(layer)")
+            #expect(row.prefix(3) == [.globeSpacer, .layer(layer == .letters ? .numbers : .letters), .emoji], "\(layer)")
         }
+        #expect(duo().moreMenu.contains(.nextKeyboard) && duo().menu.contains(.nextKeyboard))
+        settings.globeKey = .switches
+        #expect(Layouts.layout(for: duo()).rows.last!.first == .key(Key(.nextKeyboard, width: .pitch(0.93))))
         #expect(!duo().moreMenu.contains(.nextKeyboard))
-        settings.globeKey = false
-        #expect(!Layouts.layout(for: duo()).keys.contains { $0.action == .nextKeyboard } && duo().moreMenu.contains(.nextKeyboard))
-        settings.globeKey = true
+        settings.globeKey = .hidden
+        #expect(!Layouts.layout(for: duo()).keys.contains { [.nextKeyboard, .globeSpacer].contains($0.action) } && duo().moreMenu.contains(.nextKeyboard))
         settings.split = true
-        let split = LayoutContext(device: .phone, layer: .letters, showsGlobe: true, screen: Size(width: 951, height: 669), settings: settings)
-        #expect(split.isSplit && Layouts.layout(for: split).rows.last!.first == .key(Key(.nextKeyboard)))
+        for globe in [GlobeKey.switches, .spacer] {
+            settings.globeKey = globe
+            let split = LayoutContext(device: .phone, layer: .letters, showsGlobe: true, screen: Size(width: 951, height: 669), settings: settings)
+            #expect(split.isSplit && Layouts.layout(for: split).rows.last!.first == .key(Key(split.globe)), "\(globe)")
+        }
         let faceID = LayoutContext(device: .phone, layer: .letters, screen: Size(width: 402, height: 874), settings: KeyboardSettings())
         #expect(!Layouts.layout(for: faceID).keys.contains { $0.action == .nextKeyboard }, "iOS draws its own globe under the keys")
     }
@@ -60,7 +66,7 @@ struct LayoutTests {
                 settings.split = split
                 let context = LayoutContext(device: .phone, layer: .letters, showsGlobe: true, screen: Size(width: width, height: height), settings: settings)
                 let row = Layouts.layout(for: context).rows.last!.compactMap { if case .key(let key) = $0 { key.action } else { nil } }
-                #expect(row.prefix(2) == [.dictate, .layer(.numbers)] && !row.contains(.nextKeyboard), "\(width)×\(height)\(split ? " split" : "")")
+                #expect(row.prefix(2) == [.dictate, .layer(.numbers)] && !row.contains(.nextKeyboard) && !row.contains(.globeSpacer), "\(width)×\(height)\(split ? " split" : "")")
                 #expect(context.moreMenu.contains(.nextKeyboard), "\(width)×\(height)")
             }
         }

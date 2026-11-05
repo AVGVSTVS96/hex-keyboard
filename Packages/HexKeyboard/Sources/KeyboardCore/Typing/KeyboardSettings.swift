@@ -12,9 +12,8 @@ public struct KeyboardSettings: Hashable, Sendable {
     public var sound = true
     /// The emoji key in the bottom row; without it, the bar's emoji for a word are the way to emoji.
     public var emojiKey = true
-    /// The globe key at the far left of an iPhone's bottom row, where iOS wants a way to the next keyboard; without it,
-    /// the keyboard's menu offers Next Keyboard.
-    public var globeKey = true
+    /// The globe key at the far left of an iPhone's bottom row, where iOS wants a way to the next keyboard.
+    public var globeKey = GlobeKey.spacer
     /// The record button at the far left of an iPhone's bottom row, in the globe's place, instead of at the bar's right.
     public var micKey = false
     /// The emoji and GIF panels as one row that scrolls sideways on every screen, as they are in landscape.
@@ -50,6 +49,20 @@ public struct KeyboardSettings: Hashable, Sendable {
 }
 
 /// Where an iPhone's keyboard menu opens. An iPad has no hold menu, so its menu button always shows.
+/// What the globe at the far left of an iPhone's bottom row does: switch keyboards, or sit there as a spacer that does
+/// nothing when tapped, or not be there. Spacer and Hidden put Next Keyboard in the keyboard's menu.
+public enum GlobeKey: String, CaseIterable, Hashable, Sendable {
+    case switches, spacer, hidden
+
+    public var title: String {
+        switch self {
+        case .switches: "Switches Keyboards"
+        case .spacer: "Spacer"
+        case .hidden: "Hidden"
+        }
+    }
+}
+
 public enum KeyboardMenu: String, CaseIterable, Hashable, Sendable {
     case both, hold, button
 

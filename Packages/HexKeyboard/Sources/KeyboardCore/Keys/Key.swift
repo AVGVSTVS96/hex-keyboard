@@ -12,6 +12,9 @@ public enum KeyAction: Hashable, Sendable {
     case tab
     case layer(KeyboardLayer)
     case nextKeyboard
+    /// The globe as Settings › Layout › Globe Key's Spacer draws it: dimmed, taking taps and doing nothing, so it keeps
+    /// `123` in from the corner while Next Keyboard is in the menu.
+    case globeSpacer
     /// The record button, in the globe's place where Settings puts it there: the keyboard's mic, which draws and
     /// handles it, so the engine never sees it.
     case dictate

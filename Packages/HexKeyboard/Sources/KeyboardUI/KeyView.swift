@@ -25,7 +25,7 @@ final class KeyView: UIView {
         }
     }
     var isPressed = false { didSet { if isPressed != oldValue { updateColors() } } }
-    var showsLabel = true { didSet { contentAlpha = showsLabel ? 1 : 0 } }
+    var showsLabel = true { didSet { contentAlpha = showsLabel ? restingAlpha : 0 } }
     var isFlicked = false {
         didSet {
             guard isFlicked != oldValue, let secondary = shown.secondary, case .letter(let primary) = shown.content else { return }
@@ -38,6 +38,9 @@ final class KeyView: UIView {
     private var contentAlpha: CGFloat = 1 {
         didSet { [label, secondaryLabel, cornerLabel, icon].forEach { $0.alpha = contentAlpha } }
     }
+
+    /// The spacer globe is dimmed, so it reads as a key that does nothing.
+    private var restingAlpha: CGFloat { key.action == .globeSpacer ? 0.35 : 1 }
 
     init(key: Key) {
         self.key = key
@@ -62,6 +65,7 @@ final class KeyView: UIView {
         label.textAlignment = .center
         secondaryLabel.textAlignment = .center
         [secondaryLabel, cornerLabel, label, icon].forEach(addSubview)
+        contentAlpha = restingAlpha
     }
 
     required init?(coder: NSCoder) { fatalError() }
@@ -219,6 +223,7 @@ final class KeyView: UIView {
         case .layer(.numbers): "numbers"
         case .layer(.symbols): "symbols"
         case .nextKeyboard: "next keyboard"
+        case .globeSpacer: "spacer"
         case .dictate: "dictate"
         case .dismiss: "dismiss keyboard"
         case .emoji: "emoji"

@@ -90,9 +90,9 @@ public final class KeyboardView: UIView {
         }
         keyViews = rowKeys.flatMap { $0 }
         keyViews.forEach { insertSubview($0, belowSubview: trail) }
-        globeControls = keyViews.filter { $0.key.action == .nextKeyboard }.map { _ in
+        globeControls = keyViews.filter { [.nextKeyboard, .globeSpacer].contains($0.key.action) }.map { view in
             let control = UIControl()
-            globeTarget?(control)
+            if view.key.action == .nextKeyboard { globeTarget?(control) }
             addSubview(control)
             return control
         }
@@ -116,7 +116,7 @@ public final class KeyboardView: UIView {
             for (view, key) in zip(views, keys) {
                 view.frame = CGRect(key.frame).rounded(scale: scale)
                 view.layoutIfNeeded()
-                if view.key.action == .nextKeyboard { globes.next()?.frame = view.frame }
+                if [.nextKeyboard, .globeSpacer].contains(view.key.action) { globes.next()?.frame = view.frame }
                 if view.key.action == .dictate, let micKey {
                     view.isHidden = true
                     if micKey.superview !== self { addSubview(micKey) }

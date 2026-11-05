@@ -229,8 +229,12 @@ struct LayoutSettings: View {
         Box(header: "Keys") {
             ToggleRow(title: "Number Row", detail: "1 to 0 above the letters. The keyboard grows upward.", isOn: model.binding(\.numberRow))
             ToggleRow(title: "Emoji Key", detail: "Every emoji, from beside the space bar. Without it, a word’s emoji still show in the suggestions.", isOn: model.binding(\.emojiKey))
-            ToggleRow(title: "Globe Key", detail: "At the far left of the bottom row, on iPhones with no globe under the keyboard, like the Duo. Without it, Next Keyboard is in the keyboard’s menu.", isOn: model.binding(\.globeKey))
             ToggleRow(title: "Record Key", detail: "The record button left of 123, in the globe’s place, instead of at the right of the bar. The globe goes to the keyboard’s menu.", isOn: model.binding(\.micKey))
+        }
+        Box(header: "Globe Key", footer: "At the far left of the bottom row, on iPhones with no globe under the keyboard, like the Duo. As a spacer it keeps 123 away from the corner and does nothing when tapped. As a spacer or hidden, Next Keyboard is in the keyboard’s menu.") {
+            ForEach(GlobeKey.allCases, id: \.self) { globe in
+                ChoiceRow(title: globe.title, picked: model.settings.globeKey == globe) { model.update { $0.globeKey = globe } }
+            }
         }
         Box(header: "Emoji and GIFs") {
             MenuRow(title: "Skin Tone", selection: model.binding(\.skinTone), choices: [nil] + SkinTone.allCases.map(Optional.some)) { tone in

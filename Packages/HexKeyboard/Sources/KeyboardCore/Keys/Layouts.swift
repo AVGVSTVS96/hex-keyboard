@@ -19,6 +19,8 @@ public struct LayoutContext: Hashable, Sendable {
     public var showsGlobe: Bool
     /// The globe key at the far left of an iPhone's bottom row, away from `123` and emoji, so it's never hit for them.
     public var showsGlobeKey: Bool
+    /// That globe drawn as a spacer that does nothing, with Next Keyboard in the menu.
+    public var globeIsSpacer: Bool
     /// The record button in the globe key's place, which then goes to the menu.
     public var showsMicKey: Bool
     /// Wider than tall.
@@ -36,7 +38,7 @@ public struct LayoutContext: Hashable, Sendable {
     public var keyRoundness = KeyRoundness.standard
     public var keyboardMenu: KeyboardMenu
 
-    public init(device: DeviceClass, layer: KeyboardLayer, kind: InputKind = .text, showsGlobe: Bool = false, isLandscape: Bool = false, isOpen: Bool = false, oneHanded: OneHanded = .off, isSplit: Bool = false, showsEmoji: Bool = false, showsGlobeKey: Bool = false, showsMicKey: Bool = false, showsNumberRow: Bool = false, keyboardMenu: KeyboardMenu = .both) {
+    public init(device: DeviceClass, layer: KeyboardLayer, kind: InputKind = .text, showsGlobe: Bool = false, isLandscape: Bool = false, isOpen: Bool = false, oneHanded: OneHanded = .off, isSplit: Bool = false, showsEmoji: Bool = false, showsGlobeKey: Bool = false, globeIsSpacer: Bool = false, showsMicKey: Bool = false, showsNumberRow: Bool = false, keyboardMenu: KeyboardMenu = .both) {
         self.device = device
         self.layer = layer
         self.kind = kind
@@ -48,6 +50,7 @@ public struct LayoutContext: Hashable, Sendable {
         self.showsEmoji = showsEmoji && device == .phone
         self.showsMicKey = showsMicKey && device == .phone
         self.showsGlobeKey = showsGlobeKey && showsGlobe && device == .phone && !self.showsMicKey
+        self.globeIsSpacer = globeIsSpacer && self.showsGlobeKey
         self.showsNumberRow = showsNumberRow && device == .phone && layer == .letters
         self.keyboardMenu = device == .phone ? keyboardMenu : .button
         if !allowsOneHanded { self.oneHanded = .off }
@@ -59,7 +62,8 @@ public struct LayoutContext: Hashable, Sendable {
         self.init(
             device: device, layer: layer, kind: kind, showsGlobe: showsGlobe, isLandscape: screen.width > screen.height,
             isOpen: Duo.isOpen(short: min(screen.width, screen.height)), oneHanded: settings.oneHanded, isSplit: settings.split,
-            showsEmoji: settings.emojiKey, showsGlobeKey: settings.globeKey, showsMicKey: settings.micKey,
+            showsEmoji: settings.emojiKey, showsGlobeKey: settings.globeKey != .hidden,
+            globeIsSpacer: settings.globeKey == .spacer, showsMicKey: settings.micKey,
             showsNumberRow: settings.numberRow, keyboardMenu: settings.keyboardMenu
         )
         keySpacing = settings.keySpacing
@@ -75,6 +79,9 @@ public struct LayoutContext: Hashable, Sendable {
     /// The keys in the bottom row whose hold opens the layer menu: the layer key, Bassim's way in, and the emoji key,
     /// whose hold opens Apple's menu with the same layouts (Left and Right folded, Full and Split open). The globe's
     /// touches go to the control `handleInputModeList` drives, so holding it opens the system's list of keyboards.
+    /// The bottom row's globe as Settings has it: one that switches keyboards, or the spacer.
+    public var globe: KeyAction { globeIsSpacer ? .globeSpacer : .nextKeyboard }
+
     public func menuKeys(in layout: KeyboardLayout) -> [Key] {
         (layout.rows.last ?? []).compactMap { item -> Key? in
             guard case .key(let key) = item else { return nil }
@@ -87,9 +94,9 @@ public struct LayoutContext: Hashable, Sendable {
 
     /// What the bar's More button offers, top to bottom: the layouts that apply here (one hand or the other on an
     /// iPhone in portrait, Full and Split on the open Duo in landscape), the next keyboard where an iPhone needs one
-    /// and its keys carry no globe, then Hex's settings.
+    /// and its keys carry no globe that switches, then Hex's settings.
     public var moreMenu: [KeyboardEvent] {
-        layoutPicks + (showsGlobe && device == .phone && !showsGlobeKey ? [.nextKeyboard] : []) + [.settings]
+        layoutPicks + (showsGlobe && device == .phone && (!showsGlobeKey || globeIsSpacer) ? [.nextKeyboard] : []) + [.settings]
     }
 
     /// What holding an iPhone's layer key offers, left to right, on every screen: the More button's items, after the

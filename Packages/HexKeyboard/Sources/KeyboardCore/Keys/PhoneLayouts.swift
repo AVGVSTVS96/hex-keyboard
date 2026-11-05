@@ -43,7 +43,7 @@ enum PhoneLayouts {
     /// own keys and return on the right.
     private static func splitBottomRow(_ context: LayoutContext, layerKey: KeyboardLayer) -> [RowItem] {
         let character = { (value: String) in RowItem.key(Key(.character(value))) }
-        let leading = (context.showsMicKey ? [Key(.dictate)] : context.showsGlobeKey ? [Key(.nextKeyboard)] : []) + [Key(.layer(layerKey))]
+        let leading = (context.showsMicKey ? [Key(.dictate)] : context.showsGlobeKey ? [Key(context.globe)] : []) + [Key(.layer(layerKey))]
             + (context.showsEmoji ? [Key(.emoji)] : [])
         let leadingSpan = leading.compactMap(\.width.span).reduce(0, +)
         let trailing: [RowItem] = switch context.kind {
@@ -98,7 +98,7 @@ enum PhoneLayouts {
     /// space, the field's own keys and return.
     private static func bottomRow(_ context: LayoutContext, layerKey: KeyboardLayer) -> [RowItem] {
         let side = context.isLandscape ? 2.0 : 2.5
-        let first = context.showsMicKey ? Key(.dictate, width: .pitch(0.93)) : context.showsGlobeKey ? Key(.nextKeyboard, width: .pitch(0.93)) : nil
+        let first = context.showsMicKey ? Key(.dictate, width: .pitch(0.93)) : context.showsGlobeKey ? Key(context.globe, width: .pitch(0.93)) : nil
         let leading: [RowItem] = (first.map { [.key($0)] } ?? [])
             + [.key(Key(.layer(layerKey), width: .pitch(side / 2)))]
             + (context.showsEmoji ? [.key(Key(.emoji, width: .pitch(side / 2)))] : [])

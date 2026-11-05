@@ -82,7 +82,7 @@ extension KeyFace {
             let title = context.kind == .url && layer == .numbers && context.device == .phone ? ".?123" : Self.title(for: layer, device: context.device)
             let small = context.device == .phone && context.layer != .letters && layer != .letters
             self.init(content: small ? .smallText(title) : .text(title), alignment: edge)
-        case .nextKeyboard:
+        case .nextKeyboard, .globeSpacer:
             self.init(content: .symbol("globe"), alignment: edge)
         case .dictate:
             self.init(content: .symbol("waveform"), alignment: edge)

@@ -162,19 +162,31 @@
 		</dict>
 		<dict>
 			<key>FooterText</key>
-			<string>At the far left of the bottom row, on iPhones with no globe under the keyboard, like the Duo. Without it, Next Keyboard is in the keyboard’s menu.</string>
+			<string>At the far left of the bottom row, on iPhones with no globe under the keyboard, like the Duo. As a spacer it keeps 123 away from the corner and does nothing when tapped. As a spacer or hidden, Next Keyboard is in the keyboard’s menu.</string>
 			<key>Type</key>
 			<string>PSGroupSpecifier</string>
 		</dict>
 		<dict>
 			<key>DefaultValue</key>
-			<true/>
+			<string>spacer</string>
 			<key>Key</key>
-			<string>globeKey</string>
+			<string>globe</string>
 			<key>Title</key>
 			<string>Globe Key</string>
+			<key>Titles</key>
+			<array>
+				<string>Switches Keyboards</string>
+				<string>Spacer</string>
+				<string>Hidden</string>
+			</array>
 			<key>Type</key>
-			<string>PSToggleSwitchSpecifier</string>
+			<string>PSMultiValueSpecifier</string>
+			<key>Values</key>
+			<array>
+				<string>switches</string>
+				<string>spacer</string>
+				<string>hidden</string>
+			</array>
 		</dict>
 		<dict>
 			<key>FooterText</key>

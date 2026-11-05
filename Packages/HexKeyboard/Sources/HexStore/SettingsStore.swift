@@ -18,7 +18,6 @@ public enum SettingsStore {
         ("slideToType", \.slideToType),
         ("sound", \.sound),
         ("emojiKey", \.emojiKey),
-        ("globeKey", \.globeKey),
         ("micKey", \.micKey),
         ("numberRow", \.numberRow),
         ("split", \.split),
@@ -37,6 +36,8 @@ public enum SettingsStore {
     private static let dictationEditing = Choice(key: "dictationEditing", path: \.dictationEditing, switchKey: "keepsUmAndUh", on: .asSaid, off: .light)
     private static let dictationLists = Choice(key: "spokenLists", path: \.dictationLists, switchKey: "dictationLists", on: .numbered, off: .off)
     private static let keyboardMenu = Choice(key: "keyboardMenu", path: \.keyboardMenu)
+    /// Globe Key was a switch, turned off to stop taps landing on the globe, which Spacer now does with the globe kept.
+    private static let globeKey = Choice(key: "globe", path: \.globeKey, switchKey: "globeKey", on: .switches, off: .spacer)
     private static let skinToneKey = "skinTone"
 
     private static let oneHandedKey = "oneHanded"
@@ -62,6 +63,7 @@ public enum SettingsStore {
         dictationEditing.load(into: &settings, sharing: sharing)
         dictationLists.load(into: &settings, sharing: sharing)
         keyboardMenu.load(into: &settings, sharing: sharing)
+        globeKey.load(into: &settings, sharing: sharing)
         settings.skinTone = (value(forKey: skinToneKey, sharing: sharing) as? String).flatMap(SkinTone.init)
         return settings
     }
@@ -81,6 +83,7 @@ public enum SettingsStore {
         dictationEditing.save(settings)
         dictationLists.save(settings)
         keyboardMenu.save(settings)
+        globeKey.save(settings)
         set(settings.skinTone?.rawValue ?? "", forKey: skinToneKey)
     }
 

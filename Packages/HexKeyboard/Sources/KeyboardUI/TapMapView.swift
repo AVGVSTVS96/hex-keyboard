@@ -324,7 +324,7 @@ public enum TapMapPalette {
         case .layer(.letters): "ABC"
         case .layer(.numbers): "123"
         case .layer(.symbols): "#+="
-        case .nextKeyboard: "globe"
+        case .nextKeyboard, .globeSpacer: "globe"
         case .dictate: "record"
         case .dismiss: "hide"
         case .emoji: "emoji"
