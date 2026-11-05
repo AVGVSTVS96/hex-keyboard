@@ -144,19 +144,24 @@ struct HomeView: View {
 
     private static let columns = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
 
-    /// What iikb has gathered, one tile per tab that keeps it.
+    /// What iikb has gathered, in one card inset as the tiles under it are: a count for each tab that keeps it, opening
+    /// that tab. Three across while every count fits at full size, then smaller, then a row each, so a count never runs
+    /// out of its card.
     private var stats: some View {
-        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 3), spacing: 12) {
-            Button { Router.shared.show(.transcripts) } label: { VoiceTile() }
-                .buttonStyle(CardPress())
-            Button { Router.shared.show(.clipboard) } label: {
-                Tile(symbol: "list.clipboard.fill", color: .orange, title: state.copied == 1 ? "item copied" : "items copied", value: state.copied.formatted())
+        let today = Transcripts.shared.all.prefix { Calendar.current.isDateInToday($0.date) }.reduce(0) { $0 + $1.words }
+        let counts = [
+            Count(symbol: "text.bubble.fill", color: .pink, value: today, label: "said today", title: today == 1 ? "Word said today" : "Words said today", open: { Router.shared.show(.transcripts) }),
+            Count(symbol: "list.clipboard.fill", color: .orange, value: state.copied, label: "copied", title: state.copied == 1 ? "Item copied" : "Items copied", open: { Router.shared.show(.clipboard) }),
+            Count(symbol: "hand.tap.fill", color: .blue, value: state.taps, label: state.taps == 1 ? "tap learned" : "taps learned", title: state.taps == 1 ? "Tap learned" : "Taps learned", open: { Router.shared.show(StatsPage.Section.taps) }),
+        ]
+        return ViewThatFits(in: .horizontal) {
+            CountColumns(counts: counts, size: 28)
+            CountColumns(counts: counts, size: 24)
+            Box {
+                ForEach(counts) { count in
+                    CountButton(count: count) { CountRow(count: count) }
+                }
             }
-            .buttonStyle(CardPress())
-            Button { Router.shared.show(StatsPage.Section.taps) } label: {
-                Tile(symbol: "hand.tap.fill", color: .blue, title: state.taps == 1 ? "tap learned" : "taps learned", value: state.taps.formatted())
-            }
-            .buttonStyle(CardPress())
         }
     }
 
@@ -173,11 +178,82 @@ struct HomeView: View {
     }
 }
 
-/// What you've dictated today.
-private struct VoiceTile: View {
+/// One of Home's counts, opening the tab that keeps it.
+private struct Count: Identifiable {
+    let symbol: String
+    let color: Color
+    let value: Int
+    /// What it counts under the number, three across, and beside it, in a row.
+    let label: String
+    let title: String
+    let open: () -> Void
+
+    var id: String { symbol }
+}
+
+private struct CountButton<Label: View>: View {
+    let count: Count
+    @ViewBuilder var label: Label
+
     var body: some View {
-        let today = Transcripts.shared.all.prefix { Calendar.current.isDateInToday($0.date) }.reduce(0) { $0 + $1.words }
-        Tile(symbol: "text.bubble.fill", color: .pink, title: today == 1 ? "word said today" : "words said today", value: today.formatted())
+        Button(action: count.open) {
+            label.contentShape(.rect).accessibilityElement(children: .combine)
+        }
+        .buttonStyle(CardPress())
+    }
+}
+
+/// The counts three across in one card, split by hairlines.
+private struct CountColumns: View {
+    let counts: [Count]
+    let size: CGFloat
+
+    var body: some View {
+        EqualColumns {
+            ForEach(counts) { count in
+                CountButton(count: count) {
+                    VStack(alignment: .leading, spacing: 14) {
+                        Glyph(symbol: count.symbol, color: count.color, size: 34)
+                        VStack(alignment: .leading, spacing: 2) {
+                            SlotText(count.value.formatted(), shrink: 1)
+                                .font(.display(size))
+                                .tracking(-0.02 * size)
+                            Text(count.label)
+                                .font(.subheadline)
+                                .foregroundStyle(Color.appSecondary)
+                                .lineLimit(1)
+                        }
+                    }
+                    .padding(18)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                }
+                .overlay(alignment: .leading) {
+                    if count.id != counts.first?.id {
+                        Rectangle().fill(Color.appDivider).frame(width: 1).padding(.vertical, 18)
+                    }
+                }
+            }
+        }
+        .background(Color.appCard, in: .rect(cornerRadius: AppStyle.cardRadius, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: AppStyle.cardRadius, style: .continuous).strokeBorder(Color.appEdge))
+    }
+}
+
+/// A count as a row: its glyph and what it counts, the number at the right.
+private struct CountRow: View {
+    let count: Count
+
+    var body: some View {
+        HStack(spacing: 14) {
+            Glyph(symbol: count.symbol, color: count.color, size: 28)
+            Text(count.title).lineLimit(1)
+            Spacer(minLength: 12)
+            SlotText(count.value.formatted())
+                .font(.display(22))
+                .tracking(-0.02 * 22)
+                .layoutPriority(1)
+        }
+        .row()
     }
 }
 

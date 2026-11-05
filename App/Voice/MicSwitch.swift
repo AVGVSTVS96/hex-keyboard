@@ -32,8 +32,8 @@ struct MicSwitch: View {
                 .tint(.blue)
                 .accessibilityIdentifier("home-mic")
         }
-        .padding(.leading, 14)
-        .padding(.trailing, 7)
+        .padding(.leading, 5.5)
+        .padding(.trailing, 11.5)
         .frame(height: 44)
         .glassEffect(.regular, in: .capsule)
         .alert("Couldn’t Turn On the Microphone", isPresented: Binding(get: { failure != nil }, set: { if !$0 { failure = nil } })) {

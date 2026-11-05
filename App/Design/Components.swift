@@ -235,28 +235,20 @@ struct ActionRow: View {
     }
 }
 
-/// A Raycast tile: a glyph at its top left and, right under it, a value, a title and a line in gray, so tiles side
-/// by side line up whatever their text.
+/// A Raycast tile: a glyph at its top left and, right under it, a title and a line in gray, so tiles side by side
+/// line up whatever their text.
 struct Tile: View {
     let symbol: String
     let color: Color
     let title: String
-    var value: String? = nil
     var detail: String? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Glyph(symbol: symbol, color: color, size: 34)
             VStack(alignment: .leading, spacing: 2) {
-                if let value {
-                    Text(value)
-                        .font(.display(28))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.6)
-                }
                 Text(title)
-                    .font(value == nil ? .body.weight(.medium) : .subheadline)
-                    .foregroundStyle(value == nil ? Color.primary : Color.appSecondary)
+                    .font(.body.weight(.medium))
                     .lineLimit(2)
                 if let detail {
                     Text(detail)
@@ -336,20 +328,17 @@ struct Card<Content: View>: View {
     }
 }
 
-/// A big number with its label under it, flush left.
+/// A big number with its label under it, flush left, at the size its `Figures` gives it.
 struct Figure: View {
     let value: String
     let label: String
-    var size: CGFloat = 30
+    @Environment(\.figureSize) private var size
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(value)
+            SlotText(value)
                 .font(.display(size))
                 .tracking(-0.02 * size)
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
-                .contentTransition(.numericText())
             Text(label)
                 .font(.footnote)
                 .foregroundStyle(Color.appSecondary)
@@ -357,6 +346,74 @@ struct Figure: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
+    }
+}
+
+extension EnvironmentValues {
+    @Entry var figureSize: CGFloat = 30
+}
+
+/// Figures side by side in columns of one width, all at `size` while every one fits, then all smaller together, else
+/// one under another, so they never shrink apart or run out of their card.
+struct Figures<Content: View>: View {
+    var size: CGFloat = 24
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            EqualColumns(spacing: 12) { content }.environment(\.figureSize, size)
+            EqualColumns(spacing: 12) { content }.environment(\.figureSize, (size * 0.8).rounded())
+            VStack(alignment: .leading, spacing: 12) { content }.environment(\.figureSize, (size * 0.8).rounded())
+        }
+    }
+}
+
+/// Columns of one width, each as wide as the widest needs, so `ViewThatFits` knows when one won't fit.
+struct EqualColumns: Layout {
+    var spacing: CGFloat = 0
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let gaps = spacing * CGFloat(max(subviews.count - 1, 0))
+        let ideal = subviews.map { $0.sizeThatFits(.unspecified) }
+        let width = proposal.width ?? (ideal.map(\.width).max() ?? 0) * CGFloat(subviews.count) + gaps
+        let column = ProposedViewSize(width: (width - gaps) / CGFloat(max(subviews.count, 1)), height: nil)
+        return CGSize(width: width, height: subviews.map { $0.sizeThatFits(column).height }.max() ?? 0)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let width = (bounds.width - spacing * CGFloat(max(subviews.count - 1, 0))) / CGFloat(max(subviews.count, 1))
+        for (index, subview) in subviews.enumerated() {
+            subview.place(at: CGPoint(x: bounds.minX + (width + spacing) * CGFloat(index), y: bounds.minY), proposal: ProposedViewSize(width: width, height: bounds.height))
+        }
+    }
+}
+
+/// A card's big number and what goes beside it, on one line while all of it fits at full size, else what goes beside
+/// it on a line of its own under it.
+struct LeadNumber<Beside: View>: View {
+    let value: String
+    let size: CGFloat
+    @ViewBuilder var beside: Beside
+
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                number
+                beside
+                Spacer(minLength: 0)
+            }
+            VStack(alignment: .leading, spacing: 6) {
+                number
+                HStack(alignment: .firstTextBaseline, spacing: 10) { beside }
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private var number: some View {
+        SlotText(value)
+            .font(.display(size))
+            .tracking(-0.03 * size)
     }
 }
 

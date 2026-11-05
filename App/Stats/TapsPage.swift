@@ -299,15 +299,9 @@ private struct Numbers: View {
                 Text("On target")
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(Color.appSecondary)
-                HStack(alignment: .firstTextBaseline, spacing: 10) {
-                    Text(TapMapPalette.percent(summary.onTarget))
-                        .font(.display(52))
-                        .tracking(-0.03 * 52)
-                        .contentTransition(.numericText())
+                LeadNumber(value: TapMapPalette.percent(summary.onTarget), size: 52) {
                     if let trend { TrendChip(points: trend) }
-                    Spacer(minLength: 0)
                 }
-                .accessibilityElement(children: .combine)
             }
             Meter(share: summary.onTarget)
             Text(caption)
@@ -315,9 +309,9 @@ private struct Numbers: View {
                 .foregroundStyle(Color.appSecondary)
                 .fixedSize(horizontal: false, vertical: true)
             Rectangle().fill(Color.appDivider).frame(height: 1)
-            HStack(alignment: .top, spacing: 12) {
-                Figure(value: summary.taps.formatted(), label: summary.taps == 1 ? "tap learned" : "taps learned", size: 24)
-                Figure(value: String(format: "%.1f pt", summary.offCenter), label: "aim off center", size: 24)
+            Figures {
+                Figure(value: summary.taps.formatted(), label: summary.taps == 1 ? "tap learned" : "taps learned")
+                Figure(value: String(format: "%.1f pt", summary.offCenter), label: "aim off center")
             }
         }
     }
@@ -361,6 +355,8 @@ struct TrendChip: View {
         Text("\(up ? "+" : "−")\(abs(points))\(unit)")
             .font(.footnote.weight(.semibold))
             .monospacedDigit()
+            .lineLimit(1)
+            .fixedSize()
             .foregroundStyle(up ? Color.green : TapColor.miss)
             .padding(.horizontal, 9)
             .padding(.vertical, 4)

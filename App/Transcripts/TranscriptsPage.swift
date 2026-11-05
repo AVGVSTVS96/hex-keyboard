@@ -209,26 +209,19 @@ private struct Summary: View {
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(Color.appSecondary)
                 }
-                HStack(alignment: .firstTextBaseline, spacing: 10) {
-                    Text(words.formatted())
-                        .font(.display(44))
-                        .tracking(-0.03 * 44)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.6)
-                        .contentTransition(.numericText())
+                LeadNumber(value: words.formatted(), size: 44) {
                     Text(words == 1 ? "word said" : "words said")
                         .font(.subheadline)
                         .foregroundStyle(Color.appSecondary)
                         .lineLimit(1)
-                    Spacer(minLength: 0)
                     if let trend = trend(days) { TrendChip(points: trend, unit: "% this week") }
                 }
                 FortnightChart(days: days.map { ($0.date, $0.words) })
                 Rectangle().fill(Color.appDivider).frame(height: 1)
-                HStack(alignment: .top, spacing: 12) {
-                    Figure(value: Duration.seconds(seconds).formatted(.units(allowed: [.hours, .minutes, .seconds], width: .narrow, maximumUnitCount: 2)), label: "talking", size: 22)
-                    Figure(value: seconds >= 1 ? "\(Int((Double(words) / seconds * 60).rounded())) wpm" : "–", label: "pace", size: 22)
-                    Figure(value: today.formatted(), label: "today", size: 22)
+                Figures(size: 22) {
+                    Figure(value: Duration.seconds(seconds).formatted(.units(allowed: [.hours, .minutes, .seconds], width: .narrow, maximumUnitCount: 2)), label: "talking")
+                    Figure(value: seconds >= 1 ? "\(Int((Double(words) / seconds * 60).rounded())) wpm" : "–", label: "pace")
+                    Figure(value: today.formatted(), label: "today")
                 }
             }
             .padding(20)

@@ -106,29 +106,23 @@ private struct Speed: View {
                 Text(kind == .typed ? "Typing speed" : "Talking speed")
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(Color.appSecondary)
-                HStack(alignment: .firstTextBaseline, spacing: 10) {
-                    Text(all.speed.map { "\(Int($0.rounded())) wpm" } ?? "–")
-                        .font(.display(52))
-                        .tracking(-0.03 * 52)
-                        .contentTransition(.numericText())
+                LeadNumber(value: all.speed.map { "\(Int($0.rounded())) wpm" } ?? "–", size: 52) {
                     if let trend { TrendChip(points: trend) }
-                    Spacer(minLength: 0)
                 }
-                .accessibilityElement(children: .combine)
             }
             Text(caption)
                 .font(.footnote)
                 .foregroundStyle(Color.appSecondary)
                 .fixedSize(horizontal: false, vertical: true)
             Rectangle().fill(Color.appDivider).frame(height: 1)
-            HStack(alignment: .top, spacing: 12) {
-                Figure(value: all.words.formatted(), label: all.words == 1 ? "word \(kind.noun)" : "words \(kind.noun)", size: 24)
-                Figure(value: Self.time(all.seconds), label: kind == .typed ? "typing" : "talking", size: 24)
+            Figures {
+                Figure(value: all.words.formatted(), label: all.words == 1 ? "word \(kind.noun)" : "words \(kind.noun)")
+                Figure(value: Self.time(all.seconds), label: kind == .typed ? "typing" : "talking")
                 if kind == .said, all.dictations > 0 {
-                    Figure(value: all.dictations.formatted(), label: all.dictations == 1 ? "dictation" : "dictations", size: 24)
+                    Figure(value: all.dictations.formatted(), label: all.dictations == 1 ? "dictation" : "dictations")
                 } else {
                     let today = activity.channel(kind, on: Date.now.day).words
-                    Figure(value: today.formatted(), label: "today", size: 24)
+                    Figure(value: today.formatted(), label: "today")
                 }
             }
         }
@@ -142,7 +136,7 @@ private struct Speed: View {
             lines.append(String(format: "%.1f× as fast as you type.", said / typed))
         }
         if let fastest {
-            lines.append("Fastest day: \(Int(fastest.speed.rounded())) wpm, \(fastest.date.formatted(.dateTime.month(.abbreviated).day())).")
+            lines.append("Fastest day: \(Int(fastest.speed.rounded()))\u{00A0}wpm, \(fastest.date.formatted(.dateTime.month(.abbreviated).day())).")
         }
         return lines.joined(separator: " ")
     }
@@ -180,9 +174,8 @@ private struct WordsADay: View {
         let active = month.filter { $0.words > 0 }
         Card(header: "Words a day") {
             VStack(alignment: .leading, spacing: 2) {
-                Text(shown.map { $0.words.formatted() } ?? (active.isEmpty ? "0" : (active.reduce(0) { $0 + $1.words } / active.count).formatted()))
+                SlotText(shown.map { $0.words.formatted() } ?? (active.isEmpty ? "0" : (active.reduce(0) { $0 + $1.words } / active.count).formatted()))
                     .font(.display(24))
-                    .contentTransition(.numericText())
                 Text(shown.map { $0.date.formatted(.dateTime.weekday(.wide).month(.abbreviated).day()) } ?? "a day on the \(active.count) of the last 30 you \(kind.verb)")
                     .font(.footnote)
                     .foregroundStyle(Color.appSecondary)
@@ -288,10 +281,10 @@ private struct WordSources: View {
         Card(header: "Your typed words", footer: "Taken back: autocorrect’s fixes you undid with the bar. Deleted: the keys you tapped that were delete.") {
             SegmentedBar(parts: parts)
             Rectangle().fill(Color.appDivider).frame(height: 1)
-            HStack(alignment: .top, spacing: 12) {
-                Figure(value: channel.corrected > 0 ? share(channel.undone, of: channel.corrected) : "–", label: "taken back", size: 24)
-                Figure(value: channel.keys > 0 ? share(channel.deletes, of: channel.keys) : "–", label: "deleted", size: 24)
-                Figure(value: channel.emoji.formatted(), label: "emoji", size: 24)
+            Figures {
+                Figure(value: channel.corrected > 0 ? share(channel.undone, of: channel.corrected) : "–", label: "taken back")
+                Figure(value: channel.keys > 0 ? share(channel.deletes, of: channel.keys) : "–", label: "deleted")
+                Figure(value: channel.emoji.formatted(), label: "emoji")
             }
         }
     }
