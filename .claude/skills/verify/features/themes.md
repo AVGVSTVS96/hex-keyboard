@@ -6,7 +6,7 @@ Raycast's five themes (docs/design.md, "Themes"): Default, Clear, Physical, Mech
 
 ## How to get to it (user POV)
 
-iikb app › Settings › Keyboard › Theme (it opens over a preview of iikb, with "Tap to try"), or Settings › Apps › iikb › Theme. The iikb tab's Theme card opens the same page.
+iikb app › Settings › Keyboard › Appearance (it opens over a preview of iikb, with "Tap to try"), or Settings › Apps › iikb › Theme. The iikb tab’s Appearance card opens the same page.
 
 ## Driving it
 

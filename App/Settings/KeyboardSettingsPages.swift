@@ -128,11 +128,20 @@ struct TryPreview: View {
     }
 }
 
-struct ThemeSettings: View {
+/// Everything about how the keyboard looks, on one page: its theme, what a pressed key shows, and how its keys are laid out.
+struct AppearanceSettings: View {
+    var body: some View {
+        ThemeSettings()
+        CharacterPreviewPicker()
+        LayoutSettings()
+    }
+}
+
+private struct ThemeSettings: View {
     private let model = SettingsModel.shared
 
     var body: some View {
-        Box(footer: "Automatic follows the app you’re typing in, light or dark.") {
+        Box(header: "Theme", footer: "Automatic follows the app you’re typing in, light or dark.") {
             ForEach(ThemeName.allCases, id: \.self) { theme in
                 let picked = model.settings.theme == theme
                 ChoiceRow(title: theme.title, detail: Self.detail(of: theme), picked: picked) {
@@ -191,7 +200,6 @@ struct TypingSettings: View {
     private let model = SettingsModel.shared
 
     var body: some View {
-        CharacterPreviewPicker()
         Box(footer: "Predictive Text shows three suggestions above the keys, and the next word before you type it. Slide to Type types a word as you swipe across its letters.") {
             ToggleRow(title: "Auto-Capitalization", isOn: model.binding(\.autoCapitalization))
             ToggleRow(title: "Auto-Correction", isOn: model.binding(\.autoCorrection))
@@ -218,7 +226,7 @@ struct TypingSettings: View {
     }
 }
 
-struct LayoutSettings: View {
+private struct LayoutSettings: View {
     private let model = SettingsModel.shared
 
     var body: some View {

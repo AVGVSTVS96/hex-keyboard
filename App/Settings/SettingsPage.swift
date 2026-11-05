@@ -7,18 +7,17 @@ import SwiftUI
 /// takes the first pane and the picked page the second; elsewhere a page opens on its own.
 struct SettingsPage: View {
     enum Page: String, CaseIterable, Hashable {
-        case theme, layout, typing, feedback, model, writing, dictionary, microphone, mic, sources, access, privacy, changelog, about
+        case appearance, typing, feedback, model, writing, dictionary, microphone, mic, sources, access, privacy, changelog, about
 
         static let sections: [(title: String, pages: [Page])] = [
-            ("Keyboard", [.theme, .layout, .typing, .feedback]),
+            ("Keyboard", [.appearance, .typing, .feedback]),
             ("Voice Typing", [.model, .writing, .dictionary, .microphone, .mic]),
             ("iikb", [.sources, .access, .privacy, .changelog, .about]),
         ]
 
         var title: String {
             switch self {
-            case .theme: "Theme"
-            case .layout: "Layout"
+            case .appearance: "Appearance"
             case .typing: "Typing"
             case .feedback: "Sound & Haptics"
             case .model: "Voice Model"
@@ -36,8 +35,7 @@ struct SettingsPage: View {
 
         var glyph: (String, Color) {
             switch self {
-            case .theme: ("paintpalette.fill", .purple)
-            case .layout: ("keyboard.fill", .blue)
+            case .appearance: ("paintpalette.fill", .purple)
             case .typing: ("character.cursor.ibeam", .cyan)
             case .feedback: ("hand.tap.fill", .pink)
             case .model: ("waveform", .red)
@@ -57,8 +55,8 @@ struct SettingsPage: View {
         @MainActor var value: String? {
             let model = SettingsModel.shared, settings = model.settings, words = VoiceVocabulary.shared.vocabulary.terms.count
             return switch self {
-            case .theme: settings.theme.title
-            case .layout, .typing, .privacy, .changelog: nil
+            case .appearance: settings.theme.title
+            case .typing, .privacy, .changelog: nil
             case .feedback: settings.haptics.title
             case .model: VoiceModel.shared.model.title
             case .writing: settings.dictationStyle.title
@@ -72,7 +70,7 @@ struct SettingsPage: View {
         }
 
         /// The keyboard's pages show iikb drawn as their settings make it, with a field to try it.
-        var showsKeyboard: Bool { [.theme, .layout, .typing, .feedback].contains(self) }
+        var showsKeyboard: Bool { [.appearance, .typing, .feedback].contains(self) }
     }
 
     @Bindable private var router = Router.shared
@@ -85,7 +83,7 @@ struct SettingsPage: View {
         NavigationStack(path: beside ? .constant([]) : $router.settingsPath) {
             Group {
                 if beside {
-                    let picked = router.settingsPath.last ?? .theme
+                    let picked = router.settingsPath.last ?? .appearance
                     Panes {
                         SettingsList(picked: picked) { router.settingsPath = [$0] }
                     } second: {
@@ -162,8 +160,7 @@ struct SettingsContent: View {
         Column(top: top) {
             if page.showsKeyboard { TryPreview() }
             switch page {
-            case .theme: ThemeSettings()
-            case .layout: LayoutSettings()
+            case .appearance: AppearanceSettings()
             case .typing: TypingSettings()
             case .feedback: FeedbackSettings()
             case .model: ModelSettings()

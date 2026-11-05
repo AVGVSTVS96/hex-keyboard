@@ -27,6 +27,6 @@ Voice typing, the app's biggest part, has its own doc: Voice/AGENTS.md.
   - The Mac's is `MacStats`, Keystroke's `typing-stats.json`, which `scripts/keystroke`'s LaunchAgent on the Mac sends the backup server each time Keystroke saves it, read back with `Backup.read` each time Stats comes forward.
   - Taps is `TapsPage`: `TapMapView` (Heat, Aim, Accuracy, laid out by `TapBoard`) with your numbers, a picked key's close-up, the thumbs' pull and misses by key, per screen of the Duo.
 - **Settings** (`SettingsPage`): every setting, in one list of pages under
-  - Keyboard: Theme, Layout, Typing, Sound & Haptics, each over a `KeyboardPreviewView` to try (`KeyboardSettingsPages`);
+  - Keyboard: Appearance (theme, character preview and layout on one page), Typing, Sound & Haptics, each over a `KeyboardPreviewView` to try (`KeyboardSettingsPages`);
   - Voice Typing: Voice Model, Writing Style, Dictionary, Microphone, Keep Mic On (`VoiceSettingsPages`);
   - iikb: Sources, Keyboard Access, Privacy & Data, Changelog (`ChangelogPage`), About, which credits the swipe decoder and links its license (`SettingsPages`).

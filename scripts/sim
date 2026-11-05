@@ -248,9 +248,8 @@ duoapp() {
 home -iikbTab home
 typing -iikbFocus YES
 settings -iikbSettings YES
-keyboard -iikbSettings theme
+appearance -iikbSettings appearance
 typing-settings -iikbSettings typing
-layout -iikbSettings layout
 feedback -iikbSettings feedback
 voice -iikbSettings model
 writing -iikbSettings writing
