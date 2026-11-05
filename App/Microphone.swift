@@ -36,10 +36,7 @@ import Observation
             }
         }
         center.addObserver(forName: AVAudioSession.mediaServicesWereResetNotification, object: nil, queue: .main) { [weak self] _ in
-            Task { @MainActor in
-                guard let self, self.isOn else { return }
-                self.restart(rebuilding: true)
-            }
+            Task { @MainActor in self?.restart(rebuilding: true) }
         }
     }
 
@@ -58,7 +55,7 @@ import Observation
     func open() throws {
         guard lock == nil else { return }
         do {
-            try begin()
+            try beginOnAnyEngine()
         } catch {
             try? engine.inputNode.setVoiceProcessingEnabled(false)
             try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
@@ -66,6 +63,18 @@ import Observation
         }
         lock = Dictation.lockMic() ?? -1
         Dictation.send(.changed)
+    }
+
+    /// An engine left from before a media services reset can't start (-50), and a suspended iikb may not hear of the
+    /// reset, so a failed start tries once more on a new engine.
+    private func beginOnAnyEngine() throws {
+        do {
+            try begin()
+        } catch {
+            try? engine.inputNode.setVoiceProcessingEnabled(false)
+            engine = AVAudioEngine()
+            try begin()
+        }
     }
 
     private func begin() throws {
@@ -95,7 +104,8 @@ import Observation
     }
 
     /// iOS stops the engine when the hardware's format or route changes under it, and every audio object is dead after
-    /// the media services reset: starts again into the same recording, which converts whatever format comes next.
+    /// the media services reset, the microphone on or off: starts again into the same recording, which converts whatever
+    /// format comes next.
     private func restart(rebuilding: Bool = false) {
         if rebuilding {
             engine = AVAudioEngine()
@@ -103,8 +113,9 @@ import Observation
             engine.inputNode.removeTap(onBus: 0)
             engine.stop()
         }
+        guard isOn else { return }
         do {
-            try begin()
+            try beginOnAnyEngine()
         } catch {
             onLost()
         }
