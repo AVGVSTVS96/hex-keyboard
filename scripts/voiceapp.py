@@ -4,7 +4,8 @@ stopped it. The first waits for the model to get ready, and meanwhile the keyboa
 the second records. Then it leaves one for a keyboard that has closed, which isn't typed. The last dictation ends the way a
 quit app does, mid-writing: the status stays, the lock goes. scripts/voiceapp.py <simulator id> <App Group container>
 [listening|saved|waiting], which holds one state until it's killed, for screenshots of the bar: talking; talking with two
-saved; three saved waiting for the model."""
+saved; three saved waiting for the model. With edited (<transcript id> <file>)..., it answers each dictation in turn with a file's
+text, left for the keyboard with that transcript's id, so the keyboard follows what it becomes."""
 import fcntl, json, math, os, struct, subprocess, sys, threading, time, uuid
 
 simulator, group = sys.argv[1:3]
@@ -27,8 +28,8 @@ def publish(listening=False, writing=(), waiting=False):
     notify("-p", prefix).wait()
 
 
-def leave(text, keyboard):
-    note = {"heard": {"_0": text, **({"keyboard": keyboard} if keyboard else {})}}
+def leave(text, keyboard, id=None):
+    note = {"heard": {"_0": text, "plain": text, **({"keyboard": keyboard} if keyboard else {}), **({"id": id} if id else {})}}
     name = f"{group}/Library/notes/{time.time_ns():020d}-{uuid.uuid4()}.json"
     with open(name + ".tmp", "w") as file:
         json.dump(note, file)
@@ -74,6 +75,17 @@ if sys.argv[3:] == ["saved"]:
     speak(threading.Event())
 if sys.argv[3:] == ["waiting"]:
     publish(writing=[5.2, 3.1, 8.4], waiting=True)
+    threading.Event().wait()
+if sys.argv[3:4] == ["edited"]:
+    for id, said in zip(sys.argv[4::2], sys.argv[5::2]):
+        started = notify("-1", f"{prefix}.start")
+        publish()
+        started.wait()
+        finished = notify("-1", f"{prefix}.finish")
+        publish(listening=True)
+        listen(finished)
+        publish()
+        leave(open(said).read(), keyboard("finish"), id)
     threading.Event().wait()
 started = notify("-1", f"{prefix}.start")
 publish()

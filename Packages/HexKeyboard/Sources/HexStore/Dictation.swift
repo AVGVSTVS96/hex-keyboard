@@ -170,6 +170,26 @@ public enum Dictation {
         files(in: editsURL).map { ($0.file, $0.value) }
     }
 
+    /// The dictations a keyboard was following as it went away, kept in its own container with the field they're in,
+    /// so the next keyboard goes on following them there, or leaves what they became if it's in another field.
+    public static func keep(_ draft: DictationDraft?, in field: String?) {
+        guard let draft else { return }
+        draftFile.save(Kept(field: field, draft: draft))
+    }
+
+    /// The dictations the last keyboard was following, which only one keyboard takes.
+    public static func takeDraft() -> (field: String?, draft: DictationDraft)? {
+        guard let kept = draftFile.read().value, take(draftFile.url) else { return nil }
+        return (kept.field, kept.draft)
+    }
+
+    private struct Kept: Codable {
+        var field: String?
+        var draft: DictationDraft
+    }
+
+    private static var draftFile: StoredFile<Kept> { StoredFile(URL.applicationSupportDirectory.appending(path: "dictation-draft.json")) }
+
     /// Takes a note or an edit, true for the one taker: removing its file succeeds once.
     public static func take(_ file: URL) -> Bool {
         (try? FileManager.default.removeItem(at: file)) != nil

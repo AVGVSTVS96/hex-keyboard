@@ -84,5 +84,23 @@ enum LaunchOptions {
         if let value = integer("HexKeyboardType").flatMap(UIKeyboardType.init) { field.keyboardType = value }
         if let value = integer("HexReturnKey").flatMap(UIReturnKeyType.init) { field.returnKeyType = value }
         if let text = defaults.string(forKey: "HexText") { field.text = text }
+        if defaults.bool(forKey: "HexSends") { sends(field) }
+    }
+
+    /// `-HexSends YES`: return sends, emptying the field wherever the caret is, as a messaging app does, for
+    /// scripts/edittest.
+    private static func sends(_ field: UITextView) {
+        field.returnKeyType = .send
+        field.delegate = sender
+    }
+
+    @MainActor private static let sender = Sender()
+
+    private final class Sender: NSObject, UITextViewDelegate {
+        func textView(_ textView: UITextView, shouldChangeTextIn range: NSRange, replacementText text: String) -> Bool {
+            guard text == "\n" else { return true }
+            textView.text = ""
+            return false
+        }
     }
 }

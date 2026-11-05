@@ -1,0 +1,44 @@
+#!/bin/bash
+# Runs on the Mac. What dictations become, through the real keyboard and app, with scripts/voiceapp.py standing in for
+# the app's microphone: a long dictation edited in the middle and a short one edited at its end, each sent as a
+# messaging app sends (-HexSends); then checks each transcript keeps the field's text as it was sent. Made-up text only.
+# scripts/edittest ["iPhone Duo"] [iPhone-Duo]
+set -euo pipefail
+cd "$(dirname "$0")/.."
+NAME=${1:-iPhone Duo}
+TYPE=${2:-iPhone-Duo}
+ID=$(scripts/sim ensure "$NAME" "$TYPE")
+mkdir -p build/uitest
+xcodegen generate -q
+xcodebuild build-for-testing -project HexKeyboard.xcodeproj -scheme Hex -destination "id=$ID" \
+  -derivedDataPath build/uitest -quiet
+scripts/sim boot "$ID"
+scripts/sim use "$ID" hex
+scripts/sim allow "$ID"
+xcrun simctl install "$ID" build/uitest/Build/Products/Debug-iphonesimulator/Hex.app
+group=$(xcrun simctl get_app_container "$ID" com.shahidy.hexkeyboard group.com.shahidy.hexkeyboard)
+work=$PWD/build/uitest/edits
+rm -rf "$work"
+mkdir -p "$work"
+long=$(uuidgen)
+short=$(uuidgen)
+printf '%s' 'The ferry to the island leaves at nine, so pack the blue tent, two lanterns and the map with the trails marked in red. Ask Priya whether the cabin by the lake still has a stove, and if it does we can skip the camp kitchen and bring the cast iron pan instead. On Saturday we hike the ridge loop, which takes about five hours with stops, so everyone needs a full water bottle, a warm layer and something salty to eat. The ranger said the north bridge washed out in the spring storms, so we cross at the shallow ford below the old mill instead. If it rains on Sunday we can drive into town for the market, buy smoked fish and bread, and play cards by the fire until the ferry back at four.' > "$work/long.txt"
+printf 'Running late, be there soon.' > "$work/short.txt"
+data="$(xcrun simctl get_app_container "$ID" com.shahidy.hexkeyboard data)/Library/Application Support"
+mkdir -p "$data"
+for pair in "$long long" "$short short"; do
+  set -- $pair
+  /usr/bin/python3 -c 'import json, sys; print(json.dumps({"id": sys.argv[1], "date": 0, "text": open(sys.argv[2]).read(), "seconds": 9, "typed": True}))' "$1" "$work/$2.txt" >> "$data/transcripts.jsonl"
+done
+/usr/bin/python3 scripts/voiceapp.py "$ID" "$group" edited "$long" "$work/long.txt" "$short" "$work/short.txt" &
+app=$!
+trap 'kill $app 2>/dev/null || true' EXIT
+TEST_RUNNER_HEX_ENDED="$work" \
+  xcodebuild test-without-building -project HexKeyboard.xcodeproj -scheme Hex -destination "id=$ID" \
+  -derivedDataPath build/uitest -only-testing:HexUITests/DictationEditTests > build/uitest/edits.log 2>&1 || failed=1
+grep -E "error:|XCTAssert|Test Case .*(passed|failed)|Executed" build/uitest/edits.log || true
+data="$(xcrun simctl get_app_container "$ID" com.shahidy.hexkeyboard data)/Library/Application Support"
+echo "edits left in the App Group: $(ls "$group/Library/edits" 2>/dev/null | wc -l | tr -d ' ')"
+/usr/bin/python3 scripts/edited.py "$data/transcripts.jsonl" "$long" "$work/long.ended" true "$short" "$work/short.ended" true || failed=1
+[ -n "${KEEP:-}" ] || xcrun simctl shutdown "$ID"
+exit "${failed:-0}"

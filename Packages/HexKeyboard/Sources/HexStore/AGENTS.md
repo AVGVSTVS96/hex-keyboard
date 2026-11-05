@@ -32,6 +32,7 @@ Never used in password or code fields.
 - A file lock the app holds while its microphone stays on, which the kernel drops when the app ends.
 - `host`: a file only the keyboard writes, the app it's in as it starts or stops a dictation, which the transcript keeps.
 - `edits`: a file the keyboard leaves for each dictation once its field is sent or left, with what it became, which the app takes into its transcript by removing it, as the keyboard takes a `Note`.
+- `keep` and `takeDraft`: the dictations a keyboard was following as it went away, in its own container (`dictation-draft.json`), which the next keyboard takes and goes on following in the same field, or closes out in another.
 
 ## Backup
 

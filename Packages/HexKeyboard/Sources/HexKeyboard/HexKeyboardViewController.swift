@@ -67,7 +67,8 @@ open class HexKeyboardViewController: UIInputViewController {
     private let clipboard = ClipboardStore(backup: ClipboardStore.own)
     private let sources = Sources()
     private var hostApp: String?
-    /// The field the keyboard is typing in (`documentIdentifier`), so dictations end with the field they were typed in.
+    /// The field the keyboard is typing in (`documentIdentifier`), so dictations end with the field they were typed in,
+    /// and the next keyboard in the same field goes on following them.
     private var field: String?
 
     override open func loadView() {
@@ -219,6 +220,8 @@ open class HexKeyboardViewController: UIInputViewController {
         isShown = false
         engine.endSession()
         keepDictations()
+        Dictation.keep(engine.takeDraft(), in: field)
+        field = nil
         engine.handle(.panel(nil), in: document)
         haptics.stop()
         TouchTrace.shared.flush()
@@ -269,6 +272,9 @@ open class HexKeyboardViewController: UIInputViewController {
         if textDocumentProxy.field != field {
             field = textDocumentProxy.field
             engine.leaveField()
+            if let kept = Dictation.takeDraft() {
+                if let field, kept.field == field { engine.resume(kept.draft) } else { Dictation.leave(kept.draft.outcomes(sent: false)) }
+            }
             keepDictations()
         }
         let known = engine.text.before.count

@@ -30,9 +30,9 @@ gives them:
 | `text` | what the model wrote as your style and Dictionary write it |
 | `typed` | whether it was typed where you said it (false when canceled or recovered) |
 | `model`, `mic`, `app`, `recovered` | the model that wrote it, the microphone, the app it was typed into, and whether it was written down after iikb ended mid-dictation |
-| `field` | `typed`: what the keyboard typed (`text` as the field reads it, with its capitals and spacing); `final`: what that became by the time the field was sent or left, every edit inside it included, and any typing that runs on from either end; `sent`: whether the field was emptied after it, as sending a message does, or left |
+| `field` | `typed`: what the keyboard typed (`text` as the field reads it, with its capitals and spacing); `final`: what that became by the time the field was sent or left, every edit inside it included, but not typing that runs on from either end (unless it retypes what was deleted there) or another dictation typed into it, and empty once all of it was deleted; `sent`: whether the field was emptied after it with nothing selected, as sending a message does, rather than left or cut; `uncertain`, when present: the keyboard lost its place in the field while something there changed, so `final` may be wrong |
 
-The keyboard follows each dictation it types until its field is sent, it moves to another field, or it goes away (`DictationDraft`), and leaves what it became in the App Group; the app writes it into the transcript as soon as it's told, or the next time it starts, and that sends it here like any other change. A dictation the keyboard never typed, typed into a password or code field, or typed before iikb kept this has no `field`.
+The keyboard follows each dictation it types until its field is sent or it moves to another field, across the keyboard going away and coming back (`DictationDraft`), and leaves what it became in the App Group; the app writes it into the transcript as soon as it's told, or the next time it starts, and that sends it here like any other change. A dictation the keyboard never typed, typed into a password or code field, or typed before iikb kept this has no `field`.
 
 ## When
 

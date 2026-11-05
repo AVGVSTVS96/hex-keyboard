@@ -40,6 +40,9 @@ public struct TypingEngine {
     public internal(set) var tally = TypingTally()
     /// The dictations typed into this field, followed until it's sent or left.
     private var draft: DictationDraft?
+    /// The draft as it was before the return the keyboard just typed: a field emptied right after it was sent by it, as in
+    /// a messaging app, so the return isn't part of what the dictations became.
+    private var beforeReturn: DictationDraft?
     /// What dictations became once their field was sent or left, for the keyboard to keep (`takeDictations`).
     private var dictations: [DictationDraft.Outcome] = []
 
@@ -142,7 +145,9 @@ public struct TypingEngine {
             if layer != .letters { layer = .letters }
         case .return:
             commitWord(in: document)
+            let held = draft
             write("\n", in: document)
+            beforeReturn = held
             tally.characters += 1
             self.revert?.trailing = "\n"
         case .tab:
@@ -227,9 +232,12 @@ public struct TypingEngine {
             let capitals = settings.dictation.capitals(in: traits.autocapitalization)
             let traits = traits
             attach(document)
-            if id != nil, draft?.isLost != false {
-                finishDraft(sent: false)
-                draft = DictationDraft(text)
+            if id != nil {
+                if draft?.isLost == true { draft?.place(before: text.before, selected: text.selected, after: text.after ?? "") }
+                if draft?.isLost != false {
+                    finishDraft(sent: false)
+                    draft = DictationDraft(text)
+                }
             }
             var typed = ""
             insertWhole(in: document) {
@@ -365,7 +373,6 @@ public struct TypingEngine {
 
     /// Learns from the last words you kept, the one in progress too. Call when the keyboard goes away.
     public mutating func endSession() {
-        finishDraft(sent: false)
         guard !sessionEnded else { return }
         keepWord(in: text)
         typing = WordTaps()
@@ -416,6 +423,7 @@ public struct TypingEngine {
     mutating func write(_ string: String, replacing count: Int = 0, in document: some TextDocument) {
         sessionEnded = false
         lineGoal = nil
+        beforeReturn = nil
         if count > 0 {
             document.deleteBackward(count)
             text.deleteBackward(count)
@@ -435,14 +443,27 @@ public struct TypingEngine {
     }
 
     /// Takes the host's report into `text`, and into the draft when the keyboard's edits don't explain it or the draft
-    /// lost the caret: an emptied field was sent.
+    /// lost the caret. A field emptied with nothing selected, by a host that had shown its text, was sent; one emptied
+    /// from a selection was cut; and an empty report from a host that never shows text says nothing.
     @discardableResult
     private mutating func reconcile(_ document: some TextDocument) -> TextState.Report {
+        let known = text
         let report = text.reconcile(before: document.textBeforeInput, after: document.textAfterInput, selected: document.selectedText)
+        guard draft != nil else { return report }
+        if [document.textBeforeInput, document.selectedText, document.textAfterInput].contains(where: { !($0 ?? "").isEmpty }) {
+            draft?.see(before: document.textBeforeInput?.count ?? 0, after: document.textAfterInput?.count ?? 0)
+        }
+        guard report != .behind else { return report }
         if report == .changed, text.isEmpty {
-            finishDraft(sent: true)
-        } else if report == .changed || report == .current && draft?.isLost == true {
+            guard draft?.shown == true else { return report }
+            guard !known.selected.isEmpty else {
+                finishDraft(sent: true)
+                return report
+            }
+            draft?.place(before: "", selected: "", after: "")
+        } else if report == .changed || draft?.isLost == true {
             draft?.place(before: text.before, selected: text.selected, after: text.after ?? "")
+            beforeReturn = nil
         }
         return report
     }
@@ -452,10 +473,25 @@ public struct TypingEngine {
         finishDraft(sent: false)
     }
 
+    /// The dictations still being followed, which the engine lets go of, for the next keyboard in the same field
+    /// (`resume`), since iOS makes a new one each time the keyboard comes up.
+    public mutating func takeDraft() -> DictationDraft? {
+        defer { (draft, beforeReturn) = (nil, nil) }
+        return draft
+    }
+
+    /// Goes on following the dictations another keyboard was following in this field, from the next window the host shows.
+    public mutating func resume(_ draft: DictationDraft) {
+        finishDraft(sent: false)
+        self.draft = draft
+        self.draft?.lose()
+    }
+
     private mutating func finishDraft(sent: Bool) {
         guard let draft else { return }
-        dictations += draft.outcomes(sent: sent)
+        dictations += ((sent ? beforeReturn : nil) ?? draft).outcomes(sent: sent)
         self.draft = nil
+        beforeReturn = nil
     }
 
     /// What dictations became since the last take, once each one's field was sent or left.

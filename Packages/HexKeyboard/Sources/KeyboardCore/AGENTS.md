@@ -30,9 +30,9 @@ iOS facts the metrics follow:
 ### Dictation drafts
 
 `Typing/DictationDraft.swift`: what each dictation typed becomes.
-- `TypingEngine` starts a `DictationDraft` when it types a dictation with its transcript's id (`KeyboardEvent.dictated`) and follows it through every edit until the field is sent (emptied), left (`leaveField`, a new `documentIdentifier`) or the keyboard goes away.
-- The keyboard's own edits land on it exactly. Each window of the field the host shows that they don't explain (a tap moving the caret, a paste, a cut) is placed on the field the draft has seen as the smallest edit that explains it, since iOS shows a keyboard only a window around the caret.
-- `takeDictations` gives each dictation's `Outcome`: what was typed, what it is now (`final`, edits inside it and typing that runs on from either end included) and whether the field was sent.
+- `TypingEngine` starts a `DictationDraft` when it types a dictation with its transcript's id (`KeyboardEvent.dictated`) and follows it through every edit until the field is sent or left (`leaveField`, a new `documentIdentifier`). Sent is emptied with nothing selected, by a host that has shown its text; a return the keyboard typed just before is the send, not part of the dictation. A keyboard that goes away keeps the draft (`takeDraft`), and the next one in the same field goes on following it (`resume`).
+- The keyboard's own edits land on it exactly. Each window of the field the host shows that they don't explain (a tap moving the caret, a paste, a cut) is placed on the field the draft has seen as the smallest edit that explains it, since iOS shows a keyboard only a window around the caret, cut at a length of its own before and after the caret. A window that fits two places as well loses the place rather than guessing.
+- `takeDictations` gives each dictation's `Outcome`: what was typed, what it is now (`final`: edits inside it, a dictation typed into it cut out, typing that runs on from either end left out unless it retypes what was deleted there, and empty once all of it is deleted), whether the field was sent, and whether it's `uncertain` (the field changed while the place was lost).
 
 ### Slide to Type
 

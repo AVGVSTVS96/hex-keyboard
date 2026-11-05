@@ -30,6 +30,8 @@ struct Transcript: Codable, Identifiable, Hashable {
         var final: String
         /// The field was emptied after it, as sending a message does; false when it was left.
         var sent: Bool
+        /// The keyboard lost its place in the field while something there changed, so `final` may be wrong.
+        var uncertain: Bool?
     }
 
     var words: Int { text.split(whereSeparator: \.isWhitespace).count }
@@ -128,7 +130,7 @@ struct Transcript: Codable, Identifiable, Hashable {
         var taken: [URL] = []
         for (file, edit) in Dictation.edits {
             if let index = all.firstIndex(where: { $0.id.uuidString == edit.id }) {
-                all[index].field = Transcript.Field(typed: edit.typed, final: edit.final, sent: edit.sent)
+                all[index].field = Transcript.Field(typed: edit.typed, final: edit.final, sent: edit.sent, uncertain: edit.uncertain ? true : nil)
             } else if waiting.contains(edit.id) {
                 continue
             }
