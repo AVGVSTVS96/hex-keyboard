@@ -23,9 +23,9 @@ nonisolated public enum PersonalNetwork {
 
     /// Fetches the server's network when it's another than the one here and made after the last reset.
     public static func fetch() async {
-        guard let url else { return }
+        guard let url else { return log.notice("no App Group, so no personal network") }
         let forgotten = Date(timeIntervalSince1970: UserDefaults.standard.double(forKey: forgottenKey))
-        if await Backup.pull(name, to: url, after: forgotten) { log.info("fetched the personal network") }
+        log.notice("personal network: \(String(describing: await Backup.pull(name, to: url, after: forgotten)), privacy: .public)")
     }
 
     /// Removes the copy here, and takes none the server made before now: a reset starts over from the bundled network.
