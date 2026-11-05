@@ -32,8 +32,10 @@ I'm a hundred percent sure. | I'm a hundred percent sure
 What percent of it failed? | What percent of it failed?
 
 # domains and the word "dot"
+Open kestrel dot run in the browser. | Open kestrel.run in the browser
 Go to proxy.kestrel.run now. | Go to proxy.kestrel.run now
 Open kestrul dot run now. | Open kestrel.run now
+It's up on example dot com. | It's up on example.com
 My dot files are synced. | My dot files are synced
 Put a dot here and a dash there. | Put a dot here and a dash there
 The dot is selected, so go. | The dot is selected, so go

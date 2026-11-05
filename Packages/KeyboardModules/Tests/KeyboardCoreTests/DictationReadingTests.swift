@@ -47,14 +47,14 @@ struct DictationReadingTests {
     @Test func aSearchFieldReadsAnAddressOnlyWhenAllOfItIsOne() {
         #expect(dictate("example dot com", kind: .webSearch) == "example.com")
         #expect(dictate("Docs dot python dot org slash tutorial", kind: .webSearch) == "docs.python.org/tutorial")
-        #expect(dictate("How to reach example dot com.", kind: .webSearch) == "How to reach example dot com.")
+        #expect(dictate("How to reach example dot com.", kind: .webSearch) == "How to reach example.com.")
         #expect(dictate("Pizza near me.", kind: .webSearch) == "Pizza near me.")
         #expect(dictate("Python 3.12 release notes", kind: .webSearch) == "Python 3.12 release notes")
     }
 
     @Test func aDictationRightAfterPartOfAnAddressGoesOnWithIt() {
         #expect(dictate("Gmail dot com.", into: "john@") == "john@gmail.com")
-        #expect(dictate("Gmail dot com.", into: "john ") == "john Gmail dot com.")
+        #expect(dictate("Gmail dot com.", into: "john ") == "john gmail.com.")
     }
 
     @Test func anAddressIsReadFromWhatTheModelWroteNotTheStyledText() {

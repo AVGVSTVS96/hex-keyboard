@@ -16,7 +16,8 @@ enum SpokenAddress {
     private static let units = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve",
                                 "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"]
     private static let tens = ["twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"]
-    private static let domains: Set<String> = ["com", "org", "net", "edu", "gov", "io", "co", "us", "uk", "ai", "app", "dev", "me", "info", "tv", "ca", "de", "fr"]
+    private static let domains: Set<String> = ["com", "org", "net", "edu", "gov", "io", "co", "us", "uk", "ai", "app", "dev", "me", "info", "tv", "ca", "de", "fr", "run"]
+    private static let determiners: Set<String> = ["the", "a", "an", "this", "that", "my", "your", "our", "his", "her", "their", "its"]
 
     /// What `said` spells as an address, or nil when it says nothing.
     static func read(_ said: String) -> String? {
@@ -69,11 +70,16 @@ enum SpokenAddress {
         return digits.isEmpty ? nil : digits
     }
 
+    /// `text` with an address spoken inside it written as one (`emails`, then `webAddresses`).
+    static func inline(_ text: String) -> String {
+        webAddresses(emails(text))
+    }
+
     /// `text` with an email address spoken inside it written as one, found by its domain: after an "at", a domain with
     /// its ending, spoken ("email me at john at gmail dot com" is "email me at john@gmail.com") or written, when the name
     /// before the "at" has a dot, underscore, dash or digit in it ("jane.doe at gmail.com"), since "shop at example.com"
     /// is a sentence. Text that isn't one is returned as it is.
-    static func inline(_ text: String) -> String {
+    private static func emails(_ text: String) -> String {
         guard text.contains(" at ") else { return text }
         var words = text.split(separator: " ", omittingEmptySubsequences: false).map(String.init)
         var from = 0
@@ -85,6 +91,21 @@ enum SpokenAddress {
             let address = name + "@" + host.name
             words.replaceSubrange(local ..< host.end, with: [address + host.tail])
             from = local + 1
+        }
+        return words.joined(separator: " ")
+    }
+
+    /// `text` with a web address spoken in it written as one, found by its ending ("open Kestrel dot run" is "open
+    /// kestrel.run"), though never at or after "the" or "my" ("the dot com bubble", "at the park dot com is down").
+    private static func webAddresses(_ text: String) -> String {
+        guard text.contains(" dot ") || text.contains(" Dot ") else { return text }
+        var words = text.split(separator: " ", omittingEmptySubsequences: false).map(String.init)
+        var at = 0
+        while at < words.count {
+            if !determiners.contains(clean(words[at])), at == 0 || !determiners.contains(clean(words[at - 1])), let host = host(in: words, after: at - 1), host.spoken {
+                words.replaceSubrange(at ..< host.end, with: [host.name + host.tail])
+            }
+            at += 1
         }
         return words.joined(separator: " ")
     }
