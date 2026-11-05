@@ -4,8 +4,8 @@
 /// possessive keeps its "'s".
 ///
 /// With a lexicon, a made-up word the model writes that sounds like a term becomes it too ("kestrul dot run" for
-/// kestrel.run, "IKB" for iikb), as do words like those already in the field (`field`), so a name written once comes out
-/// the same when said again. A real word is only swapped if it's listed, so "sound" stays unless "Astound" lists it. A
+/// kestrel.run, "IKB" for iikb), as do words like those already in the field (`field`) or ones you type often (`typed`),
+/// so a name written once comes out the same when said again. A real word is only swapped if it's listed, so "sound" stays unless "Astound" lists it. A
 /// name with digits after it, as in an address ("tamsen101"), is matched by its name and keeps its digits.
 public struct Vocabulary: Codable, Equatable, Sendable {
     public struct Term: Codable, Equatable, Hashable, Sendable {
@@ -24,7 +24,7 @@ public struct Vocabulary: Codable, Equatable, Sendable {
         self.terms = terms
     }
 
-    public func corrected(_ text: String, lexicon: Lexicon? = nil, field: String = "") -> String {
+    public func corrected(_ text: String, lexicon: Lexicon? = nil, field: String = "", typed: Set<String> = []) -> String {
         var spellings: [String: String] = [:]
         for term in terms {
             for spelling in [term.term] + term.heardAs where !Self.key(spelling).isEmpty {
@@ -34,6 +34,7 @@ public struct Vocabulary: Codable, Equatable, Sendable {
         let soundsLike = lexicon.map { lexicon in
             terms.flatMap { term in ([term.term] + term.heardAs).map { Likeness($0, term: term.term, seen: false) } }
                 + Self.seen(in: field, lexicon: lexicon).map { Likeness($0, term: $0, seen: true) }
+                + typed.map { Likeness($0, term: $0, seen: true, cased: true) }
         } ?? []
         guard !spellings.isEmpty || !soundsLike.isEmpty else { return text }
         let characters = Array(text)
@@ -90,20 +91,23 @@ public struct Vocabulary: Codable, Equatable, Sendable {
         return result + String(characters[copied...])
     }
 
-    /// A spelling a made-up word can sound like, and the term it stands for. `seen` is one read off the field, which
-    /// leaves a word that only adds an ending to it ("subagents" by "subagent") or only changes its case.
+    /// A spelling a made-up word can sound like, and the term it stands for. `seen` is one read off the field or your
+    /// typing, which leaves a word that only adds an ending to it ("subagents" by "subagent") or only changes its case;
+    /// `cased`, one from your typing, takes the capital the model gave the word.
     struct Likeness {
         let key: [Character]
         let words: Set<String>
         let term: String
         let seen: Bool
+        var cased = false
 
-        init(_ spelling: String, term: String, seen: Bool) {
+        init(_ spelling: String, term: String, seen: Bool, cased: Bool = false) {
             let said = Array(Vocabulary.saying(spelling).lowercased())
             key = Array(Vocabulary.key(String(said)))
             words = Set(Words.ranges(in: said).map { String(said[$0]) })
             self.term = term
             self.seen = seen
+            self.cased = cased
         }
 
         /// How many letters may differ: none under four, one up to six, two up to twelve, three past that.
@@ -124,17 +128,18 @@ public struct Vocabulary: Codable, Equatable, Sendable {
         guard real.contains(false), !words.contains(where: { $0.allSatisfy(\.isNumber) }) else { return nil }
         let key = Array(spoken(said))
         guard key.count >= 3 else { return nil }
-        var best: (distance: Int, term: String)?
+        var best: (distance: Int, term: String, cased: Bool)?
         for likeness in likenesses where likeness.slack > 0 && likeness.key.first == key.first {
             guard abs(likeness.key.count - key.count) <= likeness.slack else { continue }
             guard !real.first! || likeness.words.contains(words.first!.lowercased()),
                   !real.last! || likeness.words.contains(words.last!.lowercased()) else { continue }
             if likeness.seen, key.starts(with: likeness.key) || likeness.key.starts(with: key) { continue }
             let distance = distance(key, likeness.key)
-            if distance <= likeness.slack, distance < best?.distance ?? .max { best = (distance, likeness.term) }
+            if distance <= likeness.slack, distance < best?.distance ?? .max { best = (distance, likeness.term, likeness.cased) }
         }
         guard let best, best.term != said else { return nil }
-        return best.term
+        guard best.cased, said.first?.isUppercase == true, best.term == best.term.lowercased() else { return best.term }
+        return best.term.prefix(1).uppercased() + best.term.dropFirst()
     }
 
     /// Words in the field worth matching a dictation to: each name with a dot in it, from each of its parts to its end
@@ -170,6 +175,20 @@ public struct Vocabulary: Codable, Equatable, Sendable {
         let name = word.prefix { $0.isLetter }, number = word.dropFirst(name.count)
         guard !name.isEmpty, !number.isEmpty, number.allSatisfy(\.isNumber) else { return nil }
         return (String(name), String(number))
+    }
+
+    /// Words you type often worth matching a dictation to, as you spell them most: each of four letters or more typed
+    /// five times or more that the lexicon lacks ("iikb") or you've capitalized three times or more ("Opus").
+    static func typed(in memory: TypingMemory, lexicon: Lexicon) -> Set<String> {
+        var spellings: [String: [(word: String, count: Int)]] = [:]
+        for (word, count) in memory.counts where word.count >= 4 && word.allSatisfy(\.isLetter) {
+            spellings[word.lowercased(), default: []].append((word, count))
+        }
+        return Set(spellings.compactMap { lowered, spellings in
+            let capitalized = spellings.filter { $0.word.first!.isUppercase }.reduce(0) { $0 + $1.count }
+            guard spellings.reduce(0, { $0 + $1.count }) >= 5, !lexicon.isWord(lowered) || capitalized >= 3 else { return nil }
+            return spellings.max { $0.count < $1.count }!.word
+        })
     }
 
     /// Where "<word> dot " starts its dot, right before `start`, so a spoken dot joins a name with a dot in it.

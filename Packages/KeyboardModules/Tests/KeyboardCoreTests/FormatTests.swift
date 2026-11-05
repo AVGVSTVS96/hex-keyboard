@@ -16,6 +16,11 @@ struct FormatTests {
         let lexicon = Lexicon(bytes: Bytes([UInt8](FileManager.default.contents(atPath: Self.root.appending(path: "Packages/KeyboardModules/Sources/KeyboardEnglish/Resources/en.lexicon").path)!)))!
         let vocabulary = Vocabulary([Vocabulary.Term("kestrel.run"), Vocabulary.Term("tamsin", heardAs: ["tamsen"])])
         let corrector = Corrector(source: lexicon)
+        corrector.changeMemory { memory in
+            for (word, times) in [("Opus", 6), ("corvina", 8), ("quillon", 2)] {
+                for _ in 0 ..< times { memory.record(word, after: nil) }
+            }
+        }
         let cases = try String(contentsOf: Self.root.appending(path: "scripts/formats.txt"), encoding: .utf8)
             .split(separator: "\n").filter { !$0.hasPrefix("#") }
         var failed: [String] = []

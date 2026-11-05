@@ -239,11 +239,12 @@ public struct TypingEngine {
                     draft = DictationDraft(text)
                 }
             }
+            let words = corrector.flatMap { corrector in lexicon.map { Vocabulary.typed(in: corrector.memory, lexicon: $0) } } ?? []
             var typed = ""
             insertWhole(in: document) {
                 let field = $0.before + " " + ($0.after ?? "")
-                let heard = Vocabulary().corrected(heard, lexicon: lexicon, field: field)
-                typed = DictationReading.typed(plain.map { Vocabulary().corrected($0, lexicon: lexicon, field: field) } ?? heard,
+                let heard = Vocabulary().corrected(heard, lexicon: lexicon, field: field, typed: words)
+                typed = DictationReading.typed(plain.map { Vocabulary().corrected($0, lexicon: lexicon, field: field, typed: words) } ?? heard,
                                                in: traits, after: $0.before)
                     ?? Self.fitted(SpokenNumber.inline(SpokenAddress.inline(heard)), between: $0.before, and: $0.after, lexicon: lexicon, capitals: capitals)
                 return typed
