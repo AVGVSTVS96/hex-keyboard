@@ -69,8 +69,8 @@ struct Transcript: Codable, Identifiable, Hashable {
             }.sorted { $0.date > $1.date }
             self.unread = unread
         }
-        takeEdits()
         _ = Dictation.observe(.edited) { Transcripts.shared.takeEdits() }
+        DispatchQueue.main.async { Transcripts.shared.takeEdits() }
         let ids = Set(all.map(\.id)).union(unread.compactMap { try? JSONDecoder().decode(Named.self, from: $0).id })
         unwritten = ((try? FileManager.default.contentsOfDirectory(at: recordings, includingPropertiesForKeys: nil)) ?? []).filter { file in
             UUID(uuidString: file.deletingPathExtension().lastPathComponent).map { !ids.contains($0) } ?? false
@@ -121,15 +121,22 @@ struct Transcript: Codable, Identifiable, Hashable {
         }
     }
 
-    /// Keeps what the keyboard says each dictation became with its transcript.
+    /// Keeps what the keyboard says each dictation became with its transcript, and only then lets go of what it said.
+    /// What belongs to a line this build can't read waits for a build that can; what belongs to no transcript goes.
     func takeEdits() {
-        var changed = false
-        for (file, edit) in Dictation.edits where Dictation.take(file) {
-            guard let index = all.firstIndex(where: { $0.id.uuidString == edit.id }) else { continue }
-            all[index].field = Transcript.Field(typed: edit.typed, final: edit.final, sent: edit.sent)
-            changed = true
+        let waiting = Set(unread.compactMap { try? JSONDecoder().decode(Named.self, from: $0).id.uuidString })
+        var taken: [URL] = []
+        for (file, edit) in Dictation.edits {
+            if let index = all.firstIndex(where: { $0.id.uuidString == edit.id }) {
+                all[index].field = Transcript.Field(typed: edit.typed, final: edit.final, sent: edit.sent)
+            } else if waiting.contains(edit.id) {
+                continue
+            }
+            taken.append(file)
         }
-        if changed { save() }
+        guard !taken.isEmpty else { return }
+        save()
+        for file in taken { _ = Dictation.take(file) }
     }
 
     func delete(_ ids: Set<Transcript.ID>) {
