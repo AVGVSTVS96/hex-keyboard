@@ -94,7 +94,7 @@ const facts = {
     coreSeconds: Number(find("PROGRESS.md", /runs KeyboardCore's tests on Linux in about (\d+) s/)[1]),
   },
   voice: {
-    downloadMB: Number(find("App/VoiceModel.swift", /Downloads once, about (\d+) MB/)[1]),
+    downloadMB: Number(find("App/Voice/VoiceModel.swift", /Downloads once, about (\d+) MB/)[1]),
     speechSeconds: Number(find("PROGRESS.md", /writes ([\d.]+) s of speech in ([\d.]+) s/)[1]),
     writeSeconds: Number(find("PROGRESS.md", /writes ([\d.]+) s of speech in ([\d.]+) s/)[2]),
   },

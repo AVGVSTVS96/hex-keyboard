@@ -11,7 +11,7 @@
 # scripts/backup and scripts/restore take the near-empty files sent in the day after it for that rather than for you.
 # Then it starts Hex in the background, now or the moment the iPhone next unlocks (scripts/unlocked), so Parakeet
 # is ready, or compiles when it must, right away rather than at the next dictation; an install alone no longer
-# recompiles it, since its models live in the App Group's container, whose path installs keep (App/Parakeet.swift).
+# recompiles it, since its models live in the App Group's container, whose path installs keep (App/Voice/Parakeet.swift).
 # It builds main's last commit in its own worktree, so agents' branches and uncommitted edits never reach the phone,
 # and one run at a time, so agents installing at once queue instead of sharing that worktree. The build number is main's
 # commit count, which Settings › About shows as "Version 0.1.0 (<build>)"; when the iPhone already has that build,
