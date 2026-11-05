@@ -6,5 +6,8 @@ let package = Package(
     name: "VoiceBench",
     platforms: [.macOS(.v26)],
     dependencies: [.package(url: "https://github.com/FluidInference/FluidAudio.git", exact: "0.18.0")],
-    targets: [.executableTarget(name: "VoiceBench", dependencies: [.product(name: "FluidAudio", package: "FluidAudio")])]
+    targets: [
+        .target(name: "KeyboardStore"),
+        .executableTarget(name: "VoiceBench", dependencies: ["KeyboardStore", .product(name: "FluidAudio", package: "FluidAudio")]),
+    ]
 )
