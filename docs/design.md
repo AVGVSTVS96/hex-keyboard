@@ -254,6 +254,7 @@ open, landscape 951 × 669       open, portrait 669 × 951      folded 466 × 67
     - **Voice Model**: Parakeet v3, Parakeet Ultra and Apple, each with a line on what it costs and, for the picked one, its download, getting ready, or why it failed with Try Again.
     - **Writing Style**: a card of what you say over what iikb types for it as picked, which changes as you pick; then Style (Wispr Flow's four), Editing (As Said, Light, Clean) and Lists (Numbered, Bulleted, Off), each choice showing the same words as it types them with everything else as picked.
     - **Dictionary**: Add Word at the top, then the words the model gets wrong in alphabetical order, each with what it writes instead; a word opens a form like Add Source's, with Delete Word, and holding one offers Delete.
+    - **Microphone**: Automatic (the iPhone, or a wired headset when plugged in; never Bluetooth, so music keeps its quality), then each microphone connected now (the iPhone's, wired, USB, and Bluetooth devices the iPhone plays to, with their call-quality cost said) and the picked one when it's away.
     - **Keep Mic On**: how long the mic stays on after a dictation.
   - **iikb**.
     - **Sources**: Add Source and a tapped source open a form, name, https address and secure token, that says what's wrong before Save.

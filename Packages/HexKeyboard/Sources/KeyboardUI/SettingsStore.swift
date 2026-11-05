@@ -43,6 +43,7 @@ public enum SettingsStore {
 
     private static let oneHandedKey = "oneHanded"
     private static let keepMicOnKey = "keepMicOn"
+    private static let microphoneKey = "microphone"
 
     private static var group: UserDefaults { UserDefaults(suiteName: appGroup) ?? .standard }
     private static var own: UserDefaults { .standard }
@@ -112,9 +113,16 @@ public enum SettingsStore {
         set { set(newValue, forKey: keepMicOnKey) }
     }
 
+    /// The microphone picked to dictate with, nil to leave it to iikb's automatic choice. Only the app reads it.
+    public static var microphone: PickedMicrophone? {
+        get { (value(forKey: microphoneKey, sharing: true) as? [String: String]).flatMap(PickedMicrophone.init) }
+        set { set(newValue?.stored ?? [:], forKey: microphoneKey) }
+    }
+
     public static func reset(to settings: KeyboardSettings = .initial) {
         save(settings)
         keepMicOn = Dictation.micDefault
+        microphone = nil
     }
 
     static func value(forKey key: String, sharing: Bool) -> Any? {
@@ -164,4 +172,26 @@ private struct Choice<Value: RawRepresentable<String>> {
     func save(_ settings: KeyboardSettings) {
         SettingsStore.set(settings[keyPath: path].rawValue, forKey: key)
     }
+}
+
+/// A microphone picked in the app, kept by its port's UID and the name it had, so it stays picked while it's away.
+public struct PickedMicrophone: Hashable, Sendable {
+    public enum Kind: String, Sendable { case iPhone, bluetooth, other }
+
+    public let uid: String
+    public let name: String
+    public let kind: Kind
+
+    public init(uid: String, name: String, kind: Kind) {
+        self.uid = uid
+        self.name = name
+        self.kind = kind
+    }
+
+    init?(_ stored: [String: String]) {
+        guard let uid = stored["uid"], let name = stored["name"] else { return nil }
+        self.init(uid: uid, name: name, kind: stored["kind"].flatMap(Kind.init) ?? .other)
+    }
+
+    var stored: [String: String] { ["uid": uid, "name": name, "kind": kind.rawValue] }
 }

@@ -255,6 +255,7 @@ feedback -HexSettings feedback
 voice -HexSettings model
 writing -HexSettings writing
 dictionary -HexSettings dictionary
+microphone -HexSettings microphone
 mic -HexSettings mic
 transcripts -HexTab transcripts
 clipboard -HexTab clipboard

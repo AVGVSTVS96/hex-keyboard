@@ -6,11 +6,11 @@ import SwiftUI
 /// takes the first pane and the picked page the second; elsewhere a page opens on its own.
 struct SettingsPage: View {
     enum Page: String, CaseIterable, Hashable {
-        case theme, layout, typing, feedback, model, writing, dictionary, mic, sources, access, privacy, about
+        case theme, layout, typing, feedback, model, writing, dictionary, microphone, mic, sources, access, privacy, about
 
         static let sections: [(title: String, pages: [Page])] = [
             ("Keyboard", [.theme, .layout, .typing, .feedback]),
-            ("Voice Typing", [.model, .writing, .dictionary, .mic]),
+            ("Voice Typing", [.model, .writing, .dictionary, .microphone, .mic]),
             ("iikb", [.sources, .access, .privacy, .about]),
         ]
 
@@ -23,6 +23,7 @@ struct SettingsPage: View {
             case .model: "Voice Model"
             case .writing: "Writing Style"
             case .dictionary: "Dictionary"
+            case .microphone: "Microphone"
             case .mic: "Keep Mic On"
             case .sources: "Sources"
             case .access: "Keyboard Access"
@@ -40,6 +41,7 @@ struct SettingsPage: View {
             case .model: ("waveform", .red)
             case .writing: ("textformat", .orange)
             case .dictionary: ("character.book.closed.fill", .brown)
+            case .microphone: ("mic.circle.fill", .mint)
             case .mic: ("mic.fill", .green)
             case .sources: ("antenna.radiowaves.left.and.right", .teal)
             case .access: ("switch.2", .indigo)
@@ -58,6 +60,7 @@ struct SettingsPage: View {
             case .model: VoiceModel.shared.model.title
             case .writing: settings.dictationStyle.title
             case .dictionary: words == 1 ? "1 word" : "\(words.formatted()) words"
+            case .microphone: MicrophoneChoices.shared.picked?.title ?? "Automatic"
             case .mic: Dictation.title(keepingMicOn: model.keepMicOn)
             case .sources: model.sources.isEmpty ? "None" : model.sources.count.formatted()
             case .access: HexStatus.shared.isSetUp ? "All Set" : "Needs Setup"
@@ -163,6 +166,7 @@ struct SettingsContent: View {
             case .model: ModelSettings()
             case .writing: WritingSettings()
             case .dictionary: VocabularyView()
+            case .microphone: MicrophoneSettings()
             case .mic: MicSettings()
             case .sources: SourcesPage()
             case .access: SetupPage()

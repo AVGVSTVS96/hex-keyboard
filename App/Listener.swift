@@ -184,6 +184,11 @@ import UIKit
         }
     }
 
+    /// The microphone picked in Settings changed: hears from it now, into the recording going on, if there is one.
+    func microphoneChanged() {
+        microphone.restart()
+    }
+
     /// Home's switch, on: the microphone on with nothing recorded, so the keyboard starts each dictation in place, and
     /// kept on until the switch turns it off.
     func turnMicOn() async throws {

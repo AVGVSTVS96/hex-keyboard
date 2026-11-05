@@ -2,7 +2,7 @@ import AVFoundation
 import KeyboardUI
 import Observation
 
-/// The iPhone's microphone, recording a dictation as a `Recording`: 16 kHz, kept in memory and written to its file as
+/// The microphone, recording a dictation as a `Recording`: 16 kHz, kept in memory and written to its file as
 /// it's heard. It knows nothing of the models that write recordings down, so nothing about them can hold up a
 /// recording. While it's on it holds the App Group's mic lock, which tells the keyboard the app is there to dictate.
 @Observable @MainActor final class Microphone {
@@ -23,10 +23,13 @@ import Observation
             Task { @MainActor in self?.onLost() }
         }
         center.addObserver(forName: AVAudioSession.routeChangeNotification, object: nil, queue: .main) { [weak self] note in
-            guard note.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt == AVAudioSession.RouteChangeReason.newDeviceAvailable.rawValue else { return }
+            let reason = (note.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt).flatMap(AVAudioSession.RouteChangeReason.init)
             Task { @MainActor in
-                guard let self, self.isOn, self.engine.inputNode.isVoiceProcessingEnabled else { return }
-                self.onSpeaker()
+                guard let self, self.isOn, let reason else { return }
+                if let picked = SettingsStore.microphone, picked.kind != .iPhone, reason == .newDeviceAvailable || reason == .oldDeviceUnavailable {
+                    self.restart()
+                }
+                if reason == .newDeviceAvailable, self.engine.inputNode.isVoiceProcessingEnabled { self.onSpeaker() }
             }
         }
         center.addObserver(forName: .AVAudioEngineConfigurationChange, object: nil, queue: .main) { [weak self] _ in
@@ -45,13 +48,19 @@ import Observation
     /// The input recording now, as iOS names it.
     var input: String? { AVAudioSession.sharedInstance().currentRoute.inputs.first?.portName }
 
-    /// Mixes with whatever else is playing, so music keeps going while you talk, wherever it plays: a Bluetooth
-    /// microphone would put a speaker or AirPods on a call, so you're heard on the iPhone's own. While any app records,
-    /// iOS mutes every app's haptics, the keyboard's included, unless the recording session allows them. While the
-    /// iPhone plays the sound itself, it hears through Apple's voice processing, which picks up your voice from all of
-    /// its microphones as a call does: from one microphone, the folded iPhone Duo in portrait lost his voice for seconds
-    /// at a time, 12% of the time, leaving a low rumble that Parakeet writes as nothing. Voice processing takes the sound
-    /// from a Bluetooth speaker or AirPlay to the iPhone, and music apps pause, so while one plays it hears from one.
+    /// By default it hears from the iPhone and never from a Bluetooth microphone, which would put a speaker or AirPods on
+    /// a call (`.allowBluetoothHFP`), and music would drop to call quality or stop. A microphone picked in Settings is
+    /// asked for by `PickedMicrophone.matches` and heard from instead: a Bluetooth one is the only pick that allows
+    /// HFP, and only while it's connected; away, the iPhone's hears and the category goes back, and a device coming or
+    /// going (`routeChangeNotification`) starts the engine again onto the pick, or, when voice processing still holds
+    /// the sound after that, hands it over as without a pick. Mixes with whatever else
+    /// is playing, so music keeps going while you talk, wherever it plays. While any app records, iOS mutes every
+    /// app's haptics, the keyboard's included, unless the recording session allows them. While the iPhone plays the
+    /// sound itself and its own microphones hear, it hears through Apple's voice processing, which picks up your voice
+    /// from all of them as a call does: from one microphone, the folded iPhone Duo in portrait lost his voice for
+    /// seconds at a time, 12% of the time, leaving a low rumble that Parakeet writes as nothing. Voice processing takes
+    /// the sound from a Bluetooth speaker or AirPlay to the iPhone, and music apps pause, so while one plays it hears
+    /// from one; a picked outside microphone hears without it.
     func open() throws {
         guard lock == nil else { return }
         do {
@@ -77,12 +86,20 @@ import Observation
         }
     }
 
+    static let options: AVAudioSession.CategoryOptions = [.mixWithOthers, .allowBluetoothA2DP, .allowAirPlay, .defaultToSpeaker]
+
     private func begin() throws {
         let session = AVAudioSession.sharedInstance()
-        try session.setCategory(.playAndRecord, options: [.mixWithOthers, .allowBluetoothA2DP, .allowAirPlay, .defaultToSpeaker])
+        let picked = SettingsStore.microphone
+        try session.setCategory(.playAndRecord, options: picked?.kind == .bluetooth ? Self.options.union(.allowBluetoothHFP) : Self.options)
         try session.setActive(true)
+        var input = picked.flatMap { picked in session.availableInputs?.first(where: picked.matches) }
+        if picked?.kind == .bluetooth, input == nil { try session.setCategory(.playAndRecord, options: Self.options) }
+        if picked != nil, input == nil { input = session.availableInputs?.first { $0.portType == .builtInMic } }
+        try? session.setPreferredInput(input)
         let node = engine.inputNode
         let onIPhone = session.currentRoute.outputs.allSatisfy { [.builtInSpeaker, .builtInReceiver, .headphones].contains($0.portType) }
+            && input.map { $0.portType == .builtInMic } ?? true
         if node.isVoiceProcessingEnabled != onIPhone, (try? node.setVoiceProcessingEnabled(onIPhone)) != nil, onIPhone {
             node.voiceProcessingOtherAudioDuckingConfiguration = .init(enableAdvancedDucking: false, duckingLevel: .min)
         }
@@ -104,9 +121,9 @@ import Observation
     }
 
     /// iOS stops the engine when the hardware's format or route changes under it, and every audio object is dead after
-    /// the media services reset, the microphone on or off: starts again into the same recording, which converts whatever
-    /// format comes next.
-    private func restart(rebuilding: Bool = false) {
+    /// the media services reset, the microphone on or off, and another microphone may be picked: starts again into the
+    /// same recording, which converts whatever format comes next.
+    func restart(rebuilding: Bool = false) {
         if rebuilding {
             engine = AVAudioEngine()
         } else {
