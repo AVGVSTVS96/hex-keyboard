@@ -13,6 +13,9 @@ Everything is counted and timed, and nothing is ever written down: no letter of 
   counts on the Mac. Each time the keyboard closes or a message goes, it appends those hours as JSON lines to the App
   Group's `Library/typing.jsonl` (`TypingStats`) and posts a Darwin notification, so Stats takes them at once. A
   keyboard without Full Access can't write the group: it keeps them in its own container and moves them over once it can.
+  It also keeps every line it shared in its own container (`typing-shared.jsonl`) and puts them back in a group that
+  lost its file, since iOS deletes the group's container whenever an install leaves no app claiming the group; Delete
+  Typing Stats leaves a token in the settings, so the keyboard deletes that copy too.
 - **Dictation**: the transcripts (`Transcripts`): words, how long each dictation ran, when, and the app it was typed
   into, which the keyboard names (`KeyboardHost`, `Dictation.host`) as you start and stop it.
 
