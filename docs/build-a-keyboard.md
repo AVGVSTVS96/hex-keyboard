@@ -5,7 +5,7 @@ iikb's typing lives in `KeyboardCore`: Apple's layouts and key sizes for every i
 There are two ways in:
 
 - **All of iikb.** Subclass `HexKeyboardViewController` and you get the keyboard as it ships.
-- **Your own look.** Draw your own keys and pass touches to `TypingEngine`. [`Examples/MinimalKeyboard`](../Packages/HexKeyboard/Examples/MinimalKeyboard/KeyboardViewController.swift) does this in one file of about 200 lines.
+- **Your own look.** Draw your own keys and pass touches to `TypingEngine`. [`Examples/MinimalKeyboard`](../Packages/HexKeyboard/Examples/MinimalKeyboard/KeyboardViewController.swift) does this in one file of about 240 lines.
 
 ## Add the package
 
@@ -58,7 +58,7 @@ let grid = KeyGrid(layout, width: view.bounds.width, metrics: metrics.grid, sign
 engine.use(grid)
 ```
 
-`grid.rows` holds each key's frame. `KeyFace(key, trailing:, context: engine.faces(on: device))` gives each key's label: a letter, a word, or an SF Symbol name. `KeyboardTheme` gives the colors: `.light(.current)` and `.dark(.current)` are Apple's, and `KeyboardTheme.named(_:dark:style:)` returns one of iikb's five themes. Set your keys view's height to `metrics.height(rows:hasNumberRow:)` and the bar's to `metrics.toolbar.height`.
+`grid.rows` holds each key's frame. `KeyFace(key, trailing:, context: engine.faces(on: device))` gives each key's label: a letter, a word, or an SF Symbol name. `KeyboardTheme` gives the colors: `.light(.current)` and `.dark(.current)` are Apple's, and `KeyboardTheme.named(.mechanical, dark: dark, style: .current)` gives one of iikb's five themes (`ThemeName`). Set your keys view's height to `metrics.height(rows:hasNumberRow:)` and the bar's to `metrics.toolbar.height`.
 
 **4. Touches.** Find the key under a finger with `engine.key(atX:y:in: grid)`, not with the frames. It reads the touch model, so a tap where your thumb usually lands for a key goes to that key. Then send:
 
@@ -69,7 +69,9 @@ engine.use(grid)
 | it lifts on any other key | `.trigger(key)` |
 | always, after either | `.up(key)` |
 
-`engine.handle(event, in: document)` returns whether anything changed, so you know when to redraw. Shift, caps lock and delete act on `.down`, as Apple's keys do. When a second finger lands, finish the keys still held down first, or fast typing comes out of order. The engine ignores the globe (`.nextKeyboard`), so call `advanceToNextInputMode()` yourself.
+`engine.handle(event, in: document)` returns whether anything changed, so you know when to redraw. Shift, caps lock, delete and the layer keys (123, ABC, #+=) act on `.down`, as Apple's keys do. When a second finger lands, finish the keys still held down first, or fast typing comes out of order.
+
+Three keys are yours to handle: the globe (`.nextKeyboard`) calls `advanceToNextInputMode()`, the iPad's hide key (`.dismiss`) calls `dismissKeyboard()`, and the record key (`.dictate`) appears only with `engine.settings.micKey`. The emoji key beside an iPhone's space bar opens the engine's emoji panel. While it's open (`engine.panel`), the keys type into the panel's search (`engine.query`) until return closes it. Draw the panel, or turn the key off with `engine.settings.emojiKey = false`, as the example does.
 
 **5. Suggestions.** With `engine.defersSuggestions = true`, the engine leaves its suggestions stale for you to rank off the main thread:
 
@@ -82,20 +84,26 @@ Task.detached { [weak self] in
 }
 ```
 
-`finish`, on the main actor, calls `engine.finish(job)`, then shows `engine.suggestions` (each one's `title`, while `engine.showsSuggestions` is true). A tap on one calls `engine.accept(suggestion, in: document)`.
+`finish`, on the main actor, calls `engine.finish(job)`, then shows `engine.suggestions` (each one's `title`, while `engine.showsSuggestions` is true). A tap on one calls `engine.accept(suggestion, in: document)`. A job can finish after the keyboard has gone, so draw only between `viewWillAppear` and `viewWillDisappear` (see below).
 
-**6. Learning.** Call `engine.endSession()` in `viewWillDisappear`, so the keyboard learns from the last words you kept. Everything it has learned is `engine.corrector?.memory`, a `Codable` `TypingMemory`. Save it, and put it back with `engine.corrector?.changeMemory { $0 = saved }`. To pick up the person's Text Replacements and contact names, take the entries of `requestSupplementaryLexicon()` and pass them to `setReplacements` and `setNames`.
+**6. Learning.** Call `engine.endSession()` in `viewWillDisappear`, so the keyboard learns from the last words you kept. Everything it has learned is `engine.corrector?.memory`, a `Codable` `TypingMemory`. Save it, and put it back with `engine.corrector?.changeMemory { $0 = saved }`. To pick up the person's Text Replacements and contact names:
+
+```swift
+engine.corrector?.learn(await requestSupplementaryLexicon())
+engine.suggestionsChanged()
+```
 
 ## What iOS requires
 
 - iOS doesn't send a keyboard the touches that land on fully transparent pixels. Give the view under your keys a fill (`UIColor(white: 0, alpha: 0.001)`), or taps between keys go nowhere.
 - The keyboard's height comes from the Auto Layout constraints of what's inside it. iOS ignores a plain height constraint on the input view.
+- Once `viewWillDisappear` runs, iOS tears down `textDocumentProxy` while your controller lives on, and reading it then crashes. A ranking or layout pass that lands later must draw nothing.
 - A keyboard can't draw above its own frame, and can't use the microphone.
 - Haptics, the network and writing to a shared App Group need Allow Full Access, which you turn on with `RequestsOpenAccess` in the extension's Info.plist.
 
 ## What the example leaves out
 
-These all live in `KeyboardUI`'s `KeyboardView`, which isn't public yet: holding delete to repeat, the pop-up over a pressed key, accents on a long press, the space bar trackpad and Slide to Type. If you need them now, subclass `HexKeyboardViewController`. For haptics, `KeyHaptics` plays Apple's keyboard haptics: `start()` it when the keyboard appears, then `play(.input)` as a key goes down.
+These all live in `KeyboardUI`'s `KeyboardView`, which isn't public yet: holding delete to repeat, the pop-up over a pressed key, accents on a long press, the space bar trackpad and Slide to Type. If you need them now, subclass `HexKeyboardViewController`. For haptics, `KeyHaptics` plays Apple's keyboard haptics: `start()` it in `viewWillAppear`, `play(.input)` as a key goes down, and `stop()` it in `viewWillDisappear`.
 
 Linking `KeyboardUI` turns on UIKit's private keyboard arbiter when an extension loads (`KeyboardArbiter`). iikb uses it to learn which app it's typing in. `KeyboardCore` uses no private API. A keyboard that links `KeyboardUI` runs on your own devices, but App Review may reject it.
 
@@ -123,6 +131,7 @@ scripts/coretest   # its tests, in a package of KeyboardCore alone, since the ot
 | `Layouts`, `LayoutContext`, `KeyboardMetrics`, `KeyGrid` | which keys appear, how big they are, and where |
 | `KeyFace`, `KeyboardTheme`, `ThemeName` | what a key shows, and in what colors |
 | `Corrector`, `Lexicon`, `TouchModel`, `TypingMemory` | autocorrect, the dictionary, where you tap, and what's learned |
-| `ProxyDocument`, `InputTraits(_:)`, `Lexicon.english`, `Network.english` | `KeyboardUI`'s link to UIKit, and the English data |
+| `ProxyDocument`, `InputTraits(_:)`, `Corrector.learn(_:)`, `KeyboardStyle.current` | `KeyboardUI`'s link to UIKit |
+| `Lexicon.english`, `Network.english` | the English dictionary and next-word model |
 
 [AGENTS.md](../AGENTS.md) explains how each piece works and why.
