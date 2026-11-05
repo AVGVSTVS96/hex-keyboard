@@ -49,6 +49,26 @@ Meet me at home at five. | Meet me at home at five
 Shop at example.com for it. | Shop at example.com for it
 Look at the logs at noon. | Look at the logs at noon
 
+# digits Parakeet left as words, and its own
+Call me at four one five five five five zero one nine nine. | Call me at 415-555-0199
+My number is five five five, two one two, four seven seven three. | My number is 555-212-4773
+The code is four eight two nine. | The code is 4829
+Five two seven eight four oh one. | 527-8401
+Oh, five five five one two three four. | Oh 555-1234
+Call me at 415-555-0199. | Call me at 415-555-0199
+My pin is 1337. | My pin is 1337
+
+# counting stays words
+Press the one two three button. | Press the one two three button
+Testing one, two, three. | Testing one, two, three
+Count with me, one two three four. | Count with me, one two three four
+Five, four, three, two, one, let's go. | Five, four, three, two, one, let's go
+One two, one two, testing. | One two, one two, testing
+It was two or three times, maybe four. | It was two or three times, maybe four
+Nine nine times out of ten. | Nine nine times out of ten
+We need two, four, six, eight of them. | We need two, four, six, eight of them
+Room two oh four is free. | Room two oh four is free
+
 # times and plain numbers stay as written
 Call me at nine A.M. tomorrow. | Call me at nine A.M. tomorrow
 The meeting is at 3:30 p.m. | The meeting is at 3:30 p.m.
