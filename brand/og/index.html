@@ -1,45 +1,5 @@
-<!doctype html>
-<!-- The link preview: og.png is its last frame, og.mp4 the whole loop. The keyboard frames are the real keyboard in the
-     iPhone 17 simulator, one screenshot per key (scripts/shots, then brand/og/frames.sh). -->
-<html class="dark">
-<head>
-<meta charset="utf-8">
-<link rel="stylesheet" href="/brand/brand.css">
-<style>
-  html, body { width: 100vw; height: 100vh; overflow: hidden; }
-  body { position: relative; }
-  .mark { position: absolute; left: 64px; top: 64px; height: 76px; }
-  .line { position: absolute; left: 64px; top: 172px; font-size: 26px; line-height: 1.25; color: var(--ink-2); letter-spacing: -0.005em; }
-  .typed { position: absolute; left: 64px; bottom: 150px; font-size: 50px; font-weight: 700; letter-spacing: -0.03em; line-height: 1; white-space: nowrap; }
-  .caret { display: inline-block; width: 4px; height: 50px; margin-left: 3px; vertical-align: -6px; background: var(--blue); border-radius: 2px; }
-  .keys { position: absolute; right: 0; bottom: 0; width: 566px; height: 387px; }
-  .keys img { position: absolute; right: 0; bottom: 0; width: 566px; display: none; }
-  .keys img.on { display: block; }
-</style>
-</head>
-<body>
-<img class="mark" src="/brand/logo/out/wordmark-paper.svg" alt="iikb">
-<p class="line">An iPhone keyboard that types like Apple’s<br>and learns where your thumbs land.</p>
-<p class="typed"><span id="text"></span><span class="caret"></span></p>
-<div class="keys" id="keys"></div>
-<script>
-  const phrase = "On my way with pizza"
-  const start = 0.8, perKey = 0.14, hold = 2.4
-  window.END = start + phrase.length * perKey + hold
-  const keys = document.getElementById("keys")
-  const frames = Array.from({ length: phrase.length + 1 }, (_, i) => {
-    const img = new Image()
-    img.src = `frames/s${String(i).padStart(2, "0")}.png`
-    keys.append(img)
-    return img
-  })
-  const text = document.getElementById("text")
-  window.seek = t => {
-    const typed = Math.max(0, Math.min(phrase.length, Math.floor((t - start) / perKey) + 1))
-    text.textContent = phrase.slice(0, t < start ? 0 : typed)
-    frames.forEach((img, i) => img.classList.toggle("on", i === (t < start ? 0 : typed)))
-  }
-  window.seek(new URLSearchParams(location.search).has("still") ? window.END - 0.01 : 0)
-</script>
-</body>
-</html>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>iikb link preview</title><style>
+@font-face { font-family: iikb; src:url('/fonts/texgyreheros-bold.woff2'); font-weight:700; }
+* { box-sizing:border-box; } body { margin:0; width:1200px; height:630px; background:#000; color:#fff; font-family:iikb,Helvetica,Arial,sans-serif; overflow:hidden; padding:56px; }
+.mark { width:128px; } h1 { font-size:72px; line-height:1.02; letter-spacing:-3px; margin:48px 0 24px; max-width:1000px; } p { font:24px Helvetica,Arial,sans-serif; color:#aaa; } .keyboard { position:absolute; right:0; bottom:-190px; width:440px; border-radius:32px 0 0 0; } </style></head><body>
+<img class="mark" src="/wordmark-paper.svg" alt="iikb"><h1>The best iOS keyboard.<br>In the world.</h1><p>That’s what we’re building.</p><img class="keyboard" src="/shots/iphone-dark.webp" alt="iPhone keyboard layout"></body></html>
