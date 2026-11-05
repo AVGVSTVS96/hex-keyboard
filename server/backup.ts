@@ -40,6 +40,16 @@ const stamp = (date: Date) => {
   return `${date.getFullYear()}-${two(date.getMonth() + 1)}-${two(date.getDate())}T${two(date.getHours())}${two(date.getMinutes())}${two(date.getSeconds())}`;
 };
 
+/** Where a version replaced at `time` goes: the second's folder, or, when that second already kept one of this file,
+ * the next of 2026-11-04T045605.001, .002, … `scripts/restore` sorts these after the second's own, so `--at` still
+ * picks the first replaced. */
+const free = async (versions: string, time: string, name: string) => {
+  for (let n = 0; ; n++) {
+    const version = join(versions, n === 0 ? time : `${time}.${String(n).padStart(3, "0")}`, name);
+    if (!(await Bun.file(version).exists())) return version;
+  }
+};
+
 export const backup =
   (dir: string, token: string, now = () => new Date()) =>
   async (request: Request): Promise<Response> => {
@@ -64,7 +74,7 @@ export const backup =
       if (await same(file, incoming)) {
         await rm(incoming);
       } else {
-        const version = join(dir, "versions", stamp(now()), name);
+        const version = await free(join(dir, "versions"), stamp(now()), name);
         await mkdir(dirname(version), { recursive: true });
         await rename(file, version);
       }

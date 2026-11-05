@@ -77,3 +77,17 @@ test("gives back what it made for the iPhone, under personal/", async () => {
   expect(new Date(personal.headers.get("last-modified")!).getTime()).toBe(1_762_000_321_000);
   expect((await send("GET", "/personal/../app/x")).status).toBe(404);
 });
+
+test("a file replaced twice in one second keeps both versions, the first where --at finds it first", async () => {
+  const second = new Date(2026, 10, 4, 4, 56, 5);
+  const { dir, send } = await server([second, second, second]);
+  await send("PUT", "/keyboard/support/typing-memory.json", "learned");
+  await send("PUT", "/keyboard/support/typing-memory.json", "", 1_762_000_500);
+  await send("PUT", "/keyboard/support/typing-memory.json", "{}", 1_762_000_600);
+  await send("PUT", "/keyboard/support/typing-memory.json", "[]", 1_762_000_700);
+  expect((await readdir(join(dir, "versions"))).sort()).toEqual(["2026-11-04T045605", "2026-11-04T045605.001", "2026-11-04T045605.002"]);
+  expect(await readFile(join(dir, "versions/2026-11-04T045605/keyboard/support/typing-memory.json"), "utf8")).toBe("learned");
+  expect(await readFile(join(dir, "versions/2026-11-04T045605.001/keyboard/support/typing-memory.json"), "utf8")).toBe("");
+  expect(await readFile(join(dir, "versions/2026-11-04T045605.002/keyboard/support/typing-memory.json"), "utf8")).toBe("{}");
+  expect(await readFile(join(dir, "mirror/keyboard/support/typing-memory.json"), "utf8")).toBe("[]");
+});
