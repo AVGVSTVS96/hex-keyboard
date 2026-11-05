@@ -128,7 +128,8 @@ nonisolated private struct Unrecordable: LocalizedError {
 nonisolated private final class Feed: @unchecked Sendable {
     private let lock = NSLock()
     private var recorder: AVAudioConverter?
-    private var recording: [Float] = []
+    /// What's been heard since `start`, nil while nothing is being recorded; kept even when its file can't be written.
+    private var recording: [Float]?
     private var file: Recording.File?
     private var loudness: [Float] = []
     private var stopped: UInt64?
@@ -154,7 +155,7 @@ nonisolated private final class Feed: @unchecked Sendable {
     /// and on until you're quiet, since a stop tapped as you finish speaking lands on your last word. A room that never
     /// gets quiet, or a microphone that stops sending, ends it a second after the stop.
     @MainActor func stopOnceQuiet() async -> [Float] {
-        guard lock.withLock({ file != nil }) else { return stop() }
+        guard lock.withLock({ recording != nil }) else { return stop() }
         let stopped = mach_absolute_time()
         let loud = Task {
             guard (try? await Task.sleep(for: .seconds(1))) != nil else { return }
@@ -169,15 +170,15 @@ nonisolated private final class Feed: @unchecked Sendable {
     /// How many seconds the recording holds with the buffer, nil when there's no recording to take it.
     func yield(_ buffer: AVAudioPCMBuffer, at time: AVAudioTime, loudness level: Float) -> Double? {
         let (took, done) = lock.withLock { () -> (Double?, ([Float], CheckedContinuation<[Float], Never>?)?) in
-            guard file != nil else { return (nil, nil) }
+            guard recording != nil else { return (nil, nil) }
             if recorder?.inputFormat != buffer.format { recorder = AVAudioConverter(from: buffer.format, to: Recording.format) }
             if let recorder, let converted = Self.convert(buffer, with: recorder), let channel = converted.floatChannelData?[0] {
                 let samples = UnsafeBufferPointer(start: channel, count: Int(converted.frameLength))
-                recording.append(contentsOf: samples)
+                recording?.append(contentsOf: samples)
                 file?.append(samples)
             }
             loudness.append(level)
-            let recorded = Double(recording.count) / Recording.format.sampleRate
+            let recorded = Double(recording?.count ?? 0) / Recording.format.sampleRate
             let length = AVAudioTime.hostTime(forSeconds: Double(buffer.frameLength) / buffer.format.sampleRate)
             guard let stopped, !time.isHostTimeValid || time.hostTime + length >= stopped && isQuiet(level) else { return (recorded, nil) }
             return (recorded, take())
@@ -191,12 +192,12 @@ nonisolated private final class Feed: @unchecked Sendable {
         defer {
             file = nil
             recorder = nil
-            recording = []
+            recording = nil
             loudness = []
             stopped = nil
             ended = nil
         }
-        return (recording, ended)
+        return (recording ?? [], ended)
     }
 
     /// Nearer the room than your voice, as this recording's quietest tenth and loudest twentieth of the sound have them.
