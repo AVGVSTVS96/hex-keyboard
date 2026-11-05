@@ -1,6 +1,7 @@
 import Foundation
 import HexStore
 import Observation
+import UIKit
 
 struct Transcript: Codable, Identifiable, Hashable {
     var id = UUID()
@@ -60,23 +61,43 @@ struct Transcript: Codable, Identifiable, Hashable {
         var id: UUID
     }
 
+    /// False while the file is there but can't be read, as before the iPhone's first unlock when iOS starts the app in
+    /// the background: `all` then holds only what was added since, and nothing writes the file whole until it's read.
+    @ObservationIgnored private var loaded = false
+
     private init() {
-        if let data = try? Data(contentsOf: url) { // file: unlisted (transcripts.jsonl: a read that fails leaves the list empty, and the next save writes over the file)
-            let decoder = JSONDecoder()
-            var unread: [Data] = []
-            all = data.split(separator: UInt8(ascii: "\n")).compactMap { (line) -> Transcript? in
-                if let transcript = try? decoder.decode(Transcript.self, from: line) { return transcript }
-                unread.append(Data(line))
-                return nil
-            }.sorted { $0.date > $1.date }
-            self.unread = unread
-        }
+        load()
         _ = Dictation.observe(.edited) { Transcripts.shared.takeEdits() }
         DispatchQueue.main.async { Transcripts.shared.takeEdits() }
+        _ = NotificationCenter.default.addObserver(forName: UIApplication.protectedDataDidBecomeAvailableNotification, object: nil, queue: .main) { _ in
+            MainActor.assumeIsolated { Transcripts.shared.takeEdits() }
+        }
+        guard loaded else { return }
         let ids = Set(all.map(\.id)).union(unread.compactMap { try? JSONDecoder().decode(Named.self, from: $0).id })
         unwritten = ((try? FileManager.default.contentsOfDirectory(at: recordings, includingPropertiesForKeys: nil)) ?? []).filter { file in
             UUID(uuidString: file.deletingPathExtension().lastPathComponent).map { !ids.contains($0) } ?? false
         }
+    }
+
+    /// Reads the file once it can be, keeping what was added before then. Whether it's read, or there's none.
+    @discardableResult private func load() -> Bool {
+        guard !loaded else { return true }
+        guard let data = try? Data(contentsOf: url) else { // file: transcripts.jsonl, read whole once it can be; until then `save` leaves it alone
+            loaded = !FileManager.default.fileExists(atPath: url.path(percentEncoded: false))
+            return loaded
+        }
+        let decoder = JSONDecoder()
+        var unread: [Data] = []
+        let read = data.split(separator: UInt8(ascii: "\n")).compactMap { (line) -> Transcript? in
+            if let transcript = try? decoder.decode(Transcript.self, from: line) { return transcript }
+            unread.append(Data(line))
+            return nil
+        }
+        let added = Set(all.map(\.id))
+        all = (all + read.filter { !added.contains($0.id) }).sorted { $0.date > $1.date }
+        self.unread = unread
+        loaded = true
+        return true
     }
 
     /// Writes down the recordings an ended app left without a transcript, kept as not typed, and tells the keyboard.
@@ -126,6 +147,7 @@ struct Transcript: Codable, Identifiable, Hashable {
     /// Keeps what the keyboard says each dictation became with its transcript, and only then lets go of what it said.
     /// What belongs to a line this build can't read waits for a build that can; what belongs to no transcript goes.
     func takeEdits() {
+        guard load() else { return }
         let waiting = Set(unread.compactMap { try? JSONDecoder().decode(Named.self, from: $0).id.uuidString })
         var taken: [URL] = []
         for (file, edit) in Dictation.edits {
@@ -149,6 +171,7 @@ struct Transcript: Codable, Identifiable, Hashable {
 
     /// Every transcript, the lines this build can't read included.
     func deleteAll() {
+        load()
         unread = []
         delete(Set(all.map(\.id)))
     }
@@ -189,12 +212,30 @@ struct Transcript: Codable, Identifiable, Hashable {
         }
     }
 
+    /// Writes the file whole, only once it's read, or set aside when the iPhone is unlocked and it still can't be.
     private func save() {
+        guard load() || setAside() else { return }
         let encoder = JSONEncoder()
         let kept = unread.map { $0 + [UInt8(ascii: "\n")] }
         let lines = kept + all.reversed().compactMap { try? encoder.encode($0) + [UInt8(ascii: "\n")] }
         try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-        try? Data(lines.joined()).write(to: url, options: .atomic) // file: unlisted (transcripts.jsonl rewritten whole, even over a file init couldn't read)
+        try? Data(lines.joined()).write(to: url, options: .atomic) // file: transcripts.jsonl rewritten whole, only once read or set aside
         Backup.syncApp()
+    }
+
+    /// Moves a file that can't be read though nothing locks it to `transcripts-unread-<seconds>.jsonl`, as `StoredFile`
+    /// does, so the backup still sends it. Whether the file can now be written.
+    private func setAside() -> Bool {
+        guard UIApplication.shared.isProtectedDataAvailable else { return false }
+        let aside = url.deletingLastPathComponent().appending(path: "transcripts-unread-\(Int(Date.now.timeIntervalSince1970)).jsonl")
+        do {
+            try FileManager.default.moveItem(at: url, to: aside)
+        } catch {
+            HostApp.log.fault("transcripts.jsonl can't be read or set aside: \(error.localizedDescription, privacy: .public)")
+            return false
+        }
+        HostApp.log.fault("transcripts.jsonl couldn't be read; set aside as \(aside.lastPathComponent, privacy: .public)")
+        loaded = true
+        return true
     }
 }
