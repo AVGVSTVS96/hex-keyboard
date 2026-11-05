@@ -40,7 +40,7 @@ scripts/coretest                                # KeyboardCore's tests here on L
 scripts/check                                   # this checkout built for the iPhone here on Linux, unsigned (a few minutes; one at a time)
 scripts/phone                                   # main's last commit built, signed and installed on the iPhone (--reinstall renews the signing)
 scripts/backup <udid>                           # the iPhone's iikb data copied to ~/.local/share/hex-keyboard/backup here, never deleted, replaced files kept in versions/ (scripts/phone runs it first)
-scripts/restore <udid> [--at <time>|now] [name…]  # the backup put back on the iPhone, all of it or the files named, as it is or as it was at a time; leaves out a copy much smaller than one replaced in the day after an install left Hex a new, empty container (docs/backup.md). An old build can't read a memory restored without its token, so restore only after scripts/phone
+scripts/restore <udid> [--at <time>|now] [name…]  # the backup put back on the iPhone, all of it or the files named, as it is or as it was at a time; leaves out a copy much smaller than one replaced in the day after an install left Hex a new, empty container (docs/backup.md)
 scripts/mac scripts/verify                      # what landed, at once, on one iPhone Duo simulator: package and UI tests, light and dark, shots in shots/raw/verify/
 scripts/mac scripts/test                        # KeyboardCore and KeyboardUI package tests on an iOS simulator
 scripts/mac scripts/uitest                      # type through the real extension (the iPhone Duo by default)
@@ -66,13 +66,30 @@ uv run --with pillow --with numpy --with scipy scripts/shotdiff.py v7   # key-by
 
 ## Rules
 
-- Keys behave as Apple's do (layouts, pop-ups, accents, the trackpad, the suggestion bar) and are laid out from Apple's keyboard measured in the same simulator (`shots/`, `scripts/shotdiff.py`), never eyeballed. Their look and sizes are docs/design.md's, after Raycast's keyboard: where it moves keys off Apple's geometry (the bottom row's widths, the Duo's keys filling the room they're given), it says so and why; everywhere else a key sits where Apple's does.
-- Behavior follows real events (touches, `textDidChange`, `selectionDidChange`). The keyboard's only timers are the inherent ones: key repeat, long-press, and a source's 10 s to answer. The app's are listed in App/Voice/AGENTS.md. Each timer's line says which it is, `// timer: <which>` (`ArchitectureTests` checks).
-- No comments unless they record a non-obvious fact.
-- Keyboard behavior goes in `KeyboardCore`; `KeyboardUI` and `web/` only draw, play feedback and forward events, so the two never drift.
-- `KeyboardCore` takes no Foundation or UIKit import (`ArchitectureTests` checks).
-- A correctly typed real word must never be changed, and learning comes only from real events (KeyboardCore/AGENTS.md, "Correction/").
-- The engine reads the text only from its `TextState` (KeyboardCore/AGENTS.md, "Typing/").
-- Recording never waits for a model (App/Voice/AGENTS.md).
-- Kept data reads and saves through `StoredFile` (HexStore/AGENTS.md; `ArchitectureTests` checks).
-- A new use of the host app goes through `HexKeyboardViewController.hostApp` (HexKeyboard/AGENTS.md).
+Each rule with what enforces it. When an agent repeats a mistake, fix it at the highest level that works (a module boundary, then a type, then a check whose error names the fix) and add its row here; drop a row once its mistake can't happen. The why behind each rule, iOS facts included, is in the module doc named.
+
+| Rule | Enforced by |
+| --- | --- |
+| `KeyboardCore` imports nothing, not even Foundation; platform services sit outside it behind Core protocols | Package.swift (no dependencies), `ArchitectureTests` |
+| Keyboard behavior goes in `KeyboardCore`; `KeyboardUI` and `web/` only draw, play feedback and forward events, so the two never drift | judgment: nothing enforces it |
+| `KeyboardUI` uses no private API; only `HexKeyboard` links `KeyboardArbiter` | Package.swift for `KeyboardArbiter`; judgment for anything called by name |
+| The app never imports `HexKeyboard` | Package.swift, project.yml |
+| Kept data reads and saves through `StoredFile`, which never saves over a file it couldn't read; any other file access says what it is, `// file: <what>` (HexStore) | `StoredFile`, `ArchitectureTests` |
+| Behavior follows real events (touches, `textDidChange`, `selectionDidChange`). The keyboard's only timers are key repeat, long-press and a source's 10 s to answer; the app's are in App/Voice. Each timer's line says which it is, `// timer: <which>` | `ArchitectureTests` |
+| The engine reads the text only from its `TextState`; every edit goes through `TypingEngine.write`; automatic edits replace only characters the keyboard typed (KeyboardCore) | `TextState`, `TextStateStressTests` |
+| A correctly typed real word is never changed; word frequencies only choose among what the fingers could have meant (KeyboardCore) | `TypingModelTests`, `scripts/eval` |
+| Learning comes only from real events, and nothing in the model runs on a clock (KeyboardCore) | `TypingModelTests` |
+| A change that moves the eval's numbers beats them and updates `scripts/eval.expected` in the same commit (scripts) | `scripts/eval` diffs every full run |
+| Keys behave and sit as Apple's do, measured in the same simulator (`shots/`, `scripts/shotdiff.py`), never eyeballed; docs/design.md says where and why it moves a key off Apple's geometry | judgment, measured with `scripts/shotdiff.py` |
+| The keyboard, the app's preview and Your Taps lay out the same keys (KeyboardCore) | `KeyboardGeometry`, `GeometryTests` |
+| The bar's buttons are set out as the top row's keys are (KeyboardCore) | `BarLayoutTests` |
+| Gaps between keys take taps (KeyboardUI) | `FirstTapTests` |
+| Keycaps use SF Compact from the system font file (KeyboardUI) | judgment: nothing enforces it |
+| The keyboard's height comes from Auto Layout content, never a plain height constraint (KeyboardUI) | judgment: nothing enforces it |
+| Recording never waits for a model: the `Microphone` knows nothing of `VoiceModel` (App/Voice) | judgment: nothing enforces it |
+| Never a Bluetooth microphone unless one is picked in Settings › Microphone (App/Voice) | judgment: nothing enforces it |
+| A new use of the host app goes through `HexKeyboardViewController.hostApp` (HexKeyboard) | judgment: nothing enforces it |
+| Only main's last commit reaches the phone, never mid-dictation, never without backup, never linked below iOS 27.1 (scripts) | `scripts/phone`: builds main in its own worktree, waits for the dictation, refuses without `backup.key` or below 27.1 |
+| Restore only after `scripts/phone`: an old build can't read a memory restored without its token | judgment: nothing enforces it |
+| No comments unless they record a non-obvious fact | judgment: nothing enforces it |
+| Every AGENTS.md names only code that exists, and no file keeps a conflict marker | `ArchitectureTests` |
