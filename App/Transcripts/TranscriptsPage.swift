@@ -9,6 +9,7 @@ struct TranscriptsPage: View {
     private let store = Transcripts.shared
     @State private var query = ""
     @State private var selected: Transcript.ID?
+    @State private var copies = 0
     @Environment(\.arrangement) private var arrangement
 
     private var shown: [Transcript] {
@@ -86,6 +87,7 @@ struct TranscriptsPage: View {
         }
         .scrollDismissesKeyboard(.interactively)
         .defaultScrollAnchor(LaunchOptions.scrollAnchor)
+        .sensoryFeedback(.success, trigger: copies)
     }
 
     @ViewBuilder private func row(_ transcript: Transcript) -> some View {
@@ -99,7 +101,7 @@ struct TranscriptsPage: View {
         }
         .buttonStyle(.plain)
         .background(picked ? Color.appPressed : .clear)
-        .contextMenu { Actions(transcript: transcript) }
+        .contextMenu { Actions(transcript: transcript) { copies += 1 } }
     }
 
     private var empty: some View {
@@ -152,9 +154,13 @@ private struct Row: View {
 
 private struct Actions: View {
     let transcript: Transcript
+    let copied: () -> Void
 
     var body: some View {
-        Button("Copy", systemImage: "doc.on.doc") { UIPasteboard.general.string = transcript.text }
+        Button("Copy", systemImage: "doc.on.doc") {
+            copy(transcript.text)
+            copied()
+        }
         ShareLink(item: transcript.text)
         Button("Delete", systemImage: "trash", role: .destructive) { Transcripts.shared.delete([transcript.id]) }
     }
@@ -295,8 +301,7 @@ private struct TranscriptDetail: View {
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(Color.appSecondary)
                 Spacer()
-                Button { UIPasteboard.general.string = transcript.text } label: { Image(systemName: "doc.on.doc") }
-                    .accessibilityLabel("Copy")
+                CopyButton(text: transcript.text)
                 ShareLink(item: transcript.text) { Image(systemName: "square.and.arrow.up") }
             }
             .font(.body.weight(.semibold))

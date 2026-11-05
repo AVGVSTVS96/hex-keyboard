@@ -30,7 +30,7 @@ struct RecordingSection: View {
                         Transcripts.shared.replace(transcript.id, with: again.text, heard: again.heard, model: again.model)
                         self.again = nil
                     }
-                    ActionRow(title: "Copy", symbol: "doc.on.doc") { UIPasteboard.general.string = again.text }
+                    CopyRow(text: again.text)
                 }
                 if let failure { Text(failure).foregroundStyle(.red).row() }
             }
