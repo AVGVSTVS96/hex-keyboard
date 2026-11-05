@@ -89,6 +89,7 @@ Then on the phone: Settings › General › Keyboard › Keyboards › Add New K
 | --- | --- |
 | `Packages/HexKeyboard/Sources/KeyboardCore` | Everything the keyboard does: layouts, typing, autocorrect, the tap model, emoji search. Pure Swift with no Foundation or UIKit, so it also runs in the browser as WebAssembly. Unit tested. |
 | `Packages/HexKeyboard/Sources/KeyboardUI` | Draws the keys, handles touches and haptics, and talks to the app. |
+| `Packages/HexKeyboard/Examples/` | A keyboard of its own built on `KeyboardCore`'s public API, for [docs/build-a-keyboard.md](docs/build-a-keyboard.md). |
 | `Keyboard/` | The keyboard extension. |
 | `App/` | The app: setup and settings, voice typing, Transcripts, Clipboard and Your Taps. |
 | `web/site/` | The product site and keyboard layout showcase. `scripts/site` builds it into `web/dist`. |
@@ -106,6 +107,10 @@ scripts/uitest     # on a Mac: types through the real keyboard
 ```
 
 [AGENTS.md](AGENTS.md) explains the design and the scripts; [PROGRESS.md](PROGRESS.md) is the build log, with every measurement.
+
+## Build your own
+
+iikb's typing engine is yours to build on. Draw the keys your way, and `KeyboardCore` handles Apple's layouts, autocorrect that learns your taps, and the suggestion bar. [docs/build-a-keyboard.md](docs/build-a-keyboard.md) walks through it, and [MinimalKeyboard](Packages/HexKeyboard/Examples/MinimalKeyboard/KeyboardViewController.swift) is a working keyboard in one file.
 
 ## License
 
