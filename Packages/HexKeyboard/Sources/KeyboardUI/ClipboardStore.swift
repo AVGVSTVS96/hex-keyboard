@@ -153,11 +153,16 @@ public final class ClipboardStore {
 
     /// iOS can run the keyboard in more than one app at once, and the app beside it, so each change reads the file
     /// first, and one never writes over what another kept. `edit` says whether it changed anything to write.
+    /// A history that's there but can't be read (cut short, or kept by a build that writes it another way) is never
+    /// written over: saving would put one item in place of all of it, and then in the keyboard's copy too, with the
+    /// image files only that history named.
     private func update(_ edit: @escaping @Sendable (inout Saved, Disk) -> Bool) {
         let mine = saved
         queue.async { [disk] in
             let latest = disk.locked {
-                var latest = disk.load() ?? mine ?? Saved()
+                let loaded = disk.load()
+                if loaded == nil, disk.started { return mine ?? Saved() }
+                var latest = loaded ?? mine ?? Saved()
                 if edit(&latest, disk) { disk.save(latest) }
                 return latest
             }

@@ -92,7 +92,10 @@ public final class MemoryStore {
         (try? JSONDecoder().decode(EmojiHistory.self, from: Data(contentsOf: emojiURL))) ?? EmojiHistory()
     }
 
+    /// Never over a history that's there but can't be read, which `loadEmoji` handed over as empty.
     static func save(_ emoji: EmojiHistory) {
+        if FileManager.default.fileExists(atPath: emojiURL.path(percentEncoded: false)),
+           (try? JSONDecoder().decode(EmojiHistory.self, from: Data(contentsOf: emojiURL))) == nil { return }
         try? FileManager.default.createDirectory(at: emojiURL.deletingLastPathComponent(), withIntermediateDirectories: true)
         try? JSONEncoder().encode(emoji).write(to: emojiURL, options: .atomic)
     }

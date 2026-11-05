@@ -38,13 +38,26 @@ struct Transcript: Codable, Identifiable, Hashable {
     @ObservationIgnored private let url = URL.applicationSupportDirectory.appending(path: "transcripts.jsonl")
     @ObservationIgnored private let recordings = URL.applicationSupportDirectory.appending(path: "recordings")
     @ObservationIgnored private var unwritten: [URL] = []
+    /// Lines this build can't read (cut short, or written by a build that keeps a transcript another way), written
+    /// back as they were each time the file is, so a rewrite never drops them.
+    @ObservationIgnored private var unread: [Data] = []
+
+    private struct Named: Decodable {
+        var id: UUID
+    }
 
     private init() {
         if let data = try? Data(contentsOf: url) {
             let decoder = JSONDecoder()
-            all = data.split(separator: UInt8(ascii: "\n")).compactMap { try? decoder.decode(Transcript.self, from: $0) }.sorted { $0.date > $1.date }
+            var unread: [Data] = []
+            all = data.split(separator: UInt8(ascii: "\n")).compactMap { (line) -> Transcript? in
+                if let transcript = try? decoder.decode(Transcript.self, from: line) { return transcript }
+                unread.append(Data(line))
+                return nil
+            }.sorted { $0.date > $1.date }
+            self.unread = unread
         }
-        let ids = Set(all.map(\.id))
+        let ids = Set(all.map(\.id)).union(unread.compactMap { try? JSONDecoder().decode(Named.self, from: $0).id })
         unwritten = ((try? FileManager.default.contentsOfDirectory(at: recordings, includingPropertiesForKeys: nil)) ?? []).filter { file in
             UUID(uuidString: file.deletingPathExtension().lastPathComponent).map { !ids.contains($0) } ?? false
         }
@@ -96,6 +109,7 @@ struct Transcript: Codable, Identifiable, Hashable {
 
     func delete(_ ids: Set<Transcript.ID>) {
         all.removeAll { ids.contains($0.id) }
+        if all.isEmpty { unread = [] }
         save()
         for id in ids { try? FileManager.default.removeItem(at: recording(of: id)) }
     }
@@ -117,13 +131,16 @@ struct Transcript: Codable, Identifiable, Hashable {
         FileManager.default.fileExists(atPath: recording(of: id).path)
     }
 
+    /// Oldest dictation first, by its transcript's date: a file's creation date is when it was last put on the iPhone,
+    /// which for every recording `scripts/restore` puts back is the restore.
     private func trim() {
         let folder = recordings
+        let said = Dictionary(all.map { ($0.id.uuidString, $0.date) }, uniquingKeysWith: { max($0, $1) })
         Task.detached(priority: .utility) {
             let files = FileManager.default
             let keys: [URLResourceKey] = [.fileSizeKey, .creationDateKey]
             let kept = ((try? files.contentsOfDirectory(at: folder, includingPropertiesForKeys: keys)) ?? []).compactMap { url in
-                (try? url.resourceValues(forKeys: Set(keys))).map { (url, $0.fileSize ?? 0, $0.creationDate ?? .distantPast) }
+                (try? url.resourceValues(forKeys: Set(keys))).map { (url, $0.fileSize ?? 0, said[url.deletingPathExtension().lastPathComponent] ?? $0.creationDate ?? .distantPast) }
             }.sorted { $0.2 > $1.2 }
             var bytes = 0
             for (url, size, _) in kept {
@@ -135,7 +152,8 @@ struct Transcript: Codable, Identifiable, Hashable {
 
     private func save() {
         let encoder = JSONEncoder()
-        let lines = all.reversed().compactMap { try? encoder.encode($0) + [UInt8(ascii: "\n")] }
+        let kept = unread.map { $0 + [UInt8(ascii: "\n")] }
+        let lines = kept + all.reversed().compactMap { try? encoder.encode($0) + [UInt8(ascii: "\n")] }
         try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         try? Data(lines.joined()).write(to: url, options: .atomic)
         Backup.syncApp()
