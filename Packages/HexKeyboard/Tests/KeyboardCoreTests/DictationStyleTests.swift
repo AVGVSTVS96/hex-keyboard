@@ -21,6 +21,7 @@ struct DictationStyleTests {
         #expect(light("Ummm... Hmm, uhm, erm, done.") == "Done.")
         #expect(light("Um.") == "")
         #expect(light("Uh-huh, the umbrella.") == "Uh-huh, the umbrella.")
+        #expect(light("Mm hmm, that works. Mm-hmm, sure. Hmm, maybe.") == "Mm hmm, that works. Mm-hmm, sure. Maybe.")
         #expect(light("UH is a state.") == "UH is a state.")
         #expect(light("And the the job.") == "And the the job.")
     }
@@ -31,6 +32,7 @@ struct DictationStyleTests {
         #expect(clean("I I I think so, it it works.") == "I think so, it works.")
         #expect(clean("When you press it, it opens.") == "When you press it, it opens.")
         #expect(clean("I know that that works and I had had enough. It's very very good.") == "I know that that works and I had had enough. It's very very good.")
+        #expect(clean("and can we you you know ship it") == "and can we you you know ship it?")
         #expect(clean("Meet at two. Scratch that, meet at three.") == "Meet at three.")
         #expect(clean("Done. Meet at two, scratch that. Meet at three.") == "Done. Meet at three.")
         #expect(clean("Scratch that.") == "")
@@ -204,6 +206,7 @@ struct DictationStyleTests {
         #expect(clean("It works, you know.") == "It works.")
         #expect(clean("You know, it works. Like, I said so. I mean, it's fine.") == "It works. I said so. It's fine.")
         #expect(clean("I like it. Like I said, it works. You know what I mean.") == "I like it. Like I said, it works. You know what I mean.")
+        #expect(clean("It's really big on Reddit, you know? Then we share it.") == "It's really big on Reddit, you know? Then we share it.")
         #expect(write("It was, like, huge.", .formal, .light) == "It was, like, huge.")
     }
 
