@@ -1,0 +1,76 @@
+{"field": "email", "say": "nora dot vale at gmail dot com", "expected": "nora.vale@gmail.com", "id": "email-0"}
+{"field": "email", "say": "theo underscore marsh at outlook dot com", "expected": "theo_marsh@outlook.com", "id": "email-1"}
+{"field": "email", "say": "ivy dash lane at yahoo dot com", "expected": "ivy-lane@yahoo.com", "id": "email-2"}
+{"field": "email", "say": "milo ninety nine at icloud dot com", "expected": "milo99@icloud.com", "id": "email-3"}
+{"field": "email", "say": "zara at proton dot me", "expected": "zara@proton.me", "id": "email-4"}
+{"field": "email", "say": "l e o at example dot org", "expected": "leo@example.org", "id": "email-5"}
+{"field": "email", "say": "p e t e r dot q at fastmail dot com", "expected": "peter.q@fastmail.com", "id": "email-6"}
+{"field": "email", "say": "sam one two three at hotmail dot com", "expected": "sam123@hotmail.com", "id": "email-7"}
+{"field": "email", "say": "ruby dot stone at acme dot io", "expected": "ruby.stone@acme.io", "id": "email-8"}
+{"field": "email", "say": "finn underscore o underscore neil at gmail dot com", "expected": "finn_o_neil@gmail.com", "id": "email-9"}
+{"field": "email", "say": "jade twenty four at outlook dot com", "expected": "jade24@outlook.com", "id": "email-10"}
+{"field": "email", "say": "wren at mail dot university dot edu", "expected": "wren@mail.university.edu", "id": "email-11"}
+{"field": "email", "say": "kai dot lund at studio dot dev", "expected": "kai.lund@studio.dev", "id": "email-12"}
+{"field": "email", "say": "amber oh seven at gmail dot com", "expected": "amber07@gmail.com", "id": "email-13"}
+{"field": "email", "say": "hugo dot reyes at northwind dot co dot uk", "expected": "hugo.reyes@northwind.co.uk", "id": "email-14"}
+{"field": "email", "say": "tess at bluefin dot ai", "expected": "tess@bluefin.ai", "id": "email-15"}
+{"field": "email", "say": "ada underscore lovelace nineteen eighty one at gmail dot com", "expected": "ada_lovelace1981@gmail.com", "id": "email-16"}
+{"field": "email", "say": "m a x at maple dot app", "expected": "max@maple.app", "id": "email-17"}
+{"field": "url", "say": "w w w dot example dot com", "expected": "www.example.com", "id": "url-18"}
+{"field": "url", "say": "w w w dot example dot com slash pricing", "expected": "www.example.com/pricing", "id": "url-19"}
+{"field": "url", "say": "example dot org slash docs slash intro", "expected": "example.org/docs/intro", "id": "url-20"}
+{"field": "url", "say": "h t t p s colon slash slash blue fin dot ai", "expected": "https://bluefin.ai", "id": "url-21"}
+{"field": "url", "say": "docs dot maple dot app", "expected": "docs.maple.app", "id": "url-22"}
+{"field": "url", "say": "northwind dot io slash blog slash post dash one", "expected": "northwind.io/blog/post-1", "id": "url-23"}
+{"field": "url", "say": "w w w dot acme dash tools dot com", "expected": "www.acme-tools.com", "id": "url-24"}
+{"field": "url", "say": "studio dot dev slash about", "expected": "studio.dev/about", "id": "url-25"}
+{"field": "search", "say": "example dot com", "expected": "example.com", "id": "search-26"}
+{"field": "search", "say": "maple dot app", "expected": "maple.app", "id": "search-27"}
+{"field": "search", "say": "docs dot northwind dot io", "expected": "docs.northwind.io", "id": "search-28"}
+{"field": "search", "say": "w w w dot bluefin dot ai", "expected": "www.bluefin.ai", "id": "search-29"}
+{"field": "search", "say": "acme dash tools dot com slash pricing", "expected": "acme-tools.com/pricing", "id": "search-30"}
+{"field": "search", "say": "northwind dot io", "expected": "northwind.io", "id": "search-31"}
+{"field": "search", "say": "pizza near me.", "expected": "Pizza near me.", "id": "search-32"}
+{"field": "search", "say": "how to reach example dot com", "expected": "How to reach example.com", "id": "search-33"}
+{"field": "search", "say": "weather in oakland tomorrow", "expected": "Weather in Oakland tomorrow", "id": "search-34"}
+{"field": "search", "say": "best way to learn the piano", "expected": "Best way to learn the piano", "id": "search-35"}
+{"field": "search", "say": "what time is it in tokyo", "expected": "What time is it in Tokyo?", "id": "search-36"}
+{"field": "search", "say": "recipe for banana bread", "expected": "Recipe for banana bread", "id": "search-37"}
+{"field": "phone", "say": "five five five one two three four", "expected": "5551234", "id": "phone-38"}
+{"field": "phone", "say": "four one five five five five zero one four two", "expected": "4155550142", "id": "phone-39"}
+{"field": "phone", "say": "two one two five five five oh one nine nine", "expected": "2125550199", "id": "phone-40"}
+{"field": "phone", "say": "six five zero five five five zero one one one", "expected": "6505550111", "id": "phone-41"}
+{"field": "phone", "say": "nine one seven five five five zero one two three", "expected": "9175550123", "id": "phone-42"}
+{"field": "phone", "say": "three one zero five five five oh one seven seven", "expected": "3105550177", "id": "phone-43"}
+{"field": "phone", "say": "five five five zero one zero two", "expected": "5550102", "id": "phone-44"}
+{"field": "phone", "say": "eight eight eight five five five zero one six six", "expected": "8885550166", "id": "phone-45"}
+{"field": "code", "say": "four eight one nine two seven", "expected": "481927", "id": "code-46"}
+{"field": "code", "say": "oh seven two three five one", "expected": "072351", "id": "code-47"}
+{"field": "code", "say": "nine nine one one zero four", "expected": "991104", "id": "code-48"}
+{"field": "code", "say": "one two three four", "expected": "1234", "id": "code-49"}
+{"field": "code", "say": "six zero zero five eight three", "expected": "600583", "id": "code-50"}
+{"field": "code", "say": "three three seven oh oh one", "expected": "337001", "id": "code-51"}
+{"field": "zip", "say": "nine four one zero five", "expected": "94105", "id": "zip-52"}
+{"field": "zip", "say": "one zero zero zero one", "expected": "10001", "id": "zip-53"}
+{"field": "zip", "say": "six zero six oh one", "expected": "60601", "id": "zip-54"}
+{"field": "zip", "say": "nine eight one oh one", "expected": "98101", "id": "zip-55"}
+{"field": "zip", "say": "zero two one one five", "expected": "02115", "id": "zip-56"}
+{"field": "zip", "say": "three three one three one", "expected": "33131", "id": "zip-57"}
+{"field": "prose_email", "say": "Email me at nora dot vale at gmail dot com.", "expected": "Email me at nora.vale@gmail.com.", "id": "prose_email-58"}
+{"field": "prose_email", "say": "Send it to theo underscore marsh at outlook dot com please.", "expected": "Send it to theo_marsh@outlook.com please.", "id": "prose_email-59"}
+{"field": "prose_email", "say": "You can reach me at ruby dot stone at acme dot io.", "expected": "You can reach me at ruby.stone@acme.io.", "id": "prose_email-60"}
+{"field": "prose_email", "say": "Her address is zara at proton dot me.", "expected": "Her address is zara@proton.me.", "id": "prose_email-61"}
+{"field": "prose_email", "say": "Forward that to kai dot lund at studio dot dev.", "expected": "Forward that to kai.lund@studio.dev.", "id": "prose_email-62"}
+{"field": "prose_email", "say": "Write to milo ninety nine at icloud dot com tomorrow.", "expected": "Write to milo99@icloud.com tomorrow.", "id": "prose_email-63"}
+{"field": "prose", "say": "I think no one cares about it.", "expected": "", "id": "prose-64"}
+{"field": "prose", "say": "Give me a second and I will call you back.", "expected": "", "id": "prose-65"}
+{"field": "prose", "say": "Meet me at the park at noon.", "expected": "", "id": "prose-66"}
+{"field": "prose", "say": "We shop at the market every week.", "expected": "", "id": "prose-67"}
+{"field": "prose", "say": "The meeting is at three thirty on Tuesday.", "expected": "", "id": "prose-68"}
+{"field": "prose", "say": "I paid forty five dollars for the ticket.", "expected": "", "id": "prose-69"}
+{"field": "prose", "say": "There were twenty one people in the room.", "expected": "", "id": "prose-70"}
+{"field": "prose", "say": "Call me when you get home.", "expected": "", "id": "prose-71"}
+{"field": "prose", "say": "It costs about two hundred dollars.", "expected": "", "id": "prose-72"}
+{"field": "prose", "say": "Dot the i and cross the t.", "expected": "", "id": "prose-73"}
+{"field": "prose", "say": "She was at home on the first of May.", "expected": "", "id": "prose-74"}
+{"field": "prose", "say": "Look at that dot on the screen.", "expected": "", "id": "prose-75"}

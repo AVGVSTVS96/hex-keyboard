@@ -30,6 +30,7 @@ extension InputTraits {
         let content: UITextContentType? = proxy.textContentType ?? nil
         self.init(
             kind: kind,
+            content: content.map(InputContent.init) ?? .other,
             returnKind: kind == .webSearch && returnKind == .default ? .go : returnKind,
             autocapitalization: Autocapitalization(proxy.autocapitalizationType ?? .sentences),
             smartPunctuation: proxy.smartQuotesType != .no,
@@ -41,6 +42,21 @@ extension InputTraits {
     private static let literalContent: Set<UITextContentType> = [
         .URL, .emailAddress, .username, .password, .newPassword, .oneTimeCode, .telephoneNumber, .postalCode, .creditCardNumber,
     ]
+}
+
+extension InputContent {
+    init(_ type: UITextContentType) {
+        self = switch type {
+        case .emailAddress: .emailAddress
+        case .URL: .url
+        case .username: .username
+        case .telephoneNumber: .telephoneNumber
+        case .oneTimeCode: .oneTimeCode
+        case .postalCode: .postalCode
+        case .creditCardNumber: .creditCardNumber
+        default: .other
+        }
+    }
 }
 
 extension InputKind {

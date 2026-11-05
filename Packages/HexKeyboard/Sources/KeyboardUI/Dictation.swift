@@ -28,7 +28,8 @@ public enum Dictation {
         /// A dictation written down, typed only by the keyboard you stopped it in (`keyboard`, which it sent with
         /// `finish`), so it never lands in a field you didn't say it for; one stopped in the app (its Done)
         /// is typed by the next keyboard to see it.
-        case heard(String, keyboard: UInt64?)
+        /// `plain` is what the model wrote with your vocabulary, no style or lists, which a field of addresses or digits reads.
+        case heard(String, plain: String, keyboard: UInt64?)
         /// Something to tell you about a dictation: why it couldn't be made or written down, or where it went.
         case notice(String)
     }

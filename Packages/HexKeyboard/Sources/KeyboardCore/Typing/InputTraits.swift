@@ -6,6 +6,11 @@ public enum InputKind: Sendable {
     case text, email, url, number, decimal, twitter, webSearch
 }
 
+/// What the field says it holds (`textContentType`), beside the keyboard it asks for.
+public enum InputContent: Sendable {
+    case other, emailAddress, url, username, telephoneNumber, oneTimeCode, postalCode, creditCardNumber
+}
+
 public enum ReturnKind: Hashable, Sendable {
     case `default`, go, google, join, next, route, search, send, yahoo, done, emergencyCall, `continue`
 
@@ -41,6 +46,7 @@ public enum ReturnKind: Hashable, Sendable {
 
 public struct InputTraits: Hashable, Sendable {
     public var kind: InputKind
+    public var content: InputContent
     public var returnKind: ReturnKind
     public var autocapitalization: Autocapitalization
     public var smartPunctuation: Bool
@@ -49,6 +55,7 @@ public struct InputTraits: Hashable, Sendable {
 
     public init(
         kind: InputKind = .text,
+        content: InputContent = .other,
         returnKind: ReturnKind = .default,
         autocapitalization: Autocapitalization = .sentences,
         smartPunctuation: Bool = true,
@@ -56,6 +63,7 @@ public struct InputTraits: Hashable, Sendable {
         autocorrection: Bool = true
     ) {
         self.kind = kind
+        self.content = content
         self.returnKind = returnKind
         self.autocapitalization = autocapitalization
         self.smartPunctuation = smartPunctuation

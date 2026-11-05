@@ -501,8 +501,8 @@ open class HexKeyboardViewController: UIInputViewController {
         recorded = Dictation.level.recorded
         for (file, note) in Dictation.notes where Dictation.take(file) {
             switch note {
-            case .heard(let text, let keyboard) where keyboard == nil || keyboard == self.keyboard:
-                engine.handle(.dictated(text), in: document)
+            case .heard(let text, let plain, let keyboard) where keyboard == nil || keyboard == self.keyboard:
+                engine.handle(.dictated(text, plain: plain), in: document)
             case .heard:
                 voiceNotice = "Not typed here: it’s in iikb › Transcripts"
             case .notice(let notice):
