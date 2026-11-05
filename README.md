@@ -66,7 +66,7 @@ A source is a web service you plug into the keyboard. iikb sends it the text of 
 - Return, email, URL and search fields get the keys Apple gives them.
 - Typing predictions and Parakeet speech recognition run on device. Network access covers model downloads, GIF search, sources you configure, and a backup server in builds configured with one. Sources receive field text; configured backups can include typing data, clipboard history, transcripts and recordings. See [backup behavior](docs/backup.md).
 
-In development: swipe typing and languages other than English.
+Swipe typing is in development. Languages other than English aren't available yet.
 
 ## Install
 

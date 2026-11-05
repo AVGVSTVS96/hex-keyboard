@@ -24,7 +24,7 @@ Apple and Raycast are the bar to beat. Lead with iikb's ambition and the concret
 - Benchmark: subordinate to the product story, explicitly a recorded biased-tap test against nearest key plus Apple's spell checker. Numbers come from `copy/facts.json`, regenerated with `bun copy/facts.mjs`.
 - Voice: on-device recognition, writing styles, cancel, microphone switch, transcript review and available recordings.
 - Tools: clipboard with large-text retention, emoji, GIFs, theme and layout controls, user-configured sources.
-- Availability: MIT, iOS 26+, build from source; no App Store download implied. English today; swipe typing and further languages in development.
+- Availability: MIT, iOS 26+, build from source; no App Store download implied. English today; swipe typing in development and further languages not yet available.
 
 ## Metadata
 
