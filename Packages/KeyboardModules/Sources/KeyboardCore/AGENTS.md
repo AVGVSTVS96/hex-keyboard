@@ -65,6 +65,9 @@ A field reads it its own way, picked by the keyboard as it types (`DictationRead
 Its capitals are the keyboard's, set where it goes in (`TypingEngine.fitted`) from the field and Settings › Keyboard › Typing › Auto-Capitalization, as typing's are, and the style (`DictationWriting.capitals`): with Auto-Capitalization off or in very casual, each sentence's first word is lowered where the lexicon spells it lowercase, and so is I, while names keep theirs; otherwise sentences start with a capital as the field asks.
 
 Then it goes through your `Vocabulary` (`VocabularyView` in the app's Settings, kept as vocabulary.json in the app's container, so a person's words never reach git): the words the model gets wrong, each with what it writes instead, matched as whole words only. The transcript keeps what the model wrote when the style or vocabulary changed it.
+- Parakeet writes a name a new way each time ("IKB", "IITB" and "IIK be" for iikb), so a listed spelling alone missed most of them. With the lexicon (the app passes it), a span of up to five words with one the lexicon lacks, whose spoken letters ("." said "dot") are a letter or two from a term's or a listed spelling's and start the same, becomes the term; its first and last words are made up or the term's own, so "Wispr Flow or" keeps its "or". A real word is still only swapped when listed. A spoken dot before a term with a dot joins it ("dash dot example.run" is dash.example.run).
+- The keyboard runs the same match on what it's about to type, against the field's own words (`Vocabulary.seen`: each dotted name from each part to its end, each word of four letters or more the lexicon lacks), so a name already written comes out the same when said again. A word that only adds an ending to one there, or only changes its case, stays.
+- Nov 5, on Bassim's 668 dictations: 13 words changed, each to the name meant, none wrong.
 
 ## Correction/
 

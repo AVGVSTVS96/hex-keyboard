@@ -241,7 +241,10 @@ public struct TypingEngine {
             }
             var typed = ""
             insertWhole(in: document) {
-                typed = DictationReading.typed(plain ?? heard, in: traits, after: $0.before)
+                let field = $0.before + " " + ($0.after ?? "")
+                let heard = Vocabulary().corrected(heard, lexicon: lexicon, field: field)
+                typed = DictationReading.typed(plain.map { Vocabulary().corrected($0, lexicon: lexicon, field: field) } ?? heard,
+                                               in: traits, after: $0.before)
                     ?? Self.fitted(SpokenAddress.inline(heard), between: $0.before, and: $0.after, lexicon: lexicon, capitals: capitals)
                 return typed
             }

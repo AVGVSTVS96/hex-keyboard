@@ -13,6 +13,11 @@ struct DictationTests {
         return document.text
     }
 
+    @Test func aNameAlreadyInTheFieldComesOutTheSame() {
+        #expect(dictate("as well as another pool.kestrul dot run", into: "proxy.kestrel.run? we could also do dash.kestrel.run, ")
+            == "proxy.kestrel.run? we could also do dash.kestrel.run, as well as another pool.kestrel.run")
+    }
+
     @Test func aDictationContinuingASentenceStartsLowercase() {
         #expect(dictate("In which case go home.", into: "start there unless it's a lot of work ") == "start there unless it's a lot of work in which case go home.")
         #expect(dictate("The job is done.", into: "and then,") == "and then, the job is done.")
