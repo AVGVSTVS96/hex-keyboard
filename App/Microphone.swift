@@ -63,7 +63,9 @@ import Observation
     /// from all of them as a call does: from one microphone, the folded iPhone Duo in portrait lost his voice for
     /// seconds at a time, 12% of the time, leaving a low rumble that Parakeet writes as nothing. Voice processing takes
     /// the sound from a Bluetooth speaker or AirPlay to the iPhone, and music apps pause, so while one plays it hears
-    /// from one; a picked outside microphone hears without it.
+    /// from one; a picked outside microphone hears without it. Voice processing's I/O unit renders its output every
+    /// cycle, the reference its echo canceling takes away, and with nothing connected there every render failed
+    /// (`render err: -1`, 43 a second), so while it's on the output plays the main mixer's silence.
     func open() throws {
         guard lock == nil else { return }
         do {
@@ -105,6 +107,11 @@ import Observation
             && input.map { $0.portType == .builtInMic } ?? true
         if node.isVoiceProcessingEnabled != onIPhone, (try? node.setVoiceProcessingEnabled(onIPhone)) != nil, onIPhone {
             node.voiceProcessingOtherAudioDuckingConfiguration = .init(enableAdvancedDucking: false, duckingLevel: .min)
+        }
+        if node.isVoiceProcessingEnabled {
+            engine.connect(engine.mainMixerNode, to: engine.outputNode, format: nil)
+        } else {
+            engine.disconnectNodeInput(engine.outputNode)
         }
         feed.hear(voiceProcessing: node.isVoiceProcessingEnabled)
         try? session.setAllowHapticsAndSystemSoundsDuringRecording(true)
