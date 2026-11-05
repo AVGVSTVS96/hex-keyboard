@@ -6,7 +6,7 @@ extension Lexicon {
 }
 
 extension Network {
-    static let english = Network(bytes: .mapped("en", "network"))!
+    public static let english = Network(bytes: .mapped("en", "network"))!
 }
 
 extension Bytes {
