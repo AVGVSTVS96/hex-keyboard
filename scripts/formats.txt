@@ -4,8 +4,15 @@
 # installing. Made-up text only; Parakeet's own forms (it writes "Opus 5.5" and "Opus five point five" alike).
 
 # versions and decimals
+Get a fresh Opus five point five agent on it. | Get a fresh Opus 5.5 agent on it
+Run GPT six point one sub agents as judges. | Run GPT 6.1 sub agents as judges
 Try Opus 5.5 on high. | Try Opus 5.5 on high
 Use GPT-6.1 for the review. | Use GPT-6.1 for the review
+Ask Sonnet five point five. | Ask Sonnet 5.5
+It's on iOS twenty seven point one now. | It's on iOS 27.1 now
+Python three point one two is out. | Python 3.12 is out
+Version two point oh ships Friday. | Version 2.0 ships Friday
+It weighs two point five pounds. | It weighs 2.5 pounds
 I got 3.5 stars and 4.25 back. | I got 3.5 stars and 4.25 back
 
 # "point" that stays a word
@@ -17,7 +24,10 @@ It's a five point plan. | It's a five point plan
 Make one point, then stop. | Make one point, then stop
 
 # percentages
+It used fifty percent more tokens. | It used 50% more tokens
 It uses 50% less. | It uses 50% less
+Only two point five percent of it. | Only 2.5% of it
+About twenty five percent of the runs. | About 25% of the runs
 I'm a hundred percent sure. | I'm a hundred percent sure
 What percent of it failed? | What percent of it failed?
 
