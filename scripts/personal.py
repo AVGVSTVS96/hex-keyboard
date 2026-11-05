@@ -6,8 +6,9 @@ again each time it's saved.
 
 Only the output side learns: the embedding (which also scores the next word), the projection and the output biases. The
 LSTM stays as shipped, so its int8 rows are copied byte for byte and the file stays the size it was. Learning stops at the
-pass where 10% of the lines, kept aside, are best predicted; when no pass beats the shipped network, the output is the
-shipped file.
+pass where 10% of the lines, kept aside, are best predicted, and the output side goes halfway from the shipped network to
+that pass: all the way, it fits your words a little better but crowds out the everyday phrases Apple's bar offers. When no
+pass beats the shipped network, the output is the shipped file.
 
 Usage: scripts/personal record.jsonl [en.network [out]]
 Defaults: the shipped network in the repo, and ~/.local/share/iikb/backup/mirror/personal/en.network, where
@@ -162,7 +163,10 @@ def fine_tune(net, corpus):
         print(f"pass {step} held out {now:.3f}", file=sys.stderr)
         if now < best[0]:
             best = (now, [p.detach().numpy().copy() for p in params])
-    return best[1]
+    if best[1] is None:
+        return None
+    shipped = [dequantized("emb", 0).numpy(), dequantized("proj", 3).numpy(), net["proj_bias"], net["output"]]
+    return [(start + learned) / 2 for start, learned in zip(shipped, best[1])]
 
 
 def main():

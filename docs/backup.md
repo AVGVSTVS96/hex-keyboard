@@ -68,8 +68,8 @@ The suggestion bar's network (`en.network`, trained on what people type; `script
 server keeps a log of what you type (`sources/record.ts`, the user service `iikb-record`), and
 `scripts/personal` fine-tunes a copy of the shipped network on it: only its output side (the embedding that scores the
 next word, the projection and the output biases) learns, from the lines of the log with near-repeats dropped, and the
-pass that best predicts the last tenth of them, kept aside, is the one saved (the shipped network itself if none beats
-it). The LSTM is copied byte for byte, so the file is the same size.
+pass that best predicts the last tenth of them, kept aside, is the one it goes halfway to from the shipped network (the
+shipped network itself if none beats it), so the bar keeps the everyday phrases Apple's offers. The LSTM is copied byte for byte, so the file is the same size.
 
 It runs when the log or the shipped network changes, at most once a day: the path unit `iikb-personal`
 (dotfiles) starts the service of the same name, which asks for `--daily`. The network goes to `mirror/personal/en.network`.
