@@ -1,0 +1,66 @@
+# scripts/gate: text typed so far|words the bar must show then. Before a word, up to three; partway through one, one or
+# two, beside the typed word. A line starting with ? is one Apple's bar gets and iikb doesn't yet: its miss is printed,
+# not a failure.
+i love |you
+thank |you
+how are |you
+nice to meet |you
+i miss |you
+see you |soon
+?talk to you |later
+what are you |doing
+i don't |know
+let me |know
+what do you |think
+?good |morning
+have a good |day
+how was your |day
+happy |birthday
+merry |christmas
+?on my |way
+of |course
+?no |one
+sounds |good
+?take |care
+oh my |god
+as soon as |possible
+hi m|my
+tell m|me
+you and m|me
+see y|you
+thank y|you
+can y|you
+how a|are
+i a|am
+i l|love
+i kn|know
+i don't k|know
+let me k|know
+i ha|have
+is i|it
+in th|the
+what are you d|doing
+good m|morning
+good n|night
+happy b|birthday
+on my w|way
+talk to you l|later
+of c|course
+no p|problem
+wh|what
+kn|know
+ab|about
+ye|yes yeah
+tha|that
+bec|because
+peo|people
+tom|tomorrow
+tod|today
+ple|please
+rea|really
+wou|would
+cou|could
+sho|should
+yo|you
+an|and
+ar|are

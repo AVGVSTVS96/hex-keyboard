@@ -56,6 +56,7 @@ scripts/mac scripts/voicetest                   # the bar's mic through the real
 scripts/mac scripts/edittest                    # what dictations become: a long one edited in the middle and a short one edited at its end, each sent, checked in its transcript (made-up text)
 scripts/voiceprobe v3 clip.wav                  # on the iPhone: a Parakeet's load and write times in the installed iikb (scripts/phone)
 scripts/eval                                    # scorer here on Linux: the phrase corpus typed with tap noise and with biased thumbs, checked against scripts/eval.expected (scripts/mac scripts/eval adds the UITextChecker baseline)
+scripts/gate                                    # the bar on everyday text (scripts/gate.txt) through TypingEngine: fresh, with awkward contact names, and on the iPhone's own network and memory from the backup; scripts/phone installs no build that fails it (about 2 min)
 scripts/web                                     # web demo into web/dist (swift.org 6.4.0 toolchain + its Wasm SDK + binaryen; on the Mac: rsync, then run it there)
 scripts/lexicon                                 # rebuild en.lexicon (downloads ~1 GB, streams ~30 GB of 2-grams)
 scripts/personal record.jsonl [en.network [out]] # fine-tune en.network on your typing (the server does it when the record changes)

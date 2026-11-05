@@ -1,0 +1,11 @@
+#!/bin/bash
+# The suggestion bar on everyday text (scripts/gate.txt) through TypingEngine, fresh, with awkward contact names, and on
+# the iPhone's own network and memory when the backup here has them (GateTests). scripts/phone installs nothing that fails it.
+set -euo pipefail
+root=$(cd "$(dirname "$0")/.." && pwd)
+mirror=${IIKB_BACKUP:-$HOME/.local/share/iikb/backup}/mirror
+export GATE=$root/scripts/gate.txt
+if [ -f "$mirror/personal/en.network" ] && [ -f "$mirror/keyboard/support/typing-memory.json" ]; then
+  export GATE_NETWORK=$mirror/personal/en.network GATE_MEMORY=$mirror/keyboard/support/typing-memory.json
+fi
+exec "$root/scripts/coretest" --filter GateTests

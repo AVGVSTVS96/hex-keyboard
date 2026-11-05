@@ -150,7 +150,8 @@ public final class Corrector {
             let words = correcting && guessing ? split(word, context: context) : nil
             return [Suggestion(word.text, .literal)] + (words.map { [Suggestion($0, .candidate)] } ?? [])
         }
-        if correcting, let correction = correction(for: word, guessing: guessing), seen.insert(correction.lowercased()).inserted {
+        if correcting, let correction = correction(for: word, guessing: guessing),
+           correction.lowercased() == word.text.lowercased() ? correction != word.text : seen.insert(correction.lowercased()).inserted {
             alternatives.append(Suggestion(correction, applying ? .correction : .candidate))
         }
         func add(_ candidates: some Sequence<String>, as kind: Suggestion.Kind) {
@@ -160,11 +161,10 @@ public final class Corrector {
             }
         }
         if correcting, guessing, let split = split(word, context: context) { add([split], as: .candidate) }
-        let lower = word.text.lowercased()
-        add(names.filter { $0.key.count > lower.count && $0.key.hasPrefix(lower) }.values.sorted(), as: .candidate)
         if lexicon != nil {
             add(completions(for: word, context: context), as: .candidate)
         } else {
+            add(names(startingWith: word.text).sorted(), as: .candidate)
             add(memory.completions(for: word.text), as: .candidate)
             add(source.completions(for: word.text), as: .candidate)
             if guessing, alternatives.count < 2 { add(source.guesses(for: word), as: .candidate) }
@@ -190,23 +190,37 @@ public final class Corrector {
             .map { Suggestion($0, .candidate) }
     }
 
-    /// What the word you're typing may become, likeliest first: the decoder's readings of your taps and the words likely
-    /// to come next, each scored by your taps and by the next-word model. `context` is the text before the word.
+    private func names(startingWith prefix: String) -> [String] {
+        let lower = prefix.lowercased()
+        return names.filter { $0.key.count > lower.count && $0.key.hasPrefix(lower) }.map(\.value)
+    }
+
+    /// What the word you're typing may become, likeliest first: the decoder's readings of your taps, the words likely
+    /// to come next and your contacts' names, each scored by your taps, by the next-word model and, once a letter is
+    /// typed, by a tenth of its own log frequency, since Apple's bar leans on how common a word is. A name the model knows
+    /// no better counts as one word of the lexicon's, so "m" offers "my" before a contact called "M3". `context` is the
+    /// text before the word.
     func completions(for typed: TypedWord, context: String?) -> [String] {
         guard let lexicon else { return [] }
         let earlier = context.flatMap { Words.context(before: $0[$0.endIndex...], in: $0).earlier }
         let expected = context.flatMap(expected(after:))
-        let predict = languageModel(lexicon).predictor(after: typed.previous, earlier: earlier, expected: expected)
+        let model = languageModel(lexicon)
+        let predict = model.predictor(after: typed.previous, earlier: earlier, expected: expected)
         let taps = evidence(for: typed, touches: memory.touches)
         let literal = typed.text.lowercased()
         var fits = Dictionary(ranked(typed).filter { !$0.isLiteral }.map { ($0.word, $0.logLikelihood) }) { first, _ in first }
         let following = TypingMemory.contexts(typed.previous, earlier).flatMap(memory.predictions(after:))
             + (expected?.likeliest(24, startingWith: typed.text) ?? []).map { lexicon.canonical($0) ?? $0 }
+            + names(startingWith: typed.text)
         for word in following where fits[word] == nil && word.lowercased() != literal {
             fits[word] = Decoder.logLikelihood(of: word, given: taps, touches: memory.touches, on: grid, completing: true)
         }
+        let name = -Math.log(Double(lexicon.wordCount)), frequency = literal.isEmpty ? 0 : 0.1
+        func score(_ word: String, _ fit: Double) -> Double {
+            fit + max(predict(word), names[word.lowercased()] == word ? name : -.infinity) + frequency * Math.log(model.lexical(word))
+        }
         return fits.filter { $0.value > -.infinity }
-            .map { ($0.key, $0.value + predict($0.key)) }
+            .map { ($0.key, score($0.key, $0.value)) }
             .sorted { $0.1 != $1.1 ? $0.1 > $1.1 : $0.0 < $1.0 }
             .map(\.0)
     }
