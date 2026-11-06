@@ -35,7 +35,7 @@ enum Probe {
     /// The settings page open on its own, or, wide, the one beside the list.
     var settingsPath: [SettingsPage.Page] = []
     /// Stats' pill.
-    var stats = LaunchOptions.statsSection ?? .typing
+    var stats = LaunchOptions.statsSection ?? .overview
     /// The computer Stats shows (docs/computers.md), or nil for the iPhone.
     var statsComputer = LaunchOptions.statsComputer
     @ObservationIgnored weak var tabs: UITabBarController?

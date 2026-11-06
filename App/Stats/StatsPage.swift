@@ -6,10 +6,10 @@ import SwiftUI
 import notify
 
 /// How you type and talk, and where your taps land, on this iPhone or on a computer you added (docs/computers.md), each
-/// apart: Typing, Dictation and Taps as pills under the title, the device in a menu beside it.
+/// apart: Overview, Typing, Dictation and Taps as pills under the title, the device in a menu beside it.
 struct StatsPage: View {
     enum Section: String, CaseIterable {
-        case typing, dictation, taps
+        case overview, typing, dictation, taps
 
         var title: String { rawValue.capitalized }
     }
@@ -37,14 +37,16 @@ struct StatsPage: View {
     private var device: Device {
         router.statsComputer.flatMap { name in computers.activity[name].map { _ in .computer(name) } } ?? .iPhone
     }
-    private var sections: [Section] { device == .iPhone ? Section.allCases : [.typing, .dictation] }
-    private var section: Section { sections.contains(router.stats) ? router.stats : .typing }
+    private var sections: [Section] { device == .iPhone ? Section.allCases : [.overview, .typing, .dictation] }
+    private var section: Section { sections.contains(router.stats) ? router.stats : .overview }
 
     var body: some View {
         NavigationStack {
             Group {
                 switch (section, device) {
                 case (.taps, _): TapsPage()
+                case (.overview, .iPhone): Overview(activity: phone.activity, device: .iPhone)
+                case let (.overview, .computer(name)): Overview(activity: computers.activity[name] ?? Activity(), device: device)
                 case (_, .iPhone): DeviceStats(kind: section == .typing ? .typed : .said, activity: phone.activity, device: .iPhone)
                 case let (_, .computer(name)):
                     DeviceStats(kind: section == .typing ? .typed : .said, activity: computers.activity[name] ?? Activity(), device: device)

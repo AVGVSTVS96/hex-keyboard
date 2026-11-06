@@ -22,7 +22,8 @@ Voice typing, the app's biggest part, has its own doc: Voice/AGENTS.md.
   - Each change, and each launch, writes their texts to the App Group for the keyboard's Transcripts panel (`TranscriptFeed`).
   - The page lists them under a card of how much you dictate (words, this week against the last, two weeks a day, time, pace, today) that opens Stats › Dictation, and a transcript with its sound can be written again with the model picked now.
 - **Clipboard** (`ClipboardPage`): the history the keyboard's clipboard panel keeps, the same `ClipboardStore`, pinned first then by day. A tap copies an item again, and the app keeps what's on the clipboard when it comes forward once the keyboard has started the history.
-- **Stats** (`StatsPage`, docs/stats.md): Typing, Dictation and Taps as pills, the iPhone's or, in the menu beside the title, the Mac's.
+- **Stats** (`StatsPage`, docs/stats.md): Overview, Typing, Dictation and Taps as pills, the iPhone's or, in the menu beside the title, the Mac's.
+  - `Overview` shows a device's whole `Activity`, typed in blue and dictated in pink, in `StatCard`s (Overview.swift, whose charts Typing and Dictation reuse for one kind).
   - `DeviceStats` shows an `Activity`: speed, words a day, the hours you type or talk in, then on the iPhone where your typed words came from and the apps typed in, or your dictations and the apps dictated into; on the Mac the apps dictated into.
   - The iPhone's typing is `TypingStats` (KeyboardStore); its dictation is `Transcripts`.
   - Each computer's is `Computers`, Keystroke's `typing-stats.json` read straight from the computer you added (`iikb://computer` links, `mac/share`; docs/computers.md) each time Stats comes forward, decoded by `KeystrokeStats`.

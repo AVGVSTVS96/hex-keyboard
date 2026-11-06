@@ -215,7 +215,7 @@ themes() {
 # shots/raw/duo/app/<tag>-<screen>-<page>-<appearance>.png. TOUCHES (a touch model, as the keyboard shares it),
 # TYPING (JSON lines of hours, as the keyboard shares them) and TRANSCRIPTS (JSON lines, as the app keeps them) fill
 # Stats and Transcripts, MAC (a Keystroke typing-stats.json) Stats' Mac as the copy last read, and CLIPBOARD (a
-# history.json, as ClipboardStore keeps it) Clipboard; PAGES picks the pages; ARGS adds launch arguments to each
+# history.json, as ClipboardStore keeps it) Clipboard; PAGES picks the pages, SCREENS the screens; ARGS adds launch arguments to each
 # (-iikbScrollToEnd YES shows each page's end); SIM names the simulator.
 duoapp() {
   local tag=$1 id data group; shift
@@ -233,6 +233,7 @@ duoapp() {
   [ -n "${TRANSCRIPTS:-}" ] && mkdir -p "$data/Library/Application Support" && cp "$TRANSCRIPTS" "$data/Library/Application Support/transcripts.jsonl"
   [ -n "${CLIPBOARD:-}" ] && mkdir -p "$group/Library/clipboard" && cp "$CLIPBOARD" "$group/Library/clipboard/history.json"
   while read -r screen hinge orientation display; do
+    [ -n "${SCREENS:-}" ] && [[ " $SCREENS " != *" $screen "* ]] && continue
     case $screen in open-*) unfold "$id" "$hinge" ;; esac
     hub "$id" orientation "$orientation"
     for appearance in ${APPEARANCES:-dark light}; do
@@ -257,6 +258,8 @@ writing -iikbSettings writing
 dictionary -iikbSettings dictionary
 transcripts -iikbTab transcripts
 clipboard -iikbTab clipboard
+overview -iikbStats overview
+overview-mac -iikbStats overview -iikbStatsDevice mac
 stats -iikbStats typing
 stats-dictation -iikbStats dictation
 stats-mac -iikbStats typing -iikbStatsComputer Mac

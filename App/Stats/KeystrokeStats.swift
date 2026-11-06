@@ -9,6 +9,7 @@ enum KeystrokeStats {
         struct Channel: Decodable {
             var keystrokes = 0.0, chars = 0.0, words = 0.0, backspaces = 0.0, activeMs = 0.0, timedChars = 0.0, timedMs = 0.0, inserts = 0.0
             var hourChars: [Double] = []
+            var peakWpm = 0.0
         }
 
         struct Day: Decodable {
@@ -23,6 +24,7 @@ enum KeystrokeStats {
 
         var days: [String: Day]
         var sources: [String: App]?
+        var wpmHistogram: [String: Double]?
     }
 
     static func decode(_ data: Data) -> Activity? {
@@ -32,6 +34,7 @@ enum KeystrokeStats {
             guard let date = Activity.day(key) else { continue }
             activity.days[date] = Activity.Day(typed: typed(day.typed), said: said(day.voice))
         }
+        activity.speeds = Dictionary((file.wpmHistogram ?? [:]).compactMap { key, count in Int(key).map { ($0, count) } }, uniquingKeysWith: +)
         activity.apps[.said] = (file.sources ?? [:]).values.map { (name: $0.name, words: Int($0.words)) }.filter { $0.words > 0 }.sorted { $0.words > $1.words }
         return activity
     }
@@ -42,6 +45,7 @@ enum KeystrokeStats {
             keys: Int(channel.keystrokes), deletes: Int(channel.backspaces)
         )
         typed.hours = hours(channel.hourChars)
+        typed.peak = channel.peakWpm
         return typed
     }
 

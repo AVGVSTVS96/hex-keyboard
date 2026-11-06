@@ -2,10 +2,10 @@ import Charts
 import KeyboardUI
 import SwiftUI
 
-/// One device's typing or talking: how fast, large, with how lately compares, then words a day for the last month,
-/// the hours you do it in, and what only that device knows: where your typed words came from and the apps typed in on
-/// the iPhone, your dictations, or the apps you dictate into on the Mac. Wide, the speed and the month take the first
-/// pane and the rest the second.
+/// One device's typing or talking, in its color: how fast, large, with how lately compares, then words or speed a day,
+/// the hours you do it in, how fast you type, and what only that device knows: where your typed words came from and the
+/// apps typed in on the iPhone, your dictations, or the apps you dictate into on the Mac; then the past year. Wide, the
+/// speed and the history take the first pane and the rest the second.
 struct DeviceStats: View {
     let kind: Activity.Kind
     let activity: Activity
@@ -19,7 +19,7 @@ struct DeviceStats: View {
             Panes {
                 Column(top: 4) {
                     Speed(kind: kind, activity: activity, device: device)
-                    WordsADay(kind: kind, activity: activity)
+                    History(activity: activity, kinds: [kind])
                 }
             } second: {
                 Column(top: 4) { details }
@@ -27,17 +27,19 @@ struct DeviceStats: View {
         } else {
             Column(top: 4) {
                 Speed(kind: kind, activity: activity, device: device)
-                WordsADay(kind: kind, activity: activity)
+                History(activity: activity, kinds: [kind])
                 details
             }
         }
     }
 
     @ViewBuilder private var details: some View {
-        Hours(kind: kind, channel: activity.total(kind))
+        Rhythm(activity: activity, kinds: [kind])
+        if kind == .typed, !activity.speeds.isEmpty { Speeds(speeds: activity.speeds) }
         if device == .iPhone, kind == .typed { WordSources(channel: activity.total(.typed)) }
         if device == .iPhone, kind == .said { Dictations() }
         if let apps = activity.apps[kind], !apps.isEmpty { Apps(kind: kind, apps: apps) }
+        Year(activity: activity, kinds: [kind])
     }
 
     private var empty: some View {
@@ -68,7 +70,6 @@ struct DeviceStats: View {
 }
 
 private extension Activity.Kind {
-    var verb: String { self == .typed ? "type" : "talk" }
     var noun: String { self == .typed ? "typed" : "said" }
 }
 
@@ -149,119 +150,6 @@ private struct Speed: View {
 
     static func time(_ seconds: Double) -> String {
         seconds < 60 ? "<1m" : Duration.seconds(seconds).formatted(.units(allowed: [.hours, .minutes], width: .narrow, maximumUnitCount: 2))
-    }
-}
-
-/// Words typed or said each day for the last 30, today in the label color; a bar picked by a touch shows its day.
-private struct WordsADay: View {
-    let kind: Activity.Kind
-    let activity: Activity
-    @State private var picked: Date?
-
-    private struct Day: Identifiable {
-        let date: Date
-        let words: Int
-        var id: Date { date }
-    }
-
-    private var month: [Day] {
-        (0 ..< 30).reversed().map { Date.now.days(-$0) }.map { Day(date: $0, words: activity.channel(kind, on: $0).words) }
-    }
-
-    var body: some View {
-        let month = month
-        let shown = picked.flatMap { date in month.first { Calendar.current.isDate($0.date, inSameDayAs: date) } }
-        let active = month.filter { $0.words > 0 }
-        Card(header: "Words a day") {
-            VStack(alignment: .leading, spacing: 2) {
-                SlotText(shown.map { $0.words.formatted() } ?? (active.isEmpty ? "0" : (active.reduce(0) { $0 + $1.words } / active.count).formatted()))
-                    .font(.display(24))
-                Text(shown.map { $0.date.formatted(.dateTime.weekday(.wide).month(.abbreviated).day()) } ?? "a day on the \(active.count) of the last 30 you \(kind.verb)")
-                    .font(.footnote)
-                    .foregroundStyle(Color.appSecondary)
-            }
-            .accessibilityElement(children: .combine)
-            Chart(month) { day in
-                BarMark(x: .value("Day", day.date, unit: .day), y: .value("Words", day.words), width: .ratio(0.62))
-                    .foregroundStyle(color(day, picked: shown))
-                    .clipShape(UnevenRoundedRectangle(topLeadingRadius: 3, topTrailingRadius: 3, style: .continuous))
-            }
-            .chartXSelection(value: $picked)
-            .chartXAxis {
-                AxisMarks(values: .stride(by: .day, count: 7)) { _ in
-                    AxisValueLabel(format: .dateTime.month(.abbreviated).day(), centered: true)
-                }
-            }
-            .chartYAxis {
-                AxisMarks(position: .trailing, values: .automatic(desiredCount: 3)) {
-                    AxisGridLine(stroke: StrokeStyle(lineWidth: 1)).foregroundStyle(Color.appDivider)
-                    AxisValueLabel()
-                }
-            }
-            .frame(height: 140)
-            .accessibilityLabel("Words a day, last 30 days")
-        }
-    }
-
-    private func color(_ day: Day, picked: Day?) -> Color {
-        if let picked { return day.date == picked.date ? .primary : Color.appSecondary.opacity(0.35) }
-        return Calendar.current.isDateInToday(day.date) ? .primary : Color.appSecondary.opacity(0.55)
-    }
-}
-
-/// The share of everything typed or said in each hour of the day, the busiest hour in the label color.
-private struct Hours: View {
-    let kind: Activity.Kind
-    let channel: Activity.Channel
-
-    private struct Hour: Identifiable {
-        let hour: Int
-        let share: Double
-        var id: Int { hour }
-        var label: String { String(hour) }
-    }
-
-    private var hours: [Hour] {
-        let total = max(channel.hours.reduce(0, +), 1)
-        return channel.hours.enumerated().map { Hour(hour: $0.offset, share: $0.element / total) }
-    }
-
-    private var busiest: Int? {
-        channel.hours.reduce(0, +) > 0 ? channel.hours.indices.max { channel.hours[$0] < channel.hours[$1] } : nil
-    }
-
-    var body: some View {
-        if let busiest {
-            Card(header: "When you \(kind.verb)", footer: "Most between \(Self.name(busiest)) and \(Self.name((busiest + 1) % 24)).") {
-                Chart(hours) { hour in
-                    BarMark(x: .value("Hour", hour.label), y: .value("Share", hour.share), width: .ratio(0.7))
-                        .foregroundStyle(hour.hour == busiest ? Color.primary : Color.appSecondary.opacity(0.55))
-                        .clipShape(UnevenRoundedRectangle(topLeadingRadius: 2, topTrailingRadius: 2, style: .continuous))
-                }
-                .chartXAxis {
-                    AxisMarks { value in
-                        if let hour = value.as(String.self).flatMap(Int.init), hour % 6 == 0 {
-                            AxisValueLabel(centered: false) { Text(Self.name(hour)) }
-                        }
-                    }
-                }
-                .chartYAxis {
-                    AxisMarks(position: .trailing, values: .automatic(desiredCount: 3)) { value in
-                        AxisGridLine(stroke: StrokeStyle(lineWidth: 1)).foregroundStyle(Color.appDivider)
-                        AxisValueLabel {
-                            if let share = value.as(Double.self) { Text(share, format: .percent.precision(.fractionLength(0))) }
-                        }
-                    }
-                }
-                .frame(height: 120)
-                .accessibilityLabel("When you \(kind.verb), busiest at \(Self.name(busiest))")
-            }
-        }
-    }
-
-    static func name(_ hour: Int) -> String {
-        let date = Calendar.current.date(from: DateComponents(hour: hour)) ?? .now
-        return date.formatted(.dateTime.hour())
     }
 }
 
@@ -378,7 +266,7 @@ private struct Apps: View {
                         }
                         GeometryReader { proxy in
                             Capsule()
-                                .fill(TapColor.aim.gradient)
+                                .fill(kind.color.gradient)
                                 .frame(width: max(proxy.size.width * Double(app.words) / top, 4))
                         }
                         .frame(height: 6)

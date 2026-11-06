@@ -19,6 +19,8 @@ struct Activity {
         var undone = 0
         var picked = 0
         var emoji = 0
+        /// The fastest stretch's words a minute.
+        var peak = 0.0
         /// Characters in each hour of the day, midnight first.
         var hours = [Double](repeating: 0, count: 24)
 
@@ -35,6 +37,7 @@ struct Activity {
             sum.undone += rhs.undone
             sum.picked += rhs.picked
             sum.emoji += rhs.emoji
+            sum.peak = max(lhs.peak, rhs.peak)
             sum.hours = zip(lhs.hours, rhs.hours).map(+)
             return sum
         }
@@ -55,6 +58,8 @@ struct Activity {
     var days: [Date: Day] = [:]
     /// Words by the app they went into, most first.
     var apps: [Kind: [(name: String, words: Int)]] = [:]
+    /// How often you type at each speed: the start of each 5 wpm band, and how many stretches fell in it.
+    var speeds: [Int: Double] = [:]
 
     func channel(_ kind: Kind, on day: Date) -> Channel {
         days[day].map { kind == .typed ? $0.typed : $0.said } ?? Channel()
@@ -85,6 +90,11 @@ extension Activity {
                 deletes: tally.deletes, corrected: tally.corrected, undone: tally.undone, picked: tally.picked, emoji: tally.emoji
             )
             channel.hours[hour.hour] = Double(tally.characters)
+            if hour.seconds >= 10, tally.characters >= 20 {
+                let speed = Double(tally.characters) / 5 / hour.seconds * 60
+                channel.peak = speed
+                if speed < 250 { speeds[Int(speed / 5) * 5, default: 0] += 1 }
+            }
             days[date, default: Day()].typed = days[date, default: Day()].typed + channel
             if !hour.app.isEmpty { apps[hour.app, default: 0] += tally.words }
         }
