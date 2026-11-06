@@ -1,6 +1,7 @@
 import AVFoundation
 import KeyboardStore
 import Observation
+import UIKit
 
 /// The microphone, recording a dictation as a `Recording`: 16 kHz, kept in memory and written to its file as
 /// it's heard. It knows nothing of the models that write recordings down, so nothing about them can hold up a
@@ -32,7 +33,7 @@ import Observation
             Task { @MainActor in
                 guard let self, self.isOn, let reason else { return }
                 if let picked = SettingsStore.microphone, picked.kind != .iPhone, reason == .newDeviceAvailable || reason == .oldDeviceUnavailable {
-                    self.restart()
+                    self.restart() // restart: a picked microphone came or went
                 }
                 if reason == .newDeviceAvailable, self.engine.inputNode.isVoiceProcessingEnabled { self.onSpeaker() }
             }
@@ -40,11 +41,11 @@ import Observation
         center.addObserver(forName: .AVAudioEngineConfigurationChange, object: nil, queue: .main) { [weak self] _ in
             Task { @MainActor in
                 guard let self, self.isOn, !self.engine.isRunning else { return }
-                self.restart()
+                self.restart() // restart: iOS stopped it
             }
         }
         center.addObserver(forName: AVAudioSession.mediaServicesWereResetNotification, object: nil, queue: .main) { [weak self] _ in
-            Task { @MainActor in self?.restart(rebuilding: true) }
+            Task { @MainActor in self?.restart(rebuilding: true) } // restart: iOS stopped it
         }
     }
 
@@ -233,11 +234,17 @@ import Observation
         settle()
     }
 
-    /// Starts the engine again, while nothing's recorded, when it hears another way than it would start in now.
+    /// Starts the engine again, while nothing's recorded and iikb is in front, when it hears another way than it would
+    /// start in now. In the background it keeps hearing as it does until the next opening.
     private func settle() {
-        guard isOn, !feed.isRecording, chosen(.sharedInstance(), keeping: false) != way else { return }
-        restart()
+        guard isOn, !feed.isRecording, Self.inFront, chosen(.sharedInstance(), keeping: false) != way else { return }
+        restart() // restart: in front
     }
+
+    /// Whether iikb is in front, the only time it stops and starts the microphone by choice: from the background iOS
+    /// refuses the new start, and the microphone went off after every dictation that switched the way it hears
+    /// (Bassim's Duo, Nov 6: OSStatus 560557684 pointing it, then the engine's start failing twice).
+    static var inFront: Bool { UIApplication.shared.applicationState == .active }
 
     /// The way the engine would start in now: the recording's own while one runs, else the next one drawn.
     private func chosen(_ session: AVAudioSession, keeping recording: Bool) -> Capture.Way {

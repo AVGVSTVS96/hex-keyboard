@@ -33,6 +33,40 @@ struct ArchitectureTests {
         }
     }
 
+    /// From the background iOS refuses to start a stopped microphone, so a restart iikb chooses there turned his
+    /// microphone off after each dictation (Duo, Nov 6). Only iOS's own stops, or a function that checks iikb is in front,
+    /// may start it again.
+    @Test func theMicrophoneRestartsByChoiceOnlyInFront() throws {
+        let reasons = ["iOS stopped it", "a picked microphone came or went", "in front"]
+        var restarts = 0
+        for file in Self.files(in: "App").filter({ $0.pathExtension == "swift" }) {
+            let lines = try String(contentsOf: file, encoding: .utf8).split(separator: "\n", omittingEmptySubsequences: false)
+            for (number, line) in lines.enumerated() where line.contains("restart(") && !line.contains("func restart(") && !line.trimmingCharacters(in: .whitespaces).hasPrefix("//") {
+                restarts += 1
+                let place = "\(Self.relative(file)):\(number + 1)"
+                guard let marker = line.range(of: "// restart: "), let reason = reasons.first(where: line[marker.upperBound...].hasPrefix) else {
+                    Issue.record("\(place) restarts the microphone without saying why; mark it `// restart: <why>`, one of: \(reasons.joined(separator: ", ")).")
+                    continue
+                }
+                guard reason == "in front" else { continue }
+                let body = lines[..<number].reversed().prefix { !$0.contains("func ") }
+                #expect(body.contains { $0.contains("inFront") }, "\(place) restarts the microphone by choice in a function that doesn't check `Microphone.inFront` first.")
+            }
+        }
+        #expect(restarts >= 4)
+    }
+
+    /// A probe's launch is the iikb the keyboard dictates into, so quitting it while the microphone is on turned it off.
+    @Test func onlyAFinishedProbeQuits() throws {
+        for file in Self.files(in: "App").filter({ $0.pathExtension == "swift" }) {
+            for (number, line) in try String(contentsOf: file, encoding: .utf8).split(separator: "\n", omittingEmptySubsequences: false).enumerated()
+            where line.contains("exit(") && !line.trimmingCharacters(in: .whitespaces).hasPrefix("//") {
+                #expect(line.contains("// exit: a probe's launch is done") && file.lastPathComponent == "AppDelegate.swift",
+                        "\(Self.relative(file)):\(number + 1) quits iikb; a probe ends with `Probe.end()`, which stays while the microphone is on.")
+            }
+        }
+    }
+
     @Test func keptDataGoesThroughStoredFile() throws {
         let direct = ["Data(contentsOf:", "NSData(contentsOf:", "String(contentsOf:", "String(contentsOfFile:", ".write(to:", ".write(toFile:",
                       "FileHandle(forWritingTo:", "FileHandle(forUpdating", "FileHandle(forReadingFrom:", "createFile(atPath:", "contents(atPath:",

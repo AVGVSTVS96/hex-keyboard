@@ -16,6 +16,16 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 }
 
+/// A probe's launch (`VoiceProbe`, `RankingProbe`, `JudgeProbe`) is the iikb the keyboard dictates into while it runs.
+enum Probe {
+    /// Quits once the probe is done, unless you've turned the microphone on in it since: then iikb stays, as it would
+    /// have, so the microphone stays on.
+    @MainActor static func end() {
+        guard !Listener.shared.isMicOn else { return }
+        exit(0) // exit: a probe's launch is done
+    }
+}
+
 /// Which tab shows, and which settings page, so a tile, a link or the keyboard's menu can open one.
 @Observable final class Router {
     static let shared = Router()

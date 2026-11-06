@@ -17,7 +17,7 @@ nonisolated enum VoiceProbe {
         Task.detached {
             do { try await run(name) } catch { say("failed: \(error)") }
             say("done")
-            exit(0)
+            await Probe.end()
         }
     }
 

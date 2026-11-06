@@ -28,7 +28,7 @@ nonisolated enum JudgeProbe {
         guard asked else { return }
         Task.detached {
             await run()
-            exit(0)
+            await Probe.end()
         }
     }
 

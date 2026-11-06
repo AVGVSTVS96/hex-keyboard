@@ -13,7 +13,7 @@ enum RankingProbe {
         guard asked else { return }
         DispatchQueue.main.async {
             try? run()
-            exit(0)
+            Probe.end()
         }
     }
 
