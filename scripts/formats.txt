@@ -1,4 +1,8 @@
 # What a dictation types for what Parakeet writes, in a message field with the default settings (Casual drops the last
+# period), a Dictionary of kestrel.run and tamsin (heard as "tamsen"), and the typing FormatTests gives the keyboard
+# (Opus, Corvina, iikb, Niri and Autofork mid-sentence; Also, Sure, Thanks, Nice and Same at sentence starts; quillon
+# twice): `heard | typed`, or `field | heard | typed` for an email, url, search or decimal field, or a message field
+# that already holds `> text`. FormatTests runs them, in scripts/coretest and in scripts/formats, which scripts/phone runs before
 # installing. Made-up text only; Parakeet's own forms (it writes "Opus 5.5" and "Opus five point five" alike).
 
 # versions and decimals
@@ -51,8 +55,8 @@ Look at the logs at noon. | Look at the logs at noon
 Call me at four one five five five five zero one nine nine. | Call me at 415-555-0199
 My number is five five five, two one two, four seven seven three. | My number is 555-212-4773
 The code is four eight two nine. | The code is 4829
-Five two seven eight four oh one. | 527-8401
-Oh, five five five one two three four. | Oh 555-1234
+Five two seven eight four oh one. | 5278401
+Oh, five five five one two three four. | Oh 5551234
 Call me at 415-555-0199. | Call me at 415-555-0199
 So he gave me his number 415 555 0199. | So he gave me his number 415-555-0199
 Call 1 415 555 0199 now. | Call 1-415-555-0199 now
@@ -69,6 +73,19 @@ Five, four, three, two, one, let's go. | Five, four, three, two, one, let's go
 One two, one two, testing. | One two, one two, testing
 It was two or three times, maybe four. | It was two or three times, maybe four
 Nine nine times out of ten. | Nine nine times out of ten
+Testing one two three, one two three. | Testing one two three, one two three
+One two three four, one two three four. | One two three four, one two three four
+Five six seven eight, one two three four. | Five six seven eight, one two three four
+Two four six eight, who do we appreciate? | Two four six eight, who do we appreciate?
+It was six four six three. | It was six four six three
+My pin is one nine eight four oh wait no. | My pin is 1984 oh wait no
+Nine one one oh my god. | Nine one one oh my god
+My order number is one nine four seven three eight two. | My order number is 1947382
+The code is two, nine one four seven. | The code is two, nine one four seven
+I have four five six ideas. | I have four five six ideas
+It's open twenty four seven. | It's open twenty four seven
+Call +44 20 7946 0958 today. | Call +44 20 7946 0958 today
+It's due in two oh two five. | It's due in 2025
 We need two, four, six, eight of them. | We need two, four, six, eight of them
 Room two oh four is free. | Room two oh four is free
 
@@ -96,6 +113,8 @@ Shure makes good mics. | Shure makes good mics
 Sura called me. | Sura called me
 Nico is here. | Nico is here
 Sama said so. | Sama said so
+Use the other one at gmail dot com. | Use the other one at gmail.com
+email | tamsun one oh one at gmail dot com | tamsin101@gmail.com
 Ask Quillan about it. | Ask Quillan about it
 Ask Zorblat about it. | Ask Zorblat about it
 The opus is long. | The opus is long

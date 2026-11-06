@@ -8,6 +8,8 @@ enum SpokenNumber {
     private static let units = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve",
                                 "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"]
     private static let tens = ["twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"]
+    /// Words that ask for a code or number said after them, so four digits are one.
+    private static let cues: Set<String> = ["code", "pin", "number", "passcode", "password", "extension", "zip", "id", "digits", "otp"]
     /// Words before "one point" that make it a point you make.
     private static let determiners: Set<String> = ["at", "the", "a", "one", "that", "this", "my", "your", "our", "his", "her", "their",
                                                    "its", "each", "every", "any", "no", "some", "which", "what"]
@@ -44,13 +46,16 @@ enum SpokenNumber {
         return (written + "%" + split(words[end]).tail, end + 1)
     }
 
-    /// Four or more digits said one by one from `at`, as a phone number, code or PIN is, grouped as said (each group
-    /// between commas three digits or more) or else as a phone number's are; never a count up or down or a pair said
-    /// over and over.
+    /// Digits said one by one from `at`, as a phone number, code or PIN is: five or more, or four with an "oh" or after
+    /// a word that asks for them ("the code is"), grouped as said (each group between commas three digits or more) or
+    /// else as a phone number's are. Never counting: a group that counts up or down by one, a run whose every step is
+    /// the same ("two four six eight"), a group said again, or a pair said over and over.
     private static func digits(in words: [String], at: Int) -> (written: String, end: Int)? {
-        if at > 0, case let (before, "") = split(words[at - 1]), spoken(before, first: true) != nil { return nil }
-        var groups = [""], end = at, tail = ""
-        while end < words.count, case let (word, rest) = split(words[end]), let digit = spoken(word, first: end == at) {
+        if at > 0, spoken(split(words[at - 1]).word, first: true) != nil { return nil }
+        var groups = [""], end = at, tail = "", said = false
+        while end < words.count, case let (word, rest) = split(words[end]),
+              let digit = spoken(word, first: end == at, next: end + 1 < words.count && rest.isEmpty ? split(words[end + 1]).word : nil) {
+            said = said || word == "oh"
             groups[groups.count - 1] += digit
             end += 1
             guard !rest.isEmpty else { continue }
@@ -62,13 +67,14 @@ enum SpokenNumber {
             }
         }
         let all = groups.joined()
-        let values = all.compactMap(\.wholeNumberValue)
-        let steps = Set(zip(values, values.dropFirst()).map { $1 - $0 })
-        guard all.count >= 4, groups.count == 1 || groups.allSatisfy({ $0.count >= 3 }), steps != [1], steps != [-1],
-              all.dropFirst(2) != all.dropLast(2) else { return nil }
+        let steps = { (digits: String) in Set(zip(digits, digits.dropFirst()).map { $1.wholeNumberValue! - $0.wholeNumberValue! }) }
+        let asked = words[max(0, at - 3) ..< at].contains { cues.contains(split($0).word) }
+        guard all.count >= 5 || all.count == 4 && (said || asked), groups.count == 1 || groups.allSatisfy({ $0.count >= 3 }),
+              steps(all).count > 1, !groups.contains(where: { $0.count >= 3 && [[1], [-1]].contains(steps($0)) }),
+              Set(groups).count == groups.count, all.dropFirst(2) != all.dropLast(2) else { return nil }
         let split = { (sizes: [Int]) in sizes.reduce(into: (parts: [String](), rest: Substring(all))) { $0.parts.append(String($0.rest.prefix($1))); $0.rest = $0.rest.dropFirst($1) }.parts.joined(separator: "-") }
         let written = groups.count > 1 ? groups.joined(separator: "-")
-            : all.count == 7 ? split([3, 4]) : all.count == 10 ? split([3, 3, 4]) : all.count == 11 && all.first == "1" ? split([1, 3, 3, 4]) : all
+            : all.count == 10 ? split([3, 3, 4]) : all.count == 11 && all.first == "1" ? split([1, 3, 3, 4]) : all
         return (written + tail, end)
     }
 
@@ -85,9 +91,9 @@ enum SpokenNumber {
         return (digits.joined(separator: "-") + groups.last!.dropFirst(last.count), at + sizes.count)
     }
 
-    /// One digit said, with "oh" for 0 inside a run.
-    private static func spoken(_ word: String, first: Bool) -> String? {
-        if !first, word == "oh" { return "0" }
+    /// One digit said, with "oh" for 0 inside a run, before another digit.
+    private static func spoken(_ word: String, first: Bool, next: String? = nil) -> String? {
+        if !first, word == "oh", let next, next == "oh" || units.firstIndex(of: next).map({ $0 < 10 }) == true { return "0" }
         return units.firstIndex(of: word).flatMap { $0 < 10 ? String($0) : nil }
     }
 
