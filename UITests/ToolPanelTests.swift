@@ -156,13 +156,14 @@ final class ToolPanelTests: XCTestCase {
         XCTAssertTrue(wait { (field.value as? String)?.contains("Sightglass") == true }, "and Paste puts back what Cut copied")
     }
 
-    func testTranscriptsOpenFromTheClipboardsTrayAndTypeWhatYouPick() throws {
+    func testTranscriptsOpenFromClipboardHistoryAndTypeWhatYouPick() throws {
         let app = launch()
         let tool = app.buttons["iikb.tool.clipboard"]
         XCTAssertTrue(tool.waitForExistence(timeout: 3))
         tool.tap()
-        app.buttons["iikb.edit.transcripts"].tap()
-        XCTAssertTrue(app.collectionViews["iikb.transcripts"].waitForExistence(timeout: 3), "the tray opens Transcripts")
+        app.buttons["iikb.edit.history"].tap()
+        app.buttons["iikb.clipboard.transcripts"].tap()
+        XCTAssertTrue(app.collectionViews["iikb.transcripts"].waitForExistence(timeout: 3), "Clipboard History opens Transcripts")
         let row = app.descendants(matching: .any).matching(identifier: "iikb.transcript.0").firstMatch
         guard row.waitForExistence(timeout: 5) else {
             XCTAssertTrue(app.buttons["iikb.transcripts.message"].exists, "with nothing dictated, the drawer says so")

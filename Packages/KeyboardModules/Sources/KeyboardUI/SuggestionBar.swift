@@ -6,11 +6,11 @@ import KeyboardCore
 /// `BarLayout`. While the app listens, the mic grows into a red capsule over the suggestions holding the time so far and
 /// the waveform of your voice, and lets out a cancel button before it. Once you stop, dictations still waiting for the
 /// model stack as cards in its place. The clipboard's button grows the same way into a tray of its tools over the
-/// suggestions: cut, copy and paste, then its history and your transcripts.
+/// suggestions: cut, copy and paste, then its history.
 public final class SuggestionBar: UIView {
     /// What the clipboard's tray does.
     public enum Edit: CaseIterable, Sendable {
-        case cut, copy, paste, history, transcripts
+        case cut, copy, paste, history
     }
 
     /// Which of the tray's edits can be done now: cut and copy with a selection, paste with text on the clipboard.
@@ -28,7 +28,7 @@ public final class SuggestionBar: UIView {
             case .cut: cut
             case .copy: copy
             case .paste: paste
-            case .history, .transcripts: true
+            case .history: true
             }
         }
     }
@@ -68,7 +68,7 @@ public final class SuggestionBar: UIView {
     private let tray = UIView()
     private let trayDivider = UIView()
     private let editButtons: [(edit: Edit, button: BarButton)] = Edit.allCases.map { edit in
-        let button = BarButton(edit.title) { Panel.symbol(edit.symbol, $0) }
+        let button = BarButton(edit.title) { UIImage(systemName: edit.symbol, withConfiguration: UIImage.SymbolConfiguration(pointSize: ($0 * 0.82).rounded(), weight: .medium)) }
         button.accessibilityIdentifier = "iikb.edit.\(edit)"
         return (edit, button)
     }
@@ -284,17 +284,18 @@ public final class SuggestionBar: UIView {
         cancel.alpha = listening || mic != nil ? 1 : 0
     }
 
-    /// Out, the tray runs from the clipboard's button over the suggestions, a button's pitch apart, closer where the bar
-    /// is short of room; tucked, it's the button's own circle, its tools shrunk into it. The suggestions fade under it.
-    private func placeTray(pitch: Double, end: CGFloat, reach: UIEdgeInsets) {
+    /// Out, the tray runs from the clipboard's button over the suggestions, its buttons a little apart and History set off
+    /// past the divider, closer where the bar is short of room; tucked, it's the button's own circle, its tools shrunk into it. The suggestions fade under it.
+    private func placeTray(end: CGFloat, reach: UIEdgeInsets) {
         guard let clip = tools.first(where: { $0.panel == .clipboard })?.button.frame else {
             tray.isHidden = true
             editButtons.forEach { $0.button.isHidden = true }
             return
         }
         let out = edits != nil
-        let step = min(CGFloat(pitch), (end - clip.maxX) / CGFloat(editButtons.count))
-        let places = editButtons.indices.map { clip.offsetBy(dx: CGFloat($0 + 1) * step, dy: 0) }
+        let apart = clip.width * 0.3
+        let step = min(clip.width + apart, (end - clip.maxX - apart) / CGFloat(editButtons.count))
+        let places = editButtons.indices.map { clip.offsetBy(dx: CGFloat($0 + 1) * step + ($0 == 3 ? apart : 0), dy: 0) }
         let inset = (step - clip.width) / 2
         let around = UIEdgeInsets(top: reach.top, left: -inset, bottom: reach.bottom, right: -inset)
         tray.isHidden = false
@@ -362,7 +363,7 @@ public final class SuggestionBar: UIView {
         )
         for (tool, frame) in zip(tools, layout.tools) { tool.button.place(CGRect(frame), glyph: toolbar.glyph, reach: reach) }
         if let frame = layout.more { more.place(CGRect(frame), glyph: toolbar.glyph, reach: reach) }
-        placeTray(pitch: layout.pitch, end: CGFloat(layout.mic.map { $0.x - BarLayout.gap } ?? layout.maxX), reach: reach)
+        placeTray(end: CGFloat(layout.mic.map { $0.x - BarLayout.gap } ?? layout.maxX), reach: reach)
         for (slot, frame) in zip(slots, layout.slots) {
             let minX = CGFloat(frame.x).rounded(scale: scale), maxX = CGFloat(frame.x + frame.width).rounded(scale: scale)
             slot.frame = CGRect(x: minX, y: frame.y, width: maxX - minX, height: frame.height)
@@ -521,17 +522,15 @@ extension SuggestionBar.Edit {
         case .copy: "Copy"
         case .paste: "Paste"
         case .history: "Clipboard History"
-        case .transcripts: "Transcripts"
         }
     }
 
     var symbol: String {
         switch self {
         case .cut: "scissors"
-        case .copy: "doc.on.doc"
-        case .paste: "clipboard"
-        case .history: "clock.arrow.circlepath"
-        case .transcripts: "text.bubble"
+        case .copy: "square.on.square"
+        case .paste: "doc.on.clipboard"
+        case .history: "clock.arrow.trianglehead.counterclockwise.rotate.90"
         }
     }
 }

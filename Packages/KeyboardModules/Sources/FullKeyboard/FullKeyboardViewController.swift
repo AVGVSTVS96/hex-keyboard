@@ -464,7 +464,6 @@ open class FullKeyboardViewController: UIInputViewController {
         trayOut = false
         switch edit {
         case .history: return open(.clipboard)
-        case .transcripts: return open(.transcripts)
         case .cut, .copy, .paste: feedback(.other)
         }
         guard hasFullAccess else {

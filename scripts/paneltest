@@ -1,6 +1,6 @@
 #!/bin/bash
 # Runs on the Mac. OPEN=1 unfolds the iPhone Duo first. The GIF and clipboard panels through the real keyboard, light and dark, screenshotting
-# each step into shots/raw/panels/: scripts/paneltest ["iPhone Duo"] [iPhone-Duo] (RUNTIME picks the iOS; ORIENTATION=landscape; COMPACT=1 turns on Compact Emoji & GIFs; TRANSCRIPTS, JSON lines as the app keeps them, fills Transcripts)
+# each step into shots/raw/panels/: scripts/paneltest ["iPhone Duo"] [iPhone-Duo] (ONLY=<test> runs one test; RUNTIME picks the iOS; ORIENTATION=landscape; COMPACT=1 turns on Compact Emoji & GIFs; TRANSCRIPTS, JSON lines as the app keeps them, fills Transcripts)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 NAME=${1:-iPhone Duo}
@@ -24,7 +24,7 @@ for appearance in ${APPEARANCES:-light dark}; do
   xcrun simctl ui "$ID" appearance "$appearance"
   TEST_RUNNER_IIKB_SHOTS="$PWD/shots/raw/panels/$slug-${ORIENTATION:-portrait}${COMPACT:+-compact}-$appearance" TEST_RUNNER_IIKB_ORIENTATION="${ORIENTATION:-portrait}" TEST_RUNNER_IIKB_COMPACT="${COMPACT:-}" \
     xcodebuild test-without-building -collect-test-diagnostics never -project iikb.xcodeproj -scheme iikb -destination "id=$ID" \
-    -derivedDataPath build/uitest -only-testing:AppUITests/ToolPanelTests > build/uitest/panels.log 2>&1 || failed=1
+    -derivedDataPath build/uitest -only-testing:AppUITests/ToolPanelTests${ONLY:+/$ONLY} > build/uitest/panels.log 2>&1 || failed=1
   grep -E "error:|XCTAssert|Test Case .*(passed|failed)|Executed" build/uitest/panels.log || true
 done
 [ -n "${KEEP:-}" ] || xcrun simctl shutdown "$ID"
