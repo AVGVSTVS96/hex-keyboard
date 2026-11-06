@@ -244,14 +244,14 @@ def typed(tool, folder, heard, settings, *mode):
 
 # Scoring
 
-MERIDIEM = re.compile(r"(\d\s?)([ap])\.?\s?m\.?(?=\W|$)", re.I)
+MERIDIEM = re.compile(r"(?:(?<=\d)\s?|\b)([ap])(?:m|\.\s?m\.)(?=\W|$)|(?<=\d)\s?([ap])\s?m(?=\W|$)", re.I)
 CHUNK = re.compile(r"\S+")
 MODELS = {"opus", "gpt", "sonnet", "haiku", "claude", "fable", "ios", "python", "gemini", "parakeet", "macos", "version", "v"}
 KINDS = ["emails", "links", "versions", "times", "money", "digits", "names"]
 
 
 def said(text):
-    return score.said(MERIDIEM.sub(r"\1\2m", text))
+    return score.said(MERIDIEM.sub(lambda m: " " + (m[1] or m[2]) + "m", text))
 
 
 def kind(chunk, before, terms, first):
