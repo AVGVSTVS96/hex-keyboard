@@ -383,6 +383,9 @@ struct History: View {
             }
         }
         let shown = picked.flatMap { date in dates.first { Calendar.current.isDate($0, inSameDayAs: date) } }
+        let top = Format.roundUp(measure == .words
+            ? dates.map { date in kinds.reduce(0) { $0 + Double(activity.channel($1, on: date).words) } }.max() ?? 0
+            : points.map(\.value).max() ?? 0)
         StatCard(symbol: "chart.bar.fill", color: .indigo, title: "History", subtitle: measure == .words ? "Words written per day" : "Words a minute per day") {
             HStack(spacing: 6) {
                 ChoicePills(values: Measure.allCases, selection: $measure) { $0.rawValue }
@@ -416,9 +419,7 @@ struct History: View {
                 }
             }
             .chartForegroundStyleScale(domain: kinds.map(\.name), range: kinds.map { $0.color.gradient })
-            .chartYScale(domain: 0 ... Format.roundUp(measure == .words
-                ? dates.map { date in kinds.reduce(0) { $0 + Double(activity.channel($1, on: date).words) } }.max() ?? 0
-                : points.map(\.value).max() ?? 0))
+            .chartYScale(domain: 0 ... top)
             .chartLegend(.hidden)
             .chartXSelection(value: $picked)
             .chartXScale(domain: dates[0] ... Date.now.adding(days: 1))
@@ -428,7 +429,7 @@ struct History: View {
                 }
             }
             .chartYAxis {
-                AxisMarks(position: .trailing, values: .automatic(desiredCount: 3)) { value in
+                AxisMarks(position: .trailing, values: [0, top / 2, top]) { value in
                     AxisGridLine(stroke: StrokeStyle(lineWidth: 1, dash: [2, 3])).foregroundStyle(Color.appDivider)
                     AxisValueLabel { AxisNumber(value: value) }
                 }
@@ -581,6 +582,7 @@ struct Rhythm: View {
         let hours = kinds.flatMap { kind in activity.total(kind).hours.enumerated().map { Hour(hour: $0.offset, kind: kind, words: $0.element / 5) } }
         let sums = (0 ..< 24).map { hour in hours.filter { $0.hour == hour }.reduce(0) { $0 + $1.words } }
         if let busiest = sums.indices.max(by: { sums[$0] < sums[$1] }), sums[busiest] > 0 {
+            let top = Format.roundUp(sums[busiest])
             StatCard(symbol: "clock.fill", color: .teal, title: "Daily rhythm", subtitle: "Most active around \(Format.hour(busiest))") {
                 Chart(hours) { hour in
                     BarMark(x: .value("Hour", "\(hour.hour)"), y: .value("Words", hour.words), width: .ratio(0.72))
@@ -590,7 +592,7 @@ struct Rhythm: View {
                 .chartForegroundStyleScale(domain: kinds.map(\.name), range: kinds.map { $0.color.gradient })
                 .chartLegend(.hidden)
                 .chartXScale(domain: (0 ..< 24).map { "\($0)" })
-                .chartYScale(domain: 0 ... Format.roundUp(sums[busiest]))
+                .chartYScale(domain: 0 ... top)
                 .chartXAxis {
                     AxisMarks { value in
                         if let hour = value.as(String.self).flatMap(Int.init), hour % 6 == 0 {
@@ -599,7 +601,7 @@ struct Rhythm: View {
                     }
                 }
                 .chartYAxis {
-                    AxisMarks(position: .trailing, values: .automatic(desiredCount: 3)) { value in
+                    AxisMarks(position: .trailing, values: [0, top / 2, top]) { value in
                         AxisGridLine(stroke: StrokeStyle(lineWidth: 1, dash: [2, 3])).foregroundStyle(Color.appDivider)
                         AxisValueLabel { AxisNumber(value: value) }
                     }
