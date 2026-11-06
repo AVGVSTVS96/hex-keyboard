@@ -63,7 +63,7 @@ struct WritingSettings: View {
     private let model = SettingsModel.shared
 
     private func typed(_ said: String, _ change: (inout DictationWriting) -> Void = { _ in }) -> String {
-        var writing = model.settings.dictation
+        var writing = model.settings.dictation(in: nil)
         change(&writing)
         return writing.typed(said, lexicon: .english)
     }
@@ -72,12 +72,33 @@ struct WritingSettings: View {
         "“" + typed(said, change) + "”"
     }
 
+    /// The apps you've dictated into, most dictated first, then any other with a style of its own.
+    private var apps: [String] {
+        var counts: [String: Int] = [:]
+        for case let app? in Transcripts.shared.all.map(\.app) where app != Bundle.main.bundleIdentifier { counts[app, default: 0] += 1 }
+        for app in model.settings.appDictationStyles.keys where counts[app] == nil { counts[app] = 0 }
+        return counts.sorted { ($0.value, AppName.of($1.key)) > ($1.value, AppName.of($0.key)) }.map(\.key)
+    }
+
+    private func style(in app: String) -> Binding<DictationStyle?> {
+        Binding { model.settings.appDictationStyles[app] } set: { style in
+            withAnimation(.snappy(duration: 0.25)) { model.update { $0.appDictationStyles[app] = style } }
+        }
+    }
+
     var body: some View {
         WritingPreview(said: Self.preview, typed: typed(Self.preview))
         Box(header: "Style", footer: "A style sets all the punctuation. Formal keeps every mark; Casual drops the last period and the comma after “so” or “hey”; very casual also drops capitals and the comma before “and” or “but”; Excited! ends short sentences with “!”. Every style asks a question with “?”. Capitals follow Auto-Capitalization in Keyboard › Typing.") {
             ForEach(DictationStyle.allCases, id: \.self) { style in
                 ChoiceRow(title: style.title, detail: quoted(Self.said) { $0.style = style }, picked: model.settings.dictationStyle == style) {
                     withAnimation(.snappy(duration: 0.25)) { model.update { $0.dictationStyle = style } }
+                }
+            }
+        }
+        if !apps.isEmpty {
+            Box(header: "Style in Each App", footer: "An app on Default writes in the style above. Each app you dictate into shows here.") {
+                ForEach(apps, id: \.self) { app in
+                    MenuRow(title: AppName.of(app), selection: style(in: app), choices: [nil] + DictationStyle.allCases) { $0?.title ?? "Default" }
                 }
             }
         }

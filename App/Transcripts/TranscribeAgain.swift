@@ -62,7 +62,7 @@ struct RecordingSection: View {
         failure = nil
         defer { writing = false }
         do {
-            again = try await VoiceModel.shared.write(try Recording.read(Transcripts.shared.recording(of: transcript.id)))
+            again = try await VoiceModel.shared.write(try Recording.read(Transcripts.shared.recording(of: transcript.id)), for: transcript.app)
         } catch {
             failure = error.localizedDescription
         }

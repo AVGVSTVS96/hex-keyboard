@@ -157,7 +157,7 @@ import UIKit
         if silent, take.voiceProcessing == true { microphone.skipsVoiceProcessing = true }
         if sounded, take.voiceProcessing == true || take.onIPhone { microphone.skipsVoiceProcessing = false }
         do {
-            let written = try await VoiceModel.shared.write(samples)
+            let written = try await VoiceModel.shared.write(samples, for: take.app)
             writing.removeAll { $0 === take }
             Transcripts.shared.add(written.text, heard: written.heard, id: take.id, at: take.started, seconds: seconds, typed: take.typed, model: written.model, mic: take.mic, voiceProcessing: take.voiceProcessing, capture: take.capture, levels: Recording.levels(samples), app: take.app)
             if take.typed, silent {

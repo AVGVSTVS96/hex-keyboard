@@ -68,9 +68,10 @@ The same app identity serves:
 - **Emoji:** the bar and panel put emoji you choose in this app first, with shared favorites underneath. Skin-tone preferences stay shared.
 - **GIF recents:** GIFs shared in this app come first, followed by your other recent GIFs. The app ID is used locally; it is not sent to KLIPY.
 - **Typing stats:** each hour of typing is counted under its app, for Stats › Typing's Where you type.
+- **Writing Style:** a dictation is written in the style picked for the app it's said into (Settings › Voice Typing › Writing Style › Style in Each App, which lists every app you've dictated into), or your default style where none is picked; the keyboard sets its capitals by the same pick.
 - **Voice typing:** the keyboard passes the same identity to the recording app so it can return you to the right app, and writes it beside each start and stop (`Dictation.host`), so each transcript keeps the app it was typed into, for Transcripts and Stats › Dictation's Where you dictate.
 
-App-specific learning stays on the phone. Reset Learned Words and Taps also clears the per-app word counts. Touch calibration, explicit kept spellings, text replacements, voice writing settings and skin tones remain shared preferences. Field behavior follows the traits iOS reports, rather than guesses based on an app’s name. Clipboard entries have no app-of-origin label: the app where the keyboard reads the clipboard does not establish where something was copied.
+App-specific learning stays on the phone. Reset Learned Words and Taps also clears the per-app word counts. Touch calibration, explicit kept spellings, text replacements, dictation's Editing and Lists, and skin tones remain shared preferences. Field behavior follows the traits iOS reports, rather than guesses based on an app’s name. Clipboard entries have no app-of-origin label: the app where the keyboard reads the clipboard does not establish where something was copied.
 
 An app ID does not identify a conversation, recipient or web page. iOS exposes only the text around the caret and field traits to a third-party keyboard. `UIConversationContext` (iOS 18.4) remains unavailable to it, even when the host sets it. An `app` update emptying the field after typing is evidence that its text was sent, not who received it.
 

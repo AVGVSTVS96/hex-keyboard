@@ -173,8 +173,9 @@ import UIKit
     }
 
     /// A finished recording written down by the picked model, once it's ready: a dictation, Transcribe Again, and a
-    /// recording an ended app left all go through here. Picking another model while it waits has that one write it.
-    func write(_ recording: [Float]) async throws -> Written {
+    /// recording an ended app left all go through here, in the style picked for `app`, the one it was said for.
+    /// Picking another model while it waits has that one write it.
+    func write(_ recording: [Float], for app: String?) async throws -> Written {
         writes += 1
         defer {
             writes -= 1
@@ -186,7 +187,7 @@ import UIKit
             do {
                 let heard: String
                 if let parakeet { heard = try await parakeet.value.dictate(recording) } else { heard = try await AppleSpeech.write(recording) }
-                return Written(text: DictationWriting.typed(heard), heard: heard, plain: DictationWriting.plain(heard), model: model.title)
+                return Written(text: DictationWriting.typed(heard, in: app), heard: heard, plain: DictationWriting.plain(heard), model: model.title)
             } catch {
                 guard self.model != model else { throw error }
             }

@@ -35,6 +35,8 @@ public struct KeyboardSettings: Hashable, Sendable {
     public var skinTone: SkinTone?
     /// How the app writes what you dictate (`DictationWriting`).
     public var dictationStyle = DictationStyle.standard
+    /// A style picked for an app, by its bundle ID, in place of `dictationStyle` there.
+    public var appDictationStyles: [String: DictationStyle] = [:]
     public var dictationEditing = DictationEditing.standard
     public var dictationLists = DictationLists.standard
 

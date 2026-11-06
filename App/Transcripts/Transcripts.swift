@@ -124,7 +124,7 @@ struct Transcript: Codable, Identifiable, Hashable {
             }
             let date = (try? file.resourceValues(forKeys: [.creationDateKey]).creationDate) ?? .now
             do {
-                let written = try await VoiceModel.shared.write(samples)
+                let written = try await VoiceModel.shared.write(samples, for: nil)
                 try? Recording.write(samples, to: file)
                 add(written.text, heard: written.heard, id: id, at: date, seconds: Double(samples.count) / 16_000, typed: false, model: written.model, mic: nil, recovered: true)
                 Dictation.leave(.notice("A dictation cut off when iikb closed is in iikb › Transcripts"))
@@ -212,7 +212,7 @@ struct Transcript: Codable, Identifiable, Hashable {
         guard VoiceModel.shared.model != .apple else { return }
         for transcript in all where transcript.model?.hasPrefix("Apple, while") == true && hasRecording(transcript.id) {
             guard !Listener.shared.isListening, !Listener.shared.isWriting else { return }
-            guard let written = try? await VoiceModel.shared.write(Recording.read(recording(of: transcript.id))), written.model != VoiceModel.Model.apple.title else { continue }
+            guard let written = try? await VoiceModel.shared.write(Recording.read(recording(of: transcript.id)), for: transcript.app), written.model != VoiceModel.Model.apple.title else { continue }
             replace(transcript.id, with: written.text, heard: written.heard, model: written.model)
         }
     }

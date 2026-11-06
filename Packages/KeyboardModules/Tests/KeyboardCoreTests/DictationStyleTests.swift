@@ -9,7 +9,16 @@ struct DictationStyleTests {
     @Test func asSaidKeepsEveryWordUmAndUhIncluded() {
         let heard = "Um, so I think, uh, the the job is done."
         #expect(write(heard) == heard)
-        #expect(KeyboardSettings.initial.dictation == DictationWriting(style: .casual, editing: .asSaid, lists: .numbered, capitalizes: false))
+        #expect(KeyboardSettings.initial.dictation(in: nil) == DictationWriting(style: .casual, editing: .asSaid, lists: .numbered, capitalizes: false))
+    }
+
+    @Test func anAppWithoutAStyleOfItsOwnTakesTheDefault() {
+        var settings = KeyboardSettings.initial
+        settings.dictationStyle = .formal
+        settings.appDictationStyles = ["com.apple.MobileSMS": .veryCasual]
+        #expect(settings.dictation(in: "com.apple.MobileSMS").style == .veryCasual)
+        #expect(settings.dictation(in: "com.apple.mobilemail").style == .formal)
+        #expect(settings.dictation(in: nil).style == .formal)
     }
 
     @Test func lightLeavesOutUmAndUh() {

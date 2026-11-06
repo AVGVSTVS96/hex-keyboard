@@ -8,7 +8,7 @@
 	<array>
 		<dict>
 			<key>FooterText</key>
-			<string>A style sets all the punctuation: Formal keeps every mark, Casual drops the last period and the comma after “so” or “hey”, very casual is Casual in lowercase with fewer commas, and Excited! ends short sentences with “!”. Every style asks a question with “?”. Capitals follow Auto-Capitalization in Typing. As Said types every word you say, um and uh too; Light leaves those out; Clean also leaves out words said twice, “like” and “you know” said between commas, what you take back with “scratch that”, and what you fix as you go (“two, I mean three”).</string>
+			<string>A style sets all the punctuation: Formal keeps every mark, Casual drops the last period and the comma after “so” or “hey”, very casual is Casual in lowercase with fewer commas, and Excited! ends short sentences with “!”. The app picks a style for each app you dictate into. Every style asks a question with “?”. Capitals follow Auto-Capitalization in Typing. As Said types every word you say, um and uh too; Light leaves those out; Clean also leaves out words said twice, “like” and “you know” said between commas, what you take back with “scratch that”, and what you fix as you go (“two, I mean three”).</string>
 			<key>Title</key>
 			<string>Writing</string>
 			<key>Type</key>

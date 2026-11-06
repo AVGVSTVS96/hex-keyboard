@@ -40,6 +40,7 @@ public enum SettingsStore {
     /// Globe Key was a switch, turned off to stop taps landing on the globe, which Spacer now does with the globe kept.
     private static let globeKey = Choice(key: "globe", path: \.globeKey, switchKey: "globeKey", on: .switches, off: .spacer)
     private static let skinToneKey = "skinTone"
+    private static let appWritingStylesKey = "appWritingStyles"
 
     private static let oneHandedKey = "oneHanded"
     private static let keepMicOnKey = "keepMicOn"
@@ -67,6 +68,7 @@ public enum SettingsStore {
         clipboardLength.load(into: &settings, sharing: sharing)
         globeKey.load(into: &settings, sharing: sharing)
         settings.skinTone = (value(forKey: skinToneKey, sharing: sharing) as? String).flatMap(SkinTone.init)
+        settings.appDictationStyles = (value(forKey: appWritingStylesKey, sharing: sharing) as? [String: String] ?? [:]).compactMapValues(DictationStyle.init)
         return settings
     }
 
@@ -88,6 +90,7 @@ public enum SettingsStore {
         clipboardLength.save(settings)
         globeKey.save(settings)
         set(settings.skinTone?.rawValue ?? "", forKey: skinToneKey)
+        set(settings.appDictationStyles.mapValues(\.rawValue), forKey: appWritingStylesKey)
     }
 
     private static let changed = "com.shahidy.iikb.settings"

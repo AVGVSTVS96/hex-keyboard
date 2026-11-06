@@ -27,6 +27,8 @@ public struct TypingEngine {
         }
     }
     public var corrector: Corrector?
+    /// The bundle ID of the app the keyboard is typing in (`changeApp`); nil when it can't tell.
+    public private(set) var app: String?
     public var swipeModel: Swipe?
     var ownedWords: (words: Set<String>, lexicon: Lexicon)?
     var swiped: Swiped?
@@ -229,7 +231,7 @@ public struct TypingEngine {
             insertWhole(text, in: document)
         case .dictated(let heard, let plain, let id):
             let lexicon = corrector?.lexicon
-            let capitals = settings.dictation.capitals(in: traits.autocapitalization)
+            let capitals = settings.dictation(in: app).capitals(in: traits.autocapitalization)
             let traits = traits
             attach(document)
             if id != nil {
@@ -385,6 +387,7 @@ public struct TypingEngine {
 
     /// Finish learning in the old app before adopting another host’s field and language.
     public mutating func changeApp(_ app: String?) {
+        self.app = app
         guard corrector?.app != app else { return }
         endSession()
         text = TextState()

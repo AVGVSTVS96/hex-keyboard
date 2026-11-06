@@ -3,10 +3,11 @@ import KeyboardEnglish
 import KeyboardStore
 
 extension DictationWriting {
-    /// What iikb types for what the voice model wrote: as Settings › Voice writes it, then with your vocabulary's words
-    /// and the made-up words that sound like them, so a term keeps its own spelling. The keyboard sets its capitals.
-    static func typed(_ heard: String) -> String {
-        VoiceVocabulary.shared.vocabulary.corrected(SettingsStore.load().dictation.written(heard), lexicon: .english)
+    /// What iikb types for what the voice model wrote: as Settings › Voice writes it for `app` (its bundle ID), then with
+    /// your vocabulary's words and the made-up words that sound like them, so a term keeps its own spelling. The keyboard
+    /// sets its capitals.
+    static func typed(_ heard: String, in app: String?) -> String {
+        VoiceVocabulary.shared.vocabulary.corrected(SettingsStore.load().dictation(in: app).written(heard), lexicon: .english)
     }
 
     /// What the voice model wrote, with your vocabulary's words and nothing of the style or lists.

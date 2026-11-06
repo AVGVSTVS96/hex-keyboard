@@ -57,7 +57,7 @@ while let line = readLine() {
     engine.settings = settings
     engine.corrector = corrector
     let field = Field(clip.before ?? "")
-    engine.handle(.dictated(vocabulary.corrected(settings.dictation.written(clip.heard), lexicon: lexicon),
+    engine.handle(.dictated(vocabulary.corrected(settings.dictation(in: nil).written(clip.heard), lexicon: lexicon),
                             plain: vocabulary.corrected(clip.heard, lexicon: lexicon)), in: field)
     let kept = zip(clip.before ?? "", field.before).prefix { $0 == $1 }.count
     lines.append(String(decoding: try JSONEncoder().encode(Row(id: clip.id, typed: String(field.before.dropFirst(kept)))), as: UTF8.self))

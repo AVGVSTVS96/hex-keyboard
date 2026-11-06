@@ -572,7 +572,12 @@ public struct DictationWriting: Hashable, Sendable {
 }
 
 extension KeyboardSettings {
-    public var dictation: DictationWriting {
-        DictationWriting(style: dictationStyle, editing: dictationEditing, lists: dictationLists, capitalizes: autoCapitalization)
+    /// How a dictation is written in `app` (its bundle ID): in the style picked for it, else your default.
+    public func dictation(in app: String?) -> DictationWriting {
+        DictationWriting(style: dictationStyle(in: app), editing: dictationEditing, lists: dictationLists, capitalizes: autoCapitalization)
+    }
+
+    public func dictationStyle(in app: String?) -> DictationStyle {
+        app.flatMap { appDictationStyles[$0] } ?? dictationStyle
     }
 }

@@ -39,6 +39,20 @@ struct DictationTests {
         #expect(dictate("In the house.", into: "I was , and done", cursor: 6) == "I was in the house, and done")
     }
 
+    @Test func anAppsOwnStyleSetsTheCapitalsTypedThere() {
+        var engine = TypingEngine(traits: InputTraits(autocapitalization: .sentences))
+        engine.corrector = Corrector(source: testLexicon)
+        engine.settings.appDictationStyles = ["com.apple.MobileSMS": .veryCasual]
+        engine.changeApp("com.apple.MobileSMS")
+        let messages = TestDocument("")
+        engine.handle(.dictated("Hello there."), in: messages)
+        #expect(messages.text == "hello there.")
+        engine.changeApp("com.apple.mobilemail")
+        let mail = TestDocument("")
+        engine.handle(.dictated("Hello there."), in: mail)
+        #expect(mail.text == "Hello there.")
+    }
+
     @Test func withAutoCapitalizationOffADictationStartsSentencesLowercaseInEveryStyle() {
         for style in DictationStyle.allCases {
             #expect(dictate("Hello. I think it's done. Sam liked it.", into: "", style: style, autoCapitalization: false).hasPrefix("hello. i think it's done. Sam liked it"))

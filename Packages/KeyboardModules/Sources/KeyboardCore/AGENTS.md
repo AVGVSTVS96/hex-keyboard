@@ -46,7 +46,7 @@ iOS facts the metrics follow:
 
 ### Dictation's text
 
-What the model wrote is typed as Settings › Writing Style writes it (`DictationWriting`):
+What the model wrote is typed as Settings › Writing Style writes it for the app it was said into (`KeyboardSettings.dictation(in:)`: the style picked for that app, else the default; Editing and Lists are the same everywhere) (`DictationWriting`):
 - Edited (`DictationEditing`): As Said, the default, keeps every word, um and uh included, as Bassim's said keeps them on purpose; Light leaves out um and uh; Clean also leaves out short words said twice, "like" and "you know" said between commas, what "scratch that" takes back and what you fix as you go ("at two, I mean three" typed "at three").
 - In a `DictationStyle`, Wispr Flow's four, each setting all the punctuation, never the words. Every style ends a question the model wrote with a period with "?".
   - Formal. keeps every comma, ends every sentence, sets off an opening "However" or "Actually" and keeps one "!" or "?".

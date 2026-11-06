@@ -21,6 +21,7 @@ Host identity is keyboard-wide context, not voice typing's alone: `KeyboardHost`
 - Language ranking learns per-app word and next-word counts over shared vocabulary.
 - Emoji choices and GIF recents prefer this app's picks.
 - Typing stats count each hour under its app.
+- Dictation is written in the Writing Style picked for it, else the default (`KeyboardSettings.dictation(in:)`): the app styles it for the transcript's app, and the engine sets its capitals for `TypingEngine.app`.
 - Voice typing returns to it, and each transcript keeps the app it was typed into (`Dictation.host`), for Transcripts and Stats › Dictation.
 
 Counts and picks stay local; the GIF service receives no host ID. App identity cannot establish clipboard origin or a conversation. A new use goes through `FullKeyboardViewController.hostApp`, never a lookup of its own.
