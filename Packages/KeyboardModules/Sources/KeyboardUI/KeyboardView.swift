@@ -15,7 +15,7 @@ public final class KeyboardView: UIView {
     }
     /// How far the space bar trackpad's finger travels to move the caret one character, -1 left or 1 right: the width
     /// of the character it crosses.
-    public var advance: (Int) -> CGFloat = { _ in HostLayout.width(of: nil) }
+    public var advance: (Int) -> CGFloat = { _ in HostText.width(of: nil) }
 
     private(set) var layout = KeyboardLayout(rows: [])
     private(set) var signature = ""

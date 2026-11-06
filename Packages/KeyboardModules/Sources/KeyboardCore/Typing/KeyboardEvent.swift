@@ -7,8 +7,8 @@ public enum KeyboardEvent: Hashable, Sendable {
     case swipe([SwipePoint])
     case trigger(Key)
     case cursor(offset: Int)
-    /// Moves the caret down that many lines, up when negative.
-    case cursorLines(Int)
+    /// Moves the caret down that many sentences, up when negative.
+    case cursorSentences(Int)
     case oneHanded(OneHanded)
     /// A hand picked from the layer key's menu. The key switched layers as it went down, so the letters come back.
     case pick(OneHanded)

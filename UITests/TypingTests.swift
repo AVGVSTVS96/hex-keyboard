@@ -75,29 +75,27 @@ final class TypingTests: XCTestCase {
         XCTAssertEqual((field.value as? String)?.lowercased(), "axbc")
     }
 
-    func testSpaceBarMovesCursorUpAndDownLines() {
+    func testSpaceBarMovesCursorUpAndDownBySentence() {
         type("aaaa")
         tap("return")
         type("bbbb")
         tap("return")
         type("cccc")
-        drag(dy: -25)
+        drag(rows: -1)
         type("x")
-        drag(dy: -25)
+        drag(rows: -2)
         type("y")
-        drag(dy: 50)
+        drag(rows: 1)
         type("z")
-        XCTAssertEqual((field.value as? String)?.lowercased(), "aaaay\nbbbbx\nccccz")
+        XCTAssertEqual((field.value as? String)?.lowercased(), "aaaa\nybbbbz\nxcccc")
     }
 
-    func testSpaceBarMovesCursorUpThroughAWrappedParagraph() {
-        let paragraph = (1...40).map { "word\($0)" }.joined(separator: " ")
+    func testSpaceBarMovesCursorUpASentenceInAWrappedParagraph() {
+        let paragraph = (1...6).map { "Sentence \($0) has a few words in it." }.joined(separator: " ")
         relaunch(with: paragraph)
-        drag(dy: -25)
+        drag(rows: -2)
         type("q")
-        let text = field.value as? String ?? ""
-        let moved = text.count - 1 - (text.firstIndex(of: "q").map { text.distance(from: text.startIndex, to: $0) } ?? 0)
-        XCTAssert((20...70).contains(moved), "moved \(moved) characters back for one line up")
+        XCTAssert((field.value as? String ?? "").lowercased().hasSuffix("it. qsentence 5 has a few words in it. sentence 6 has a few words in it."))
     }
 
     private func relaunch(with text: String) {
@@ -107,8 +105,11 @@ final class TypingTests: XCTestCase {
         XCTAssertTrue(key("space").waitForExistence(timeout: 10))
     }
 
-    private func drag(dy: CGFloat) {
+    /// Holds the space bar and moves the finger up (negative) or down that many rows of keys, half a row past them.
+    private func drag(rows: CGFloat) {
+        let row = key("a").frame.minY - key("q").frame.minY
         let space = key("space").coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        let dy = (rows + (rows < 0 ? -0.5 : 0.5)) * row
         space.press(forDuration: 1, thenDragTo: space.withOffset(CGVector(dx: 0, dy: dy)), withVelocity: 100, thenHoldForDuration: 0.2)
     }
 

@@ -30,9 +30,9 @@ public struct TypingEngine {
     public var swipeModel: Swipe?
     var ownedWords: (words: Set<String>, lexicon: Lexicon)?
     var swiped: Swiped?
-    /// How the host likely wraps its text, for moving the caret up and down lines.
-    public var lineLayout: (any LineLayout)?
-    private var lineGoal: LineGoal?
+    /// Which way the last move up or down stepped past the text the host showed: once the host shows it, the caret
+    /// goes on to the nearest stop (`Sentences`).
+    private var crossing: Int?
     /// The one copy of the text the engine reads. The keyboard's edits reach it through `write` and `moveCursor`, the
     /// host's reports through `documentChanged`.
     public private(set) var text = TextState()
@@ -207,8 +207,8 @@ public struct TypingEngine {
             perform(key.action, in: document)
         case .cursor(let offset):
             moveCursor(by: offset, in: document)
-        case .cursorLines(let count):
-            moveCursor(lines: count, in: document)
+        case .cursorSentences(let count):
+            moveCursor(sentences: count, in: document)
         case .oneHanded(let hand):
             settings.oneHanded = hand
         case .pick(let hand):
@@ -298,7 +298,7 @@ public struct TypingEngine {
     mutating func moveCursor(by offset: Int, in document: some TextDocument) {
         guard panel == nil else { return }
         attach(document)
-        lineGoal = nil
+        crossing = nil
         moveCaret(by: offset, in: document)
         forgetWord()
         refreshShift()
@@ -317,14 +317,14 @@ public struct TypingEngine {
         draft?.moveCursor(by: offset)
     }
 
-    /// Moves the caret down `count` lines, up when negative, as the space bar trackpad does.
-    mutating func moveCursor(lines count: Int, in document: some TextDocument) {
-        guard panel == nil, let lineLayout else { return }
+    /// Moves the caret down `count` sentences, up when negative, as the space bar trackpad does (`Sentences`).
+    mutating func moveCursor(sentences count: Int, in document: some TextDocument) {
+        guard panel == nil else { return }
         attach(document)
         guard text.isKnown else { return }
-        let move = Lines.move(count, before: text.before, after: text.after ?? "", goal: lineGoal, layout: lineLayout)
+        let move = Sentences.move(count, before: text.before, after: text.after ?? "")
         if move.offset != 0 { moveCursor(by: move.offset, in: document) }
-        lineGoal = move.goal
+        crossing = move.crossed ? count.signum() : nil
     }
 
     mutating func pressShift(doubleTap: Bool) {
@@ -410,7 +410,11 @@ public struct TypingEngine {
             refreshShift()
             suggestionsChanged()
         }
-        if let goal = lineGoal, goal.landing == nil { moveCursor(lines: 0, in: document) }
+        if let step = crossing, text.isKnown {
+            crossing = nil
+            let offset = Sentences.settle(step, before: text.before, after: text.after ?? "")
+            if offset != 0 { moveCursor(by: offset, in: document) }
+        }
         return report
     }
 
@@ -426,7 +430,7 @@ public struct TypingEngine {
     /// in `text` alike.
     mutating func write(_ string: String, replacing count: Int = 0, in document: some TextDocument) {
         sessionEnded = false
-        lineGoal = nil
+        crossing = nil
         beforeReturn = nil
         if count > 0 {
             document.deleteBackward(count)

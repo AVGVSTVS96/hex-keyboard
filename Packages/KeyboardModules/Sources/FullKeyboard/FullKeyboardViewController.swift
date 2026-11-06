@@ -157,7 +157,7 @@ open class FullKeyboardViewController: UIInputViewController {
         }
         keyMic.addAction(UIAction { [unowned self] _ in suggestionBar.onMic() }, for: .touchUpInside)
         keyboardView.micKey = keyMic
-        keyboardView.advance = { [unowned self] step in HostLayout.width(of: engine.character(crossedBy: step)) }
+        keyboardView.advance = { [unowned self] step in HostText.width(of: engine.character(crossedBy: step)) }
         keyboardView.globeTarget = { [unowned self] control in
             control.addTarget(self, action: #selector(handleInputModeList(from:with:)), for: .allTouchEvents)
         }
@@ -548,9 +548,6 @@ open class FullKeyboardViewController: UIInputViewController {
             trayOut = false
         case .nextKeyboard:
             advanceToNextInputMode()
-        case .cursorLines:
-            let margins = systemMinimumLayoutMargins
-            engine.lineLayout = HostLayout(width: view.bounds.width - margins.leading - margins.trailing)
         default:
             break
         }
