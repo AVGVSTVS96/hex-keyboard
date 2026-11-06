@@ -29,5 +29,5 @@ Voice typing, the app's biggest part, has its own doc: Voice/AGENTS.md.
   - Taps is `TapsPage`: `TapMapView` (Heat, Aim, Accuracy, laid out by `TapBoard`) with your numbers, a picked key's close-up, the thumbs' pull and misses by key, per screen of the Duo.
 - **Settings** (`SettingsPage`): every setting, in one list of pages under
   - Keyboard: Appearance (theme, character preview and layout on one page), Typing, Sound & Haptics, each over a `KeyboardPreviewView` to try (`KeyboardSettingsPages`);
-  - Voice Typing: Voice Model, Writing Style, Dictionary, Microphone, Keep Mic On (`VoiceSettingsPages`);
+  - Voice Typing: Voice (voice model, Keep Mic On and microphone on one page), Writing Style, Dictionary (`VoiceSettingsPages`);
   - iikb: Sources, Keyboard Access, Privacy & Data, Changelog (`ChangelogPage`), About, which credits the swipe decoder and links its license (`SettingsPages`).

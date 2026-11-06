@@ -7,11 +7,11 @@ import SwiftUI
 /// takes the first pane and the picked page the second; elsewhere a page opens on its own.
 struct SettingsPage: View {
     enum Page: String, CaseIterable, Hashable {
-        case appearance, typing, feedback, model, writing, dictionary, microphone, mic, sources, access, privacy, changelog, about
+        case appearance, typing, feedback, voice, writing, dictionary, sources, access, privacy, changelog, about
 
         static let sections: [(title: String, pages: [Page])] = [
             ("Keyboard", [.appearance, .typing, .feedback]),
-            ("Voice Typing", [.model, .writing, .dictionary, .microphone, .mic]),
+            ("Voice Typing", [.voice, .writing, .dictionary]),
             ("iikb", [.sources, .access, .privacy, .changelog, .about]),
         ]
 
@@ -20,11 +20,9 @@ struct SettingsPage: View {
             case .appearance: "Appearance"
             case .typing: "Typing"
             case .feedback: "Sound & Haptics"
-            case .model: "Voice Model"
+            case .voice: "Voice"
             case .writing: "Writing Style"
             case .dictionary: "Dictionary"
-            case .microphone: "Microphone"
-            case .mic: "Keep Mic On"
             case .sources: "Sources"
             case .access: "Keyboard Access"
             case .privacy: "Privacy & Data"
@@ -38,11 +36,9 @@ struct SettingsPage: View {
             case .appearance: ("paintpalette.fill", .purple)
             case .typing: ("character.cursor.ibeam", .cyan)
             case .feedback: ("hand.tap.fill", .pink)
-            case .model: ("waveform", .red)
+            case .voice: ("waveform", .red)
             case .writing: ("textformat", .orange)
             case .dictionary: ("character.book.closed.fill", .brown)
-            case .microphone: ("mic.circle.fill", .mint)
-            case .mic: ("mic.fill", .green)
             case .sources: ("antenna.radiowaves.left.and.right", .teal)
             case .access: ("switch.2", .indigo)
             case .privacy: ("hand.raised.fill", .blue)
@@ -58,11 +54,9 @@ struct SettingsPage: View {
             case .appearance: settings.theme.title
             case .typing, .privacy, .changelog: nil
             case .feedback: settings.haptics.title
-            case .model: VoiceModel.shared.model.title
+            case .voice: VoiceModel.shared.model.title
             case .writing: settings.dictationStyle.title
             case .dictionary: words == 1 ? "1 word" : "\(words.formatted()) words"
-            case .microphone: MicrophoneChoices.shared.picked?.title ?? "Automatic"
-            case .mic: Dictation.title(keepingMicOn: model.keepMicOn)
             case .sources: model.sources.isEmpty ? "None" : model.sources.count.formatted()
             case .access: AppStatus.shared.isSetUp ? "All Set" : "Needs Setup"
             case .about: AboutPage.version
@@ -163,11 +157,9 @@ struct SettingsContent: View {
             case .appearance: AppearanceSettings()
             case .typing: TypingSettings()
             case .feedback: FeedbackSettings()
-            case .model: ModelSettings()
+            case .voice: VoiceSettings()
             case .writing: WritingSettings()
             case .dictionary: VocabularyView()
-            case .microphone: MicrophoneSettings()
-            case .mic: MicSettings()
             case .sources: SourcesPage()
             case .access: SetupPage()
             case .privacy: PrivacyPage()

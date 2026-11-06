@@ -4,12 +4,21 @@ import KeyboardEnglish
 import KeyboardUI
 import SwiftUI
 
+/// How iikb hears you, on one page: the model that writes it down, how long the mic stays on, and which microphone.
+struct VoiceSettings: View {
+    var body: some View {
+        ModelSettings()
+        MicSettings()
+        MicrophoneSettings()
+    }
+}
+
 /// Which model writes what you say, with its download or why it couldn't get ready.
-struct ModelSettings: View {
+private struct ModelSettings: View {
     private let voice = VoiceModel.shared
 
     var body: some View {
-        Box(footer: "Everything you say is written down on this iPhone and never leaves it. What you dictate while a Parakeet gets ready is written once it’s ready, in the order you said it.") {
+        Box(header: "Voice Model", footer: "Everything you say is written down on this iPhone and never leaves it. What you dictate while a Parakeet gets ready is written once it’s ready, in the order you said it.") {
             ForEach([VoiceModel.Model.v3, .ultra, .apple], id: \.self) { choice in
                 ChoiceRow(title: choice.title, detail: choice.detail, picked: choice == voice.model) {
                     voice.pick(choice)
@@ -152,11 +161,11 @@ private struct WritingPreview: View {
 }
 
 /// How long the mic stays on after a dictation.
-struct MicSettings: View {
+private struct MicSettings: View {
     private let model = SettingsModel.shared
 
     var body: some View {
-        Box(footer: "After you dictate, iikb keeps the mic on this long, so the mic beside the suggestions starts and stops without leaving your app. Hold it to turn the mic off.") {
+        Box(header: "Keep Mic On", footer: "After you dictate, iikb keeps the mic on this long, so the mic beside the suggestions starts and stops without leaving your app. Hold it to turn the mic off.") {
             ForEach(Dictation.micChoices, id: \.self) { seconds in
                 ChoiceRow(title: Dictation.title(keepingMicOn: seconds), picked: model.keepMicOn == seconds) { model.keepMicOn(seconds) }
             }
@@ -165,12 +174,12 @@ struct MicSettings: View {
 }
 
 /// Which microphone iikb dictates with when there are several.
-struct MicrophoneSettings: View {
+private struct MicrophoneSettings: View {
     private let choices = MicrophoneChoices.shared
     @AppStorage("compareMicrophones") private var comparing = true
 
     var body: some View {
-        Box(footer: "Automatic hears from the iPhone, or a wired headset when one is plugged in, never from Bluetooth, so music on AirPods and speakers keeps its full quality while you dictate. A Bluetooth microphone puts its device on a call, at call quality, while the mic is on. A pick is used whenever it’s connected; when it isn’t, the iPhone’s hears.") {
+        Box(header: "Microphone", footer: "Automatic hears from the iPhone, or a wired headset when one is plugged in, never from Bluetooth, so music on AirPods and speakers keeps its full quality while you dictate. A Bluetooth microphone puts its device on a call, at call quality, while the mic is on. A pick is used whenever it’s connected; when it isn’t, the iPhone’s hears.") {
             ChoiceRow(title: "Automatic", picked: choices.picked == nil) { choices.pick(nil) }
             ForEach(choices.all, id: \.uid) { microphone in
                 ChoiceRow(title: microphone.title, detail: detail(microphone), picked: choices.isPicked(microphone)) { choices.pick(microphone) }

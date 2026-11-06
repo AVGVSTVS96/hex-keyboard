@@ -252,11 +252,9 @@ settings -iikbSettings YES
 appearance -iikbSettings appearance
 typing-settings -iikbSettings typing
 feedback -iikbSettings feedback
-voice -iikbSettings model
+voice -iikbSettings voice
 writing -iikbSettings writing
 dictionary -iikbSettings dictionary
-microphone -iikbSettings microphone
-mic -iikbSettings mic
 transcripts -iikbTab transcripts
 clipboard -iikbTab clipboard
 stats -iikbStats typing

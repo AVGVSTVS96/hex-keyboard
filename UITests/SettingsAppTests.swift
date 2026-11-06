@@ -38,7 +38,7 @@ final class SettingsAppTests: XCTestCase {
 
     func testKeepMicOnIsPickedInAppAndShownInSettings() throws {
         let iikb = XCUIApplication()
-        iikb.launchArguments = ["-iikbResetSettings", "YES", "-iikbSettings", "mic"]
+        iikb.launchArguments = ["-iikbResetSettings", "YES", "-iikbSettings", "voice"]
         iikb.launch()
         let picked = iikb.buttons["5 Minutes"]
         XCTAssertTrue(picked.waitForExistence(timeout: 5))
