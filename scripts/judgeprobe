@@ -1,6 +1,6 @@
 #!/bin/sh
 # Times Apple's on-device model choosing among written forms in the installed iikb on the iPhone the Mac reaches
-# (App/Voice/JudgeProbe.swift): scripts/judgeprobe <questions.jsonl>, each line {instructions, prompt, choices}.
+# (App/Voice/JudgeProbe.swift): scripts/judgeprobe <questions.jsonl>, each line {instructions, prompt, choices, maxTokens}; with no choices it answers in its own words.
 # Prints Documents/judge.log once the run is done.
 set -e
 [ -n "$1" ] || { echo "usage: scripts/judgeprobe <questions.jsonl>" >&2; exit 1; }

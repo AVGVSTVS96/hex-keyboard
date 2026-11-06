@@ -3,7 +3,7 @@ import UIKit
 
 /// `-iikbJudgeProbe YES` (`scripts/judgeprobe`): times Apple's on-device model choosing among written forms on this
 /// iPhone. Each line of `Documents/judge.jsonl` is `{instructions, prompt, choices}`; the model answers with one of
-/// the choices (guided generation, greedy). The first question is asked cold, as the app's first after launch; then
+/// the choices (guided generation, greedy), or in its own words when there are none, up to `maxTokens`. The first question is asked cold, as the app's first after launch; then
 /// every question in a new session (warm); then a few after `prewarm` and the second it asks for; then one after 30 s
 /// idle. Each answer is a line of `Documents/judge.log`.
 nonisolated enum JudgeProbe {
@@ -12,13 +12,15 @@ nonisolated enum JudgeProbe {
     struct Question: Decodable {
         let instructions: String
         let prompt: String
-        let choices: [String]
+        let choices: [String]?
+        let maxTokens: Int?
     }
 
     struct Answer: Encodable {
         let question: Int
         let phase: String
         let pick: Int?
+        let text: String?
         let ms: Int
         let background: Bool
         let error: String?
@@ -70,17 +72,22 @@ nonisolated enum JudgeProbe {
         }
         let background = await UIApplication.shared.applicationState == .background
         let began = ContinuousClock.now
-        var pick: Int?, failure: String?
+        var pick: Int?, text: String?, failure: String?
         do {
-            let schema = try GenerationSchema(root: DynamicGenerationSchema(name: "Written", anyOf: question.choices), dependencies: [])
-            let response = try await session.respond(to: question.prompt, schema: schema, includeSchemaInPrompt: false,
-                                                     options: GenerationOptions(samplingMode: .greedy, maximumResponseTokens: 96))
-            pick = question.choices.firstIndex(of: try response.content.value(String.self))
+            let options = GenerationOptions(samplingMode: .greedy, maximumResponseTokens: question.maxTokens ?? 96)
+            if let choices = question.choices {
+                let schema = try GenerationSchema(root: DynamicGenerationSchema(name: "Written", anyOf: choices), dependencies: [])
+                let response = try await session.respond(to: question.prompt, schema: schema, includeSchemaInPrompt: false, options: options)
+                text = try response.content.value(String.self)
+                pick = text.flatMap(choices.firstIndex(of:))
+            } else {
+                text = try await session.respond(to: question.prompt, options: options).content
+            }
         } catch {
             failure = "\(error)"
         }
         let elapsed = (ContinuousClock.now - began).components
-        let answer = Answer(question: index, phase: phase, pick: pick, ms: Int(elapsed.seconds * 1000 + elapsed.attoseconds / 1_000_000_000_000_000),
+        let answer = Answer(question: index, phase: phase, pick: pick, text: text, ms: Int(elapsed.seconds * 1000 + elapsed.attoseconds / 1_000_000_000_000_000),
                             background: background, error: failure)
         if let line = try? JSONEncoder().encode(answer) { write(String(decoding: line, as: UTF8.self)) }
     }
