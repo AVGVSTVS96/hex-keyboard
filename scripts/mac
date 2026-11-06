@@ -2,7 +2,7 @@
 # Runs a command on the Mac with Xcode 27.1 (the SDK the phone build uses, which gives the iPhone Duo its vertical bar)
 # in the first free of the Mac's slots, inside one of the Mac's turns (`turn`: two heavy runs at once, across projects),
 # so a run boots and tests within its turn and the rest wait. The Mac runs at most three simulators, so one another
-# project has booted takes a slot away, and while the Mac is short on memory (pressure above normal, or under 2 GB of swap free) iikb gets one slot. Each slot has its own folder (~/Developer/iikb-slot<n>, where this tree is
+# project has booted takes a slot away, and while the Mac is short on memory (pressure above normal, or under 2 GB of swap free) iikb gets one slot, and a run shuts down the idle slots' simulators. Each slot has its own folder (~/Developer/iikb-slot<n>, where this tree is
 # synced) and its own simulators (iikb<n> …), which stay booted for the slot's next run (KEEP=1), since a boot starts
 # some 200 iOS services at once and loads the Mac for minutes, and shut down once the slot sits idle for 5 minutes.
 # Screenshots the command takes are copied back to shots/raw/. scripts/verify tests what landed: for it, main's last commit is synced from its own worktree (../iikb-main), not this checkout's tree.
@@ -37,6 +37,15 @@ if taken is None:
         threading.Thread(target=wait, args=(n, f), daemon=True).start()
     won.wait()
     taken = first[0]
+if tight:
+    for n in {1, 2, 3} - {taken}:
+        f = open(f"/tmp/iikb-slot{n}.lock", "a")
+        if take(f, False):
+            for ds in booted.get("devices", {}).values():
+                for d in ds:
+                    if d["name"].startswith(f"iikb{n} "):
+                        subprocess.run(["xcrun", "simctl", "shutdown", d["udid"]], capture_output=True)
+        f.close()
 print(taken, flush=True)
 sys.stdin.read()
 '
