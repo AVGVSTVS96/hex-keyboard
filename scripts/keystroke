@@ -1,43 +1,11 @@
 #!/bin/bash
-# Has the Mac send what Keystroke counts there (its typing-stats.json: counts and times, never what's typed) to the
-# backup server each time Keystroke saves it, as mac/typing-stats.json, for the app's Stats (docs/stats.md). A
-# LaunchAgent watches Keystroke's folder, so it sends on Keystroke's own saves and at login, never on a clock.
-# Usage: scripts/keystroke [path to Keystroke.app on the Mac]
+# Sets up the Mac `ssh mac` reaches, both ways: it shares what Keystroke counts there with iikb (mac/share,
+# docs/computers.md), and Keystroke gets the backup server's key, to show the iPhone's counts the server makes
+# (docs/stats.md). Prints the link to add the Mac in iikb.
+# Usage: scripts/keystroke [path to Keystroke's typing-stats.json on the Mac]
 set -euo pipefail
-key=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")/Packages/KeyboardModules/Sources/KeyboardStore/Resources/Keys/backup.key
-[ -f "$key" ] || { echo "$key is missing: the Mac sends with the backup server's address and token (docs/backup.md)" >&2; exit 1; }
+root=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
+key=$root/Packages/KeyboardModules/Sources/KeyboardStore/Resources/Keys/backup.key
+[ -f "$key" ] || { echo "$key is missing: Keystroke reads the iPhone's counts with the backup server's address and token (docs/backup.md)" >&2; exit 1; }
 ssh mac 'umask 077 && mkdir -p ~/.config/iikb && cat > ~/.config/iikb/backup.key' <"$key"
-ssh mac bash -s "${1:-/Applications/Glaze/Keystroke.app}" <<'MAC'
-set -euo pipefail
-bundle=$(defaults read "$1/Contents/Info" CFBundleIdentifier)
-folder="$HOME/Library/Application Support/$bundle"
-label=com.shahidy.iikb.keystroke
-send="$HOME/.config/iikb/send-keystroke"
-cat >"$send" <<'SEND'
-#!/bin/sh
-file="$1/typing-stats.json"
-[ -f "$file" ] || exit 0
-{ read -r url; read -r token; } <"$HOME/.config/iikb/backup.key"
-exec /usr/bin/curl -fsS --max-time 30 -X PUT -H "Authorization: Bearer $token" -H "X-Modified: $(stat -f %m "$file")" \
-  --data-binary @"$file" "$url/mac/typing-stats.json"
-SEND
-chmod 700 "$send"
-plist="$HOME/Library/LaunchAgents/$label.plist"
-mkdir -p "$(dirname "$plist")"
-cat >"$plist" <<PLIST
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>Label</key><string>$label</string>
-  <key>ProgramArguments</key><array><string>$send</string><string>$folder</string></array>
-  <key>WatchPaths</key><array><string>$folder</string></array>
-  <key>RunAtLoad</key><true/>
-  <key>StandardErrorPath</key><string>$HOME/Library/Logs/$label.log</string>
-</dict>
-</plist>
-PLIST
-launchctl bootout "gui/$(id -u)/$label" 2>/dev/null || true
-launchctl bootstrap "gui/$(id -u)" "$plist"
-echo "the Mac sends $folder/typing-stats.json each time Keystroke saves it"
-MAC
+ssh mac sh -s -- "$@" <"$root/mac/share"

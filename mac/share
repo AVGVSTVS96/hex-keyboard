@@ -1,0 +1,100 @@
+#!/bin/sh
+# Shares this Mac's typing and dictation counts (Keystroke's typing-stats.json) with iikb on your iPhone: a LaunchAgent
+# answers GET /typing-stats.json to whoever sends this Mac's token, over Tailscale when it's here, or else the local
+# network, and the iPhone adds the Mac from the QR code this shows (docs/computers.md).
+# Usage: sh share [stats file]        sh share --stop
+set -eu
+dir="$HOME/.config/iikb"
+label=com.shahidy.iikb.share
+plist="$HOME/Library/LaunchAgents/$label.plist"
+port=2593
+tailscale=$(command -v tailscale || echo /Applications/Tailscale.app/Contents/MacOS/Tailscale)
+[ -x "$tailscale" ] && "$tailscale" status >/dev/null 2>&1 || tailscale=
+
+if [ "${1:-}" = --stop ]; then
+  launchctl bootout "gui/$(id -u)/$label" 2>/dev/null || true
+  rm -f "$plist"
+  [ -z "$tailscale" ] || "$tailscale" serve --https=443 --set-path /iikb off >/dev/null 2>&1 || true
+  echo "this Mac no longer shares its stats"
+  exit 0
+fi
+
+file=${1:-}
+if [ -z "$file" ]; then
+  bundle=$(defaults read /Applications/Glaze/Keystroke.app/Contents/Info CFBundleIdentifier 2>/dev/null || true)
+  file="$HOME/Library/Application Support/${bundle:-Keystroke}/typing-stats.json"
+fi
+[ -f "$file" ] || { echo "no stats at $file: give the path of Keystroke's typing-stats.json" >&2; exit 1; }
+
+mkdir -p "$dir" "$(dirname "$plist")"
+chmod 700 "$dir"
+[ -s "$dir/share.token" ] || (umask 077 && openssl rand -hex 16 >"$dir/share.token")
+printf '%s\n' "$file" >"$dir/share.file"
+
+cat >"$dir/serve" <<'SERVE'
+#!/bin/sh
+# One request on stdin, its answer on stdout: launchd hands each connection here.
+dir="$HOME/.config/iikb"
+answer() { printf 'HTTP/1.1 %s\r\nContent-Length: 0\r\nConnection: close\r\n\r\n' "$1"; exit 0; }
+read -r method path _ || exit 0
+auth=
+while IFS= read -r line; do
+  line=$(printf %s "$line" | tr -d '\r')
+  [ -n "$line" ] || break
+  case $line in [Aa]uthorization:\ Bearer\ *) auth=${line#* Bearer } ;; esac
+done
+[ "$auth" = "$(cat "$dir/share.token")" ] || answer '401 Unauthorized'
+[ "$method" = GET ] && [ "${path%%\?*}" = /typing-stats.json ] || answer '404 Not Found'
+copy=$(mktemp) && trap 'rm -f "$copy"' EXIT
+cp "$(cat "$dir/share.file")" "$copy" 2>/dev/null || answer '404 Not Found'
+modified=$(TZ=GMT date -r "$(stat -f %m "$(cat "$dir/share.file")")" '+%a, %d %b %Y %H:%M:%S GMT')
+printf 'HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: %s\r\nLast-Modified: %s\r\nConnection: close\r\n\r\n' \
+  "$(stat -f %z "$copy")" "$modified"
+cat "$copy"
+SERVE
+chmod 700 "$dir/serve"
+
+# With Tailscale only tailscale serve reaches the listener, over HTTPS; without it the local network does.
+node=
+[ -z "$tailscale" ] || node='<key>SockNodeName</key><string>127.0.0.1</string>'
+cat >"$plist" <<PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>$label</string>
+  <key>ProgramArguments</key><array><string>/bin/sh</string><string>$dir/serve</string></array>
+  <key>inetdCompatibility</key><dict><key>Wait</key><false/></dict>
+  <key>Sockets</key><dict><key>Listener</key><dict>$node<key>SockServiceName</key><string>$port</string></dict></dict>
+</dict>
+</plist>
+PLIST
+launchctl bootout "gui/$(id -u)/$label" 2>/dev/null || true
+launchctl bootstrap "gui/$(id -u)" "$plist"
+
+if [ -n "$tailscale" ]; then
+  "$tailscale" serve --bg --https=443 --set-path /iikb "http://127.0.0.1:$port" >/dev/null
+  url="https://$("$tailscale" status --json | plutil -extract Self.DNSName raw -o - - | sed 's/\.$//')/iikb"
+else
+  url="http://$(scutil --get LocalHostName).local:$port"
+fi
+
+name=$(scutil --get ComputerName)
+encode() { osascript -l JavaScript -e 'function run([text]) { return encodeURIComponent(text) }' "$1"; }
+link="iikb://computer?name=$(encode "$name")&url=$(encode "$url")&token=$(cat "$dir/share.token")"
+
+qr="$dir/share.png"
+osascript -l JavaScript - "$link" "$qr" <<'QR' >/dev/null
+ObjC.import('CoreImage'); ObjC.import('AppKit')
+function run([link, path]) {
+  const filter = $.CIFilter.filterWithName('CIQRCodeGenerator')
+  filter.setValueForKey($(link).dataUsingEncoding($.NSUTF8StringEncoding), 'inputMessage')
+  const image = filter.outputImage.imageByApplyingTransform($.CGAffineTransformMakeScale(12, 12))
+  const rep = $.NSBitmapImageRep.alloc.initWithCIImage(image)
+  rep.representationUsingTypeProperties($.NSBitmapImageFileTypePNG, $()).writeToFileAtomically(path, true)
+}
+QR
+[ ! -t 1 ] || open "$qr"
+echo "$name shares its stats at $url"
+echo "Scan the QR code with your iPhone's camera, or open this link on it:"
+echo "$link"

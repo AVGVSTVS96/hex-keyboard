@@ -5,9 +5,8 @@ import KeyboardUI
 import SwiftUI
 import notify
 
-/// How you type and talk, and where your taps land, on this iPhone or, once your Mac has sent the backup server what
-/// Keystroke counts there, on the Mac, each apart: Typing, Dictation and Taps as pills under the title, the device in a
-/// menu beside it.
+/// How you type and talk, and where your taps land, on this iPhone or on a computer you added (docs/computers.md), each
+/// apart: Typing, Dictation and Taps as pills under the title, the device in a menu beside it.
 struct StatsPage: View {
     enum Section: String, CaseIterable {
         case typing, dictation, taps
@@ -15,21 +14,30 @@ struct StatsPage: View {
         var title: String { rawValue.capitalized }
     }
 
-    enum Device: String {
-        case iPhone, mac
+    enum Device: Hashable {
+        case iPhone
+        case computer(String)
 
-        var title: String { self == .mac ? "Mac" : "iPhone" }
-        var symbol: String { self == .mac ? "laptopcomputer" : "iphone" }
+        var title: String {
+            switch self {
+            case .iPhone: "iPhone"
+            case let .computer(name): name
+            }
+        }
+
+        var symbol: String { self == .iPhone ? "iphone" : "laptopcomputer" }
     }
 
     @Bindable private var router = Router.shared
-    @State private var picked = LaunchOptions.statsDevice ?? .iPhone
     @State private var phone = PhoneActivity()
-    private let mac = MacStats.shared
+    @State private var adding = false
+    private let computers = Computers.shared
     @Environment(\.scenePhase) private var phase
 
-    private var device: Device { mac.activity == nil ? .iPhone : picked }
-    private var sections: [Section] { device == .mac ? [.typing, .dictation] : Section.allCases }
+    private var device: Device {
+        router.statsComputer.flatMap { name in computers.activity[name].map { _ in .computer(name) } } ?? .iPhone
+    }
+    private var sections: [Section] { device == .iPhone ? Section.allCases : [.typing, .dictation] }
     private var section: Section { sections.contains(router.stats) ? router.stats : .typing }
 
     var body: some View {
@@ -38,7 +46,8 @@ struct StatsPage: View {
                 switch (section, device) {
                 case (.taps, _): TapsPage()
                 case (_, .iPhone): DeviceStats(kind: section == .typing ? .typed : .said, activity: phone.activity, device: .iPhone)
-                case (_, .mac): DeviceStats(kind: section == .typing ? .typed : .said, activity: mac.activity ?? Activity(), device: .mac)
+                case let (_, .computer(name)):
+                    DeviceStats(kind: section == .typing ? .typed : .said, activity: computers.activity[name] ?? Activity(), device: device)
                 }
             }
             .safeAreaInset(edge: .top, spacing: 0) {
@@ -52,26 +61,32 @@ struct StatsPage: View {
             .navigationTitle("Stats")
             .toolbarTitleDisplayMode(.inlineLarge)
             .toolbar {
-                if mac.activity != nil {
-                    ToolbarItem(placement: .topBarTrailing) { devices }
-                }
+                ToolbarItem(placement: .topBarTrailing) { devices }
                 MicSwitchItem()
             }
         }
+        .sheet(isPresented: $adding) { AddComputer() }
         .onAppear(perform: refresh)
         .onChange(of: phase) { _, phase in if phase == .active { refresh() } }
     }
 
     private func refresh() {
         phone.reload()
-        Task { await mac.read() }
+        Task { await computers.read() }
     }
 
     private var devices: some View {
         Menu {
-            Picker("Device", selection: $picked) {
-                ForEach([Device.iPhone, .mac], id: \.self) { device in
+            Picker("Device", selection: Binding { device } set: { router.statsComputer = if case let .computer(name) = $0 { name } else { nil } }) {
+                ForEach([Device.iPhone] + computers.all.map { .computer($0.name) }, id: \.self) { device in
                     Label(device.title, systemImage: device.symbol).tag(device)
+                }
+            }
+            Button("Add Computer…", systemImage: "plus") { adding = true }
+            if case let .computer(name) = device {
+                Button("Forget \(name)", systemImage: "trash", role: .destructive) {
+                    router.statsComputer = nil
+                    computers.remove(name)
                 }
             }
         } label: {

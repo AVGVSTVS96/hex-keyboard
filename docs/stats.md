@@ -1,7 +1,7 @@
 # Stats
 
 The app's Stats tab shows how you type and talk, and where your taps land: Typing, Dictation and Taps, each a pill
-under the title. The menu beside the title shows the iPhone's or, once it has sent them, your Mac's, kept apart.
+under the title. The menu beside the title shows the iPhone's or a computer's you added (docs/computers.md), kept apart.
 Everything is counted and timed, and nothing is ever written down: no letter of what you type leaves the keyboard.
 
 ## The iPhone
@@ -31,16 +31,15 @@ Mac, keys by keycode and dictated text by length, and keeps the counts in
 both by hour, and the apps dictation went into).
 
 ```
-Keystroke saves ──► LaunchAgent (WatchPaths) ──PUT mac/typing-stats.json──► backup server
-                                                                                 │
-           Stats comes forward ──GET mac/typing-stats.json──────────────────────┘
+iPhone ──GET typing-stats.json──► the Mac (mac/share) ── Keystroke's typing-stats.json
 ```
 
-`scripts/keystroke` sets the Mac up: a LaunchAgent that watches Keystroke's folder and, each time Keystroke saves (and
-at login), sends the file to the backup server (docs/backup.md) with its token, as `mac/typing-stats.json`, so the server
-keeps every version. The app reads it back from there each time Stats comes forward (`MacStats`, `Backup.read`), and
-keeps the last copy in its caches, so the Mac shows as it last was while it's asleep or the server is out of reach; a
-footer says when Keystroke saved it. The server gives back only what's under `mac/`, never the iPhone's own files.
+`mac/share` has the Mac answer the app with that file, over Tailscale or the local network, and shows the QR code that
+adds it (docs/computers.md); any computer that answers the same way shows here too. The app reads each one each time
+Stats comes forward (`Computers`, decoded by `KeystrokeStats`), and keeps the last copy in its caches, so a computer
+shows as it last was while it's asleep or out of reach; a footer says when Keystroke saved it.
+`scripts/keystroke` runs `mac/share` on the Mac `ssh mac` reaches, and gives Keystroke there the backup server's key
+(below).
 
 ## The iPhone in Keystroke
 

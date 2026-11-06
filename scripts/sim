@@ -228,7 +228,8 @@ duoapp() {
   data=$(xcrun simctl get_app_container "$id" "$BUNDLE" data)
   [ -n "${TOUCHES:-}" ] && mkdir -p "$group/Library" && cp "$TOUCHES" "$group/Library/touches.json"
   [ -n "${TYPING:-}" ] && mkdir -p "$group/Library" && cp "$TYPING" "$group/Library/typing.jsonl"
-  [ -n "${MAC:-}" ] && mkdir -p "$data/Library/Caches" && cp "$MAC" "$data/Library/Caches/mac-stats.json"
+  [ -n "${MAC:-}" ] && mkdir -p "$data/Library/Caches/computers" "$data/Library/Application Support" && cp "$MAC" "$data/Library/Caches/computers/Mac.json" &&
+    echo '[{"name":"Mac","url":"http://mac.local:2593","token":"t"}]' >"$data/Library/Application Support/computers.json"
   [ -n "${TRANSCRIPTS:-}" ] && mkdir -p "$data/Library/Application Support" && cp "$TRANSCRIPTS" "$data/Library/Application Support/transcripts.jsonl"
   [ -n "${CLIPBOARD:-}" ] && mkdir -p "$group/Library/clipboard" && cp "$CLIPBOARD" "$group/Library/clipboard/history.json"
   while read -r screen hinge orientation display; do
@@ -260,8 +261,8 @@ transcripts -iikbTab transcripts
 clipboard -iikbTab clipboard
 stats -iikbStats typing
 stats-dictation -iikbStats dictation
-stats-mac -iikbStats typing -iikbStatsDevice mac
-stats-mac-dictation -iikbStats dictation -iikbStatsDevice mac
+stats-mac -iikbStats typing -iikbStatsComputer Mac
+stats-mac-dictation -iikbStats dictation -iikbStatsComputer Mac
 taps -iikbTaps YES
 sources -iikbSettings sources
 access -iikbSettings access

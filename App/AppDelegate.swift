@@ -26,6 +26,8 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
     var settingsPath: [SettingsPage.Page] = []
     /// Stats' pill.
     var stats = LaunchOptions.statsSection ?? .typing
+    /// The computer Stats shows (docs/computers.md), or nil for the iPhone.
+    var statsComputer = LaunchOptions.statsComputer
     @ObservationIgnored weak var tabs: UITabBarController?
 
     func show(_ destination: Destination, settings page: SettingsPage.Page? = nil) {
@@ -87,6 +89,11 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     private func open(_ contexts: Set<UIOpenURLContext>) {
         if let source = contexts.lazy.compactMap({ Source(link: $0.url) }).first { return offer(source) }
+        if let computer = contexts.lazy.compactMap({ Computer(link: $0.url) }).first {
+            Computers.shared.add(computer)
+            Router.shared.statsComputer = computer.name
+            return Router.shared.show(.stats)
+        }
         if contexts.contains(where: { $0.url == AppLink.settings }) { return AppStatus.openPasteSetting() }
         if contexts.contains(where: { $0.url == AppLink.keyboard }) { return Router.shared.show(.settings) }
         guard let request = contexts.lazy.compactMap({ Dictation.Request($0.url) }).first, let root = window?.rootViewController else { return }

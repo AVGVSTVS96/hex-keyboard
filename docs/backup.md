@@ -17,7 +17,7 @@ gives them:
 | `keyboard/Preferences/` | the keyboard's `Library/Preferences` | the keyboard's settings |
 | `group/Library/` | the App Group's `Library` | the clipboard history, the taps and typing counts the app shows, the settings both read |
 | `personal/` | the server (`scripts/personal`) | `en.network`, the next-word network fine-tuned on your typing (below); made there, so the iPhone only reads it |
-| `mac/` | the Mac (`scripts/keystroke`) | Keystroke's `typing-stats.json`, for Stats (docs/stats.md); given back to the app, never put on the iPhone |
+| `mac/` | the Mac, until Nov 5 2026 | Keystroke's `typing-stats.json` as the Mac sent it before the app read computers directly (docs/computers.md) |
 
 ## Transcripts
 

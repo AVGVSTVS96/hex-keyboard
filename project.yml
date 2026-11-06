@@ -58,6 +58,9 @@ targets:
           - CFBundleURLName: com.shahidy.iikb
             CFBundleURLSchemes: [iikb]
         NSMicrophoneUsageDescription: iikb listens when you tap the mic on the keyboard, and turns what you say into text on your iPhone.
+        NSLocalNetworkUsageDescription: iikb reads the typing stats a computer you add shares on your network.
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
         UIBackgroundModes: [audio]
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
         UISupportedInterfaceOrientations~ipad: [UIInterfaceOrientationPortrait, UIInterfaceOrientationPortraitUpsideDown, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]

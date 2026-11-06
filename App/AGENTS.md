@@ -25,7 +25,7 @@ Voice typing, the app's biggest part, has its own doc: Voice/AGENTS.md.
 - **Stats** (`StatsPage`, docs/stats.md): Typing, Dictation and Taps as pills, the iPhone's or, in the menu beside the title, the Mac's.
   - `DeviceStats` shows an `Activity`: speed, words a day, the hours you type or talk in, then on the iPhone where your typed words came from and the apps typed in, or your dictations and the apps dictated into; on the Mac the apps dictated into.
   - The iPhone's typing is `TypingStats` (KeyboardStore); its dictation is `Transcripts`.
-  - The Mac's is `MacStats`, Keystroke's `typing-stats.json`, which `scripts/keystroke`'s LaunchAgent on the Mac sends the backup server each time Keystroke saves it, read back with `Backup.read` each time Stats comes forward.
+  - Each computer's is `Computers`, Keystroke's `typing-stats.json` read straight from the computer you added (`iikb://computer` links, `mac/share`; docs/computers.md) each time Stats comes forward, decoded by `KeystrokeStats`.
   - Taps is `TapsPage`: `TapMapView` (Heat, Aim, Accuracy, laid out by `TapBoard`) with your numbers, a picked key's close-up, the thumbs' pull and misses by key, per screen of the Duo.
 - **Settings** (`SettingsPage`): every setting, in one list of pages under
   - Keyboard: Appearance (theme, character preview and layout on one page), Typing, Sound & Haptics, each over a `KeyboardPreviewView` to try (`KeyboardSettingsPages`);

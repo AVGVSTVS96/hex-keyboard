@@ -28,8 +28,8 @@ enum LaunchOptions {
     static var statsSection: StatsPage.Section? {
         defaults.bool(forKey: "iikbTaps") ? .taps : defaults.string(forKey: "iikbStats").flatMap(StatsPage.Section.init)
     }
-    /// `-iikbStatsDevice mac` shows the Mac's.
-    static var statsDevice: StatsPage.Device? { defaults.string(forKey: "iikbStatsDevice").flatMap(StatsPage.Device.init) }
+    /// `-iikbStatsComputer Mac` shows the computer you added by that name.
+    static var statsComputer: String? { defaults.string(forKey: "iikbStatsComputer") }
 
     static var tapsMode: TapMapView.Mode? {
         switch defaults.string(forKey: "iikbTapsMode") {

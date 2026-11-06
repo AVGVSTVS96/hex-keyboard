@@ -1,39 +1,8 @@
 import Foundation
-import KeyboardStore
-import Observation
 
-/// Your Mac's typing and dictation as Keystroke (a Mac app that counts both, never what's typed) keeps them in its
-/// `typing-stats.json`, which the Mac sends to the backup server each time Keystroke saves it (docs/stats.md). Read
-/// again each time Stats comes forward, and the last copy kept, so the Mac shows as it last was while it's asleep or the
-/// server is out of reach.
-@MainActor @Observable final class MacStats {
-    static let shared = MacStats()
-
-    private(set) var activity: Activity?
-    /// When Keystroke last saved the copy shown.
-    private(set) var asOf: Date?
-    @ObservationIgnored private var reading = false
-
-    private static let name = "mac/typing-stats.json"
-    private static let copy = URL.cachesDirectory.appending(path: "mac-stats.json")
-
-    private init() {
-        activity = (try? Data(contentsOf: Self.copy)).flatMap(Self.decode) // file: cache of the Mac's stats, fetched again from the server
-        asOf = try? Self.copy.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate
-    }
-
-    func read() async {
-        guard !reading else { return }
-        reading = true
-        defer { reading = false }
-        guard let (data, modified) = await Backup.read(Self.name), modified != asOf, let activity = Self.decode(data) else { return }
-        self.activity = activity
-        asOf = modified
-        try? FileManager.default.createDirectory(at: Self.copy.deletingLastPathComponent(), withIntermediateDirectories: true)
-        try? data.write(to: Self.copy, options: .atomic) // file: cache of the Mac's stats, fetched again from the server
-        try? FileManager.default.setAttributes([.modificationDate: modified], ofItemAtPath: Self.copy.path(percentEncoded: false))
-    }
-
+/// Keystroke's counts of a computer's typing and dictation (never what's typed), the shape every computer shares
+/// (docs/computers.md).
+enum KeystrokeStats {
     /// Keystroke's file, version 3: each day's `typed` (physical keys) and `voice` (dictation) counts, and the apps
     /// dictation went into. Fields it adds later are left alone.
     private struct Keystroke: Decodable {

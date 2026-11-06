@@ -61,8 +61,8 @@ struct DeviceStats: View {
                 ? "Type with the keyboard anywhere. Your typing shows up here each time it closes."
                 : "Type with the keyboard anywhere. Your typing shows up here each time it closes, once Allow Full Access is on."
         case (.iPhone, .said): "Tap the mic at the right end of the keyboard’s suggestions and talk."
-        case (.mac, .typed): "Keystroke hasn’t counted any typing on your Mac yet."
-        case (.mac, .said): "Keystroke hasn’t counted any dictation on your Mac yet."
+        case let (.computer(name), .typed): "Keystroke hasn’t counted any typing on \(name) yet."
+        case let (.computer(name), .said): "Keystroke hasn’t counted any dictation on \(name) yet."
         }
     }
 }
@@ -131,7 +131,7 @@ private struct Speed: View {
     private var caption: String {
         var lines = [kind == .typed
             ? "Words of five letters a minute while you type, pauses over 4 seconds left out."
-            : device == .mac ? "Words of five letters a minute, over the dictations Keystroke timed." : "Words a minute while you talk."]
+            : device != .iPhone ? "Words of five letters a minute, over the dictations Keystroke timed." : "Words a minute while you talk."]
         if kind == .said, let said = all.speed, let typed = activity.total(.typed).speed, typed > 0 {
             lines.append(String(format: "%.1f× as fast as you type.", said / typed))
         }
@@ -142,9 +142,9 @@ private struct Speed: View {
     }
 
     private var footer: String? {
-        guard device == .mac else { return nil }
-        let asOf = MacStats.shared.asOf.map { ", as of \($0.formatted(Calendar.current.isDateInToday($0) ? .dateTime.hour().minute() : .dateTime.month(.abbreviated).day().hour().minute()))" } ?? ""
-        return "From Keystroke on your Mac\(asOf)."
+        guard case let .computer(name) = device else { return nil }
+        let asOf = Computers.shared.asOf[name].map { ", as of \($0.formatted(Calendar.current.isDateInToday($0) ? .dateTime.hour().minute() : .dateTime.month(.abbreviated).day().hour().minute()))" } ?? ""
+        return "From Keystroke on \(name)\(asOf)."
     }
 
     static func time(_ seconds: Double) -> String {
