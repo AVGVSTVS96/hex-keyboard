@@ -8,4 +8,4 @@ root=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
 key=$root/Packages/KeyboardModules/Sources/KeyboardStore/Resources/Keys/backup.key
 [ -f "$key" ] || { echo "$key is missing: Keystroke reads the iPhone's counts with the backup server's address and token (docs/backup.md)" >&2; exit 1; }
 ssh mac 'umask 077 && mkdir -p ~/.config/iikb && cat > ~/.config/iikb/backup.key' <"$key"
-ssh mac sh -s -- "$@" <"$root/mac/share"
+ssh mac sh -s -- "$@" <"$(dirname "$0")/../mac/share"
