@@ -1,14 +1,16 @@
 import Foundation
 import KeyboardCore
 
-/// `VoiceText <en.lexicon> <vocabulary.json> <style> <editing> <lists> <auto-capitalization on|off>`: for each
+/// `VoiceText <en.lexicon> <vocabulary.json> <typing-memory.json|-> <style> <editing> <lists> <auto-capitalization on|off>`: for each
 /// `{id, heard, field?, before?}` line on stdin, what iikb types for what the voice model wrote (`heard`), as the iPhone
 /// does it: the app's writing and Dictionary (`DictationWriting.typed` and `.plain` in App/Voice), then the keyboard's
-/// reading of a field of that kind (`InputKind`'s name, text by default) after `before` (`TypingEngine`'s `.dictated`).
+/// reading of a field of that kind (`InputKind`'s name, text by default) after `before` (`TypingEngine`'s `.dictated`),
+/// with the words the keyboard has seen typed (the keyboard's saved memory, as scripts/gate reads it).
 /// Writes `{id, typed}` lines; scripts/voiceloop runs it here on Linux, on a package of KeyboardCore alone. With a last
 /// argument `dictionary`, `typed` is `heard` through the Dictionary alone, as scripts/voiceloop reads a final.
 struct Clip: Decodable { let id, heard: String; let field, before: String? }
 struct Row: Encodable { let id, typed: String }
+struct Saved: Decodable { var memory: TypingMemory }
 
 final class Field: TextDocument {
     var before: String
@@ -29,12 +31,18 @@ let arguments = CommandLine.arguments
 let lexicon = Lexicon(bytes: Bytes([UInt8](FileManager.default.contents(atPath: arguments[1])!)))!
 let vocabulary = try JSONDecoder().decode(Vocabulary.self, from: Data(contentsOf: URL(fileURLWithPath: arguments[2])))
 var settings = KeyboardSettings()
-settings.dictationStyle = DictationStyle(rawValue: arguments[3])!
-settings.dictationEditing = DictationEditing(rawValue: arguments[4])!
-settings.dictationLists = DictationLists(rawValue: arguments[5])!
-settings.autoCapitalization = arguments[6] == "on"
-let dictionaryOnly = arguments.count > 7 && arguments[7] == "dictionary"
+settings.dictationStyle = DictationStyle(rawValue: arguments[4])!
+settings.dictationEditing = DictationEditing(rawValue: arguments[5])!
+settings.dictationLists = DictationLists(rawValue: arguments[6])!
+settings.autoCapitalization = arguments[7] == "on"
+let dictionaryOnly = arguments.count > 8 && arguments[8] == "dictionary"
 let corrector = Corrector(source: lexicon)
+if arguments[3] != "-" {
+    let decoder = JSONDecoder()
+    decoder.nonConformingFloatDecodingStrategy = .convertFromString(positiveInfinity: "inf", negativeInfinity: "-inf", nan: "nan")
+    let memory = try decoder.decode(Saved.self, from: Data(contentsOf: URL(fileURLWithPath: arguments[3]))).memory
+    corrector.changeMemory { $0 = memory }
+}
 let kinds: [String: InputKind] = ["text": .text, "email": .email, "url": .url, "number": .number, "decimal": .decimal,
                                   "twitter": .twitter, "webSearch": .webSearch]
 

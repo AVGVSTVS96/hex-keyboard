@@ -10,8 +10,8 @@ Each clip goes through Parakeet v3 as the app runs it (Tools/VoiceBench, on the 
 time), once per clip and version of that path: what it wrote is kept in voicebench/cache/, keyed by the clip's sound
 and the path's code, so a run whose sound and Parakeet path are unchanged never touches the Mac. Then the rest of the
 iPhone's path here (Tools/VoiceBench/Text, on KeyboardCore): the app's writing style and Dictionary, then the keyboard's
-reading of the field it went into, after the text before it there. The real set is replayed with the iPhone's own
-settings, the spoken set with the defaults.
+reading of the field it went into, after the text before it there, with the words the keyboard has seen typed (its
+saved memory in the backup). The real set is replayed with the iPhone's own settings, the spoken set with the defaults.
 
 Prints, for each set and each group of its clips, the share of words wrong (um and uh set aside, case and punctuation
 too) and the share of dictations typed exactly; for the real set the same for what the iPhone typed, and how often the
@@ -21,7 +21,7 @@ punctuated or capitalized wrong, written with examples to voicebench/categories.
 voicebench/<set>/loop.jsonl: Bassim's words stay there and on this terminal. Against his finals, which keep what the
 build of their day typed and lack what he cut after, "cut later" and "number form" are set aside (`diff`).
 """
-import collections, concurrent.futures, difflib, hashlib, importlib.util, json, os, plistlib, random, re, shutil, subprocess, sys, time
+import collections, concurrent.futures, difflib, fcntl, hashlib, importlib.util, json, os, plistlib, random, re, shutil, subprocess, sys, time
 from pathlib import Path
 import numpy as np
 
@@ -29,6 +29,7 @@ ROOT = Path(__file__).resolve().parent.parent
 BACKUP = Path(os.environ.get("IIKB_BACKUP", Path.home() / ".local/share/iikb/backup"))
 DATA = BACKUP.parent / "voicebench"
 LEXICON = ROOT / "Packages/KeyboardModules/Sources/KeyboardEnglish/Resources/en.lexicon"
+MEMORY = BACKUP / "mirror/keyboard/support/typing-memory.json"
 VOICES = ["Samantha", "Daniel", "Karen", "Moira", "Rishi", "Tessa"]
 DEFAULTS = ["casual", "asSaid", "numbered", "on"]
 
@@ -91,7 +92,7 @@ def cases(dictionary):
         elif line.strip() and not line.startswith("#"):
             parts = line.split(" | ")
             field, said, typed = (parts if len(parts) == 3 else ["text", *parts])
-            if "{name}" not in line:
+            if "name}" not in line:
                 out.append(dict(topic=topic, field=field, say=said, typed=typed, name="none"))
                 continue
             n += 1
@@ -236,7 +237,8 @@ def typed(tool, folder, heard, settings, *mode):
     context = {c["id"]: c for c in rows(folder / "context.jsonl")}
     given = "".join(json.dumps(dict(id=id, heard=text, field=context[id]["field"], before=context[id]["before"])) + "\n"
                     for id, text in heard.items())
-    done = subprocess.run([tool, LEXICON, folder / "vocabulary.json", *settings, *mode], input=given, capture_output=True, text=True, check=True)
+    memory = MEMORY if MEMORY.exists() else "-"
+    done = subprocess.run([tool, LEXICON, folder / "vocabulary.json", memory, *settings, *mode], input=given, capture_output=True, text=True, check=True)
     return {r["id"]: r["typed"] for r in map(json.loads, filter(None, done.stdout.split("\n")))}
 
 
@@ -367,6 +369,13 @@ def table(name, references, ways, diffs, clips, groups):
 
 
 def main():
+    DATA.mkdir(parents=True, exist_ok=True)
+    lock = (DATA / ".lock").open("w")
+    try:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        print("waiting for another scripts/voiceloop, which shares voicebench/", flush=True)
+        fcntl.flock(lock, fcntl.LOCK_EX)
     began = time.monotonic()
     stages = {}
 

@@ -15,7 +15,7 @@ loud: the real set's quiet dictations that went in as typed, mixed with the room
 without speech) at that room's own level, the speech as loud as said there and 6, 12 and 18 dB quieter (a whisper), with
 each clean dictation's final as the reference.
 """
-import datetime, difflib, json, os, random, re, shutil, sys, wave
+import datetime, difflib, hashlib, json, os, random, re, shutil, sys, wave
 from pathlib import Path
 import numpy as np
 
@@ -178,7 +178,7 @@ def loud(folder, clips, references, typed, context, count=120):
     clean = [c for c in clips if c["room"] == "quiet" and c["capture"] == "voiceProcessing" and 3 <= c["seconds"] <= 30
              and words(references[c["id"]]) == words(typed[c["id"]])]
     rows, refs, contexts = [], [], []
-    for clip in sorted(random.Random(806).sample(clean, min(count, len(clean))), key=lambda c: c["date"]):
+    for clip in sorted(sorted(clean, key=lambda c: hashlib.sha256(c["id"].encode()).digest())[:count], key=lambda c: c["date"]):
         samples = read(folder / clip["audio_path"])
         samples = samples * 10 ** ((said - clip["speech_db"]) / 20)
         start = random.Random(clip["id"]).randrange(len(bed))
