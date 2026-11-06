@@ -14,7 +14,7 @@ mkdir -p "$root/build"
 if [ "$(uname)" = Darwin ]; then
   cd "$src"
   ID=$("$root/scripts/sim" ensure "iPhone 17" iPhone-17)
-  xcodebuild test -scheme FullKeyboard-Package -destination "id=$ID" -derivedDataPath ../../build/tests \
+  xcodebuild test -collect-test-diagnostics never -scheme FullKeyboard-Package -destination "id=$ID" -derivedDataPath ../../build/tests \
     -configuration Release ENABLE_TESTABILITY=YES \
     -only-testing:KeyboardUITests/Evaluation${1:+/$1()} 2>&1 | grep -E "error:|EVAL|✘" | tee "$out"
   scored=.

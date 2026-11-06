@@ -32,7 +32,7 @@ uitest() {
   local log=$logs/$1.log; shift
   mkdir -p "$prefix"
   TEST_RUNNER_IIKB_SHOTS=$prefix TEST_RUNNER_IIKB_ORIENTATION=${ORIENTATION:-portrait} \
-    xcodebuild test-without-building -project iikb.xcodeproj -scheme iikb -destination "id=$ID" \
+    xcodebuild test-without-building -collect-test-diagnostics never -project iikb.xcodeproj -scheme iikb -destination "id=$ID" \
     -derivedDataPath build/uitest -test-timeouts-enabled YES -default-test-execution-time-allowance 120 \
     -retry-tests-on-failure -test-iterations 2 -collect-test-diagnostics never "$@" > "$log" 2>&1 || failed=1
   summary "$log"

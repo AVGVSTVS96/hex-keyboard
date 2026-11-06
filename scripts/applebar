@@ -12,5 +12,5 @@ scripts/sim boot "$ID"
 xcodegen generate -q
 xcodebuild build-for-testing -project iikb.xcodeproj -scheme iikb -destination "id=$ID" -derivedDataPath build/uitest -quiet
 TEST_RUNNER_IIKB_APPLEBAR_IN="$1" TEST_RUNNER_IIKB_APPLEBAR_OUT="$2" TEST_RUNNER_IIKB_APPLEBAR_FIRST="${3:-0}" TEST_RUNNER_IIKB_APPLEBAR_COUNT="${4:-}" \
-  xcodebuild test-without-building -project iikb.xcodeproj -scheme iikb -destination "id=$ID" \
+  xcodebuild test-without-building -collect-test-diagnostics never -project iikb.xcodeproj -scheme iikb -destination "id=$ID" \
   -derivedDataPath build/uitest -only-testing:AppUITests/AppleBar 2>&1 | grep -E "error:|failed|Executed" || true

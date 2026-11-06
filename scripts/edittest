@@ -34,7 +34,7 @@ done
 app=$!
 trap 'kill $app 2>/dev/null || true' EXIT
 TEST_RUNNER_IIKB_ENDED="$work" \
-  xcodebuild test-without-building -project iikb.xcodeproj -scheme iikb -destination "id=$ID" \
+  xcodebuild test-without-building -collect-test-diagnostics never -project iikb.xcodeproj -scheme iikb -destination "id=$ID" \
   -derivedDataPath build/uitest -only-testing:AppUITests/DictationEditTests > build/uitest/edits.log 2>&1 || failed=1
 grep -E "error:|XCTAssert|Test Case .*(passed|failed)|Executed" build/uitest/edits.log || true
 data="$(xcrun simctl get_app_container "$ID" com.shahidy.iikb data)/Library/Application Support"

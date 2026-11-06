@@ -166,8 +166,8 @@ duo() {
   local tag=$1 id app=; shift
   id=$(ensure "${DUO:-iPhone Duo}" iPhone-Duo)
   for keyboard in ${KEYBOARDS:-system iikb}; do
-    xcrun simctl shutdown "$id" 2>/dev/null || true
     boot "$id"
+    unfold "$id" 0
     [ -z "${LISTENING:-}" ] || allow "$id"
     if [ -n "${LISTENING:-}" ] && [ "$keyboard" = iikb ]; then
       /usr/bin/python3 scripts/voiceapp.py "$id" "$(xcrun simctl get_app_container "$id" "$BUNDLE" group.com.shahidy.iikb)" "$([ "$LISTENING" = 1 ] && echo listening || echo "$LISTENING")" &
@@ -193,8 +193,8 @@ duo() {
 themes() {
   local tag=$1 id; shift
   id=$(ensure "iPhone Duo" iPhone-Duo)
-  xcrun simctl shutdown "$id" 2>/dev/null || true
   boot "$id"
+  unfold "$id" 0
   while read -r screen hinge orientation display; do
     [ -n "${SCREENS:-}" ] && [[ " $SCREENS " != *" $screen "* ]] && continue
     case $screen in open-*) unfold "$id" "$hinge" ;; esac

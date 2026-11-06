@@ -23,7 +23,7 @@ xcodegen generate -q
 xcodebuild build-for-testing -project iikb.xcodeproj -scheme iikb -destination "id=$ID" -derivedDataPath build/uitest -quiet 2>&1 | grep -E "error:" || true
 TEST_RUNNER_IIKB_SWIPE_IN="$(realpath "${3:-scripts/swipebench.tsv}")" TEST_RUNNER_IIKB_SWIPE_OUT="$(realpath "$OUT")" TEST_RUNNER_IIKB_SWIPE_FIRST="${4:-0}" TEST_RUNNER_IIKB_SWIPE_COUNT="${5:-}" \
   TEST_RUNNER_IIKB_SWIPE_ORIENTATION="$([ "$orientation" = portrait ] && echo portrait || echo landscape)" \
-  xcodebuild test-without-building -project iikb.xcodeproj -scheme iikb -destination "id=$ID" \
+  xcodebuild test-without-building -collect-test-diagnostics never -project iikb.xcodeproj -scheme iikb -destination "id=$ID" \
   -derivedDataPath build/uitest -only-testing:AppUITests/SwipeBench 2>&1 | grep -E "error:|failed|Executed" || true
 mkdir -p shots/raw/swipebench
 cp "$OUT" shots/raw/swipebench/

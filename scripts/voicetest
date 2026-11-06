@@ -21,7 +21,7 @@ for appearance in light dark; do
   /usr/bin/python3 scripts/voiceapp.py "$ID" "$group" &
   app=$!
   TEST_RUNNER_IIKB_SHOTS="$PWD/shots/raw/voice/$slug-$appearance" \
-    xcodebuild test-without-building -project iikb.xcodeproj -scheme iikb -destination "id=$ID" \
+    xcodebuild test-without-building -collect-test-diagnostics never -project iikb.xcodeproj -scheme iikb -destination "id=$ID" \
     -derivedDataPath build/uitest -only-testing:AppUITests/VoiceTests > build/uitest/voice.log 2>&1 || failed=1
   grep -E "error:|XCTAssert|Test Case .*(passed|failed)|Executed" build/uitest/voice.log || true
   kill "$app" 2>/dev/null || true

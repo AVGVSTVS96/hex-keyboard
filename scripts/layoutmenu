@@ -7,8 +7,8 @@ ID=$(scripts/sim ensure "iPhone Duo" iPhone-Duo)
 xcodegen generate -q
 xcodebuild build-for-testing -project iikb.xcodeproj -scheme iikb -destination "id=$ID" -derivedDataPath build/uitest -quiet
 mkdir -p shots/raw/layoutmenu
-xcrun simctl shutdown "$ID" 2>/dev/null || true
 scripts/sim boot "$ID"
+scripts/sim unfold "$ID" 0
 scripts/sim use "$ID" iikb
 for screen in "folded 0 portrait 1" "open 180 portrait 3"; do
   read -r name hinge orientation display <<<"$screen"
@@ -16,7 +16,7 @@ for screen in "folded 0 portrait 1" "open 180 portrait 3"; do
   scripts/sim hub "$ID" orientation "$orientation"
   out=$PWD/shots/raw/layoutmenu/$name
   rm -f "$out.holding"
-  TEST_RUNNER_IIKB_SHOTS="$out" xcodebuild test-without-building -project iikb.xcodeproj -scheme iikb \
+  TEST_RUNNER_IIKB_SHOTS="$out" xcodebuild test-without-building -collect-test-diagnostics never -project iikb.xcodeproj -scheme iikb \
     -destination "id=$ID" -derivedDataPath build/uitest -only-testing:AppUITests/OneHandedTests/testHoldingEmojiOpensTheLayoutMenu \
     > build/uitest/layoutmenu-$name.log 2>&1 &
   test=$!
@@ -26,4 +26,4 @@ for screen in "folded 0 portrait 1" "open 180 portrait 3"; do
   wait "$test" || true
   grep -E "error:|Executed|Test Case .*(passed|failed)" build/uitest/layoutmenu-$name.log || true
 done
-xcrun simctl shutdown "$ID"
+[ -n "${KEEP:-}" ] || xcrun simctl shutdown "$ID"

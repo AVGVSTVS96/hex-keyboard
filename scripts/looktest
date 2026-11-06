@@ -20,7 +20,7 @@ for appearance in ${APPEARANCES:-light dark}; do
   xcrun simctl ui "$ID" appearance "$appearance"
   sleep 3
   TEST_RUNNER_IIKB_SHOTS="$PWD/shots/raw/look/$slug-${ORIENTATION:-portrait}${COMPACT:+-compact}-$appearance" TEST_RUNNER_IIKB_ORIENTATION="${ORIENTATION:-portrait}" TEST_RUNNER_IIKB_COMPACT="${COMPACT:-}" \
-    xcodebuild test-without-building -project iikb.xcodeproj -scheme iikb -destination "id=$ID" \
+    xcodebuild test-without-building -collect-test-diagnostics never -project iikb.xcodeproj -scheme iikb -destination "id=$ID" \
     -derivedDataPath build/uitest -only-testing:AppUITests/PanelTests > build/uitest/look.log 2>&1 || failed=1
   grep -E "error:|XCTAssert|Test Case .*(passed|failed)|Executed" build/uitest/look.log || true
 done

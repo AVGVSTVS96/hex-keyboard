@@ -13,6 +13,6 @@ xcodegen generate -q
 xcodebuild build-for-testing -project iikb.xcodeproj -scheme iikb -destination "id=$ID" \
   -derivedDataPath build/uitest -quiet
 TEST_RUNNER_IIKB_SHOTS="$PWD/shots/raw/suggestions/$slug-$KEYBOARD-$APPEARANCE" TEST_RUNNER_IIKB_STEPS="${5:-}" \
-  xcodebuild test-without-building -project iikb.xcodeproj -scheme iikb -destination "id=$ID" \
+  xcodebuild test-without-building -collect-test-diagnostics never -project iikb.xcodeproj -scheme iikb -destination "id=$ID" \
   -derivedDataPath build/uitest -only-testing:AppUITests/SuggestionShots 2>&1 | grep -E "error:|failed|Executed"
 [ -n "${KEEP:-}" ] || xcrun simctl shutdown "$ID"

@@ -22,7 +22,7 @@ log=build/uitest/source.jsonl
 source=$!
 trap 'kill $source 2>/dev/null || true' EXIT
 TEST_RUNNER_IIKB_SOURCE="http://localhost:$PORT/iikb" TEST_RUNNER_IIKB_SHOTS="$PWD/shots/raw/source/$slug" \
-  xcodebuild test-without-building -project iikb.xcodeproj -scheme iikb -destination "id=$ID" \
+  xcodebuild test-without-building -collect-test-diagnostics never -project iikb.xcodeproj -scheme iikb -destination "id=$ID" \
   -derivedDataPath build/uitest -only-testing:AppUITests/SourceTests > build/uitest/source.log 2>&1 || failed=1
 grep -E "error:|XCTAssert|Test Case .*(passed|failed)|Executed" build/uitest/source.log || true
 cat "$log"

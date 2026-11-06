@@ -14,7 +14,7 @@ xcodegen generate -q
 rm -f shots/raw/$slug-capture-$KEYBOARD-*.png
 xcodebuild build-for-testing -project iikb.xcodeproj -scheme iikb -destination "id=$ID" \
   -derivedDataPath build/uitest >/dev/null 2>&1
-TEST_RUNNER_IIKB_CAPTURE=${CAPTURE:-1} TEST_RUNNER_IIKB_ARGS=${ARGS:-} xcodebuild test-without-building -project iikb.xcodeproj -scheme iikb -destination "id=$ID" \
+TEST_RUNNER_IIKB_CAPTURE=${CAPTURE:-1} TEST_RUNNER_IIKB_ARGS=${ARGS:-} xcodebuild test-without-building -collect-test-diagnostics never -project iikb.xcodeproj -scheme iikb -destination "id=$ID" \
   -derivedDataPath build/uitest -only-testing:AppUITests/CaptureTests >/dev/null 2>&1 &
 test_pid=$!
 until xcrun simctl spawn "$ID" launchctl list | grep -q "UIKitApplication:com.shahidy.iikb\["; do sleep 0.5; done

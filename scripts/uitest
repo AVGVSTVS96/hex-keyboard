@@ -9,6 +9,6 @@ scripts/sim boot "$ID"
 scripts/sim use "$ID" iikb
 xcodegen generate -q
 rm -rf build/uitest/result.xcresult
-xcodebuild test -project iikb.xcodeproj -scheme iikb -destination "id=$ID" -derivedDataPath build/uitest \
+xcodebuild test -collect-test-diagnostics never -project iikb.xcodeproj -scheme iikb -destination "id=$ID" -derivedDataPath build/uitest \
   -resultBundlePath build/uitest/result.xcresult -skip-testing:KeyboardUITests/Evaluation "${@:3}" 2>&1 \
   | grep -E "error:|Test Case .*(passed|failed)|XCTAssert|Executed"

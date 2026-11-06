@@ -6,8 +6,8 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 tag=${1:?tag}
 id=$(scripts/sim ensure "iPhone Duo" iPhone-Duo)
-xcrun simctl shutdown "$id" 2>/dev/null || true
 scripts/sim boot "$id"
+scripts/sim unfold "$id" 0
 scripts/sim use "$id" iikb
 mkdir -p shots/raw/swipe
 xcodegen generate -q
@@ -18,11 +18,11 @@ while read -r screen hinge orientation open; do
   for appearance in light dark; do
     xcrun simctl ui "$id" appearance "$appearance"
     TEST_RUNNER_IIKB_SHOTS="$PWD/shots/raw/swipe/$tag-$screen-$appearance" TEST_RUNNER_IIKB_SWIPE_ORIENTATION=portrait TEST_RUNNER_IIKB_SWIPE_OPEN=$open \
-      xcodebuild test-without-building -project iikb.xcodeproj -scheme iikb -destination "id=$id" \
+      xcodebuild test-without-building -collect-test-diagnostics never -project iikb.xcodeproj -scheme iikb -destination "id=$id" \
       -derivedDataPath build/uitest -only-testing:AppUITests/SwipeShots 2>&1 | grep -E "error:|failed|Executed"
   done
 done <<'SCREENS'
 folded 0 portrait
 open 180 portrait 1
 SCREENS
-xcrun simctl shutdown "$id"
+[ -n "${KEEP:-}" ] || xcrun simctl shutdown "$id"

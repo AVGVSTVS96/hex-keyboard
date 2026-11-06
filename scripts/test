@@ -4,6 +4,6 @@
 set -euo pipefail
 cd "$(dirname "$0")/../Packages/KeyboardModules"
 ID=$(../../scripts/sim ensure "iPhone Duo" iPhone-Duo)
-xcodebuild test -scheme FullKeyboard-Package -destination "id=$ID" -derivedDataPath ../../build/tests \
+xcodebuild test -collect-test-diagnostics never -scheme FullKeyboard-Package -destination "id=$ID" -derivedDataPath ../../build/tests \
   -only-testing:KeyboardUITests -skip-testing:KeyboardUITests/Evaluation 2>&1 \
   | grep -E "error:|✘|Test run with"
