@@ -235,7 +235,7 @@ def typed(tool, folder, heard, settings, *mode):
     """What the keyboard types for each clip's `heard`, in its field, after the text before it there; or with mode
     `dictionary`, `heard` through the Dictionary alone."""
     context = {c["id"]: c for c in rows(folder / "context.jsonl")}
-    given = "".join(json.dumps(dict(id=id, heard=text, field=context[id]["field"], before=context[id]["before"])) + "\n"
+    given = "".join(json.dumps(dict(id=id, heard=text, field=context[id]["field"], content=context[id].get("content"), before=context[id]["before"])) + "\n"
                     for id, text in heard.items())
     memory = MEMORY if MEMORY.exists() else "-"
     done = subprocess.run([tool, LEXICON, folder / "vocabulary.json", memory, *settings, *mode], input=given, capture_output=True, text=True, check=True)

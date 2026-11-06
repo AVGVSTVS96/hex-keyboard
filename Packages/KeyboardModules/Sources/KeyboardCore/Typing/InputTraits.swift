@@ -2,12 +2,12 @@ public enum Autocapitalization: Sendable {
     case none, words, sentences, allCharacters
 }
 
-public enum InputKind: Sendable {
+public enum InputKind: String, Codable, Sendable {
     case text, email, url, number, decimal, twitter, webSearch
 }
 
 /// What the field says it holds (`textContentType`), beside the keyboard it asks for.
-public enum InputContent: Sendable {
+public enum InputContent: String, Codable, Sendable {
     case other, emailAddress, url, username, telephoneNumber, oneTimeCode, postalCode, creditCardNumber
 }
 

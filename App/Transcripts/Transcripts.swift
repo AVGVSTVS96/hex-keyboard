@@ -45,6 +45,11 @@ struct Transcript: Codable, Identifiable, Hashable {
         var sent: Bool
         /// The keyboard lost its place in the field while something there changed, so `final` may be wrong.
         var uncertain: Bool?
+        /// The field's keyboard (`InputKind`) and content type (`InputContent`, when it says one), and the text the
+        /// keyboard saw before the caret there, so scripts/voiceloop replays it in the same field; nil before iikb kept them.
+        var kind: String?
+        var content: String?
+        var before: String?
     }
 
     var words: Int { text.split(whereSeparator: \.isWhitespace).count }
@@ -171,7 +176,8 @@ struct Transcript: Codable, Identifiable, Hashable {
         var taken: [URL] = []
         for (file, edit) in Dictation.edits {
             if let index = all.firstIndex(where: { $0.id.uuidString == edit.id }) {
-                all[index].field = Transcript.Field(typed: edit.typed, final: edit.final, sent: edit.sent, uncertain: edit.uncertain ? true : nil)
+                all[index].field = Transcript.Field(typed: edit.typed, final: edit.final, sent: edit.sent, uncertain: edit.uncertain ? true : nil,
+                                                     kind: edit.kind?.rawValue, content: edit.content?.rawValue, before: edit.before)
             } else if waiting.contains(edit.id) {
                 continue
             }

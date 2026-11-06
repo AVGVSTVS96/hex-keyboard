@@ -9,7 +9,8 @@ typed, and clips.jsonl each clip's date, mic, how it was heard (its transcript's
 front cardioid; or else its `voiceProcessing`; or, from before iikb kept either, whether it came after voice processing
 went in), its room and speech levels (each a group voicescore splits by) and where its final came from. context.jsonl
 is what scripts/voiceloop replays the rest of the iPhone's path with: what the model wrote on the iPhone, the kind of
-field it went into and the text before it there, both from the record source's log of that field.
+field it went into (and its content type) and the text the keyboard saw before it there, as its transcript's `field`
+kept them, or, from before iikb kept them, the kind and the text before it from the record source's log of that field.
 
 loud: the real set's quiet dictations that went in as typed, mixed with the room of its loud ones (their stretches
 without speech) at that room's own level, the speech as loud as said there and 6, 12 and 18 dB quieter (a whisper), with
@@ -90,11 +91,14 @@ def locate(said, text):
 
 def final(transcript, candidates):
     """What the dictation became, where that came from, and the field it went into: its kind and the text before it,
-    from the first field in the record that holds that final (default a message field, empty before)."""
+    as the transcript kept them, or else from the first field in the record that holds that final (default a message
+    field, empty before)."""
     at = EPOCH + datetime.timedelta(seconds=transcript["date"])
     near = [c for c in candidates if at - datetime.timedelta(seconds=60) <= c[1] <= at + datetime.timedelta(hours=3)]
     field = transcript.get("field")
     if field and not field.get("uncertain"):
+        if "kind" in field:
+            return field["final"], "field", field["kind"], field.get("before") or ""
         found = field["final"].strip() and next((c for c in near if field["final"].strip() in c[2]), None)
         before = found[2][: found[2].index(field["final"].strip())] if found else ""
         return field["final"], "field", found[3] if found else "text", before
@@ -137,7 +141,7 @@ def real():
                           mic=t.get("mic") or "unknown", final=source))
         references.append(dict(id=t["id"], text=text))
         typed.append(dict(id=t["id"], text=(t.get("field") or {}).get("typed", t["text"])))
-        context.append(dict(id=t["id"], heard=t.get("heard") or t["text"], field=kind, before=before))
+        context.append(dict(id=t["id"], heard=t.get("heard") or t["text"], field=kind, content=(t.get("field") or {}).get("content"), before=before))
     lines(folder / "clips.jsonl", clips)
     lines(folder / "references.jsonl", references)
     lines(folder / "typed.jsonl", typed)

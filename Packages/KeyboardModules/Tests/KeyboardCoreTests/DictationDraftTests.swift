@@ -79,7 +79,16 @@ struct DictationDraftTests {
         var engine = TypingEngine()
         let document = ClippedDocument()
         dictate("See you at noon.", into: document, in: &engine)
-        #expect(send(document, &engine) == [.init(id: "a", typed: "See you at noon.", final: "See you at noon.", sent: true, uncertain: false)])
+        #expect(send(document, &engine) == [.init(id: "a", typed: "See you at noon.", final: "See you at noon.", sent: true, uncertain: false, kind: .text, before: "")])
+    }
+
+    @Test func aDictationKeepsItsFieldAndTheTextBeforeIt() {
+        var engine = TypingEngine(traits: InputTraits(kind: .email, content: .emailAddress))
+        let document = ClippedDocument("Reach me at ")
+        document.cursor = document.text.count
+        dictate("jane at example dot com", into: document, in: &engine)
+        let outcome = send(document, &engine).first
+        #expect(outcome?.kind == .email && outcome?.content == .emailAddress && outcome?.before == "Reach me at ")
     }
 
     @Test func aWordRetypedAtTheEndIsInWhatItBecame() {
@@ -273,7 +282,7 @@ struct DictationDraftTests {
         host(document, &engine) { $0.cursor = 0; $0.selection = $0.text.count }
         host(document, &engine) { $0.insert("") }
         #expect(engine.takeDictations().isEmpty)
-        #expect(leave(&engine) == [.init(id: "a", typed: "Call the plumber about the sink.", final: "", sent: false, uncertain: false)])
+        #expect(leave(&engine) == [.init(id: "a", typed: "Call the plumber about the sink.", final: "", sent: false, uncertain: false, kind: .text, before: "")])
     }
 
     @Test func aFieldThatShowsNoTextIsNeverTakenForSent() {
@@ -289,7 +298,7 @@ struct DictationDraftTests {
         var engine = TypingEngine()
         let document = ClippedDocument()
         dictate("Call the plumber.", into: document, in: &engine)
-        #expect(leave(&engine) == [.init(id: "a", typed: "Call the plumber.", final: "Call the plumber.", sent: false, uncertain: false)])
+        #expect(leave(&engine) == [.init(id: "a", typed: "Call the plumber.", final: "Call the plumber.", sent: false, uncertain: false, kind: .text, before: "")])
         #expect(engine.takeDictations().isEmpty)
     }
 

@@ -2,13 +2,14 @@ import Foundation
 import KeyboardCore
 
 /// `VoiceText <en.lexicon> <vocabulary.json> <typing-memory.json|-> <style> <editing> <lists> <auto-capitalization on|off>`: for each
-/// `{id, heard, field?, before?}` line on stdin, what iikb types for what the voice model wrote (`heard`), as the iPhone
-/// does it: the app's writing and Dictionary (`DictationWriting.typed` and `.plain` in App/Voice), then the keyboard's
-/// reading of a field of that kind (`InputKind`'s name, text by default) after `before` (`TypingEngine`'s `.dictated`),
+/// `{id, heard, field?, content?, before?}` line on stdin, what iikb types for what the voice model wrote (`heard`), as the
+/// iPhone does it: the app's writing and Dictionary (`DictationWriting.typed` and `.plain` in App/Voice), then the keyboard's
+/// reading of a field of that kind and content type (`InputKind`'s and `InputContent`'s names, text and other by
+/// default) after `before` (`TypingEngine`'s `.dictated`),
 /// with the words the keyboard has seen typed (the keyboard's saved memory, as scripts/gate reads it).
 /// Writes `{id, typed}` lines; scripts/voiceloop runs it here on Linux, on a package of KeyboardCore alone. With a last
 /// argument `dictionary`, `typed` is `heard` through the Dictionary alone, as scripts/voiceloop reads a final.
-struct Clip: Decodable { let id, heard: String; let field, before: String? }
+struct Clip: Decodable { let id, heard: String; let field, content, before: String? }
 struct Row: Encodable { let id, typed: String }
 struct Saved: Decodable { var memory: TypingMemory }
 
@@ -43,8 +44,6 @@ if arguments[3] != "-" {
     let memory = try decoder.decode(Saved.self, from: Data(contentsOf: URL(fileURLWithPath: arguments[3]))).memory
     corrector.changeMemory { $0 = memory }
 }
-let kinds: [String: InputKind] = ["text": .text, "email": .email, "url": .url, "number": .number, "decimal": .decimal,
-                                  "twitter": .twitter, "webSearch": .webSearch]
 
 var lines: [String] = []
 while let line = readLine() {
@@ -53,7 +52,7 @@ while let line = readLine() {
         lines.append(String(decoding: try JSONEncoder().encode(Row(id: clip.id, typed: vocabulary.corrected(clip.heard, lexicon: lexicon))), as: UTF8.self))
         continue
     }
-    var engine = TypingEngine(traits: InputTraits(kind: kinds[clip.field ?? "text"] ?? .text))
+    var engine = TypingEngine(traits: InputTraits(kind: clip.field.flatMap(InputKind.init) ?? .text, content: clip.content.flatMap(InputContent.init) ?? .other))
     engine.settings = settings
     engine.corrector = corrector
     let field = Field(clip.before ?? "")

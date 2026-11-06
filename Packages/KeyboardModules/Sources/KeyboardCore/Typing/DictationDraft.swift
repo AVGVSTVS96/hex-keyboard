@@ -17,11 +17,19 @@ public struct DictationDraft: Codable, Sendable {
         public var sent: Bool
         /// The keyboard lost its place in the field while something there changed, so `final` may be wrong.
         public var uncertain: Bool
+        /// The field it was typed into, as the keyboard read it (`DictationReading`), and the text the keyboard saw before
+        /// the caret there; nil from a build before these were kept.
+        public var kind: InputKind?
+        public var content: InputContent?
+        public var before: String?
     }
 
     private struct Dictation: Codable, Sendable {
         var id: String
         var typed: String
+        var kind: InputKind?
+        var content: InputContent?
+        var before: String?
     }
 
     /// A stretch of one dictation's text; one typed inside another splits it in two.
@@ -84,8 +92,9 @@ public struct DictationDraft: Codable, Sendable {
         try container.encode(shown, forKey: .shown)
     }
 
-    /// Follows the dictation the keyboard just typed, which ends at the caret, cutting it out of any it was typed into.
-    public mutating func add(_ id: String, typed: String) {
+    /// Follows the dictation the keyboard just typed, which ends at the caret, cutting it out of any it was typed into, in
+    /// a field of `traits` after `before`.
+    public mutating func add(_ id: String, typed: String, in traits: InputTraits = InputTraits(), after before: String = "") {
         guard let caret, caret.isEmpty, caret.lowerBound >= typed.count else { return }
         let range = caret.lowerBound - typed.count..<caret.lowerBound
         guard String(text[range]) == typed else { return }
@@ -98,7 +107,7 @@ public struct DictationDraft: Codable, Sendable {
             tail.openStart = false
             return [head, tail].filter { !$0.range.isEmpty }
         }
-        dictations.append(Dictation(id: id, typed: typed))
+        dictations.append(Dictation(id: id, typed: typed, kind: traits.kind, content: traits.content == .other ? nil : traits.content, before: before))
         pieces.append(Piece(dictation: dictations.count - 1, range: range))
         pieces.sort { $0.range.lowerBound < $1.range.lowerBound }
     }
@@ -138,7 +147,9 @@ public struct DictationDraft: Codable, Sendable {
     public func outcomes(sent: Bool) -> [Outcome] {
         dictations.indices.map { index in
             let final = pieces.filter { $0.dictation == index }.map { String(text[$0.range]) }.joined()
-            return Outcome(id: dictations[index].id, typed: dictations[index].typed, final: final, sent: sent, uncertain: uncertain)
+            let dictation = dictations[index]
+            return Outcome(id: dictation.id, typed: dictation.typed, final: final, sent: sent, uncertain: uncertain, kind: dictation.kind,
+                           content: dictation.content, before: dictation.before)
         }
     }
 
@@ -303,5 +314,8 @@ extension DictationDraft.Outcome {
         final = try container.decode(String.self, forKey: .final)
         sent = try container.decode(Bool.self, forKey: .sent)
         uncertain = try container.decodeIfPresent(Bool.self, forKey: .uncertain) ?? false
+        kind = try container.decodeIfPresent(InputKind.self, forKey: .kind)
+        content = try container.decodeIfPresent(InputContent.self, forKey: .content)
+        before = try container.decodeIfPresent(String.self, forKey: .before)
     }
 }
