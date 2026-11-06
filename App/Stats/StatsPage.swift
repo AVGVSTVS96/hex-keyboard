@@ -30,7 +30,7 @@ struct StatsPage: View {
 
     @Bindable private var router = Router.shared
     @State private var phone = PhoneActivity()
-    @State private var adding = false
+    @State private var adding = LaunchOptions.addsComputer
     private let computers = Computers.shared
     @Environment(\.scenePhase) private var phase
 

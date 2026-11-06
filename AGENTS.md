@@ -50,7 +50,7 @@ scripts/mac 'scripts/sim duo v8'                # Apple's keyboard and iikb on t
 scripts/mac 'scripts/capture "iPhone 17" iPhone-17 iikb'  # frames of held keys: pop-ups, accent panel (CAPTURE=menu: the 123 menu)
 scripts/mac 'scripts/shots "iPhone 17" iPhone-17 system light "hel:hel|helo:o"'  # type through a keyboard, screenshot each step
 scripts/mac 'scripts/sim taps "iPhone 17 Pro Max" iPhone-17-Pro-Max touches.json t1'  # the app's Stats › Taps screen with a touch model
-scripts/keystroke                               # the Mac sends Keystroke's typing-stats.json to the backup server each time Keystroke saves it, for Stats (docs/stats.md)
+scripts/keystroke                               # the Mac `ssh mac` reaches shares Keystroke's typing-stats.json with Stats (mac/share, docs/computers.md) and gets the backup key for Keystroke's iPhone view
 scripts/mac scripts/sourcetest                  # a source through the real keyboard, scripts/source.py standing in for it; prints every update it was sent
 scripts/mac scripts/voicetest                   # the bar's mic through the real keyboard, scripts/voiceapp.py standing in for the app; screenshots light and dark
 scripts/mac scripts/edittest                    # what dictations become: a long one edited in the middle and a short one edited at its end, each sent, checked in its transcript (made-up text)

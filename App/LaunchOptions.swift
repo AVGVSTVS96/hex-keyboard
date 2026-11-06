@@ -30,6 +30,8 @@ enum LaunchOptions {
     }
     /// `-iikbStatsComputer Mac` shows the computer you added by that name.
     static var statsComputer: String? { defaults.string(forKey: "iikbStatsComputer") }
+    /// `-iikbAddComputer YES` opens Stats' Add Computer.
+    static var addsComputer: Bool { defaults.bool(forKey: "iikbAddComputer") }
 
     static var tapsMode: TapMapView.Mode? {
         switch defaults.string(forKey: "iikbTapsMode") {

@@ -263,6 +263,7 @@ stats -iikbStats typing
 stats-dictation -iikbStats dictation
 stats-mac -iikbStats typing -iikbStatsComputer Mac
 stats-mac-dictation -iikbStats dictation -iikbStatsComputer Mac
+add-computer -iikbStats typing -iikbAddComputer YES
 taps -iikbTaps YES
 sources -iikbSettings sources
 access -iikbSettings access
