@@ -128,8 +128,8 @@ def spoken():
     folder = DATA / "real"
     noisy = [c for c in clips if c["room"] == "loud"]
     bed = corpus.room(folder, noisy)
-    loud_said = float(np.median([c["speech_db"] for c in noisy]))
-    quiet_said = float(np.median([c["speech_db"] for c in clips if c["room"] == "quiet"]))
+    loud_said = round(float(np.median([c["speech_db"] for c in noisy])))
+    quiet_said = round(float(np.median([c["speech_db"] for c in clips if c["room"] == "quiet"])))
     out = DATA / "spoken"
     stamp = digest(bed.tobytes(), loud_said, quiet_said)
     if (out / "bed").exists() and (out / "bed").read_text() != stamp:
