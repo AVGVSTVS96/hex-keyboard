@@ -86,7 +86,7 @@ public struct Vocabulary: Codable, Equatable, Sendable {
                    !Self.isGlued(characters, before: start, after: end, by: Self.glue.subtracting(["@"])) {
                     possessive = ""
                     let likely = typed.own.contains(name.lowercased()) ? unlike : soundsLike
-                    term = (spellings[Self.key(name)] ?? lexicon.flatMap { Self.soundsLike([name], said: name, in: likely, lexicon: $0) })
+                    term = (spellings[Self.key(name)] ?? lexicon.flatMap { Self.soundsLike([name], said: name, in: likely, lexicon: $0, address: true) })
                         .map { $0 + number }
                 }
                 guard let term else { continue }
@@ -113,6 +113,7 @@ public struct Vocabulary: Codable, Equatable, Sendable {
     /// `cased`, one from your typing, takes the capital the model gave the word.
     struct Likeness {
         let key: [Character]
+        let sound: [Character]
         let words: Set<String>
         let term: String
         let seen: Bool
@@ -121,6 +122,7 @@ public struct Vocabulary: Codable, Equatable, Sendable {
         init(_ spelling: String, term: String, seen: Bool, cased: Bool = false) {
             let said = Array(Vocabulary.saying(spelling).lowercased())
             key = Array(Vocabulary.key(String(said)))
+            sound = Vocabulary.sound(key)
             words = Set(Words.ranges(in: said).map { String(said[$0]) })
             self.term = term
             self.seen = seen
@@ -139,20 +141,22 @@ public struct Vocabulary: Codable, Equatable, Sendable {
     }
 
     /// The closest term to a span with a word the lexicon lacks, starting with the same sound and ending in words it
-    /// owns, so "Wispr Flow or" never takes the "or".
-    private static func soundsLike(_ words: [String], said: String, in likenesses: [Likeness], lexicon: Lexicon) -> String? {
+    /// owns, so "Wispr Flow or" never takes the "or", by its letters or by how they sound ("odallis" for Odalys,
+    /// "kaspian" for Caspian), and by one letter more for the name in an address, where a name is all it can be.
+    private static func soundsLike(_ words: [String], said: String, in likenesses: [Likeness], lexicon: Lexicon, address: Bool = false) -> String? {
         let real = words.map { lexicon.isWord(Words.plain($0)) }
         guard real.contains(false), !words.contains(where: { $0.allSatisfy(\.isNumber) }) else { return nil }
-        let key = Array(spoken(said))
+        let key = Array(spoken(said)), sound = Self.sound(key)
         guard key.count >= 3 else { return nil }
         var best: (distance: Int, term: String, cased: Bool)?
-        for likeness in likenesses where likeness.slack > 0 && likeness.key.first == key.first {
-            guard abs(likeness.key.count - key.count) <= likeness.slack else { continue }
+        for likeness in likenesses where likeness.slack > 0 && (likeness.key.first == key.first || likeness.sound.first == sound.first) {
+            let slack = likeness.slack + (address ? 1 : 0)
+            guard abs(likeness.key.count - key.count) <= slack else { continue }
             guard !real.first! || likeness.words.contains(words.first!.lowercased()),
                   !real.last! || likeness.words.contains(words.last!.lowercased()) else { continue }
             if likeness.seen, key.starts(with: likeness.key) || likeness.key.starts(with: key) { continue }
-            let distance = distance(key, likeness.key)
-            if distance <= likeness.slack, distance < best?.distance ?? .max { best = (distance, likeness.term, likeness.cased) }
+            let distance = min(distance(key, likeness.key), distance(sound, likeness.sound))
+            if distance <= slack, distance < best?.distance ?? .max { best = (distance, likeness.term, likeness.cased) }
         }
         guard let best, best.term != said else { return nil }
         guard best.cased, isTitled(said), best.term == best.term.lowercased() else { return best.term }
@@ -247,11 +251,35 @@ public struct Vocabulary: Codable, Equatable, Sendable {
         String(spelling.flatMap { $0 == "." ? Array(" dot ") : [$0] })
     }
 
+    /// Letters as they sound, roughly: a silent first w or k ("wr", "kn") gone, ph as f, ck as k, c as s before e, i
+    /// or y and as k otherwise, g as j before e or i, y as i after the first letter, and each doubled letter once.
+    static func sound(_ key: [Character]) -> [Character] {
+        var key = key
+        if key.count > 2, key[1] == "r" && key[0] == "w" || key[1] == "n" && key[0] == "k" { key.removeFirst() }
+        var sound: [Character] = []
+        var at = 0
+        while at < key.count {
+            let letter = key[at], next = at + 1 < key.count ? key[at + 1] : nil
+            var heard: Character = letter
+            switch letter {
+            case "p" where next == "h": heard = "f"; at += 1
+            case "c" where next == "k": heard = "k"; at += 1
+            case "c": heard = next.map { "eiy".contains($0) } == true ? "s" : "k"
+            case "g" where next.map { "ei".contains($0) } == true: heard = "j"
+            case "y" where at > 0: heard = "i"
+            default: break
+            }
+            if sound.last != heard { sound.append(heard) }
+            at += 1
+        }
+        return sound
+    }
+
     private static func spoken(_ spelling: some StringProtocol) -> String {
         key(saying(spelling))
     }
 
-    private static func distance(_ a: [Character], _ b: [Character]) -> Int {
+    static func distance(_ a: [Character], _ b: [Character]) -> Int {
         var previous = Array(0 ... b.count)
         for (i, x) in a.enumerated() {
             var row = [i + 1]

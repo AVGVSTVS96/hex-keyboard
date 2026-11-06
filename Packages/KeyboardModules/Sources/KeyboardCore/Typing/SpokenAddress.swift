@@ -17,6 +17,11 @@ enum SpokenAddress {
                                 "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"]
     private static let tens = ["twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"]
     private static let domains: Set<String> = ["com", "org", "net", "edu", "gov", "io", "co", "us", "uk", "ai", "app", "dev", "me", "info", "tv", "ca", "de", "fr", "run"]
+    /// Where people keep email, so "Send it to Niri at fastmail.com" is an address and "shop at example.com" a sentence.
+    private static let providers: Set<String> = ["gmail", "fastmail", "outlook", "icloud", "proton", "protonmail", "yahoo", "hotmail", "aol"]
+    /// Sites an address names often, whose names Parakeet writes as it hears them ("Jithub.com", "versal.app").
+    private static let sites = ["github", "gitlab", "vercel", "netlify", "cloudflare", "youtube", "google", "gmail", "icloud", "fastmail",
+                                "outlook", "proton", "hotmail", "yahoo", "notion", "figma", "discord", "reddit", "substack", "linkedin"]
     private static let determiners: Set<String> = ["the", "a", "an", "this", "that", "my", "your", "our", "his", "her", "their", "its"]
 
     /// What `said` spells as an address, or nil when it says nothing.
@@ -77,8 +82,10 @@ enum SpokenAddress {
 
     /// `text` with an email address spoken inside it written as one, found by its domain: after an "at", a domain with
     /// its ending, spoken ("email me at john at gmail dot com" is "email me at john@gmail.com") or written, when the name
-    /// before the "at" has a dot, underscore, dash or digit in it ("jane.doe at gmail.com"), since "shop at example.com"
-    /// is a sentence. Text that isn't one is returned as it is.
+    /// before the "at" has a dot, underscore, dash or digit in it ("jane.doe at gmail.com"), or is a name inside a
+    /// sentence before an email provider ("send it to Niri at fastmail.com"), since "shop at example.com" is a sentence.
+    /// "mail.com" there is gmail.com, which Parakeet writes without its g, and "my emails" before one is "my email's".
+    /// Text that isn't one is returned as it is.
     private static func emails(_ text: String) -> String {
         guard text.contains(" at ") else { return text }
         var words = text.split(separator: " ", omittingEmptySubsequences: false).map(String.init)
@@ -87,27 +94,56 @@ enum SpokenAddress {
             from = at + 1
             guard let host = host(in: words, after: at), let local = local(in: words, before: at) else { continue }
             guard words[local ..< at].map({ $0.lowercased() }) != ["one"], let name = read(words[local ..< at].joined(separator: " ")) else { continue }
-            guard host.spoken || name.contains(where: { "._-".contains($0) || $0.isNumber }) else { continue }
-            let address = name + "@" + host.name
-            words.replaceSubrange(local ..< host.end, with: [address + host.tail])
+            let domain = site(host.name == "mail.com" ? "gmail.com" : host.name)
+            let named = at - local == 1 && local > 0 && isTitled(words[local]) && !".?!".contains(words[local - 1].last ?? ".")
+            guard host.spoken || name.contains(where: { "._-".contains($0) || $0.isNumber }) || named && providers.contains(String(domain.prefix { $0 != "." })) else { continue }
+            words.replaceSubrange(local ..< host.end, with: [name + "@" + domain + host.tail])
+            if local > 0, words[local - 1].lowercased() == "emails" { words[local - 1] = String(words[local - 1].dropLast()) + "'s" }
             from = local + 1
         }
         return words.joined(separator: " ")
     }
 
     /// `text` with a web address spoken in it written as one, found by its ending ("open Kestrel dot run" is "open
-    /// kestrel.run"), though never at or after "the" or "my" ("the dot com bubble", "at the park dot com is down").
+    /// kestrel.run"), though never at or after "the" or "my" ("the dot com bubble", "at the park dot com is down"), with
+    /// the path said after it ("github.com slash caspian slash notes") and a site's name as it's spelled (`site`).
     private static func webAddresses(_ text: String) -> String {
-        guard text.contains(" dot ") || text.contains(" Dot ") else { return text }
         var words = text.split(separator: " ", omittingEmptySubsequences: false).map(String.init)
         var at = 0
         while at < words.count {
-            if !determiners.contains(clean(words[at])), at == 0 || !determiners.contains(clean(words[at - 1])), let host = host(in: words, after: at - 1), host.spoken {
-                words.replaceSubrange(at ..< host.end, with: [host.name + host.tail])
+            let spoken = !determiners.contains(clean(words[at])) && (at == 0 || !determiners.contains(clean(words[at - 1])))
+            if !words[at].contains("@"), let host = host(in: words, after: at - 1), !host.spoken || spoken {
+                var address = (host.spoken ? "" : String(words[at].prefix { !$0.isLetter && !$0.isNumber })) + site(host.name)
+                var end = host.end, tail = host.tail
+                while tail.isEmpty, end + 1 < words.count, clean(words[end]) == "slash" {
+                    let label = words[end + 1].prefix { $0.isLetter || $0.isNumber || "-_.".contains($0) }.dropLast { $0 == "." }
+                    guard !label.isEmpty else { break }
+                    address += "/" + label.lowercased()
+                    tail = String(words[end + 1].dropFirst(label.count))
+                    end += 2
+                }
+                if host.spoken || end > host.end || site(host.name) != host.name { words.replaceSubrange(at ..< end, with: [address + tail]) }
             }
             at += 1
         }
         return words.joined(separator: " ")
+    }
+
+    /// A domain with each name in it that sounds like a site's (`sites`) spelled as the site's.
+    private static func site(_ domain: String) -> String {
+        domain.split(separator: ".", omittingEmptySubsequences: false).map { label in
+            let sound = Vocabulary.sound(Array(label))
+            guard label.count >= 4, !sites.contains(String(label)) else { return String(label) }
+            return sites.first { site in
+                let other = Vocabulary.sound(Array(site))
+                return other.first == sound.first && Vocabulary.distance(sound, other) <= 1
+            } ?? String(label)
+        }.joined(separator: ".")
+    }
+
+    /// Whether a word is written as a name is: a capital, then lowercase.
+    private static func isTitled(_ word: String) -> Bool {
+        word.count > 1 && word.first!.isUppercase && word.dropFirst().allSatisfy { !$0.isUppercase }
     }
 
     private static func host(in words: [String], after at: Int) -> (name: String, end: Int, tail: String, spoken: Bool)? {
