@@ -259,7 +259,7 @@ dictionary -iikbSettings dictionary
 transcripts -iikbTab transcripts
 clipboard -iikbTab clipboard
 overview -iikbStats overview
-overview-mac -iikbStats overview -iikbStatsDevice mac
+overview-mac -iikbStats overview -iikbStatsComputer Mac
 stats -iikbStats typing
 stats-dictation -iikbStats dictation
 stats-mac -iikbStats typing -iikbStatsComputer Mac
