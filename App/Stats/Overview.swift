@@ -200,12 +200,15 @@ struct Stat: View {
 
 /// Facts in rows of as many across as fit.
 struct StatGrid<Content: View>: View {
-    var minimum: CGFloat = 110
+    var columns = 2
     @ViewBuilder var content: Content
 
     var body: some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: minimum), spacing: 12, alignment: .topLeading)], alignment: .leading, spacing: 14) {
-            content
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .top, spacing: 12) { content }
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12, alignment: .topLeading), count: columns), alignment: .leading, spacing: 14) {
+                content
+            }
         }
     }
 }
@@ -289,7 +292,7 @@ private struct Today: View {
                 }
             }
             Rectangle().fill(Color.appDivider).frame(height: 1)
-            StatGrid(minimum: 96) {
+            StatGrid {
                 Stat(label: "Typing speed", value: Format.speed(typed.seconds >= 10 ? typed.paced / typed.seconds * 60 : nil), unit: "wpm")
                 Stat(label: "Active time", value: Format.time(typed.seconds + said.seconds))
                 Stat(
@@ -432,7 +435,7 @@ struct History: View {
         let active = dates.count { date in kinds.contains { activity.channel($0, on: date).words > 0 } }
         let words = change(Double(now.words), Double(before.words))
         let pace = speed(now).flatMap { now in speed(before).flatMap { change(now, $0) } }
-        StatGrid(minimum: 92) {
+        StatGrid {
             Stat(label: "Words · \(span)d", value: Format.short(now.words), detail: words?.text, detailColor: words.map { $0.up ? .green : .orange } ?? .appSecondary)
             Stat(label: "Per active day", value: Format.short(active > 0 ? now.words / active : 0))
             Stat(label: "Speed", value: Format.speed(speed(now)), unit: "wpm", detail: pace?.text, detailColor: pace.map { $0.up ? .green : .orange } ?? .appSecondary)
@@ -443,7 +446,7 @@ struct History: View {
     private func change(_ now: Double, _ before: Double) -> (text: String, up: Bool)? { Format.change(now, before) }
 
     @ViewBuilder private func day(_ date: Date) -> some View {
-        StatGrid(minimum: 92) {
+        StatGrid(columns: 3) {
             Stat(label: date.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day()), value: Format.short(kinds.reduce(0) { $0 + activity.channel($1, on: date).words }), unit: "words")
             ForEach(kinds, id: \.self) { kind in
                 let channel = activity.channel(kind, on: date)
@@ -567,16 +570,16 @@ struct Rhythm: View {
         if let busiest = sums.indices.max(by: { sums[$0] < sums[$1] }), sums[busiest] > 0 {
             StatCard(symbol: "clock.fill", color: .teal, title: "Daily rhythm", subtitle: "Most active around \(Format.hour(busiest))") {
                 Chart(hours) { hour in
-                    BarMark(x: .value("Hour", hour.hour), y: .value("Words", hour.words), width: .ratio(0.72))
+                    BarMark(x: .value("Hour", "\(hour.hour)"), y: .value("Words", hour.words), width: .ratio(0.72))
                         .foregroundStyle(by: .value("Kind", hour.kind.name))
                         .clipShape(UnevenRoundedRectangle(topLeadingRadius: 2, topTrailingRadius: 2, style: .continuous))
                 }
                 .chartForegroundStyleScale(domain: kinds.map(\.name), range: kinds.map { $0.color.gradient })
                 .chartLegend(.hidden)
-                .chartXScale(domain: -0.5 ... 23.5)
+                .chartXScale(domain: (0 ..< 24).map { "\($0)" })
                 .chartXAxis {
-                    AxisMarks(values: [0, 6, 12, 18, 23]) { value in
-                        AxisValueLabel { if let hour = value.as(Int.self) { Text(Format.hour(hour)) } }
+                    AxisMarks(values: ["0", "6", "12", "18"]) { value in
+                        AxisValueLabel(anchor: .topLeading) { if let hour = value.as(String.self).flatMap(Int.init) { Text(Format.hour(hour)) } }
                     }
                 }
                 .chartYAxis {
@@ -618,18 +621,16 @@ struct Speeds: View {
         let low = percentile(0.1) / 5 * 5, high = (percentile(0.9) + 4) / 5 * 5, median = percentile(0.5)
         StatCard(symbol: "speedometer", color: .blue, title: "Typing speed", subtitle: "Usually \(low)–\(high) wpm · median ~\(median) wpm") {
             Chart(bands, id: \.speed) { band in
-                BarMark(x: .value("WPM", band.speed), y: .value("Stretches", band.count), width: .ratio(0.78))
+                BarMark(x: .value("WPM", "\(band.speed)"), y: .value("Stretches", band.count), width: .ratio(0.78))
                     .foregroundStyle(
                         LinearGradient(colors: [Color.cyan, .blue, .indigo].map { $0.opacity(band.speed >= low && band.speed <= high ? 1 : 0.45) }, startPoint: .top, endPoint: .bottom)
                     )
                     .clipShape(UnevenRoundedRectangle(topLeadingRadius: 2, topTrailingRadius: 2, style: .continuous))
-                RuleMark(x: .value("Median", median))
-                    .foregroundStyle(Color.primary.opacity(0.6))
-                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
             }
+            .chartXScale(domain: bands.map { "\($0.speed)" })
             .chartXAxis {
-                AxisMarks(values: .automatic(desiredCount: 5)) { value in
-                    AxisValueLabel { if let speed = value.as(Int.self) { Text("\(speed)") } }
+                AxisMarks(values: bands.map(\.speed).filter { $0 % 20 == 0 }.map { "\($0)" }) { value in
+                    AxisValueLabel(anchor: .topLeading) { if let speed = value.as(String.self) { Text(speed) } }
                 }
             }
             .chartYAxis(.hidden)
@@ -683,7 +684,7 @@ private struct Talking: View {
                         .font(.footnote)
                         .foregroundStyle(Color.appSecondary)
                 }
-                StatGrid(minimum: 92) {
+                StatGrid(columns: 3) {
                     Stat(label: "Speaking", value: Format.speed(said.speed), unit: "wpm", detail: said.speed.flatMap { s in typed.speed.map { String(format: "%.1f× your typing", s / $0) } }, detailColor: .pink)
                     Stat(label: "Dictations", value: said.dictations.formatted())
                     Stat(label: "Avg length", value: said.dictations > 0 ? "\(said.words / said.dictations)" : "–", unit: "words")
@@ -751,7 +752,7 @@ struct Year: View {
                 Spacer()
                 Text("Less").font(.caption).foregroundStyle(Color.appSecondary)
                 ForEach(0 ..< 5) { level in
-                    RoundedRectangle(cornerRadius: 2.5).fill(shade(level: level, said: 0.5)).frame(width: 10, height: 10)
+                    RoundedRectangle(cornerRadius: 2.5).fill(level == 0 ? Color.appPressed : Color.primary.opacity([0, 0.3, 0.5, 0.75, 1][level])).frame(width: 10, height: 10)
                 }
                 Text("More").font(.caption).foregroundStyle(Color.appSecondary)
             }
@@ -830,7 +831,7 @@ private struct AllTime: View {
         let typed = activity.total(.typed), said = activity.total(.said)
         if let first = activity.activeDays.first {
             StatCard(symbol: "infinity", color: .gray, title: "All time", subtitle: "Since \(first.formatted(.dateTime.month(.abbreviated).day().year()))") {
-                StatGrid(minimum: 92) {
+                StatGrid(columns: 3) {
                     Stat(label: "Words", value: Format.short(typed.words + said.words))
                     Stat(label: "Typed", value: Format.short(typed.words), detail: typed.speed.map { "\(Int($0.rounded())) wpm" }, detailColor: Activity.Kind.typed.color)
                     Stat(label: "Dictated", value: Format.short(said.words), detail: said.speed.map { "\(Int($0.rounded())) wpm" }, detailColor: Activity.Kind.said.color)
