@@ -1,5 +1,13 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><title>iikb link preview</title><style>
 @font-face { font-family: iikb; src:url('/fonts/texgyreheros-bold.woff2'); font-weight:700; }
 * { box-sizing:border-box; } body { margin:0; width:1200px; height:630px; background:#000; color:#fff; font-family:iikb,Helvetica,Arial,sans-serif; overflow:hidden; padding:56px; }
-.mark { width:128px; } h1 { font-size:72px; line-height:1.02; letter-spacing:-3px; margin:48px 0 24px; max-width:1000px; } p { font:24px Helvetica,Arial,sans-serif; color:#aaa; } .keyboard { position:absolute; right:0; bottom:-190px; width:440px; border-radius:32px 0 0 0; } </style></head><body>
-<img class="mark" src="/wordmark-paper.svg" alt="iikb"><h1>The best iOS keyboard.<br>In the world.</h1><p>That’s what we’re building.</p><img class="keyboard" src="/shots/iphone-dark.webp" alt="iPhone keyboard layout"></body></html>
+.mark { width:128px; } h1 { font-size:72px; line-height:1.02; letter-spacing:-3px; margin:48px 0 24px; max-width:1000px; height:147px; } p { font:24px Helvetica,Arial,sans-serif; color:#aaa; } .keyboard { position:absolute; right:0; bottom:-190px; width:440px; border-radius:32px 0 0 0; }
+.caret { display:inline-block; width:5px; height:60px; margin-left:8px; vertical-align:-6px; background:#0A84FF; border-radius:3px; } </style></head><body>
+<img class="mark" src="/wordmark-paper.svg" alt="iikb"><h1 id="headline"></h1><p>That’s what we’re building.</p><img class="keyboard" id="keyboard" alt="iikb typing the headline"><script>
+  // The still is the whole headline; ?n=<keys> shows it typed that far, with the keyboard as it was after that many keys (frames/sNN.webp, brand/og/frames.sh).
+  const headline = "The best iOS keyboard. In the world."
+  const n = new URLSearchParams(location.search).get("n")
+  const typed = n === null ? headline.length : Number(n)
+  document.getElementById("headline").innerHTML = headline.slice(0, typed).replace(". ", ".<br>") + (n === null ? "" : '<span class="caret"></span>')
+  document.getElementById("keyboard").src = `frames/s${String(typed).padStart(2, "0")}.webp`
+</script></body></html>

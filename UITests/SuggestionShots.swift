@@ -16,6 +16,9 @@ final class SuggestionShots: XCTestCase {
                 switch character {
                 case " ": key("space", in: app).tap()
                 case "⌫": key("delete", in: app).tap()
+                case let letter where letter.isUppercase:
+                    key("shift", in: app).tap()
+                    key(letter.lowercased(), in: app).tap()
                 default: key(String(character), in: app).tap()
                 }
             }
