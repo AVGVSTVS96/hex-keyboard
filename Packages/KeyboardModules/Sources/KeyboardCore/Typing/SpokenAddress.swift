@@ -67,15 +67,16 @@ enum SpokenAddress {
     }
 
     /// `text` with an address spoken inside it written as one (`emails`, then `webAddresses`).
-    static func inline(_ text: String) -> String {
-        webAddresses(emails(text))
+    static func inline(_ text: String, lexicon: Lexicon? = nil) -> String {
+        webAddresses(emails(text, lexicon: lexicon))
     }
 
     /// `text` with an email address spoken inside it written as one, found by its domain: after an "at", a domain with
     /// its ending, spoken ("email me at john at gmail dot com" is "email me at john@gmail.com") or written, when the name
-    /// before the "at" has a dot, underscore, dash or digit in it ("jane.doe at gmail.com"), since "shop at example.com"
-    /// is a sentence. Text that isn't one is returned as it is.
-    private static func emails(_ text: String) -> String {
+    /// before the "at" has a dot, underscore, dash or digit in it ("jane.doe at gmail.com") or is one word that's a name
+    /// ("send it to Renner at fastmail.com") whose domain no other "at" follows ("reach Caspian at caspian.work at
+    /// proton.me"), since "shop at example.com" is a sentence. Text that isn't one is returned as it is.
+    private static func emails(_ text: String, lexicon: Lexicon?) -> String {
         guard text.contains(" at ") else { return text }
         var words = text.split(separator: " ", omittingEmptySubsequences: false).map(String.init)
         var from = 0
@@ -83,7 +84,7 @@ enum SpokenAddress {
             from = at + 1
             guard let host = host(in: words, after: at), let local = local(in: words, before: at) else { continue }
             guard words[local ..< at].map({ $0.lowercased() }) != ["one"], let name = read(words[local ..< at].joined(separator: " ")) else { continue }
-            guard host.spoken || name.contains(where: { "._-".contains($0) || $0.isNumber }) else { continue }
+            guard host.spoken || name.contains(where: { "._-".contains($0) || $0.isNumber }) || named(words, local, before: at, lexicon: lexicon) && !(host.end < words.count && clean(words[host.end]) == "at") else { continue }
             let address = name + "@" + host.name
             words.replaceSubrange(local ..< host.end, with: [address + host.tail])
             from = local + 1
@@ -104,6 +105,20 @@ enum SpokenAddress {
             at += 1
         }
         return words.joined(separator: " ")
+    }
+
+    /// Whether `text` goes on with " at " and an address's domain ("at fastmail.com", "at proton dot me").
+    static func startsHost(_ text: String) -> Bool {
+        let words = text.split(separator: " ", omittingEmptySubsequences: false).map(String.init)
+        return words.count > 2 && words[0].isEmpty && clean(words[1]) == "at" && host(in: words, after: 1) != nil
+    }
+
+    /// Whether the name before an "at" is one word, not starting its sentence, written as a name or one the lexicon
+    /// lacks ("send it to Renner at fastmail.com", "tamsin at", but not "Shop at example.com" or "I work at fastmail.com").
+    private static func named(_ words: [String], _ local: Int, before at: Int, lexicon: Lexicon?) -> Bool {
+        let word = words[local]
+        guard local + 1 == at, local > 0, !".!?".contains(words[local - 1].last ?? "."), word.count > 1, word.allSatisfy(\.isLetter) else { return false }
+        return word.first!.isUppercase && word.dropFirst().allSatisfy { !$0.isUppercase } || lexicon.map { !$0.isWord(word.lowercased()) } == true
     }
 
     private static func host(in words: [String], after at: Int) -> (name: String, end: Int, tail: String, spoken: Bool)? {

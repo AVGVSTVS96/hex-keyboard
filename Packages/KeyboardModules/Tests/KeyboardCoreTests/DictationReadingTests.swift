@@ -68,10 +68,12 @@ struct DictationReadingTests {
         #expect(dictate("Send a message to j o h n at example dot com.") == "Send a message to john@example.com.")
         #expect(dictate("Write to Milo99 at iCloud.com tomorrow.") == "Write to milo99@icloud.com tomorrow.")
         #expect(dictate("Reach me at ruby.stone at acme.io.") == "Reach me at ruby.stone@acme.io.")
+        #expect(dictate("Her address is Zara at proton.me.") == "Her address is zara@proton.me.")
+        #expect(dictate("Send it to renner at fastmail.com.") == "Send it to renner@fastmail.com.")
     }
 
     @Test func proseWithoutAnAddressIsUntouched() {
-        for said in ["Meet me at the park dot com is down.", "I was at home. Then, I left.", "We shop at example.com every week.", "Her address is Zara at proton.me."] {
+        for said in ["Meet me at the park dot com is down.", "I was at home. Then, I left.", "We work at example.com every week.", "Shop at example.com."] {
             #expect(dictate(said) == said)
         }
     }

@@ -249,7 +249,7 @@ public struct TypingEngine {
                 let heard = Vocabulary().corrected(heard, lexicon: lexicon, field: field, typed: words)
                 typed = DictationReading.typed(plain.map { Vocabulary().corrected($0, lexicon: lexicon, field: field, typed: words) } ?? heard,
                                                in: traits, after: $0.before)
-                    ?? Self.fitted(SpokenNumber.inline(SpokenAddress.inline(heard)), between: $0.before, and: $0.after, lexicon: lexicon, capitals: capitals)
+                    ?? Self.fitted(SpokenNumber.inline(SpokenAddress.inline(heard, lexicon: lexicon)), between: $0.before, and: $0.after, lexicon: lexicon, capitals: capitals)
                 return typed
             }
             if let id { draft?.add(id, typed: typed, in: traits, after: before) }

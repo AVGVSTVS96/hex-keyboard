@@ -51,9 +51,9 @@ url | example dot com slash pricing | example.com/pricing
 webSearch | kestrel dot run | kestrel.run
 
 # times and dates
-Let's meet at three thirty PM. | Let's meet at 3:30 PM
-The call is at nine AM tomorrow. | The call is at 9 AM tomorrow
-I'll be there by ten fifteen AM on Friday. | I'll be there by 10:15 AM on Friday
+Let's meet at three thirty PM. | Let's meet at 3:30pm
+The call is at nine AM tomorrow. | The call is at 9am tomorrow
+I'll be there by ten fifteen AM on Friday. | I'll be there by 10:15am on Friday
 It's due November fifth. | It's due November 5th
 
 # money and amounts

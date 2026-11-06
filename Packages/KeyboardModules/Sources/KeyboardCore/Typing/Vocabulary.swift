@@ -8,7 +8,8 @@
 /// the same when said again. A word you type often (`typed`) is taken only for one the model wrote that doesn't look
 /// like a name ("OPIS", "IKB", "AutoFour") or in an address: a word written as a name ("Bassam", "Nira") is likelier
 /// a name you said than one you type, and so is any word you've typed yourself. A real word is only swapped if it's listed, so "sound" stays unless "Astound" lists it. A
-/// name with digits after it, as in an address ("tamsen101"), is matched by its name and keeps its digits.
+/// name with digits after it, as in an address ("tamsen101"), is matched by its name and keeps its digits, and so is
+/// a name with none ("Renner at fastmail.com").
 public struct Vocabulary: Codable, Equatable, Sendable {
     public struct Term: Codable, Equatable, Hashable, Sendable {
         public var term: String
@@ -82,10 +83,11 @@ public struct Vocabulary: Codable, Equatable, Sendable {
                     let said = span.map { String(characters[$0]) }
                     term = Self.soundsLike(said, said: String(characters[start ..< end]), in: typable(said) ? soundsLike : unlike, lexicon: lexicon)
                 }
-                if term == nil, count == 1, let (name, number) = Self.numbered(String(characters[start ..< end])),
+                if term == nil, count == 1, let (name, number) = Self.numbered(String(characters[start ..< end])) ?? Self.addressed(characters, start ..< end),
                    !Self.isGlued(characters, before: start, after: end, by: Self.glue.subtracting(["@"])) {
                     possessive = ""
-                    let likely = typed.own.contains(name.lowercased()) ? unlike : soundsLike
+                    let likely = typed.own.contains(name.lowercased()) ? unlike
+                        : number.isEmpty ? soundsLike.filter { !$0.cased || lexicon?.isWord($0.term.lowercased()) == false } : soundsLike
                     term = (spellings[Self.key(name)] ?? lexicon.flatMap { Self.soundsLike([name], said: name, in: likely, lexicon: $0, address: true) })
                         .map { $0 + number }
                 }
@@ -189,6 +191,14 @@ public struct Vocabulary: Codable, Equatable, Sendable {
         }
         close()
         return seen.filter { !$0.allSatisfy { $0.isNumber || $0 == "." } }
+    }
+
+    /// A word that's the name in an address said after it ("Renner at fastmail.com"), as a name with no digits, which
+    /// a word you type often becomes only if it's made up ("corvena" is corvina, but "lyri" isn't LIKE).
+    private static func addressed(_ characters: [Character], _ word: Range<Int>) -> (name: String, number: String)? {
+        let name = String(characters[word])
+        guard name.allSatisfy(\.isLetter), SpokenAddress.startsHost(String(characters[word.upperBound...])) else { return nil }
+        return (name, "")
     }
 
     /// A name with digits after it, as the model writes one in an address ("Tamsen101"), apart.

@@ -97,6 +97,13 @@ Ask tampa22 at gmail.com about it. | Ask tampa22@gmail.com about it
 Tamsun said hi. | Tamsin said hi
 Write to tamsin one oh one at gmail dot com. | Write to tamsin101@gmail.com
 Ask Kestrel101 at gmail.com about it. | Ask kestrel101@gmail.com about it
+Send it to Tamsen at fastmail.com. | Send it to tamsin@fastmail.com
+Send it to Zorblat at fastmail.com. | Send it to zorblat@fastmail.com
+You can reach Wrenna at wrenna.work at proton.me. | You can reach Wrenna at wrenna.work@proton.me
+Send it to lyri at fastmail.com. | Send it to lyri@fastmail.com
+Mail Corvena at gmail.com today. | Mail corvina@gmail.com today
+I work at fastmail.com now. | I work at fastmail.com now
+Meet Sarah. At example.com it's cheaper. | Meet Sarah. At example.com it's cheaper
 > wrenwood22@fastmail.com is mine, | Wrenwod22 at fastmail.com works too. | wrenwood22@fastmail.com is mine, wrenwood22@fastmail.com works too
 
 # words he types often
@@ -120,11 +127,36 @@ Ask Zorblat about it. | Ask Zorblat about it
 The opus is long. | The opus is long
 My email's tamsen101 at gmail dot com. | My email's tamsin101@gmail.com
 
-# times and plain numbers stay as written
-Call me at nine A.M. tomorrow. | Call me at nine A.M. tomorrow
-The meeting is at 3:30 p.m. | The meeting is at 3:30 p.m.
+# times, written as he types them: digits, then am or pm
+Call me at nine A.M. tomorrow. | Call me at 9am tomorrow
+The meeting is at 3:30 p.m. | The meeting is at 3:30pm
+Let's meet at three thirty PM. | Let's meet at 3:30pm
+I'll be there by ten fifteen AM on Friday. | I'll be there by 10:15am on Friday
+Let's meet at 3 30 pm. | Let's meet at 3:30pm
+It's at 3.30 p.m. | It's at 3:30pm
+Wake me at seven oh five am, then call. | Wake me at 7:05am, then call
+It starts at 7 p.m. Bring snacks. | It starts at 7pm. Bring snacks
+Meet at nine thirty. | Meet at nine thirty
+Which one am I? | Which one am I?
 It ran for twenty four hours. | It ran for twenty four hours
+
+# money, in dollars
+It costs twenty-five dollars a month. | It costs $25 a month
+That's two hundred dollars total. | That's $200 total
+It was five dollars and fifty cents. | It was $5.50
+It's 25 dollars. | It's $25
+It cost three thousand five hundred dollars. | It cost $3,500
+It costs one dollar. | It costs $1
 That's $250 in credits. | That's $250 in credits
+A dollar a day is fine. | A dollar a day is fine
+Fifty cents is fine. | Fifty cents is fine
+Two or three dollars more. | Two or three dollars more
+
+# ten digits written together, a phone number
+Call 4155550199 now. | Call 415-555-0199 now
+Call 14155550199. | Call 1-415-555-0199
+The timestamp is 1730851200. | The timestamp is 1730851200
+Order 0123456789 shipped. | Order 0123456789 shipped
 
 # fields
 email | John dot Smith at Gmail dot com. | john.smith@gmail.com
