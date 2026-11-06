@@ -13,7 +13,8 @@
 # compiles for the new build right away rather than at the next dictation. That compile has iikb write about 500 MB
 # (App/Voice/AGENTS.md), so main is installed only when something iikb is built from has changed since the commit last
 # installed, which the stamp keeps: a commit to docs, tests or scripts alone goes with the next one that changes iikb.
-# It builds main's last commit in its own worktree, so agents' branches and uncommitted edits never reach the phone,
+# It builds GitHub's main as just fetched, not this checkout's main, which an agent's uncommitted work can hold back,
+# in its own worktree, so agents' branches and uncommitted edits never reach the phone,
 # and one run at a time, so agents installing at once queue instead of sharing that worktree. The build number is main's
 # commit count, which Settings › About shows as "Version 0.1.0 (<build>)"; when the iPhone already has that build,
 # nothing is built or installed, unless --reinstall (which renews the signing).
@@ -35,8 +36,9 @@ if [ "$wait" -gt 0 ] && [ "${1:-}" != --now ]; then
   sleep "$wait"
 fi
 [ -d "$build" ] || git worktree add -q --detach "$build"
-commit=$(git rev-parse --short main)
-number=$(git rev-list --count main)
+git fetch -q origin main
+commit=$(git rev-parse --short origin/main)
+number=$(git rev-list --count origin/main)
 phone=$(ssh mac 'xcrun devicectl list devices --json-output /tmp/iikb-phone.json >/dev/null && /usr/bin/python3 -c "
 import json
 for d in json.load(open(\"/tmp/iikb-phone.json\"))[\"result\"][\"devices\"]:
@@ -48,6 +50,10 @@ xcrun devicectl device info apps --device "$1" --bundle-id com.shahidy.iikb --js
 /usr/bin/python3 -c "import json; print(next((a.get('bundleVersion', '') for a in json.load(open('/tmp/iikb-apps.json'))['result']['apps']), ''))"
 MAC
 )
+if [ -n "$installed" ] && [ "$installed" -gt "$number" ] && [ "${1:-}" != --reinstall ]; then
+  echo "the iPhone has build $installed, newer than main's $number ($commit), so nothing is installed" >&2
+  exit 1
+fi
 if [ "$installed" = "$number" ] && [ "${1:-}" != --reinstall ]; then
   echo "build $number (main $commit) is already on the iPhone"
   exit 0
