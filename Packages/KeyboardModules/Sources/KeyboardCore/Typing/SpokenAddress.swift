@@ -13,11 +13,7 @@ enum SpokenAddress {
 
     private static let signs = ["at": "@", "dot": ".", "underscore": "_", "dash": "-", "hyphen": "-", "slash": "/", "colon": ":"]
     private static let joiners: Set<String> = ["dot", "underscore", "dash", "hyphen"]
-    private static let units = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve",
-                                "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"]
-    private static let tens = ["twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"]
     private static let domains: Set<String> = ["com", "org", "net", "edu", "gov", "io", "co", "us", "uk", "ai", "app", "dev", "me", "info", "tv", "ca", "de", "fr", "run"]
-    private static let determiners: Set<String> = ["the", "a", "an", "this", "that", "my", "your", "our", "his", "her", "their", "its"]
 
     /// What `said` spells as an address, or nil when it says nothing.
     static func read(_ said: String) -> String? {
@@ -102,7 +98,7 @@ enum SpokenAddress {
         var words = text.split(separator: " ", omittingEmptySubsequences: false).map(String.init)
         var at = 0
         while at < words.count {
-            if !determiners.contains(clean(words[at])), at == 0 || !determiners.contains(clean(words[at - 1])), let host = host(in: words, after: at - 1), host.spoken {
+            if !Spoken.determiners.contains(clean(words[at])), at == 0 || !Spoken.determiners.contains(clean(words[at - 1])), let host = host(in: words, after: at - 1), host.spoken {
                 words.replaceSubrange(at ..< host.end, with: [host.name + host.tail])
             }
             at += 1
@@ -156,8 +152,8 @@ enum SpokenAddress {
         for token in said.split(whereSeparator: \.isWhitespace) {
             let cleaned = joinedLetters(clean(String(token)))
             let parts = cleaned.split(separator: "-").map(String.init)
-            for word in parts.count > 1 && parts.allSatisfy({ value(of: $0) != nil }) ? parts : [cleaned] where !word.isEmpty {
-                let number = value(of: word)
+            for word in parts.count > 1 && parts.allSatisfy({ Spoken.value(of: $0) != nil }) ? parts : [cleaned] where !word.isEmpty {
+                let number = Spoken.value(of: word)
                 tokens.append(signs[word] != nil ? .symbol(word) : number.map { .number(String($0)) } ?? (word.allSatisfy(\.isNumber) ? .number(word) : .word(word)))
                 values.append(number)
             }
@@ -165,8 +161,8 @@ enum SpokenAddress {
         var pieces: [Piece] = []
         var at = 0
         while at < tokens.count {
-            if let tens = values[at], tens >= 20, tens % 10 == 0, at + 1 < tokens.count, let unit = values[at + 1], (1...9).contains(unit) {
-                pieces.append(.number(String(tens + unit)))
+            if let tens = values[at], at + 1 < tokens.count, let unit = values[at + 1], let number = Spoken.joined(tens, unit) {
+                pieces.append(.number(String(number)))
                 at += 2
             } else {
                 pieces.append(tokens[at])
@@ -181,11 +177,6 @@ enum SpokenAddress {
             }
         }
         return pieces
-    }
-
-    private static func value(of word: String) -> Int? {
-        if let unit = units.firstIndex(of: word) { return unit }
-        return tens.firstIndex(of: word).map { ($0 + 2) * 10 }
     }
 
     /// "peter" for "p-e-t-e-r", as the model writes letters you spell: a dash between two letters that each stand alone.

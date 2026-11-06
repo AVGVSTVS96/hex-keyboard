@@ -5,14 +5,10 @@
 /// a point that's a word ("at one point five people left", "a five point plan", "three points") and counting ("one two
 /// three four", "five, four, three, two, one", "one two, one two").
 enum SpokenNumber {
-    private static let units = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve",
-                                "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"]
-    private static let tens = ["twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"]
     /// Words that ask for a code or number said after them, so four digits are one.
     private static let cues: Set<String> = ["code", "pin", "number", "passcode", "password", "extension", "zip", "id", "digits", "otp"]
     /// Words before "one point" that make it a point you make.
-    private static let determiners: Set<String> = ["at", "the", "a", "one", "that", "this", "my", "your", "our", "his", "her", "their",
-                                                   "its", "each", "every", "any", "no", "some", "which", "what"]
+    private static let determiners = Spoken.determiners.union(["at", "one", "each", "every", "any", "no", "some", "which", "what"])
 
     static func inline(_ text: String) -> String {
         var words = text.split(separator: " ", omittingEmptySubsequences: false).map(String.init)
@@ -93,8 +89,8 @@ enum SpokenNumber {
 
     /// One digit said, with "oh" for 0 inside a run, before another digit.
     private static func spoken(_ word: String, first: Bool, next: String? = nil) -> String? {
-        if !first, word == "oh", let next, next == "oh" || units.firstIndex(of: next).map({ $0 < 10 }) == true { return "0" }
-        return units.firstIndex(of: word).flatMap { $0 < 10 ? String($0) : nil }
+        if !first, word == "oh", let next, next == "oh" || Spoken.digit(next) != nil { return "0" }
+        return Spoken.digit(word).map(String.init)
     }
 
     /// The whole number starting at `at` with nothing after it: digits, or a number word under a hundred ("twenty
@@ -104,22 +100,22 @@ enum SpokenNumber {
         guard !word.isEmpty, tail.isEmpty else { return nil }
         if word.allSatisfy(\.isNumber) { return (word, at + 1) }
         let parts = word.split(separator: "-").map(String.init)
-        if parts.count == 2, let ten = tens.firstIndex(of: parts[0]), let unit = units.firstIndex(of: parts[1]), (1...9).contains(unit) {
-            return (String((ten + 2) * 10 + unit), at + 1)
+        if parts.count == 2, let tens = Spoken.value(of: parts[0]), let unit = Spoken.value(of: parts[1]), let number = Spoken.joined(tens, unit) {
+            return (String(number), at + 1)
         }
-        if let unit = units.firstIndex(of: word) { return (String(unit), at + 1) }
-        guard let ten = tens.firstIndex(of: word) else { return nil }
-        if at + 1 < words.count, case let (next, "") = split(words[at + 1]), let unit = units.firstIndex(of: next), (1...9).contains(unit) {
-            return (String((ten + 2) * 10 + unit), at + 2)
+        guard let value = Spoken.value(of: word) else { return nil }
+        if at + 1 < words.count, case let (next, "") = split(words[at + 1]), let unit = Spoken.value(of: next),
+           let number = Spoken.joined(value, unit) {
+            return (String(number), at + 2)
         }
-        return (String((ten + 2) * 10), at + 1)
+        return (String(value), at + 1)
     }
 
     /// One digit, said or written, after a point.
     private static func digit(_ word: String) -> String? {
         if !word.isEmpty, word.allSatisfy(\.isNumber) { return word }
         if word == "oh" { return "0" }
-        return units.firstIndex(of: word).flatMap { $0 < 10 ? String($0) : nil }
+        return Spoken.digit(word).map(String.init)
     }
 
     /// A word lowercased, apart from the punctuation after it.
