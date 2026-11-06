@@ -121,7 +121,8 @@ public final class Corrector {
         forgetRankings()
     }
 
-    public func correction(for word: TypedWord, guessing: Bool = true) -> String? {
+    /// `context` is the text before the word, when known.
+    public func correction(for word: TypedWord, context: String? = nil, guessing: Bool = true) -> String? {
         let text = Substring(word.text)
         let lower = word.text.lowercased()
         if let phrase = replacements[lower] { return phrase == word.text ? nil : phrase }
@@ -130,9 +131,16 @@ public final class Corrector {
             return word.text == name || word.text == word.text.uppercased() ? nil : name
         }
         guard guessing else { return nil }
+        let named = word.text.contains(where: \.isUppercase) && word.previous != ""
+        if memory.count(of: lower) == 0, !named, let split = missedSpaces(word, context: context), split.odds >= Self.splitLogOdds { return split.words }
+        guard !Words.isNumberLed(word.text) else { return nil }
         if let lexicon {
             let ranked = ranked(word)
-            guard let best = ranked.first(where: { !$0.isCompletion }), best.word != word.text else { return nil }
+            guard let best = ranked.first(where: { !$0.isCompletion }) else { return nil }
+            if best.isLiteral || best.word.lowercased().filter({ $0 != "'" }) == lower, let contraction = contraction(of: word, in: lexicon) {
+                return Words.matchCase(contraction, to: text)
+            }
+            guard best.word != word.text else { return nil }
             if best.isLiteral { return lexicon.canonical(lower) == best.word && best.word != lower ? best.word : nil }
             if isKnown(word), let literal = ranked.first(where: \.isLiteral), literal.logLikelihood >= best.logLikelihood { return nil }
             return Words.matchCase(best.word, to: text)
@@ -150,7 +158,7 @@ public final class Corrector {
             let words = correcting && guessing ? split(word, context: context) : nil
             return [Suggestion(word.text, .literal)] + (words.map { [Suggestion($0, .candidate)] } ?? [])
         }
-        if correcting, let correction = correction(for: word, guessing: guessing),
+        if correcting, let correction = correction(for: word, context: context, guessing: guessing),
            correction.lowercased() == word.text.lowercased() ? correction != word.text : seen.insert(correction.lowercased()).inserted {
             alternatives.append(Suggestion(correction, applying ? .correction : .candidate))
         }
@@ -161,6 +169,7 @@ public final class Corrector {
             }
         }
         if correcting, guessing, let split = split(word, context: context) { add([split], as: .candidate) }
+        if Words.isNumberLed(word.text) { return [Suggestion(word.text, .literal)] + alternatives }
         if lexicon != nil {
             add(completions(for: word, context: context), as: .candidate)
         } else {
@@ -320,6 +329,20 @@ extension Corrector {
         return candidates.values.sorted { $0.logPosterior > $1.logPosterior }
     }
 
+    /// The word typed without its apostrophe ("dont" → "don't"), when the lexicon and your touches find it far likelier
+    /// than the word as typed. What you've typed doesn't count, since a word autocorrect left alone is counted as you
+    /// typed it, and one you took back is kept.
+    private func contraction(of word: TypedWord, in lexicon: Lexicon) -> String? {
+        let letters = Array(word.text.lowercased())
+        guard !letters.contains("'"), letters.indices.dropFirst().contains(where: { lexicon.isWord(String(letters[..<$0] + ["'"] + letters[$0...])) })
+        else { return nil }
+        let alone = ranked(word, alone: true)
+        guard let literal = alone.first(where: \.isLiteral),
+              let added = alone.first(where: { !$0.isCompletion && !$0.isLiteral && $0.word.lowercased().filter { $0 != "'" } == String(letters) }),
+              added.logPosterior - literal.logPosterior >= Self.apostropheLogOdds else { return nil }
+        return added.word
+    }
+
     /// A word that stands on its own, which autocorrect replaces only when your touches fit the other word better: one
     /// you've kept, or a real word that, typed dead center on its keys, still reads as itself. Reading it with an
     /// apostrophe added ("its" → "it's") doesn't count against it.
@@ -418,24 +441,45 @@ extension Corrector {
 
 extension Corrector {
     /// The words a run of taps spells when its spaces went astray ("freatvday" → "great day", "iloveyou" → "I love you",
-    /// "ab out" → "about"), each word read from its own taps after the word before it, with any typo of its own. Between
-    /// two words the space may have been typed, missed, or hit as a letter on the row above the space bar, where a thumb
-    /// that misses it lands; a space tap inside a word may have meant a letter. Only the likeliest words up to each point
-    /// go on, so each word is read once and stays cached as the taps after it come in. A single word is read as several
-    /// only when that's likelier than every reading of its taps as one known word.
+    /// "ab out" → "about", "1hrbut" → "1hr but"), each word read from its own taps after the word before it, with any typo
+    /// of its own. Between two words the space may have been typed, missed, or hit as a letter on the row above the space
+    /// bar, where a thumb that misses it lands; a space tap inside a word may have meant a letter. A run led by a number
+    /// starts with it, with any letters after it a word read as typed ("1hr", "2pm"). Only the likeliest words up to each
+    /// point go on, so each word is read once and stays cached as the taps after it come in. A single word is read as
+    /// several only when that's likelier than every reading of its taps as one known word.
     func split(_ typed: TypedWord, context: String? = nil) -> String? {
+        missedSpaces(typed, context: context)?.words
+    }
+
+    /// The split and its log odds over the likeliest reading of the run as one word, a word nobody has typed included;
+    /// none when it reads a typo or a letter as a space, since only a run of words each spelled out is clearly a missed space.
+    func missedSpaces(_ typed: TypedWord, context: String? = nil) -> (words: String, odds: Double)? {
         let letters = Array(typed.text), spaced = letters.contains(" ")
-        guard let lexicon, letters.count >= 3, typed.taps.isEmpty || typed.taps.count == letters.count,
-              let spaceRow = grid.index(of: " ")?.row, spaced || !isKnown(typed) else { return nil }
-        let keys = memory.touches.layout(grid)
-        func isWord(_ candidate: Candidate) -> Bool {
-            lexicon.isWord(candidate.word) || memory.count(of: candidate.word) > 1 || memory.isKept(candidate.word)
+        guard let lexicon, letters.count >= 3, let spaceRow = grid.index(of: " ")?.row, spaced || !isKnown(typed) else { return nil }
+        let taps = aligned(typed.taps, to: letters)
+        let keys = memory.touches.layout(grid), model = languageModel(lexicon)
+        let numbered = letters[0].isNumber
+        let afterNumber = numbered ? context.flatMap { expected(after: $0) == nil ? nil : reading?.state }
+            .flatMap { state in network.map { next(at: $0.read([Network.number], from: state), $0, lexicon) } } : nil
+        let predictUnit = model.predictor(after: nil, earlier: nil, expected: afterNumber)
+        func unitPrior(_ unit: String) -> Double { unit.isEmpty ? 0 : predictUnit(unit) }
+        func isWord(_ word: String) -> Bool { lexicon.isWord(word) || memory.count(of: word) > 1 || memory.isKept(word) }
+        /// A number and the word typed right after it, if any: a unit ("hr", "pm") or the start of a missed space.
+        func number(_ range: Range<Int>) -> Candidate? {
+            let text = String(letters[range]), unit = String(text.drop(while: \.isNumber))
+            guard range.lowerBound == 0, text.first?.isNumber == true, unit.allSatisfy(\.isLetter) else { return nil }
+            if unit.isEmpty { return Candidate(word: text, logLikelihood: 0, logPosterior: 0, isCompletion: false, isLiteral: true) }
+            let word = TypedWord(unit, taps: taps.isEmpty ? [] : Array(taps[(range.upperBound - unit.count)..<range.upperBound]))
+            let likelihood = Decoder.logLikelihood(of: unit, given: evidence(for: word, touches: memory.touches), touches: memory.touches, on: grid)
+            guard isWord(unit) else { return nil }
+            return Candidate(word: text, logLikelihood: likelihood, logPosterior: likelihood + unitPrior(unit), isCompletion: false, isLiteral: true)
         }
         func meant(_ range: Range<Int>, after previous: String?) -> Candidate? {
             guard letters[range.lowerBound] != " ", letters[range.upperBound - 1] != " " else { return nil }
-            let word = TypedWord(String(letters[range]), taps: typed.taps.isEmpty ? [] : Array(typed.taps[range]), previous: previous)
+            if letters[range].contains(where: \.isNumber) { return number(range) }
+            let word = TypedWord(String(letters[range]), taps: taps.isEmpty ? [] : Array(taps[range]), previous: previous)
             let ranked = ranked(word, inRun: true)
-            guard let best = ranked.first(where: { !$0.isCompletion && isWord($0) }) else { return nil }
+            guard let best = ranked.first(where: { !$0.isCompletion && isWord($0.word) }) else { return nil }
             let typedAlone = spaced && (range.lowerBound == 0 || letters[range.lowerBound - 1] == " ")
                 && (range.upperBound == letters.count || letters[range.upperBound] == " ")
             guard typedAlone, !best.isLiteral, isKnown(word), let literal = ranked.first(where: \.isLiteral),
@@ -446,8 +490,8 @@ extension Corrector {
         func asSpace(_ index: Int) -> Double? {
             let label = String(letters[index]).lowercased()
             guard label == " " || grid.index(of: label)?.row == spaceRow - 1 else { return nil }
-            guard !typed.taps.isEmpty else { return shares(of: label).last }
-            return keys.logLikelihood(x: typed.taps[index].x, y: typed.taps[index].y, for: " ")
+            guard !taps.isEmpty else { return shares(of: label).last }
+            return keys.logLikelihood(x: taps[index].x, y: taps[index].y, for: " ")
         }
         var runs: [Int: [Run]] = [0: [Run(words: [], likelihood: 0, score: 0)]]
         var finished: [Run] = []
@@ -468,12 +512,26 @@ extension Corrector {
                 }
             }
         }
-        let whole = spaced ? -Double.infinity : ranked(typed).first(where: isWord)?.logPosterior ?? -.infinity
-        let likely = finished.filter { $0.score > whole }
-        guard let best = likely.count == 1 ? likely.first : likely.map({ ($0, inContext($0, typed, context)) }).max(by: { $0.1 < $1.1 })?.0
-        else { return nil }
+        let alone = spaced ? nil : numbered ? number(letters.indices) : ranked(typed).first { !$0.isCompletion }
+        let whole = spaced ? nil : numbered ? alone : ranked(typed).first { isWord($0.word) }
+        let likely = finished.filter { $0.score > whole?.logPosterior ?? -.infinity }
+        func scored(_ run: Run) -> Double { inContext(run, typed, context, unit: unitPrior) }
+        guard let (best, score) = likely.map({ ($0, scored($0)) }).max(by: { $0.1 < $1.1 }) else { return nil }
         let words = best.words.joined(separator: " ")
-        return words.lowercased() == typed.text.lowercased() ? nil : Words.matchCase(words, to: Substring(typed.text))
+        guard words.lowercased() != typed.text.lowercased() else { return nil }
+        let spelled = best.words.joined().lowercased().filter { $0 != "'" } == typed.text.lowercased().filter { $0 != "'" }
+        guard spelled else { return (Words.matchCase(words, to: Substring(typed.text)), -.infinity) }
+        let one = alone.map { scored(Run(words: [$0.word], likelihood: $0.logLikelihood, score: $0.logPosterior)) } ?? -.infinity
+        return (Words.matchCase(words, to: Substring(typed.text)), score - one)
+    }
+
+    /// A run's taps, one per character, when its number was typed with taps or without (each digit stands in its own
+    /// place, never read, since a number is read as typed), or none.
+    private func aligned(_ taps: [Tap], to letters: [Character]) -> [Tap] {
+        if taps.count == letters.count { return taps }
+        guard taps.count == letters.count(where: { !$0.isNumber }) else { return [] }
+        var rest = taps[...]
+        return letters.map { $0.isNumber ? Tap(x: 0, y: 0, key: String($0)) : rest.removeFirst() }
     }
 
     /// A reading of a run so far: its words, how well they fit their taps, and that with each word's likelihood after the one before.
@@ -492,20 +550,31 @@ extension Corrector {
 
     /// How well a reading fits its taps and the words before it, each word scored after the words before it, with the
     /// network's say when there is `context`, the text before the run.
-    func inContext(_ run: Run, _ typed: TypedWord, _ context: String?) -> Double {
+    /// A number leading the run counts as its unit's `unit` (every reading of the run starts with the number, so the
+    /// number's own odds cancel).
+    func inContext(_ run: Run, _ typed: TypedWord, _ context: String?, unit: (String) -> Double) -> Double {
         guard let lexicon else { return run.score }
         let model = languageModel(lexicon)
         var previous = typed.previous, earlier = context.flatMap { Words.context(before: $0[$0.endIndex...], in: $0).earlier }
         var state = context.flatMap { expected(after: $0) == nil ? nil : reading?.state }
         var total = run.likelihood
         for word in run.words {
-            let next = state.flatMap { state in network.map { self.next(at: state, $0, lexicon) } }
-            total += model.predictor(after: previous, earlier: earlier, expected: next)(word)
+            let number = Words.isNumberLed(word)
+            if number {
+                total += unit(String(word.drop(while: \.isNumber)))
+            } else {
+                let next = state.flatMap { state in network.map { self.next(at: state, $0, lexicon) } }
+                total += model.predictor(after: previous, earlier: earlier, expected: next)(word)
+            }
             (earlier, previous) = (previous, word.lowercased())
-            state = state.flatMap { state in network.map { $0.read([$0.id(of: Words.plain(word).lowercased()) ?? Network.unknown], from: state) } }
+            state = state.flatMap { state in network.map { $0.read([number ? Network.number : $0.id(of: Words.plain(word).lowercased()) ?? Network.unknown], from: state) } }
         }
         return total
     }
 
     static let longestWord = 20
+    /// How much likelier a split must be than the run read as one word for the space to apply it, rather than only offer it.
+    static let splitLogOdds = Math.log(100)
+    /// How much likelier a word with an apostrophe ("don't") must be than a known word without it ("dont") for the space to add it.
+    static let apostropheLogOdds = Math.log(10)
 }

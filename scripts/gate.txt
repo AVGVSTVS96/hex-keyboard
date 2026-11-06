@@ -1,6 +1,7 @@
 # scripts/gate: text typed so far|words the bar must show then. Before a word, up to three; partway through one, one or
 # two, beside the typed word. A line starting with ? is one Apple's bar gets and iikb doesn't yet: its miss is printed,
-# not a failure.
+# not a failure. A line starting with = is typed with autocorrect on and checks what the field then holds. In words
+# the bar must show, _ is a space.
 i love |you
 thank |you
 how are |you
@@ -64,3 +65,20 @@ sho|should
 yo|you
 an|and
 ar|are
+1hrbut|1hr_but
+seeyou|see_you
+=1hrbut |1hr but 
+=2pmtomorrow |2pm tomorrow 
+=seeyou |see you 
+=teh |the 
+=i dont |i don't 
+2pmtomorrow|2pm_tomorrow
+=5pmworks |5pm works 
+=im |i'm 
+=thats |that's 
+=youre |you're 
+=everytime |every time 
+=soundsgood |sounds good 
+=its |its 
+=well |well 
+=2nd |2nd 

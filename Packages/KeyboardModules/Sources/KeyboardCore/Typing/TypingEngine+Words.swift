@@ -202,7 +202,7 @@ extension TypingEngine {
         guard layer == .letters else { return nil }
         if panel != nil { return String(Words.current(in: query)) }
         let word = Words.current(in: text.before)
-        return traits.allowsCorrection && (word.isEmpty || Words.isCorrectable(word, in: text.before)) ? String(word) : nil
+        return traits.allowsCorrection && (word.isEmpty || Words.isCorrectable(word, in: text.before) && !Words.isNumberLed(word)) ? String(word) : nil
     }
 
     /// The ranking behind stale suggestions, packed to run on another thread. Only a lexicon ranks off the main thread.
@@ -264,7 +264,7 @@ extension TypingEngine {
             context = join.context
             tally.words -= 1
             tally.corrected += 1
-        } else if let correction = corrector.correction(for: typed).map(written) {
+        } else if let correction = corrector.correction(for: typed, context: String(text.dropLast(word.count))).map(written) {
             write(correction, replacing: word.count, in: document)
             revert = Revert(original: final, replacement: correction)
             final = correction

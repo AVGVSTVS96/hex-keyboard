@@ -35,19 +35,26 @@ struct GateTests {
         var failed: [String] = [], missing: [String] = []
         for line in cases {
             let parts = line.split(separator: "|", omittingEmptySubsequences: false)
-            let required = !parts[0].hasPrefix("?")
-            let text = String(parts[0].drop { $0 == "?" }), wanted = parts[1].split(separator: " ").map(String.init)
+            let required = !parts[0].hasPrefix("?"), field = parts[0].hasPrefix("=")
+            let text = String(parts[0].drop { $0 == "?" || $0 == "=" })
+            let wanted = field ? [String(parts[1])] : parts[1].split(separator: " ").map { $0.replacingOccurrences(of: "_", with: " ") }
             corrector.changeMemory { $0 = memory }
             var engine = TypingEngine()
             engine.corrector = corrector
             engine.emojiCatalog = emoji
             engine.defersSuggestions = true
             let document = TestDocument()
+            engine.documentChanged(document)
             for character in text {
                 let key = String(character), center = corrector.grid.frame(of: key).map { Tap(x: $0.midX, y: $0.midY, key: key) }
                 engine.perform(character == " " ? .space : .character(key), in: document, tap: center)
+                if var job = engine.suggestionJob() { job.run(); engine.finish(job) }
             }
-            if var job = engine.suggestionJob() { job.run(); engine.finish(job) }
+            if field {
+                guard document.text.lowercased().replacingOccurrences(of: "’", with: "'") != wanted[0] else { continue }
+                failed.append("GATE \(condition) FAIL \"\(text)\" types \"\(document.text)\", wants \"\(wanted[0])\"")
+                continue
+            }
             let shown = engine.suggestions.prefix(engine.emojiSuggestions.isEmpty ? 3 : 2)
             let words = shown.filter { $0.kind != .literal }.map { $0.text.lowercased().replacingOccurrences(of: "’", with: "'") }
             guard !wanted.allSatisfy(words.contains) else { continue }

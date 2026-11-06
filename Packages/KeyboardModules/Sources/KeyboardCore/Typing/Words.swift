@@ -36,8 +36,14 @@ enum Words {
         return text[start...].drop { apostrophes.contains($0) }
     }
 
+    /// A word led by a number with letters after it and no other digit ("1hr", "2pmtomorrow"): autocorrect only reads
+    /// the spaces it may have missed (`Corrector.split`).
+    static func isNumberLed(_ word: some StringProtocol) -> Bool {
+        word.first?.isNumber == true && !word.drop(while: \.isNumber).contains(where: \.isNumber)
+    }
+
     static func isCorrectable(_ word: Substring, in text: String) -> Bool {
-        guard !word.isEmpty, !word.contains(where: \.isNumber) else { return false }
+        guard !word.isEmpty, isNumberLed(word) || !word.contains(where: \.isNumber) else { return false }
         guard word.startIndex > text.startIndex else { return true }
         let before = text[text.index(before: word.startIndex)]
         return before.isWhitespace || openers.contains(before) || apostrophes.contains(before)

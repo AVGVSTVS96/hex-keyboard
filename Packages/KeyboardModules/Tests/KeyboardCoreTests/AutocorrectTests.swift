@@ -284,7 +284,8 @@ struct MissedSpaceTests {
     let corrector = Corrector(source: Lexicon(counts: [
         ("great", 300), ("day", 400), ("the", 1000), ("what", 500), ("given", 80), ("give", 100), ("treat", 40),
         ("i", 900), ("also", 300), ("updated", 60), ("update", 80), ("done", 200), ("ok", 100), ("love", 200), ("you", 900),
-        ("baby", 60), ("about", 300),
+        ("baby", 60), ("about", 300), ("hr", 20), ("but", 600), ("pm", 30), ("see", 400), ("dont", 20), ("don't", 500),
+        ("its", 300), ("it's", 250),
     ].map { (word: $0.0, count: Double($0.1)) }))
 
     @Test func readsAMistypedLetterBesidesEveryMissedSpace() {
@@ -359,6 +360,35 @@ struct MissedSpaceTests {
         #expect(suggestions.map(\.text).contains("great day"))
         #expect(suggestions.first { $0.text == "great day" }?.kind == .candidate)
         #expect(corrector.correction(for: TypedWord("freatvday")) == nil)
+    }
+
+    @Test func readsANumberAndItsUnitAsOneWord() {
+        #expect(corrector.split(TypedWord("1hrbut")) == "1hr but")
+        #expect(corrector.correction(for: TypedWord("1hrbut")) == "1hr but")
+        #expect(corrector.correction(for: TypedWord("2pm")) == nil)
+        #expect(corrector.correction(for: TypedWord("2day")) == nil)
+    }
+
+    @Test func theSpaceAppliesOnlyMissedSpaces() {
+        var engine = TypingEngine()
+        engine.corrector = corrector
+        let document = TestDocument()
+        engine.documentChanged(document)
+        engine.type("greatday 1hrbut freatvday ", in: document)
+        #expect(document.text == "Great day 1hr but freatvday ")
+    }
+
+    @Test func neverSplitsAWordYouKept() {
+        let corrector = Corrector(source: corrector.source)
+        corrector.changeMemory { $0.keep("greatday") }
+        #expect(corrector.correction(for: TypedWord("greatday")) == nil)
+    }
+
+    @Test func addsTheApostropheAWordWasTypedWithout() {
+        #expect(corrector.correction(for: TypedWord("dont")) == "don't")
+        #expect(corrector.correction(for: TypedWord("its")) == nil)
+        corrector.changeMemory { $0.keep("dont") }
+        #expect(corrector.correction(for: TypedWord("dont")) == nil)
     }
 
     @Test func keepsTheTypedCapital() {
