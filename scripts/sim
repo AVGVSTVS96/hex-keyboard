@@ -46,7 +46,7 @@ print([r['identifier'] for r in json.load(sys.stdin)['runtimes'] if r['platform'
 }
 
 boot() {
-  xcrun simctl bootstatus "$1" -b >/dev/null
+  perl -e 'alarm shift; exec @ARGV' 600 xcrun simctl bootstatus "$1" -b >/dev/null
   xcrun simctl spawn "$1" defaults write com.apple.keyboard.preferences DidShowContinuousPathIntroduction -bool true
   xcrun simctl install "$1" "$APP"
 }
@@ -57,7 +57,7 @@ allow() {
   local db=~/Library/Developer/CoreSimulator/Devices/$1/data/Library/TCC/TCC.db
   local rows="('kTCCServiceKeyboardNetwork', '$BUNDLE'), ('kTCCServiceKeyboardNetwork', '$BUNDLE.keyboard')"
   [ "${2:-}" = paste ] && rows="$rows, ('kTCCServicePasteboard', '$BUNDLE')"
-  xcrun simctl bootstatus "$1" -b >/dev/null
+  perl -e 'alarm shift; exec @ARGV' 600 xcrun simctl bootstatus "$1" -b >/dev/null
   [ "$(sqlite3 "$db" "select count(*) = $(grep -o '(' <<<"$rows" | wc -l) from access where auth_value = 2 and (service, client) in (values $rows)")" = 1 ] && return
   xcrun simctl shutdown "$1"
   sqlite3 "$db" "insert or replace into access (service, client, client_type, auth_value, auth_reason, auth_version, flags)
