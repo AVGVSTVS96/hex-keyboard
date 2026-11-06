@@ -194,24 +194,50 @@ public struct Vocabulary: Codable, Equatable, Sendable {
         return (String(name), String(number))
     }
 
-    /// The words you type (`Typed`). Often: each of four letters or more typed five times or more that the lexicon
-    /// lacks ("iikb"), as you spell it most, or that you've capitalized after another word three times or more
-    /// ("Opus"), so a sentence's first word ("Also") isn't one, spelled with that capital.
-    public static func typed(in memory: TypingMemory, lexicon: Lexicon) -> Typed {
-        var spellings: [String: [(word: String, count: Int)]] = [:]
-        for (word, count) in memory.counts where word.count >= 4 && word.allSatisfy(\.isLetter) {
-            spellings[word.lowercased(), default: []].append((word, count))
+    /// The words you type (`Typed`), read from a memory once and then kept up to date a word at a time, so a dictation
+    /// never scans the memory. Often: each of four letters or more typed five times or more that the lexicon lacks
+    /// ("iikb"), as you spell it most, or that you've capitalized after another word three times or more ("Opus"), so a
+    /// sentence's first word ("Also") isn't one, spelled with that capital.
+    public struct TypedIndex {
+        public private(set) var typed = Typed()
+        private var spellings: [String: [String: Int]] = [:]
+        private var capitals: [String: Int] = [:]
+        private let lexicon: Lexicon
+
+        public init(_ memory: TypingMemory, lexicon: Lexicon) {
+            self.lexicon = lexicon
+            for (word, count) in memory.counts where Self.counts(word) {
+                spellings[word.lowercased(), default: [:]][word] = count
+            }
+            for (previous, next) in memory.following where !previous.isEmpty && !previous.contains(" ") {
+                for (word, count) in next where word.first?.isUppercase == true { capitals[word, default: 0] += count }
+            }
+            typed.own = Set(memory.counts.filter { $0.value >= 2 }.keys.map { $0.lowercased() })
+            for lowered in spellings.keys { refresh(lowered) }
         }
-        var capitals: [String: Int] = [:]
-        for (previous, next) in memory.following where !previous.isEmpty && !previous.contains(" ") {
-            for (word, count) in next where word.first?.isUppercase == true { capitals[word, default: 0] += count }
+
+        /// One more of `word` after `previous`, as `TypingMemory.record` counts it, which now has it `count` times.
+        public mutating func record(_ word: String, after previous: String?, count: Int) {
+            let word = Words.plain(word)
+            if count >= 2 { typed.own.insert(word.lowercased()) }
+            if let previous, !Words.plain(previous).isEmpty, word.first?.isUppercase == true { capitals[word, default: 0] += 1 }
+            guard Self.counts(word) else { return }
+            spellings[word.lowercased(), default: [:]][word, default: 0] += 1
+            refresh(word.lowercased())
         }
-        let often = spellings.compactMap { lowered, spellings -> String? in
-            guard spellings.reduce(0, { $0 + $1.count }) >= 5 else { return nil }
-            if !lexicon.isWord(lowered) { return spellings.max { $0.count < $1.count }!.word }
-            return spellings.map(\.word).filter { capitals[$0, default: 0] >= 3 }.max { capitals[$0]! < capitals[$1]! }
+
+        private mutating func refresh(_ lowered: String) {
+            let spellings = spellings[lowered] ?? [:]
+            typed.often.subtract(spellings.keys)
+            guard spellings.values.reduce(0, +) >= 5 else { return }
+            let often = lexicon.isWord(lowered) ? spellings.keys.filter { capitals[$0, default: 0] >= 3 }.max { (capitals[$0]!, $1) < (capitals[$1]!, $0) }
+                : spellings.max { ($0.value, $1.key) < ($1.value, $0.key) }?.key
+            if let often { typed.often.insert(often) }
         }
-        return Typed(often: Set(often), own: Set(memory.counts.filter { $0.value >= 2 }.keys.map { $0.lowercased() }))
+
+        private static func counts(_ word: String) -> Bool {
+            word.count >= 4 && word.allSatisfy(\.isLetter)
+        }
     }
 
     /// Whether a word is written as a name is: a capital, then lowercase ("Nira", not "OPIS" or "AutoFour").

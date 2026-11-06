@@ -16,6 +16,7 @@ public final class Corrector {
     let lexicon: Lexicon?
     /// How many of the words in `memory` the lexicon doesn't know, counted once and then kept up to date.
     private var novel: Int?
+    private var typedIndex: Vocabulary.TypedIndex?
     private var rankings: [Ranking: [Candidate]] = [:]
     private var keyShares: [String: [Double]] = [:]
     private var generation = 0
@@ -72,6 +73,11 @@ public final class Corrector {
             memory.apps?[app, default: AppWords()].record(Words.plain(word), after: previous.map(Words.plain))
         }
         recount(word, by: 1, since: total)
+        if memory.total == total + 1 {
+            typedIndex?.record(word, after: previous, count: memory.counts[Words.plain(word), default: 0])
+        } else {
+            typedIndex = nil
+        }
     }
 
     /// Takes back one count of a word you didn't keep after all.
@@ -80,6 +86,7 @@ public final class Corrector {
         memory.forget(word, after: previous, earlier: earlier)
         if let app { memory.apps?[app]?.forget(Words.plain(word), after: previous.map(Words.plain)) }
         recount(word, by: -1, since: total)
+        typedIndex = nil
     }
 
     /// Any other change to what's learned, or a memory in its place.
@@ -87,7 +94,16 @@ public final class Corrector {
         let counts = memory.counts
         change(&memory)
         if memory.counts != counts { novel = nil }
+        typedIndex = nil
         forgetRankings()
+    }
+
+    /// The words you type that a dictation may become (`Vocabulary.TypedIndex`), read from `memory` once and then kept up
+    /// to date as you type.
+    public var typedWords: Vocabulary.Typed {
+        guard let lexicon else { return Vocabulary.Typed() }
+        if typedIndex == nil { typedIndex = Vocabulary.TypedIndex(memory, lexicon: lexicon) }
+        return typedIndex!.typed
     }
 
     private func recount(_ word: String, by step: Int, since total: Int) {

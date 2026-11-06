@@ -69,5 +69,19 @@ struct VocabularyTests {
         #expect(Vocabulary().corrected("the subagents and Wolfgang", lexicon: lexicon, field: "one subagent, wolfgang")
             == "the subagents and Wolfgang")
     }
-}
 
+    @Test func theWordsYouTypeAreKeptUpToDateAsYouType() {
+        let corrector = Corrector(source: lexicon)
+        let typing = [("Opus", "with"), ("iikb", "on"), ("Also", ""), ("also", "it"), ("Opus", "ask"), ("IIKB", "on"), ("opus", "the"),
+                      ("Opus", "use"), ("iikb", "in"), ("iikb", "of"), ("iikb", nil), ("Wren", "to"), ("wren", "a")]
+        _ = corrector.typedWords
+        for round in 0 ..< 3 {
+            for (word, previous) in typing { corrector.record(word, after: previous) }
+            let fresh = Vocabulary.TypedIndex(corrector.memory, lexicon: lexicon).typed
+            #expect(corrector.typedWords == fresh, "round \(round)")
+        }
+        #expect(corrector.typedWords.often == ["iikb", "Opus", "Wren"])
+        corrector.forget("iikb", after: "of")
+        #expect(corrector.typedWords == Vocabulary.TypedIndex(corrector.memory, lexicon: lexicon).typed)
+    }
+}
