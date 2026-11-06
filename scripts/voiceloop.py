@@ -394,14 +394,16 @@ def main():
     tool = text_stage()
     stage("text stage build")
     phone = settings()
-    numbers, tally_all, runs = {}, {}, {}
+    numbers, tally_all, read, runs = {}, {}, {}, {}
     pool = concurrent.futures.ThreadPoolExecutor()
     for name in sets:
         folder = DATA / name
-        clips = {c["id"]: c for c in rows(folder / "clips.jsonl") if (name, c["id"]) in heard}
-        knobs = phone if name != "spoken" else DEFAULTS
+        references = {r["id"]: r["text"] for r in rows(folder / "references.jsonl")}
+        clips = {c["id"]: c for c in rows(folder / "clips.jsonl") if (name, c["id"]) in heard and c["id"] in references}
+        references = {id: text for id, text in references.items() if id in clips}
         context = {c["id"]: c for c in rows(folder / "context.jsonl")}
-        references = {r["id"]: r["text"] for r in rows(folder / "references.jsonl") if r["id"] in clips}
+        knobs = phone if name != "spoken" else DEFAULTS
+        read[name] = clips, references, context, knobs
         runs[name] = dict(bench=pool.submit(typed, tool, folder, {id: heard[name, id] for id in clips}, knobs))
         if name == "real":
             runs[name]["replay"] = pool.submit(typed, tool, folder, {id: context[id]["heard"] for id in clips}, knobs)
@@ -409,14 +411,11 @@ def main():
             runs[name]["references"] = pool.submit(typed, tool, folder, references, knobs, "dictionary")
     for name in sets:
         folder = DATA / name
-        clips = {c["id"]: c for c in rows(folder / "clips.jsonl") if (name, c["id"]) in heard}
+        clips, references, context, knobs = read[name]
         mine = {id: heard[name, id] for id in clips}
-        knobs = phone if name != "spoken" else DEFAULTS
-        context = {c["id"]: c for c in rows(folder / "context.jsonl")}
-        done = {way: run.result() for way, run in runs[name].items()}
-        final = "references" in done
-        references = done.pop("references", None) or {r["id"]: r["text"] for r in rows(folder / "references.jsonl") if r["id"] in clips}
-        ways = done
+        ways = {way: run.result() for way, run in runs[name].items()}
+        final = "references" in ways
+        references = ways.pop("references", references)
         if name == "real":
             ways["phone"] = {r["id"]: r["text"] for r in rows(folder / "typed.jsonl") if r["id"] in clips}
         terms = {t["term"].lower() for t in json.load((folder / "vocabulary.json").open())["terms"]}
