@@ -28,15 +28,24 @@ nonisolated extension Parakeet {
 
 nonisolated extension AsrModelVersion {
     /// Where this Parakeet's files live: the App Group's container, whose path outlives an install, where the app's own
-    /// container gets a new one with each. Core ML keys what it compiles by the path a model loads from, so here an install
-    /// leaves the preprocessor's compile in place; the parts on the Neural Engine compile again anyway (App/Voice/AGENTS.md).
+    /// container gets a new one with each, and Core ML keys what it compiles by the path a model loads from (App/Voice/AGENTS.md).
     var folder: URL {
+        Self.clearCompiled
         let own = AsrModels.defaultCacheDirectory(for: self)
         return Self.shared?.appending(path: "Models").appending(path: own.lastPathComponent) ?? own
     }
 
-    /// The App Group's FluidAudio folder. The app's own is moved there the first time, a rename, and Core ML's cache,
-    /// every entry of it keyed by a path no longer used, is removed with the move.
+    /// Core ML's compiles, `<bundle ID>/com.apple.e5rt.e5bundlecache/<OS build>/…` in the app's caches, emptied the first
+    /// time a new install or iOS reaches for a Parakeet, before any is loaded. Each install compiles them again beside
+    /// the last's, which nothing else removes: 1.3 GB on the Duo and 15 GB in a simulator by Nov 5.
+    private static let clearCompiled: Void = {
+        let install = "\(Bundle.main.bundlePath) \(ProcessInfo.processInfo.operatingSystemVersionString)"
+        guard UserDefaults.standard.string(forKey: "compiledFor") != install else { return }
+        try? FileManager.default.removeItem(at: URL.cachesDirectory.appending(path: "\(Bundle.main.bundleIdentifier ?? "")/com.apple.e5rt.e5bundlecache"))
+        UserDefaults.standard.set(install, forKey: "compiledFor")
+    }()
+
+    /// The App Group's FluidAudio folder. The app's own is moved there the first time, a rename.
     private static let shared: URL? = {
         guard let library = AppGroup.library else { return nil }
         let own = URL.applicationSupportDirectory.appending(path: "FluidAudio")
@@ -45,7 +54,6 @@ nonisolated extension AsrModelVersion {
         guard files.fileExists(atPath: own.path(percentEncoded: false)), !files.fileExists(atPath: shared.path(percentEncoded: false)) else { return shared }
         try? files.createDirectory(at: shared.deletingLastPathComponent(), withIntermediateDirectories: true)
         guard (try? files.moveItem(at: own, to: shared)) != nil else { return nil }
-        try? files.removeItem(at: URL.cachesDirectory.appending(path: "\(Bundle.main.bundleIdentifier ?? "")/com.apple.e5rt.e5bundlecache"))
         return shared
     }()
 }
