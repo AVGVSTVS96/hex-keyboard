@@ -141,7 +141,7 @@ private struct ThemeSettings: View {
     private let model = SettingsModel.shared
 
     var body: some View {
-        Box(header: "Theme", footer: "Automatic follows the app you’re typing in, light or dark.") {
+        Box(header: "Theme", footer: model.settings.theme.hasAppearance ? "Automatic follows the app you’re typing in, light or dark." : nil) {
             ForEach(ThemeName.allCases, id: \.self) { theme in
                 let picked = model.settings.theme == theme
                 ChoiceRow(title: theme.title, detail: Self.detail(of: theme), picked: picked) {
@@ -376,8 +376,10 @@ struct StopSlider<Level: Hashable>: View {
                 }
                 .frame(height: thumb)
                 .contentShape(.rect)
-                .gesture(DragGesture(minimumDistance: 0).onChanged { drag in
-                    pick(Int(((drag.location.x - thumb / 2) / step).rounded()))
+                .onTapGesture { location in pick(stop(at: location.x, step: step)) }
+                .gesture(DragGesture(minimumDistance: 8).onChanged { drag in
+                    guard abs(drag.translation.width) > abs(drag.translation.height) else { return }
+                    pick(stop(at: drag.location.x, step: step))
                 })
                 .animation(.snappy(duration: 0.18), value: index)
             }
@@ -402,6 +404,10 @@ struct StopSlider<Level: Hashable>: View {
             @unknown default: break
             }
         }
+    }
+
+    private func stop(at x: CGFloat, step: CGFloat) -> Int {
+        Int(((x - thumb / 2) / step).rounded())
     }
 
     private func pick(_ stop: Int) {

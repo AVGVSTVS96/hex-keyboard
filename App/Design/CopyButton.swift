@@ -16,7 +16,7 @@ struct CopyButton: View {
             KeyframeAnimator(initialValue: 0.0, trigger: copies) { done in
                 ZStack {
                     Circle()
-                        .fill(Color.green)
+                        .fill(Color.copied)
                         .scaleEffect(0.4 + 0.6 * done)
                         .opacity(min(done, 1))
                     Image(systemName: "doc.on.doc")
@@ -34,7 +34,7 @@ struct CopyButton: View {
                 .overlay(alignment: .leading) {
                     Text("Copied")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Color.green)
+                        .foregroundStyle(Color.copied)
                         .fixedSize()
                         .opacity(min(done, 1))
                         .offset(x: 10 * (1 - min(done, 1)))
@@ -67,7 +67,7 @@ struct CopyRow: View {
             KeyframeAnimator(initialValue: 0.0, trigger: copies) { done in
                 HStack(spacing: 10) {
                     Text(done > 0.5 ? "Copied" : "Copy")
-                        .foregroundStyle(done > 0.5 ? Color.green : Color.blue)
+                        .foregroundStyle(done > 0.5 ? Color.copied : Color.blue)
                     Spacer()
                     ZStack {
                         Image(systemName: "doc.on.doc")
@@ -76,7 +76,7 @@ struct CopyRow: View {
                             .blur(radius: 3 * min(done, 1))
                             .opacity(1 - min(done, 1))
                         Image(systemName: "checkmark.circle.fill")
-                            .foregroundStyle(Color.green)
+                            .foregroundStyle(Color.copied)
                             .scaleEffect(0.3 + 0.7 * done)
                             .opacity(min(done, 1))
                     }
@@ -93,6 +93,11 @@ struct CopyRow: View {
         .sensoryFeedback(.success, trigger: copies)
         .accessibilityLabel("Copy")
     }
+}
+
+private extension Color {
+    /// iOS's green, a shade darker on light pages so "Copied" reads against them.
+    static let copied = Color(UIColor { $0.userInterfaceStyle == .dark ? .systemGreen : UIColor(red: 0x24 / 255, green: 0x8A / 255, blue: 0x3D / 255, alpha: 1) })
 }
 
 /// Puts text on the clipboard and tells VoiceOver it's there.
