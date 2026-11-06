@@ -221,6 +221,13 @@ enum Format {
         count >= 10000 ? Double(count).formatted(.number.notation(.compactName).precision(.fractionLength(0 ... 1))).lowercased() : count.formatted()
     }
 
+    /// The round number at or above `value` a chart's top reads: 1, 2, 2.5 or 5 times a power of ten.
+    static func roundUp(_ value: Double) -> Double {
+        guard value > 0 else { return 1 }
+        let power = pow(10, floor(log10(value)))
+        return ([1, 2, 2.5, 5, 10].first { $0 * power >= value } ?? 10) * power
+    }
+
     static func speed(_ speed: Double?) -> String { speed.map { "\(Int($0.rounded()))" } ?? "–" }
 
     static func time(_ seconds: Double) -> String {
@@ -295,7 +302,8 @@ private struct Today: View {
             }
             Rectangle().fill(Color.appDivider).frame(height: 1)
             StatGrid {
-                Stat(label: "Typing speed", value: Format.speed(typed.seconds >= 10 ? typed.paced / typed.seconds * 60 : nil), unit: "wpm")
+                let speed = typed.seconds >= 10 ? typed.paced / typed.seconds * 60 : nil
+                Stat(label: "Typing speed", value: Format.speed(speed), unit: speed == nil ? nil : "wpm")
                 Stat(label: "Active time", value: Format.time(typed.seconds + said.seconds))
                 Stat(
                     label: "Accuracy", value: typed.keys > 0 ? (1 - Double(typed.deletes) / Double(typed.keys)).formatted(.percent.precision(.fractionLength(0))) : "–",
@@ -408,6 +416,9 @@ struct History: View {
                 }
             }
             .chartForegroundStyleScale(domain: kinds.map(\.name), range: kinds.map { $0.color.gradient })
+            .chartYScale(domain: 0 ... Format.roundUp(measure == .words
+                ? dates.map { date in kinds.reduce(0) { $0 + Double(activity.channel($1, on: date).words) } }.max() ?? 0
+                : points.map(\.value).max() ?? 0))
             .chartLegend(.hidden)
             .chartXSelection(value: $picked)
             .chartXScale(domain: dates[0] ... Date.now.adding(days: 1))
@@ -579,6 +590,7 @@ struct Rhythm: View {
                 .chartForegroundStyleScale(domain: kinds.map(\.name), range: kinds.map { $0.color.gradient })
                 .chartLegend(.hidden)
                 .chartXScale(domain: (0 ..< 24).map { "\($0)" })
+                .chartYScale(domain: 0 ... Format.roundUp(sums[busiest]))
                 .chartXAxis {
                     AxisMarks { value in
                         if let hour = value.as(String.self).flatMap(Int.init), hour % 6 == 0 {
@@ -740,16 +752,20 @@ struct Year: View {
     let activity: Activity
     var kinds: [Activity.Kind] = [.typed, .said]
 
-    private let cell: CGFloat = 10, gap: CGFloat = 3
+    private let cell: CGFloat = 10, gap: CGFloat = 3, left: CGFloat = 26
+    @State private var width: CGFloat = 0
+
+    private var weeks: Int { max(1, min(53, Int((width - left + gap) / (cell + gap)))) }
 
     var body: some View {
-        let active = activity.activeDays.filter { $0 > Date.now.adding(days: -365) }.count
-        StatCard(symbol: "square.grid.3x3.fill", color: .green, title: "Past year", subtitle: "\(active) active \(active == 1 ? "day" : "days") · shaded by words written") {
-            GeometryReader { proxy in
-                Canvas { context, size in draw(in: &context, size: size) }
-                    .accessibilityHidden(true)
-            }
-            .frame(height: 7 * cell + 6 * gap + 18)
+        let since = Date.now.adding(days: -weeks * 7)
+        let active = activity.days.count { date, _ in date > since && words(date).typed + words(date).said > 0 }
+        let months = Int((Double(weeks) / 4.35).rounded())
+        StatCard(symbol: "square.grid.3x3.fill", color: .green, title: weeks >= 52 ? "Past year" : "Past \(months) months", subtitle: "\(active) active \(active == 1 ? "day" : "days") · shaded by words written") {
+            Canvas { context, size in draw(in: &context, size: size) }
+                .accessibilityHidden(true)
+                .frame(height: 7 * cell + 6 * gap + 18)
+                .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
             HStack(spacing: 4) {
                 if kinds.count > 1 {
                     LegendDot(color: Activity.Kind.typed.color, name: "Typed")
@@ -758,7 +774,9 @@ struct Year: View {
                 Spacer()
                 Text("Less").font(.caption).foregroundStyle(Color.appSecondary)
                 ForEach(0 ..< 5) { level in
-                    RoundedRectangle(cornerRadius: 2.5).fill(level == 0 ? Color.appPressed : (kinds.count == 1 ? kinds[0].color : Color.primary).opacity([0, 0.3, 0.5, 0.75, 1][level])).frame(width: 10, height: 10)
+                    RoundedRectangle(cornerRadius: 2.5)
+                        .fill(level == 0 ? AnyShapeStyle(Color.appPressed) : AnyShapeStyle(LinearGradient(colors: kinds.map { $0.color.opacity([0, 0.3, 0.5, 0.75, 1][level]) }, startPoint: .topLeading, endPoint: .bottomTrailing)))
+                        .frame(width: 10, height: 10)
                 }
                 Text("More").font(.caption).foregroundStyle(Color.appSecondary)
             }
@@ -784,8 +802,7 @@ struct Year: View {
     }
 
     private func draw(in context: inout GraphicsContext, size: CGSize) {
-        let left: CGFloat = 26, top: CGFloat = 16
-        let weeks = min(53, Int((size.width - left + gap) / (cell + gap)))
+        let top: CGFloat = 16
         let calendar = Calendar.current
         let today = Date.now.startOfDay
         let weekday = (calendar.component(.weekday, from: today) - calendar.firstWeekday + 7) % 7

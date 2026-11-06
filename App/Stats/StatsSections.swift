@@ -114,7 +114,7 @@ private struct Speed: View {
             Text(caption)
                 .font(.footnote)
                 .foregroundStyle(Color.appSecondary)
-                .fixedSize(horizontal: false, vertical: true)
+                .lineLimit(3, reservesSpace: true)
             Rectangle().fill(Color.appDivider).frame(height: 1)
             Figures {
                 Figure(value: all.words.formatted(), label: all.words == 1 ? "word \(kind.noun)" : "words \(kind.noun)")
