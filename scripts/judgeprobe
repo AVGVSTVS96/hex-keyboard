@@ -1,0 +1,22 @@
+#!/bin/sh
+# Times Apple's on-device model choosing among written forms in the installed iikb on the iPhone the Mac reaches
+# (App/Voice/JudgeProbe.swift): scripts/judgeprobe <questions.jsonl>, each line {instructions, prompt, choices}.
+# Prints Documents/judge.log once the run is done.
+set -e
+[ -n "$1" ] || { echo "usage: scripts/judgeprobe <questions.jsonl>" >&2; exit 1; }
+scp -q "$1" mac:/tmp/iikb-judge.jsonl
+ssh mac sh -s <<'MAC'
+set -e
+phone=$(xcrun devicectl list devices --json-output /tmp/iikb-phone.json >/dev/null && /usr/bin/python3 -c "
+import json
+for d in json.load(open('/tmp/iikb-phone.json'))['result']['devices']:
+    h, c = d['hardwareProperties'], d['connectionProperties']
+    if h.get('deviceType') == 'iPhone' and h.get('reality') == 'physical' and c.get('transportType'): print(h['udid']); break")
+[ -n "$phone" ] || { echo "the Mac doesn't reach an iPhone" >&2; exit 1; }
+container="--device $phone --domain-type appDataContainer --domain-identifier com.shahidy.iikb"
+xcrun devicectl device copy to $container --source /tmp/iikb-judge.jsonl --destination Documents/judge.jsonl >/dev/null
+xcrun devicectl device copy to $container --source /dev/null --destination Documents/judge.log >/dev/null
+xcrun devicectl device process launch --terminate-existing --device "$phone" com.shahidy.iikb -- -iikbJudgeProbe YES >/dev/null
+until xcrun devicectl device copy from $container --source Documents/judge.log --destination /tmp/iikb-judge.log >/dev/null 2>&1 && grep -q "^done" /tmp/iikb-judge.log; do sleep 10; done
+cat /tmp/iikb-judge.log
+MAC
