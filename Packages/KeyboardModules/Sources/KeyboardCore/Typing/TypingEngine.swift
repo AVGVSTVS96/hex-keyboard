@@ -239,7 +239,7 @@ public struct TypingEngine {
                     draft = DictationDraft(text)
                 }
             }
-            let words = corrector.flatMap { corrector in lexicon.map { Vocabulary.typed(in: corrector.memory, lexicon: $0) } } ?? []
+            let words = corrector.flatMap { corrector in lexicon.map { Vocabulary.typed(in: corrector.memory, lexicon: $0) } } ?? Vocabulary.Typed()
             var typed = ""
             insertWhole(in: document) {
                 let field = $0.before + " " + ($0.after ?? "")

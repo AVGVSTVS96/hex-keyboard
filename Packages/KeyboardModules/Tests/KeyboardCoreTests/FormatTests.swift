@@ -17,8 +17,10 @@ struct FormatTests {
         let vocabulary = Vocabulary([Vocabulary.Term("kestrel.run"), Vocabulary.Term("tamsin", heardAs: ["tamsen"])])
         let corrector = Corrector(source: lexicon)
         corrector.changeMemory { memory in
-            for (word, times) in [("Opus", 6), ("corvina", 8), ("quillon", 2)] {
-                for _ in 0 ..< times { memory.record(word, after: nil) }
+            let typed = [("Opus", "with", 6), ("Corvina", "to", 8), ("iikb", "on", 10), ("Niri", "on", 5), ("Autofork", "on", 5),
+                         ("Also", "", 3), ("also", "it", 20), ("Sure", "", 5), ("Thanks", "", 6), ("Nice", "", 5), ("Same", "", 5), ("quillon", "a", 2)]
+            for (word, previous, times) in typed {
+                for _ in 0 ..< times { memory.record(word, after: previous) }
             }
         }
         let cases = try String(contentsOf: Self.root.appending(path: "scripts/formats.txt"), encoding: .utf8)

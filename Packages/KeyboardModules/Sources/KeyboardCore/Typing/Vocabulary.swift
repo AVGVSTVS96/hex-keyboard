@@ -4,8 +4,10 @@
 /// possessive keeps its "'s".
 ///
 /// With a lexicon, a made-up word the model writes that sounds like a term becomes it too ("kestrul dot run" for
-/// kestrel.run, "IKB" for iikb), as do words like those already in the field (`field`) or ones you type often (`typed`),
-/// so a name written once comes out the same when said again. A real word is only swapped if it's listed, so "sound" stays unless "Astound" lists it. A
+/// kestrel.run, "IKB" for iikb), as do words like those already in the field (`field`), so a name written once comes out
+/// the same when said again. A word you type often (`typed`) is taken only for one the model wrote that doesn't look
+/// like a name ("OPIS", "IKB", "AutoFour") or in an address: a word written as a name ("Bassam", "Nira") is likelier
+/// a name you said than one you type, and so is any word you've typed yourself. A real word is only swapped if it's listed, so "sound" stays unless "Astound" lists it. A
 /// name with digits after it, as in an address ("tamsen101"), is matched by its name and keeps its digits.
 public struct Vocabulary: Codable, Equatable, Sendable {
     public struct Term: Codable, Equatable, Hashable, Sendable {
@@ -20,11 +22,23 @@ public struct Vocabulary: Codable, Equatable, Sendable {
 
     public var terms: [Term]
 
+    /// The words you type: the ones a dictation may become (`often`) and every one you've typed twice or more (`own`),
+    /// which none of them replaces.
+    public struct Typed: Equatable, Sendable {
+        public var often: Set<String>
+        public var own: Set<String>
+
+        public init(often: Set<String> = [], own: Set<String> = []) {
+            self.often = often
+            self.own = own
+        }
+    }
+
     public init(_ terms: [Term] = []) {
         self.terms = terms
     }
 
-    public func corrected(_ text: String, lexicon: Lexicon? = nil, field: String = "", typed: Set<String> = []) -> String {
+    public func corrected(_ text: String, lexicon: Lexicon? = nil, field: String = "", typed: Typed = Typed()) -> String {
         var spellings: [String: String] = [:]
         for term in terms {
             for spelling in [term.term] + term.heardAs where !Self.key(spelling).isEmpty {
@@ -34,8 +48,10 @@ public struct Vocabulary: Codable, Equatable, Sendable {
         let soundsLike = lexicon.map { lexicon in
             terms.flatMap { term in ([term.term] + term.heardAs).map { Likeness($0, term: term.term, seen: false) } }
                 + Self.seen(in: field, lexicon: lexicon).map { Likeness($0, term: $0, seen: true) }
-                + typed.map { Likeness($0, term: $0, seen: true, cased: true) }
+                + typed.often.map { Likeness($0, term: $0, seen: true, cased: true) }
         } ?? []
+        let unlike = soundsLike.filter { !$0.cased }
+        let typable = { (words: [String]) in words.allSatisfy { !Self.isTitled($0) && !typed.own.contains($0.lowercased()) } }
         guard !spellings.isEmpty || !soundsLike.isEmpty else { return text }
         let characters = Array(text)
         let words = Words.ranges(in: characters)
@@ -63,13 +79,14 @@ public struct Vocabulary: Codable, Equatable, Sendable {
                 if term == nil, let lexicon, gaps.allSatisfy({ $0 == " " || $0 == "-" || $0 == "." }),
                    !Self.isGlued(characters, before: start, after: end, by: Self.glue.subtracting(["."])) {
                     possessive = ""
-                    term = Self.soundsLike(span.map { String(characters[$0]) }, said: String(characters[start ..< end]),
-                                           in: soundsLike, lexicon: lexicon)
+                    let said = span.map { String(characters[$0]) }
+                    term = Self.soundsLike(said, said: String(characters[start ..< end]), in: typable(said) ? soundsLike : unlike, lexicon: lexicon)
                 }
                 if term == nil, count == 1, let (name, number) = Self.numbered(String(characters[start ..< end])),
                    !Self.isGlued(characters, before: start, after: end, by: Self.glue.subtracting(["@"])) {
                     possessive = ""
-                    term = (spellings[Self.key(name)] ?? lexicon.flatMap { Self.soundsLike([name], said: name, in: soundsLike, lexicon: $0) })
+                    let likely = typed.own.contains(name.lowercased()) ? unlike : soundsLike
+                    term = (spellings[Self.key(name)] ?? lexicon.flatMap { Self.soundsLike([name], said: name, in: likely, lexicon: $0) })
                         .map { $0 + number }
                 }
                 guard let term else { continue }
@@ -138,7 +155,7 @@ public struct Vocabulary: Codable, Equatable, Sendable {
             if distance <= likeness.slack, distance < best?.distance ?? .max { best = (distance, likeness.term, likeness.cased) }
         }
         guard let best, best.term != said else { return nil }
-        guard best.cased, said.first?.isUppercase == true, best.term == best.term.lowercased() else { return best.term }
+        guard best.cased, isTitled(said), best.term == best.term.lowercased() else { return best.term }
         return best.term.prefix(1).uppercased() + best.term.dropFirst()
     }
 
@@ -177,18 +194,29 @@ public struct Vocabulary: Codable, Equatable, Sendable {
         return (String(name), String(number))
     }
 
-    /// Words you type often worth matching a dictation to, as you spell them most: each of four letters or more typed
-    /// five times or more that the lexicon lacks ("iikb") or you've capitalized three times or more ("Opus").
-    static func typed(in memory: TypingMemory, lexicon: Lexicon) -> Set<String> {
+    /// The words you type (`Typed`). Often: each of four letters or more typed five times or more that the lexicon
+    /// lacks ("iikb"), as you spell it most, or that you've capitalized after another word three times or more
+    /// ("Opus"), so a sentence's first word ("Also") isn't one, spelled with that capital.
+    public static func typed(in memory: TypingMemory, lexicon: Lexicon) -> Typed {
         var spellings: [String: [(word: String, count: Int)]] = [:]
         for (word, count) in memory.counts where word.count >= 4 && word.allSatisfy(\.isLetter) {
             spellings[word.lowercased(), default: []].append((word, count))
         }
-        return Set(spellings.compactMap { lowered, spellings in
-            let capitalized = spellings.filter { $0.word.first!.isUppercase }.reduce(0) { $0 + $1.count }
-            guard spellings.reduce(0, { $0 + $1.count }) >= 5, !lexicon.isWord(lowered) || capitalized >= 3 else { return nil }
-            return spellings.max { $0.count < $1.count }!.word
-        })
+        var capitals: [String: Int] = [:]
+        for (previous, next) in memory.following where !previous.isEmpty && !previous.contains(" ") {
+            for (word, count) in next where word.first?.isUppercase == true { capitals[word, default: 0] += count }
+        }
+        let often = spellings.compactMap { lowered, spellings -> String? in
+            guard spellings.reduce(0, { $0 + $1.count }) >= 5 else { return nil }
+            if !lexicon.isWord(lowered) { return spellings.max { $0.count < $1.count }!.word }
+            return spellings.map(\.word).filter { capitals[$0, default: 0] >= 3 }.max { capitals[$0]! < capitals[$1]! }
+        }
+        return Typed(often: Set(often), own: Set(memory.counts.filter { $0.value >= 2 }.keys.map { $0.lowercased() }))
+    }
+
+    /// Whether a word is written as a name is: a capital, then lowercase ("Nira", not "OPIS" or "AutoFour").
+    private static func isTitled(_ word: String) -> Bool {
+        word.count > 1 && word.first!.isUppercase && word.dropFirst().allSatisfy { !$0.isUppercase }
     }
 
     /// Where "<word> dot " starts its dot, right before `start`, so a spoken dot joins a name with a dot in it.
