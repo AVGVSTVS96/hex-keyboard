@@ -84,6 +84,7 @@ import UIKit
             take.mic = microphone.input
             microphone.record(to: Transcripts.shared.recording(of: take.id))
             take.voiceProcessing = microphone.voiceProcessing
+            take.onIPhone = microphone.hearsIPhone
         } catch {
             recording = nil
             closeMic()
@@ -154,7 +155,7 @@ import UIKit
         let silent = take.stopped.timeIntervalSince(take.started) >= 1 && !sounded
         deaf = silent
         if silent, take.voiceProcessing == true { microphone.skipsVoiceProcessing = true }
-        if sounded, take.voiceProcessing == false { microphone.skipsVoiceProcessing = false }
+        if sounded, take.voiceProcessing == true || take.onIPhone { microphone.skipsVoiceProcessing = false }
         do {
             let written = try await VoiceModel.shared.write(samples)
             writing.removeAll { $0 === take }
@@ -287,6 +288,8 @@ private final class Take {
     var stopped = Date.now
     var mic: String?
     var voiceProcessing: Bool?
+    /// Heard on the iPhone's own microphone, not a headset or a picked one.
+    var onIPhone = false
     var capture: Capture?
     /// Seconds recorded, as the microphone counts them.
     var recorded: Double = 0

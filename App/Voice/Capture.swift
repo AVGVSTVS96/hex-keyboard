@@ -28,7 +28,19 @@ nonisolated enum Capture: String, CaseIterable {
 
     /// One of the two at random, nil when this iPhone offers no cardioid.
     static func draw(_ session: AVAudioSession) -> Capture? {
-        cardioid(session) == nil ? nil : allCases.randomElement()
+        offersCardioid(session) ? allCases.randomElement() : nil
+    }
+
+    static func offersCardioid(_ session: AVAudioSession) -> Bool {
+        cardioid(session) != nil
+    }
+
+    /// Whether the iPhone's own microphone hears and its sound plays on the iPhone: no picked microphone elsewhere, and
+    /// no Bluetooth speaker or AirPlay, whose sound voice processing would take to the iPhone.
+    @MainActor static func onIPhone(_ session: AVAudioSession) -> Bool {
+        let route = session.currentRoute
+        return route.outputs.allSatisfy { [.builtInSpeaker, .builtInReceiver, .headphones].contains($0.portType) }
+            && (SettingsStore.microphone == nil || route.inputs.allSatisfy { $0.portType == .builtInMic })
     }
 
     /// Whether a dictation may be heard either way now: the setting is on, no microphone is picked, the iPhone's own
@@ -57,6 +69,24 @@ nonisolated enum Capture: String, CaseIterable {
         }
         try source?.setPreferredPolarPattern(.cardioid)
         try port.setPreferredDataSource(source)
+    }
+
+    /// How the engine hears: the way compared, if it is, what the iPhone's microphone is pointed at (`point`), and
+    /// whether voice processing is on.
+    struct Way: Equatable {
+        var capture: Capture?
+        var pointed: Capture
+        var processing: Bool
+
+        /// Voice processing on the iPhone, compared when it may be; without it elsewhere. While voice processing is
+        /// skipped (`Microphone.skipsVoiceProcessing`) it hears through the cardioid where there is one, else iOS's
+        /// microphone, uncompared, unless the iPhone's speaker plays, which only voice processing keeps out.
+        static func choose(onIPhone: Bool, skipping: Bool, speakerPlays: Bool, mayCompare: Bool, offersCardioid: Bool, arm: Capture?) -> Way {
+            guard onIPhone else { return Way(capture: nil, pointed: .voiceProcessing, processing: false) }
+            if skipping, !speakerPlays { return Way(capture: nil, pointed: offersCardioid ? .cardioid : .voiceProcessing, processing: false) }
+            let capture = !skipping && mayCompare ? arm : nil
+            return Way(capture: capture, pointed: capture ?? .voiceProcessing, processing: capture != .cardioid)
+        }
     }
 
     private static func builtIn(_ session: AVAudioSession) -> AVAudioSessionPortDescription? {

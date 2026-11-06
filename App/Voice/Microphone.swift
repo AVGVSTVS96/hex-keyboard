@@ -56,8 +56,8 @@ import Observation
     /// Whether it hears through Apple's voice processing now, all of the iPhone's microphones together as a call does.
     var voiceProcessing: Bool { engine.inputNode.isVoiceProcessingEnabled }
 
-    /// The way it hears now, nil while it isn't comparing them (`Capture.mayCompare`).
-    private var capture: Capture?
+    /// The way the engine hears now, as `begin` set it up.
+    private var way: Capture.Way?
 
     /// Voice processing passed a dictation's sound as near digital silence while the iPhone's microphone heard speech
     /// (Bassim's Duo, Nov 5: the hardware heard -38 to -53 dB and voice processing passed -78 dB, five openings in a
@@ -69,7 +69,8 @@ import Observation
             if skipsVoiceProcessing {
                 HostApp.log.notice("voice processing gave no sound: hearing without it until a dictation has sound (its input muted \(self.engine.inputNode.isVoiceProcessingInputMuted, privacy: .public), the app's \(AVAudioApplication.shared.isInputMuted, privacy: .public))")
             } else {
-                HostApp.log.notice("a dictation without voice processing had sound: hearing through it again")
+                HostApp.log.notice("a dictation had sound: hearing through voice processing again")
+                settle()
             }
         }
     }
@@ -127,23 +128,22 @@ import Observation
         if picked != nil, input == nil { input = session.availableInputs?.first { $0.portType == .builtInMic } }
         try? session.setPreferredInput(input)
         let node = engine.inputNode
-        let onIPhone = session.currentRoute.outputs.allSatisfy { [.builtInSpeaker, .builtInReceiver, .headphones].contains($0.portType) }
-            && input.map { $0.portType == .builtInMic } ?? true
         let recording = feed.isRecording
         if !recording, planned == nil { planned = Capture.draw(session) }
-        capture = onIPhone && !skipsVoiceProcessing && Capture.mayCompare(session) ? recording ? capture : planned : nil
+        var way = chosen(session, keeping: recording)
         do {
-            try (capture ?? .voiceProcessing).point(session)
+            try way.pointed.point(session)
         } catch {
-            HostApp.log.error("couldn't hear \(self.capture?.rawValue ?? "uncompared", privacy: .public): \(error.localizedDescription, privacy: .public)")
-            capture = nil
+            HostApp.log.error("couldn't point at \(way.pointed.rawValue, privacy: .public): \(error.localizedDescription, privacy: .public)")
             try? Capture.voiceProcessing.point(session)
+            way = Capture.Way(capture: nil, pointed: .voiceProcessing, processing: way.processing || way.capture == .cardioid)
         }
-        if recording, capture != recordingAs { recordingAs = nil }
-        let processing = onIPhone && !skipsVoiceProcessing && capture ?? .voiceProcessing == .voiceProcessing
-        if node.isVoiceProcessingEnabled != processing, (try? node.setVoiceProcessingEnabled(processing)) != nil, processing {
+        if node.isVoiceProcessingEnabled != way.processing, (try? node.setVoiceProcessingEnabled(way.processing)) != nil, way.processing {
             node.voiceProcessingOtherAudioDuckingConfiguration = .init(enableAdvancedDucking: false, duckingLevel: .min)
         }
+        if node.isVoiceProcessingEnabled != way.processing { way = Capture.Way(capture: nil, pointed: way.pointed, processing: node.isVoiceProcessingEnabled) }
+        if recording, way.capture != recordingAs { recordingAs = nil }
+        self.way = way
         if node.isVoiceProcessingEnabled {
             engine.connect(engine.mainMixerNode, to: engine.outputNode, format: nil)
         } else {
@@ -166,7 +166,7 @@ import Observation
         }
         let route = session.currentRoute.inputs.first
         let source = route?.selectedDataSource
-        HostApp.log.notice("hearing \(self.capture?.rawValue ?? "uncompared", privacy: .public) from \(route?.portType.rawValue ?? "nothing", privacy: .public) \(source?.dataSourceName ?? "", privacy: .public) \(source?.selectedPolarPattern?.rawValue ?? "", privacy: .public), other audio \(session.isOtherAudioPlaying ? "playing" : "silent", privacy: .public)")
+        HostApp.log.notice("hearing \(way.capture?.rawValue ?? "uncompared", privacy: .public), pointed at \(way.pointed.rawValue, privacy: .public), voice processing \(way.processing ? "on" : "off", privacy: .public), from \(route?.portType.rawValue ?? "nothing", privacy: .public) \(source?.dataSourceName ?? "", privacy: .public) \(source?.selectedPolarPattern?.rawValue ?? "", privacy: .public), other audio \(session.isOtherAudioPlaying ? "playing" : "silent", privacy: .public)")
     }
 
     /// iOS stops the engine when the hardware's format or route changes under it, and every audio object is dead after
@@ -201,9 +201,8 @@ import Observation
     /// Records from the next sound on into `url`, back in voice processing first when the iPhone's speaker started
     /// playing since the engine started.
     func record(to url: URL) {
-        let comparable = Capture.mayCompare(.sharedInstance())
-        if !comparable, capture == .cardioid { restart() }
-        recordingAs = comparable ? capture : nil
+        settle()
+        recordingAs = way?.capture
         feed.start(file: url)
         Dictation.publish(level: 0, recorded: 0)
     }
@@ -230,11 +229,25 @@ import Observation
     /// microphone that stays on between dictations; the restart is done before the next dictation can start.
     func next() {
         guard isOn, !feed.isRecording else { return }
-        let session = AVAudioSession.sharedInstance()
-        planned = Capture.draw(session)
-        let wanted = Capture.mayCompare(session) ? planned : nil
-        if (wanted ?? .voiceProcessing) != (capture ?? .voiceProcessing) { restart() } else { capture = wanted }
+        planned = Capture.draw(.sharedInstance())
+        settle()
     }
+
+    /// Starts the engine again, while nothing's recorded, when it hears another way than it would start in now.
+    private func settle() {
+        guard isOn, !feed.isRecording, chosen(.sharedInstance(), keeping: false) != way else { return }
+        restart()
+    }
+
+    /// The way the engine would start in now: the recording's own while one runs, else the next one drawn.
+    private func chosen(_ session: AVAudioSession, keeping recording: Bool) -> Capture.Way {
+        Capture.Way.choose(
+            onIPhone: Capture.onIPhone(session), skipping: skipsVoiceProcessing, speakerPlays: Capture.speakerPlays(session),
+            mayCompare: Capture.mayCompare(session), offersCardioid: Capture.offersCardioid(session), arm: recording ? way?.capture : planned)
+    }
+
+    /// Whether the iPhone's own microphone is the input now.
+    var hearsIPhone: Bool { AVAudioSession.sharedInstance().currentRoute.inputs.allSatisfy { $0.portType == .builtInMic } }
 
     /// Runs on the audio thread: hands each buffer to the recording, if there is one, and says how loud it was and how
     /// long the recording is now.
