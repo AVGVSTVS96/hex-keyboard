@@ -38,7 +38,7 @@ final class ClipboardPanel: UIView, PanelContent, UICollectionViewDataSource, UI
     /// In the list's content, ahead of the rows, so in one row it scrolls away with them.
     private let message = PanelNotice()
     private let thumbnails = NSCache<NSString, UIImage>()
-    private let transcripts = DrawerSwitch("Transcripts", symbol: "waveform", identifier: "iikb.clipboard.transcripts")
+    private let transcripts = DrawerSwitch("Transcripts", symbol: "text.bubble", identifier: "iikb.clipboard.transcripts")
 
     init(store: ClipboardStore) {
         self.store = store

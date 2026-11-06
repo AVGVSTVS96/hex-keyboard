@@ -95,6 +95,9 @@ public final class SuggestionBar: UIView {
         }
         dividers.forEach(addSubview)
         tray.layer.cornerCurve = .continuous
+        tray.layer.shadowOffset = CGSize(width: 0, height: 1)
+        tray.layer.shadowRadius = 0
+        tray.layer.shadowOpacity = 1
         tray.isUserInteractionEnabled = false
         addSubview(tray)
         addSubview(trayDivider)
@@ -201,6 +204,7 @@ public final class SuggestionBar: UIView {
         if edits != self.edits { setNeedsLayout() }
         self.edits = edits
         tray.backgroundColor = theme.key.ui
+        tray.layer.shadowColor = theme.shadow.ui.cgColor
         trayDivider.backgroundColor = theme.candidateDivider.ui
         for (edit, button) in editButtons {
             button.theme = theme
@@ -255,6 +259,7 @@ public final class SuggestionBar: UIView {
         tray.frame = out ? CGRect(x: clip.minX, y: clip.minY, width: places[places.count - 1].maxX - clip.minX, height: clip.height) : clip
         tray.layer.cornerRadius = clip.height / 2
         tray.alpha = out ? 1 : 0
+        tools.first { $0.panel == .clipboard }?.button.isOn = out
         for ((_, button), place) in zip(editButtons, places) {
             button.isHidden = false
             button.transform = .identity
@@ -482,9 +487,9 @@ extension SuggestionBar.Edit {
         switch self {
         case .cut: "scissors"
         case .copy: "doc.on.doc"
-        case .paste: "doc.on.clipboard"
+        case .paste: "clipboard"
         case .history: "clock.arrow.circlepath"
-        case .transcripts: "waveform"
+        case .transcripts: "text.bubble"
         }
     }
 }

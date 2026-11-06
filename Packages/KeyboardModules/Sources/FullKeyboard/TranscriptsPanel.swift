@@ -12,7 +12,7 @@ final class TranscriptsPanel: UIView, PanelContent, UICollectionViewDataSource, 
     var onTurnOn: () -> Void = {}
     var onClipboard: () -> Void = {}
     let placeholder = "Search transcripts"
-    var glyph: UIImage? { UIImage(systemName: "waveform") }
+    var glyph: UIImage? { UIImage(systemName: "text.bubble") }
     var accessories: [UIView] { [clipboard] }
 
     private struct Shown: Equatable {

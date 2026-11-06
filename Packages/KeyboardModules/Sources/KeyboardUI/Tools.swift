@@ -2,9 +2,10 @@ import UIKit
 import KeyboardCore
 
 /// One of the buttons at the bar's left, the More button or a panel's tool: its glyph, in a circle that shows only while
-/// pressed.
+/// pressed, or while what it opened is out.
 final class BarButton: UIButton {
     var theme = KeyboardTheme.lightCurrent { didSet { refresh() } }
+    var isOn = false { didSet { if isOn != oldValue { refresh() } } }
     private let draw: @MainActor (CGFloat) -> UIImage?
     private let icon = UIImageView()
     private var glyph: CGFloat = 0
@@ -19,6 +20,7 @@ final class BarButton: UIButton {
         icon.contentMode = .center
         layer.cornerCurve = .continuous
         addSubview(icon)
+        refresh()
     }
 
     required init?(coder: NSCoder) { fatalError() }
@@ -38,7 +40,7 @@ final class BarButton: UIButton {
 
     private func refresh() {
         icon.tintColor = theme.label.ui
-        backgroundColor = isHighlighted ? theme.candidatePill.ui : .clear
+        backgroundColor = isHighlighted || isOn ? theme.candidatePill.ui : .clear
     }
 
     override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
@@ -68,7 +70,7 @@ extension Panel {
         case .emoji: Self.symbol("face.smiling", side)
         case .gif: Self.gifGlyph(side)
         case .clipboard: Self.symbol("list.clipboard", side)
-        case .transcripts: Self.symbol("waveform", side)
+        case .transcripts: Self.symbol("text.bubble", side)
         }
     }
 

@@ -131,6 +131,11 @@ final class ToolPanelTests: XCTestCase {
         XCTAssertFalse(cut.isEnabled, "nothing selected, nothing to cut")
         try shot("tray")
         paste.tap()
+        let notice = app.staticTexts["iikb.notice"]
+        if notice.waitForExistence(timeout: 2), notice.label.contains("Paste from Other Apps") {
+            try shot("tray-refused")
+            throw XCTSkip("iOS refused the paste and the bar said why: Paste from Other Apps is still Ask (the clipboard panel's test turns it on)")
+        }
         XCTAssertTrue(wait { (field.value as? String)?.hasSuffix("hi Sightglass") == true }, "Paste types what's on the clipboard")
         XCTAssertTrue(wait { !paste.isHittable }, "and the tray tucks back in")
 
