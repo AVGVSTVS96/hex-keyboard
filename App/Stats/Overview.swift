@@ -135,6 +135,16 @@ struct ChoicePills<Value: Hashable>: View {
     }
 }
 
+/// A y-axis number in a set width, so a chart's plot keeps its place whether its top reads 500 or 40k.
+struct AxisNumber: View {
+    let value: AxisValue
+
+    var body: some View {
+        Text(value.as(Double.self).map { Format.short(Int($0)) } ?? "")
+            .frame(width: 36, alignment: .leading)
+    }
+}
+
 /// A dot and a name, for a chart's legend.
 struct LegendDot: View {
     let color: Color
@@ -404,9 +414,7 @@ struct History: View {
             .chartYAxis {
                 AxisMarks(position: .trailing, values: .automatic(desiredCount: 3)) { value in
                     AxisGridLine(stroke: StrokeStyle(lineWidth: 1, dash: [2, 3])).foregroundStyle(Color.appDivider)
-                    AxisValueLabel {
-                        if let number = value.as(Double.self) { Text(Format.short(Int(number))) }
-                    }
+                    AxisValueLabel { AxisNumber(value: value) }
                 }
             }
             .frame(height: 170)
@@ -574,7 +582,7 @@ struct Rhythm: View {
                 .chartYAxis {
                     AxisMarks(position: .trailing, values: .automatic(desiredCount: 3)) { value in
                         AxisGridLine(stroke: StrokeStyle(lineWidth: 1, dash: [2, 3])).foregroundStyle(Color.appDivider)
-                        AxisValueLabel { if let number = value.as(Double.self) { Text(Format.short(Int(number))) } }
+                        AxisValueLabel { AxisNumber(value: value) }
                     }
                 }
                 .frame(height: 140)
