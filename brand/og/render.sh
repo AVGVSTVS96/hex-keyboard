@@ -1,5 +1,5 @@
 #!/bin/sh
-# Renders brand/og/index.html into the link preview: og.png (the still) and og.mp4 (the loop iMessage, Telegram and X
+# Renders brand/og/index.html into the link preview: og.png (the still) and og.mp4 (the loop iMessage and Telegram
 # play), in web/site and brand/og/out. The loop starts on the still so the hand-off from og.png to the video doesn't
 # jump. Needs Chrome, ffmpeg and brand/og/frames (frames.sh).
 set -e
