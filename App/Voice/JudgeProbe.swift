@@ -57,7 +57,7 @@ nonisolated enum JudgeProbe {
         await ask(first, 0, phase: "cold")
         for (index, question) in questions.enumerated() { await ask(question, index, phase: "warm") }
         for (index, question) in questions.prefix(5).enumerated() { await ask(question, index, phase: "prewarmed", prewarm: true) }
-        try? await Task.sleep(for: .seconds(30))
+        try? await Task.sleep(for: .seconds(30)) // timer: unlisted (the probe times a session left idle 30 s)
         await ask(first, 0, phase: "idle 30 s")
         write("done")
     }
@@ -66,7 +66,7 @@ nonisolated enum JudgeProbe {
         let session = LanguageModelSession(instructions: question.instructions)
         if prewarm {
             session.prewarm()
-            try? await Task.sleep(for: .seconds(1))
+            try? await Task.sleep(for: .seconds(1)) // timer: unlisted (the probe times a session prewarmed 1 s before its question)
         }
         let background = await UIApplication.shared.applicationState == .background
         let began = ContinuousClock.now
