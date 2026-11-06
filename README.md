@@ -43,6 +43,11 @@ The suggestion bar combines a small on-device language model with your learned w
 
 The app's Your Taps tab shows what it learned: a heat map of where your thumbs press, where each key's taps land, and the keys you miss most.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/taps-dark.png">
+  <img alt="The Your Taps tab: taps learned, how often they land on the key you meant, and a heat map of where your thumbs press" src="docs/taps-light.png" width="600">
+</picture>
+
 ## Talk instead of typing
 
 Tap the mic beside the suggestions. iOS doesn't let keyboards use the microphone, so the first time, iikb opens its app to start listening, then goes back to your app while you keep talking. The app can keep the mic on for as long as you pick, and while it's on, the mic starts and stops dictation right there, in any app; use the microphone switch in the app to turn it off. Cancel discards a recording without inserting it; its transcript is still kept for review.
