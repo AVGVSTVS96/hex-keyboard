@@ -238,7 +238,7 @@ public final class SuggestionBar: UIView {
     }
 
     /// The cancelled recording, its cancel button and capsule, breaks into dust from the cancel button across, and
-    /// the mic comes back in its place once the app has stopped.
+    /// the mic comes back in its place once the app has stopped; if it still listens once the dust settles, the recording shows again.
     private func dissolve() {
         let parts: [UIView] = micInBar ? [cancel, mic, waveform] : [cancel, waveform]
         let area = parts.map(\.frame).reduce(CGRect.null) { $0.union($1) }.insetBy(dx: -2, dy: -2)
@@ -246,9 +246,8 @@ public final class SuggestionBar: UIView {
         addSubview(dust)
         parts.forEach { $0.alpha = 0 }
         dissolving = true
-        dust.play(away: effectiveUserInterfaceLayoutDirection == .rightToLeft ? -1 : 1)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
-            guard let self, dissolving else { return }
+        dust.play(away: effectiveUserInterfaceLayoutDirection == .rightToLeft ? -1 : 1) { [weak self] in
+            guard let self, dissolving, mic.phase == .listening else { return }
             dissolving = false
             parts.forEach { $0.alpha = 1 }
         }

@@ -50,10 +50,13 @@ final class Dust: UIView {
 
     required init?(coder: NSCoder) { fatalError() }
 
-    /// Blows the specks away, then removes itself. With Reduce Motion it fades instead.
-    func play(away direction: CGFloat) {
+    /// Blows the specks away, then removes itself and calls `done`. With Reduce Motion it fades instead.
+    func play(away direction: CGFloat, done: @escaping () -> Void) {
         CATransaction.begin()
-        CATransaction.setCompletionBlock { self.removeFromSuperview() }
+        CATransaction.setCompletionBlock {
+            self.removeFromSuperview()
+            done()
+        }
         if UIAccessibility.isReduceMotionEnabled {
             let fade = CABasicAnimation(keyPath: "opacity")
             fade.fromValue = 1
