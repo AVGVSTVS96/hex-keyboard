@@ -198,18 +198,20 @@ struct Stat: View {
     }
 }
 
-/// Facts in rows of as many across as fit.
+/// Facts all in one row where each gets room, else in rows of `columns`.
 struct StatGrid<Content: View>: View {
     var columns = 2
     @ViewBuilder var content: Content
+    @State private var width: CGFloat = 0
 
     var body: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(alignment: .top, spacing: 12) { content }
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12, alignment: .topLeading), count: columns), alignment: .leading, spacing: 14) {
-                content
+        Group(subviews: content) { facts in
+            let across = width >= CGFloat(facts.count) * 118 ? facts.count : columns
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12, alignment: .topLeading), count: across), alignment: .leading, spacing: 14) {
+                ForEach(facts) { $0 }
             }
         }
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
     }
 }
 
@@ -578,8 +580,10 @@ struct Rhythm: View {
                 .chartLegend(.hidden)
                 .chartXScale(domain: (0 ..< 24).map { "\($0)" })
                 .chartXAxis {
-                    AxisMarks(values: ["0", "6", "12", "18"]) { value in
-                        AxisValueLabel(anchor: .topLeading) { if let hour = value.as(String.self).flatMap(Int.init) { Text(Format.hour(hour)) } }
+                    AxisMarks { value in
+                        if let hour = value.as(String.self).flatMap(Int.init), hour % 6 == 0 {
+                            AxisValueLabel(anchor: .topLeading) { Text(Format.hour(hour)) }
+                        }
                     }
                 }
                 .chartYAxis {
@@ -629,8 +633,10 @@ struct Speeds: View {
             }
             .chartXScale(domain: bands.map { "\($0.speed)" })
             .chartXAxis {
-                AxisMarks(values: bands.map(\.speed).filter { $0 % 20 == 0 }.map { "\($0)" }) { value in
-                    AxisValueLabel(anchor: .topLeading) { if let speed = value.as(String.self) { Text(speed) } }
+                AxisMarks { value in
+                    if let speed = value.as(String.self), (Int(speed) ?? 1) % 20 == 0 {
+                        AxisValueLabel(anchor: .topLeading) { Text(speed) }
+                    }
                 }
             }
             .chartYAxis(.hidden)
