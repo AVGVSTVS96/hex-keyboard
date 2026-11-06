@@ -65,6 +65,34 @@ final class VoiceTests: XCTestCase {
         try shot("\(shots)-off")
     }
 
+    /// Cancelling turns the recording to dust and brings the mic back, with nothing typed. With IIKB_DUST, from a
+    /// stand-in run as `scripts/voiceapp.py <id> <group> cancel`, while the simulator films it.
+    func testACancelledRecordingTurnsToDust() throws {
+        guard let shots = ProcessInfo.processInfo.environment["IIKB_DUST"] else { throw XCTSkip("Run with scripts/voiceapp.py cancel") }
+        continueAfterFailure = false
+
+        let app = XCUIApplication()
+        app.launchArguments = ["-iikbFocus", "YES", "-iikbOrientation", "portrait", "-iikbOneHanded", "off", "-iikbMicKey", "NO"]
+        app.launch()
+        XCTAssertTrue(key("space", in: app).waitForExistence(timeout: 10), "iikb is not the active keyboard")
+        for letter in "hello" { key(String(letter), in: app).tap() }
+        let field = app.textViews.firstMatch
+        let typed = field.value as? String ?? ""
+
+        let mic = app.buttons["iikb.mic"]
+        for take in 1...2 {
+            mic.tap()
+            XCTAssertTrue(wait(for: mic, label: "Stop Dictating", value: nil))
+            Thread.sleep(forTimeInterval: 2.5)
+            try shot("\(shots)-recording-\(take)")
+            app.buttons["iikb.cancel"].tap()
+            XCTAssertTrue(wait { mic.label == "Dictate" }, "cancelling stops listening")
+            Thread.sleep(forTimeInterval: 1.5)
+            try shot("\(shots)-after-\(take)")
+            XCTAssertEqual(field.value as? String ?? "", typed, "and types nothing")
+        }
+    }
+
     /// With Settings › Layout › Record Key on, the same mic sits left of 123 in the globe's place. Starting and stopping
     /// from it is the bar's mic's test above; the stand-in app answers one test per run.
     func testTheRecordKeySitsLeftOf123() throws {

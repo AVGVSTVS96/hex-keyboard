@@ -80,6 +80,8 @@ public final class SuggestionBar: UIView {
     private let stack = PendingStack()
     private let notice = UILabel()
     private var emojiBeside = false
+    /// The recording just cancelled, gone to dust, so the mic comes back in its place instead of shrinking out of it.
+    private var dissolving = false
     private var enabled = true
     private var noticed = false
     private var theme = KeyboardTheme.lightCurrent
@@ -113,7 +115,10 @@ public final class SuggestionBar: UIView {
         strip.accessibilityIdentifier = "iikb.suggestion.emoji"
         addSubview(strip)
         mic.addAction(UIAction { [unowned self] _ in onMic() }, for: .touchUpInside)
-        cancel.addAction(UIAction { [unowned self] _ in onCancel() }, for: .touchUpInside)
+        cancel.addAction(UIAction { [unowned self] _ in
+            dissolve()
+            onCancel()
+        }, for: .touchUpInside)
         mic.breathes = true
         capsule.backgroundColor = .black
         capsule.layer.cornerCurve = .continuous
@@ -177,6 +182,10 @@ public final class SuggestionBar: UIView {
             cancel.isHidden = mic != .listening
             return
         }
+        if dissolving, mic != .listening {
+            reappear()
+            return
+        }
         morph(growing: mic == .listening, { self.layoutIfNeeded() }) { _ in
             if self.mic.phase != .listening { self.cancel.isHidden = true }
         }
@@ -226,6 +235,39 @@ public final class SuggestionBar: UIView {
     public func hear(_ level: Float, recorded: Double) {
         waveform.hear(level, recorded: recorded)
         mic.hear(level)
+    }
+
+    /// The cancelled recording, its cancel button and capsule, breaks into dust from the cancel button across, and
+    /// the mic comes back in its place once the app has stopped.
+    private func dissolve() {
+        let parts: [UIView] = micInBar ? [cancel, mic, waveform] : [cancel, waveform]
+        let area = parts.map(\.frame).reduce(CGRect.null) { $0.union($1) }.insetBy(dx: -2, dy: -2)
+        guard let dust = Dust(of: self, in: area, from: cancel.frame.midX) else { return }
+        addSubview(dust)
+        parts.forEach { $0.alpha = 0 }
+        dissolving = true
+        dust.play(away: effectiveUserInterfaceLayoutDirection == .rightToLeft ? -1 : 1)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+            guard let self, dissolving else { return }
+            dissolving = false
+            parts.forEach { $0.alpha = 1 }
+        }
+    }
+
+    private func reappear() {
+        dissolving = false
+        UIView.performWithoutAnimation { layoutIfNeeded() }
+        cancel.isHidden = true
+        let returning: [UIView] = slots + dividers + [strip]
+        returning.forEach { $0.alpha = 0 }
+        mic.transform = CGAffineTransform(scaleX: 0.4, y: 0.4)
+        UIView.animate(springDuration: 0.45, bounce: 0.25, delay: 0.3, options: [.allowUserInteraction]) {
+            self.mic.alpha = 1
+            self.mic.transform = .identity
+        }
+        UIView.animate(withDuration: 0.3, delay: 0.35, options: [.curveEaseOut, .allowUserInteraction]) {
+            returning.forEach { $0.alpha = 1 }
+        }
     }
 
     /// While you dictate, the cancel button sits in its place, before the recording. Otherwise it waits tucked at half
