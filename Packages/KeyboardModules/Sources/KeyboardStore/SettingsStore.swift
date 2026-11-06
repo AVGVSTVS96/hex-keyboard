@@ -28,6 +28,7 @@ public enum SettingsStore {
     /// were switches under their old keys, which stand in until a new value is kept.
     private static let theme = Choice(key: "theme", path: \.theme)
     private static let themeAppearance = Choice(key: "themeAppearance", path: \.themeAppearance)
+    private static let stopAnimation = Choice(key: "stopAnimation", path: \.stopAnimation)
     private static let characterPreview = Choice(key: "characterPreviewStyle", path: \.characterPreview, switchKey: "characterPreview", on: .attached, off: CharacterPreview.none)
     private static let haptics = Choice(key: "hapticFeedback", path: \.haptics, switchKey: "haptics", on: .standard, off: .off)
     private static let keySpacing = Choice(key: "keySpacing", path: \.keySpacing)
@@ -57,6 +58,7 @@ public enum SettingsStore {
         settings.oneHanded = (value(forKey: oneHandedKey, sharing: sharing) as? String).flatMap(OneHanded.init) ?? .off
         theme.load(into: &settings, sharing: sharing)
         themeAppearance.load(into: &settings, sharing: sharing)
+        stopAnimation.load(into: &settings, sharing: sharing)
         characterPreview.load(into: &settings, sharing: sharing)
         haptics.load(into: &settings, sharing: sharing)
         keySpacing.load(into: &settings, sharing: sharing)
@@ -79,6 +81,7 @@ public enum SettingsStore {
         set(settings.oneHanded)
         theme.save(settings)
         themeAppearance.save(settings)
+        stopAnimation.save(settings)
         characterPreview.save(settings)
         haptics.save(settings)
         keySpacing.save(settings)

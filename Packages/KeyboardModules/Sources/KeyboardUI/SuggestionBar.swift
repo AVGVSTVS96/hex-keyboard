@@ -40,6 +40,8 @@ public final class SuggestionBar: UIView {
     public var onNotice: () -> Void = {}
     public var onTool: (Panel) -> Void = { _ in }
     public var onEdit: (Edit) -> Void = { _ in }
+    /// How the recording goes back into the mic when you stop (Settings › Appearance).
+    public var stopAnimation = StopAnimation.squeeze { didSet { mic.writes = stopAnimation } }
     public var maximumSlotWidth = CGFloat.infinity { didSet { setNeedsLayout() } }
     /// The top row's keys, left to right, as their edges.
     public var keys: [(minX: Double, maxX: Double)] = [] {
@@ -82,6 +84,8 @@ public final class SuggestionBar: UIView {
     private var emojiBeside = false
     /// The recording just cancelled, gone to dust, so the mic comes back in its place instead of shrinking out of it.
     private var dissolving = false
+    /// How long the recording ran, for Card's card.
+    private var heard: Double = 0
     private var enabled = true
     private var noticed = false
     private var theme = KeyboardTheme.lightCurrent
@@ -167,6 +171,8 @@ public final class SuggestionBar: UIView {
     /// the dictations recorded and still to be written, and `waitingFor` what they wait for while the model gets ready.
     public func update(mic: MicButton.Phase, recorded: Double, saved: [Double], waitingFor: String?, notice: String?, theme: KeyboardTheme) {
         let grows = (mic == .listening) != (self.mic.phase == .listening)
+        let shown = CGRect(x: self.mic.center.x - self.mic.bounds.width / 2, y: self.mic.center.y - self.mic.bounds.height / 2, width: self.mic.bounds.width, height: self.mic.bounds.height)
+        if mic == .listening { heard = recorded }
         if mic == .listening { cancel.isHidden = false }
         self.mic.show(mic, theme: theme)
         cancel.paint(theme)
@@ -185,6 +191,13 @@ public final class SuggestionBar: UIView {
         if dissolving, mic != .listening {
             reappear()
             return
+        }
+        if mic != .listening {
+            switch stopAnimation {
+            case .squeeze: waveform.rush()
+            case .drain: return drain(shown, theme: theme)
+            case .card: return lift(shown, theme: theme)
+            }
         }
         morph(growing: mic == .listening, { self.layoutIfNeeded() }) { _ in
             if self.mic.phase != .listening { self.cancel.isHidden = true }
@@ -233,6 +246,7 @@ public final class SuggestionBar: UIView {
     }
 
     public func hear(_ level: Float, recorded: Double) {
+        heard = recorded
         waveform.hear(level, recorded: recorded)
         mic.hear(level)
     }
@@ -250,6 +264,99 @@ public final class SuggestionBar: UIView {
             guard let self, dissolving, mic.phase == .listening else { return }
             dissolving = false
             parts.forEach { $0.alpha = 1 }
+        }
+    }
+
+    /// Drain and Card start from the bar as it is once stopped, the mic hidden in its place until the recording has left.
+    /// The cancel button fades where it was rather than tucking behind a capsule that's gone.
+    private func settleUnder() {
+        if let ghost = cancel.snapshotView(afterScreenUpdates: false) {
+            ghost.frame = cancel.frame
+            addSubview(ghost)
+            UIView.animate(withDuration: 0.2, delay: 0, options: [.curveEaseOut]) {
+                ghost.alpha = 0
+                ghost.transform = CGAffineTransform(scaleX: 0.6, y: 0.6)
+            } completion: { _ in ghost.removeFromSuperview() }
+        }
+        UIView.performWithoutAnimation { layoutIfNeeded() }
+        cancel.isHidden = true
+        mic.alpha = 0
+    }
+
+    /// Drain: the red pours into the mic, its tail thinning, then a ripple as it lands and the mic comes up in its place.
+    private func drain(_ capsule: CGRect, theme: KeyboardTheme) {
+        settleUnder()
+        let circle = mic.frame
+        let red = CAShapeLayer()
+        red.fillColor = theme.record.ui.cgColor
+        layer.insertSublayer(red, below: waveform.layer)
+        let steps = 16
+        let paths = (0...steps).map { step -> CGPath in
+            let u = CGFloat(step) / CGFloat(steps)
+            let along = u < 0.5 ? 4 * u * u * u : 1 - pow(-2 * u + 2, 3) / 2
+            let thinning = pow(min(u / 0.65, 1), 3)
+            return liquid(left: capsule.minX + (circle.minX - capsule.minX) * along, mic: circle, neck: 1 - 0.78 * thinning)
+        }
+        let flow = CAKeyframeAnimation(keyPath: "path")
+        flow.values = paths
+        flow.duration = 0.5
+        red.path = paths[steps]
+        CATransaction.begin()
+        CATransaction.setCompletionBlock { [weak self] in
+            guard let self else { return }
+            let ripple = CAShapeLayer()
+            ripple.frame = circle
+            ripple.path = UIBezierPath(ovalIn: CGRect(origin: .zero, size: circle.size)).cgPath
+            ripple.fillColor = nil
+            ripple.strokeColor = theme.record.ui.cgColor
+            ripple.lineWidth = 2
+            ripple.opacity = 0
+            layer.addSublayer(ripple)
+            CATransaction.begin()
+            CATransaction.setCompletionBlock { ripple.removeFromSuperlayer() }
+            let grow = CABasicAnimation(keyPath: "transform.scale")
+            grow.fromValue = 1
+            grow.toValue = 1.8
+            let fade = CABasicAnimation(keyPath: "opacity")
+            fade.fromValue = 0.6
+            fade.toValue = 0
+            let spread = CAAnimationGroup()
+            spread.animations = [grow, fade]
+            spread.duration = 0.5
+            spread.timingFunction = CAMediaTimingFunction(name: .easeOut)
+            ripple.add(spread, forKey: "ripple")
+            CATransaction.commit()
+            UIView.animate(withDuration: 0.22, delay: 0, options: [.curveEaseOut, .allowUserInteraction]) {
+                self.mic.alpha = 1
+            }
+            red.removeFromSuperlayer()
+        }
+        red.add(flow, forKey: "flow")
+        CATransaction.commit()
+    }
+
+    /// Card: the recording folds into a card with its length beside the mic, which lifts away off the keyboard's top as
+    /// the mic comes back.
+    private func lift(_ capsule: CGRect, theme: KeyboardTheme) {
+        settleUnder()
+        let card = StopCard(length: Waveform.clock(Int(heard)), tint: theme.label.ui)
+        card.backgroundColor = theme.record.ui
+        card.frame = capsule
+        addSubview(card)
+        let width: CGFloat = 84
+        let rest = CGRect(x: mic.frame.minX - 8 - width, y: capsule.minY, width: width, height: capsule.height)
+        UIView.animate(springDuration: 0.42, bounce: 0.1) {
+            card.frame = rest
+            card.backgroundColor = theme.candidatePill.ui
+        }
+        UIView.animate(withDuration: 0.4, delay: 0.42, options: [.curveEaseIn]) {
+            card.transform = CGAffineTransform(translationX: 0, y: -(rest.maxY + 12))
+            card.alpha = 0
+        } completion: { _ in card.removeFromSuperview() }
+        mic.transform = CGAffineTransform(scaleX: 0.4, y: 0.4)
+        UIView.animate(springDuration: 0.45, bounce: 0.25, delay: 0.3, options: [.allowUserInteraction]) {
+            self.mic.alpha = 1
+            self.mic.transform = .identity
         }
     }
 

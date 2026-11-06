@@ -108,6 +108,14 @@ final class Waveform: UIView {
         tick()
     }
 
+    /// Squeeze: the stopped bars rush right into the stop as the capsule springs after them.
+    func rush() {
+        UIView.animate(withDuration: 0.3, delay: 0, options: [.curveEaseIn, .beginFromCurrentState]) {
+            self.strip.transform = self.strip.transform.translatedBy(x: self.track.bounds.width * 0.7, y: 0)
+            self.alpha = 0
+        }
+    }
+
     private var fits: Int { Int(track.bounds.width / Self.pitch) }
     private var slid: CGAffineTransform { CGAffineTransform(translationX: track.bounds.width - CGFloat(heard) * Self.pitch + Self.barWidth, y: 0) }
 

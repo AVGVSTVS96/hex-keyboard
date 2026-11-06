@@ -16,6 +16,24 @@ public enum ThemeName: String, CaseIterable, Hashable, Sendable {
     public var hasAppearance: Bool { self == .physical || self == .mechanical }
 }
 
+/// How the bar's recording goes back into the mic when you stop it (Settings › Appearance).
+public enum StopAnimation: String, CaseIterable, Hashable, Sendable {
+    /// The bars rush into the stop and the capsule springs back; a ring circles the mic while it writes, then a check.
+    case squeeze
+    /// The red drains into the mic like liquid through a straw, ripples as it lands, and the mic glows while it writes.
+    case drain
+    /// The recording shrinks into a card with its length, which lifts away off the keyboard's top.
+    case card
+
+    public var title: String {
+        switch self {
+        case .squeeze: "Squeeze"
+        case .drain: "Drain"
+        case .card: "Card"
+        }
+    }
+}
+
 public enum ThemeAppearance: String, CaseIterable, Hashable, Sendable {
     case automatic, dark, light
 

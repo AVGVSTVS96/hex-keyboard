@@ -133,6 +133,7 @@ struct AppearanceSettings: View {
     var body: some View {
         ThemeSettings()
         CharacterPreviewPicker()
+        StopAnimationPicker()
         LayoutSettings()
     }
 }
@@ -272,6 +273,28 @@ private struct LayoutSettings: View {
 }
 
 /// What shows above a key as you press it, each choice drawn.
+private struct StopAnimationPicker: View {
+    private let model = SettingsModel.shared
+
+    var body: some View {
+        Box(header: "Stop Animation", footer: "How the recording goes back into the mic when you stop dictating.") {
+            ForEach(StopAnimation.allCases, id: \.self) { animation in
+                ChoiceRow(title: animation.title, detail: Self.detail(of: animation), picked: model.settings.stopAnimation == animation) {
+                    model.update { $0.stopAnimation = animation }
+                }
+            }
+        }
+    }
+
+    static func detail(of animation: StopAnimation) -> String {
+        switch animation {
+        case .squeeze: "The bars rush into the mic, which circles while it writes."
+        case .drain: "The red drains into the mic, which glows while it writes."
+        case .card: "The recording folds into a card and lifts away."
+        }
+    }
+}
+
 private struct CharacterPreviewPicker: View {
     private let model = SettingsModel.shared
 

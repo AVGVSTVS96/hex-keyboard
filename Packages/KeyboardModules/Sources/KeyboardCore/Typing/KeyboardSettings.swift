@@ -29,6 +29,7 @@ public struct KeyboardSettings: Hashable, Sendable {
     public var keyboardMenu = KeyboardMenu.both
     public var theme = ThemeName.standard
     public var themeAppearance = ThemeAppearance.automatic
+    public var stopAnimation = StopAnimation.squeeze
     /// A row of digits above an iPhone's letters, which grows the keyboard upward.
     public var numberRow = false
     /// The tone emoji take until you pick another for one; nil keeps them yellow.

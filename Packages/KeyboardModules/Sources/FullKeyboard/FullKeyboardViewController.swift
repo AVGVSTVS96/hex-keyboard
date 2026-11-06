@@ -256,6 +256,7 @@ open class FullKeyboardViewController: UIInputViewController {
         engine.emojiHistory.skinTone = engine.settings.skinTone
         haptics.strength = Float(engine.settings.haptics.strength)
         keyboardView.characterPreview = engine.settings.characterPreview
+        suggestionBar.stopAnimation = engine.settings.stopAnimation
         engine.suggestionsChanged()
     }
 
