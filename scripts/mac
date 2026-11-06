@@ -2,7 +2,7 @@
 # Runs a command on the Mac with Xcode 27.1 (the SDK the phone build uses, which gives the iPhone Duo its vertical bar)
 # in the first free of the Mac's slots, inside one of the Mac's turns (`turn`: two heavy runs at once, across projects),
 # so a run boots and tests within its turn and the rest wait. The Mac runs at most three simulators, so one another
-# project has booted takes a slot away, and while the Mac is short on memory (pressure above normal, or under 2 GB of swap free) iikb gets one slot, and a run shuts down the idle slots' simulators. Each slot has its own folder (~/Developer/iikb-slot<n>, where this tree is
+# project has booted takes a slot away, and while the Mac is short on memory (memory pressure above normal) iikb gets one slot, and a run shuts down the idle slots' simulators. Each slot has its own folder (~/Developer/iikb-slot<n>, where this tree is
 # synced) and its own simulators (iikb<n> …), which stay booted for the slot's next run (KEEP=1), since a boot starts
 # some 200 iOS services at once and loads the Mac for minutes, and shut down once the slot sits idle for 5 minutes.
 # Screenshots the command takes are copied back to shots/raw/. scripts/verify tests what landed: for it, main's last commit is synced from its own worktree (../iikb-main), not this checkout's tree.
@@ -13,7 +13,7 @@ import fcntl, json, subprocess, sys, threading
 booted = json.loads(subprocess.run(["xcrun", "simctl", "list", "devices", "booted", "-j"], capture_output=True).stdout or "{}")
 others = sum(not d["name"].startswith("iikb") for ds in booted.get("devices", {}).values() for d in ds)
 def sysctl(name): return subprocess.run(["sysctl", "-n", name], capture_output=True, text=True).stdout
-tight = sysctl("kern.memorystatus_vm_pressure_level").strip() != "1" or float(sysctl("vm.swapusage").split("free = ")[1].split("M")[0]) < 2048
+tight = sysctl("kern.memorystatus_vm_pressure_level").strip() != "1"
 count = 1 if tight else max(1, 3 - others)
 slots = [open(f"/tmp/iikb-slot{n}.lock", "a") for n in range(1, count + 1)]
 def take(f, block):
