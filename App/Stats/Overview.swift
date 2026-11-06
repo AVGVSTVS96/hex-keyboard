@@ -758,7 +758,7 @@ struct Year: View {
                 Spacer()
                 Text("Less").font(.caption).foregroundStyle(Color.appSecondary)
                 ForEach(0 ..< 5) { level in
-                    RoundedRectangle(cornerRadius: 2.5).fill(level == 0 ? Color.appPressed : Color.primary.opacity([0, 0.3, 0.5, 0.75, 1][level])).frame(width: 10, height: 10)
+                    RoundedRectangle(cornerRadius: 2.5).fill(level == 0 ? Color.appPressed : (kinds.count == 1 ? kinds[0].color : Color.primary).opacity([0, 0.3, 0.5, 0.75, 1][level])).frame(width: 10, height: 10)
                 }
                 Text("More").font(.caption).foregroundStyle(Color.appSecondary)
             }
