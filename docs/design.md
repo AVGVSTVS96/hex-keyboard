@@ -138,6 +138,19 @@ Physical and Mechanical come Automatic (following the app), Dark or Light.
 - Split Keyboard (open in landscape; Settings › Keyboard › Appearance, holding `123` or emoji, or the bar's menu button) puts half of each row under each thumb, as Apple's does: each half five keys from the keyboard's edge, with two keys' room between the hands (12 columns of the same margins and gaps), G and V on both halves, the layer and emoji keys and a space bar on the left, a space bar, the field's own keys and return on the right. Apple's split keys are a fifth narrower, with about four keys' room between the halves, which Bassim found used "barely any" of the screen (Nov 2).
 - Regular iPhones and iPads keep their key geometry, which is measured against Apple's.
 
+#### What Apple's keyboard does on the Duo, and iikb
+
+From Apple's iPhone guide ("Type with the onscreen keyboard"), KeyboardKit's Duo notes (Sep 20 and Oct 16 2026), and both keyboards shot on all six of the Duo's poses in the iOS 27.1 simulator (`scripts/sim duo`, Nov 5).
+
+| Apple's keyboard | iikb |
+|---|---|
+| Open in landscape: More (⋯) at the bar's left, then Split or Full | The same, from the menu button, holding `123` or emoji, or Settings; its halves are wider (above) |
+| Open in landscape, slightly folded: splits around the fold by itself, and joins again flat | Can't. Inside a keyboard, iOS 27.1 never calls `UIHingeInteraction` and reports no `.division` or `.occlusion` regions, and the keyboard's size, safe area and traits are the same flat and folded in landscape (a probe logging all of them while the simulator's hinge went from 180° to 160°, Nov 5). Split stays a choice you make |
+| Folded in portrait: holding the globe or emoji offers Left and Right | The same, holding `123` or emoji too |
+| Folded: the globe and dictation keys sit in the bottom row, since no bar runs under the keyboard | The globe in the bottom row; the mic in the bar, or in the globe's place with Record Key |
+| Open, slightly folded, held tall: iOS gives a taller keyboard, and the keys grow | The same: iOS gives every third-party keyboard 321pt there whatever it asks, and iikb's keys fill it (below) |
+| Height and bottom margin on all four screens | Apple's, measured (the table above) |
+
 ### The compact layout
 
 Where height is short (any landscape, and iPad), the bar is 34 (32 on the Duo folded in landscape, 38 open in landscape; iPad: 36), its buttons in proportion, and a panel's results are one row (`Toolbar.isCompact`). Settings › Keyboard › Appearance › Compact Emoji & GIFs makes the emoji and GIF panels that one row on every screen (`Toolbar.showing`); it's off, so portrait screens keep the large panels.
