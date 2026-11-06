@@ -91,3 +91,21 @@ test("a file replaced twice in one second keeps both versions, the first where -
   expect(await readFile(join(dir, "versions/2026-11-04T045605.002/keyboard/support/typing-memory.json"), "utf8")).toBe("{}");
   expect(await readFile(join(dir, "mirror/keyboard/support/typing-memory.json"), "utf8")).toBe("[]");
 });
+
+test("gives Keystroke the iPhone's typing and dictation as counts by day and hour, never their text", async () => {
+  const { send } = await server();
+  const hour = { day: "2026-11-05", hour: 17, app: "ph.telegra.Telegraph", seconds: 5.5, tally: { words: 6, characters: 26, keys: 27, deletes: 1, corrected: 0, picked: 0, emoji: 0, undone: 0 } };
+  await send("PUT", "/group/Library/typing.jsonl", `${JSON.stringify(hour)}\n${JSON.stringify({ ...hour, hour: 18 })}\n`);
+  const said = new Date(2026, 10, 5, 9, 30).getTime() / 1000 - Date.UTC(2001, 0, 1) / 1000;
+  await send("PUT", "/app/transcripts.jsonl", `${JSON.stringify({ date: said, seconds: 3, text: "secret words here", typed: true })}\n`);
+  const response = await send("GET", "/iphone/typing-stats.json");
+  const text = await response.text();
+  expect(text).not.toContain("secret");
+  const { days, sources } = JSON.parse(text);
+  const day = days["2026-11-05"];
+  expect(day.typed).toMatchObject({ keystrokes: 54, chars: 52, words: 12, backspaces: 2, activeMs: 11_000 });
+  expect(day.typed.hourChars[17]).toBe(26);
+  expect(day.voice).toMatchObject({ words: 3, chars: 17, timedChars: 17, timedMs: 3000, inserts: 1 });
+  expect(day.voice.hourChars[9]).toBe(17);
+  expect(sources.iikb).toMatchObject({ words: 3, inserts: 1 });
+});

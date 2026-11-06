@@ -11,11 +11,15 @@
  * GET /mac/<name>  a file the Mac sent, with its time in Last-Modified, for the app's Stats (docs/stats.md)
  * GET /personal/<name>  a file made here for the iPhone (`scripts/personal`'s network), the same way; the iPhone's
  *               own files are never read back out, so its token can't take them
+ * GET /iphone/typing-stats.json  the iPhone's typing and dictation counts, made here as Keystroke keeps the Mac's
+ *               (`keystroke.ts`), for Keystroke on the Mac (docs/stats.md)
  */
 import { mkdir, readdir, rename, rm, stat, utimes } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join, relative, sep } from "node:path";
 import { parseArgs } from "node:util";
+
+import { keystroke } from "./keystroke.ts";
 
 /** What the server gives back: what the Mac sent and what it makes for the iPhone. */
 const given = ["mac", "personal"];
@@ -57,6 +61,7 @@ export const backup =
     const mirror = join(dir, "mirror");
     const name = decodeURIComponent(new URL(request.url).pathname).replace(/^\/+(backup\/*)?/, "");
     if (request.method === "GET" && name === "") return Response.json(await held(mirror));
+    if (request.method === "GET" && name === "iphone/typing-stats.json") return Response.json(await keystroke(mirror));
 
     const file = join(mirror, name);
     if (request.method === "GET") {

@@ -41,3 +41,19 @@ at login), sends the file to the backup server (docs/backup.md) with its token, 
 keeps every version. The app reads it back from there each time Stats comes forward (`MacStats`, `Backup.read`), and
 keeps the last copy in its caches, so the Mac shows as it last was while it's asleep or the server is out of reach; a
 footer says when Keystroke saved it. The server gives back only what's under `mac/`, never the iPhone's own files.
+
+## The iPhone in Keystroke
+
+Keystroke shows the iPhone too, beside the Mac or alone (All · Mac · iPhone in its title bar). The backup server makes
+`GET /iphone/typing-stats.json` (`server/keystroke.ts`) from what the iPhone already sent it, the keyboard's hours
+(`group/Library/typing.jsonl`) and the transcripts, in Keystroke's own version 3 shape: each day's typed and voice
+counts by hour, with iikb as the dictation app. Only counts and times go: no word of a transcript leaves the server.
+
+```
+iPhone ──backup──► server ──GET iphone/typing-stats.json──► Keystroke (Mac)
+```
+
+Keystroke fetches it with the Mac's `~/.config/iikb/backup.key` (`scripts/keystroke` puts it there) as it starts and
+each minute while its window shows, and keeps the last copy as `iphone-stats.json` beside its own, so the iPhone shows
+as it last was when the server is out of reach. The iPhone's typing has no bursts or per-minute speeds, so Top burst and
+Typing speed stay the Mac's.
