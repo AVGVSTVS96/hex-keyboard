@@ -236,8 +236,8 @@ access -iikbSettings access
 privacy -iikbSettings privacy"
 
 # Fills an installed app with what duoapp and ipadapp show: TOUCHES (a touch model, as the keyboard shares it), TYPING
-# (JSON lines of hours, as the keyboard shares them) and TRANSCRIPTS (JSON lines, as the app keeps them) fill Stats and
-# Transcripts, MAC (a Keystroke typing-stats.json) Stats' Mac as the copy last read, and CLIPBOARD (a history.json, as
+# (JSON lines of hours, as the keyboard shares them) and TRANSCRIPTS (JSON lines, as the app keeps them, with RECORDINGS a
+# folder of their <id>.wav sounds) fill Stats and Transcripts, MAC (a Keystroke typing-stats.json) Stats' Mac as the copy last read, and CLIPBOARD (a history.json, as
 # ClipboardStore keeps it) Clipboard.
 fill() {
   local id=$1 group data
@@ -248,6 +248,7 @@ fill() {
   [ -n "${MAC:-}" ] && mkdir -p "$data/Library/Caches/computers" "$data/Library/Application Support" && cp "$MAC" "$data/Library/Caches/computers/Mac.json" &&
     echo '[{"name":"Mac","url":"http://mac.local:2593","token":"t"}]' >"$data/Library/Application Support/computers.json"
   [ -n "${TRANSCRIPTS:-}" ] && mkdir -p "$data/Library/Application Support" && cp "$TRANSCRIPTS" "$data/Library/Application Support/transcripts.jsonl"
+  [ -n "${RECORDINGS:-}" ] && mkdir -p "$data/Library/Application Support/recordings" && cp "$RECORDINGS"/*.wav "$data/Library/Application Support/recordings/"
   [ -n "${CLIPBOARD:-}" ] && mkdir -p "$group/Library/clipboard" && cp "$CLIPBOARD" "$group/Library/clipboard/history.json"
   return 0
 }

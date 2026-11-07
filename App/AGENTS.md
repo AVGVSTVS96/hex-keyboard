@@ -22,6 +22,7 @@ Voice typing, the app's biggest part, has its own doc: Voice/AGENTS.md.
   - its sound as a `Recording`, a 16 kHz WAV written as it's heard (a recording an ended app left with no transcript is written down on the next launch), up to 512 MB;
   - the microphone it came from, whether voice processing heard it (`scripts/voicehealth.py` counts each capture's failures), and the app it was typed into.
   - Each change, and each launch, writes their texts to the App Group for the keyboard's Transcripts panel (`TranscriptFeed`).
+  - A transcript's sound goes out from its menu in the list or right under its text (`RecordingShare`): Send in Messages attaches it as Messages records its own audio messages (Opus at 24 kHz in a .caf, `Recording.export`), and Share Recording hands the share sheet an .m4a, as Voice Memos keeps its own. Without Messages (the simulator), Send in Messages opens the share sheet too.
   - The page lists them under a card of how much you dictate (words, this week against the last, two weeks a day, time, pace, today) that opens Stats › Dictation, and a transcript with its sound can be written again with the model picked now.
 - **Clipboard** (`ClipboardPage`): the history the keyboard's clipboard panel keeps, the same `ClipboardStore`, pinned first then by day. A tap copies an item again, and the app keeps what's on the clipboard when it comes forward once the keyboard has started the history.
 - **Stats** (`StatsPage`, docs/stats.md): Overview, Typing, Dictation and Taps as pills, the iPhone's or, in the menu beside the title, the Mac's.

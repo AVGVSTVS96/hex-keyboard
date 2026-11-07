@@ -161,7 +161,13 @@ private struct Actions: View {
             copy(transcript.text)
             copied()
         }
-        ShareLink(item: transcript.text)
+        ShareLink(item: transcript.text) { Label("Share Text", systemImage: "square.and.arrow.up") }
+        if Transcripts.shared.hasRecording(transcript.id) {
+            Section {
+                Button("Send Recording in Messages", systemImage: "message") { try? RecordingShare.send(transcript, as: .message) }
+                Button("Share Recording", systemImage: "waveform") { try? RecordingShare.send(transcript, as: .memo) }
+            }
+        }
         Button("Delete", systemImage: "trash", role: .destructive) { Transcripts.shared.delete([transcript.id]) }
     }
 }
@@ -315,6 +321,7 @@ private struct TranscriptDetail: View {
                 .padding(20)
                 .background(Color.appCard, in: .rect(cornerRadius: AppStyle.cardRadius, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: AppStyle.cardRadius, style: .continuous).strokeBorder(Color.appEdge))
+            RecordingActions(transcript: transcript)
             Box {
                 Fact(title: "Length", value: Duration.seconds(transcript.seconds).formatted(.time(pattern: .minuteSecond)))
                 Fact(title: "Words", value: transcript.words.formatted())

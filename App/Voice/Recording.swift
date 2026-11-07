@@ -86,19 +86,45 @@ nonisolated enum Recording {
         }
     }
 
-    /// The recording at `url` as a voice memo named `name`: AAC in a .m4a, as Voice Memos keeps its own.
-    static func memo(_ url: URL, named name: String) throws -> URL {
+    /// How a recording leaves iikb: an .m4a in AAC, as Voice Memos keeps its own, or a .caf in Opus at 24 kHz, as
+    /// Messages records its audio messages.
+    enum Export {
+        case memo, message
+    }
+
+    /// The recording at `url` as a file named `name`, in a folder of its own to delete once it's sent.
+    static func export(_ url: URL, named name: String, as kind: Export) throws -> URL {
         let samples = try read(url)
-        guard !samples.isEmpty, let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(samples.count)) else { throw CocoaError(.fileReadCorruptFile) }
-        buffer.frameLength = buffer.frameCapacity
-        buffer.floatChannelData![0].update(from: samples, count: samples.count)
+        let rate: Double = kind == .memo ? 16_000 : 24_000
+        guard !samples.isEmpty,
+              let target = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: rate, channels: 1, interleaved: false),
+              let buffer = converted(samples, to: target)
+        else { throw CocoaError(.fileReadCorruptFile) }
         let folder = URL.temporaryDirectory.appending(path: UUID().uuidString)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        let memo = folder.appending(path: "\(name).m4a")
-        let file = try AVAudioFile(forWriting: memo, settings: [AVFormatIDKey: kAudioFormatMPEG4AAC, AVSampleRateKey: 16_000, AVNumberOfChannelsKey: 1], commonFormat: .pcmFormatFloat32, interleaved: false) // file: voice memo export
+        let out = folder.appending(path: kind == .memo ? "\(name).m4a" : "\(name).caf")
+        let codec = kind == .memo ? kAudioFormatMPEG4AAC : kAudioFormatOpus
+        let file = try AVAudioFile(forWriting: out, settings: [AVFormatIDKey: codec, AVSampleRateKey: rate, AVNumberOfChannelsKey: 1], commonFormat: .pcmFormatFloat32, interleaved: false) // file: recording export
         try file.write(from: buffer)
         file.close()
-        return memo
+        return out
+    }
+
+    /// `samples` at 16 kHz in `format`.
+    static func converted(_ samples: [Float], to format: AVAudioFormat) -> AVAudioPCMBuffer? {
+        guard let buffer = AVAudioPCMBuffer(pcmFormat: Recording.format, frameCapacity: AVAudioFrameCount(samples.count)),
+              let converter = AVAudioConverter(from: Recording.format, to: format),
+              let converted = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(Double(samples.count) * format.sampleRate / 16_000) + 1)
+        else { return nil }
+        buffer.frameLength = buffer.frameCapacity
+        samples.withUnsafeBufferPointer { buffer.floatChannelData?[0].update(from: $0.baseAddress!, count: samples.count) }
+        nonisolated(unsafe) var fed = false
+        converter.convert(to: converted, error: nil) { _, status in
+            status.pointee = fed ? .endOfStream : .haveData
+            defer { fed = true }
+            return fed ? nil : buffer
+        }
+        return converted
     }
 
     /// A recording `write` saved.

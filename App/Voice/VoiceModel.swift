@@ -221,7 +221,7 @@ nonisolated enum AppleSpeech {
         let (module, heard) = try await transcriber()
         defer { heard.cancel() }
         guard let format = await SpeechAnalyzer.bestAvailableAudioFormat(compatibleWith: [module]) else { throw Unsupported() }
-        guard let sound = converted(recording, to: format) else { throw Unconvertible() }
+        guard let sound = Recording.converted(recording, to: format) else { throw Unconvertible() }
         if let request = try await AssetInventory.assetInstallationRequest(supporting: [module]) { try await request.downloadAndInstall() }
         let (stream, input) = AsyncStream<AnalyzerInput>.makeStream()
         let analyzer = SpeechAnalyzer(modules: [module])
@@ -248,22 +248,6 @@ nonisolated enum AppleSpeech {
             for try await result in module.results where result.isFinal { text += String(result.text.characters) }
             return text
         })
-    }
-
-    private static func converted(_ recording: [Float], to format: AVAudioFormat) -> AVAudioPCMBuffer? {
-        guard let buffer = AVAudioPCMBuffer(pcmFormat: Recording.format, frameCapacity: AVAudioFrameCount(recording.count)),
-              let converter = AVAudioConverter(from: Recording.format, to: format),
-              let converted = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(Double(recording.count) * format.sampleRate / 16_000) + 1)
-        else { return nil }
-        buffer.frameLength = buffer.frameCapacity
-        recording.withUnsafeBufferPointer { buffer.floatChannelData?[0].update(from: $0.baseAddress!, count: recording.count) }
-        nonisolated(unsafe) var fed = false
-        converter.convert(to: converted, error: nil) { _, status in
-            status.pointee = fed ? .endOfStream : .haveData
-            defer { fed = true }
-            return fed ? nil : buffer
-        }
-        return converted
     }
 
     private struct Unsupported: LocalizedError {
