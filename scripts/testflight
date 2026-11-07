@@ -6,6 +6,11 @@
 # ASC_TEAM, and the key is ~/.appstoreconnect/private_keys/AuthKey_$ASC_KEY_ID.p8.
 set -eu
 cd "$(dirname "$0")/.."
+backup=Packages/KeyboardModules/Sources/KeyboardStore/Resources/Keys/backup.key
+if [ -e "$backup" ]; then
+  echo "$backup would send every tester's typing to its backup server: run this from a checkout without it" >&2
+  exit 1
+fi
 . ~/.appstoreconnect/env
 auth="-allowProvisioningUpdates -authenticationKeyPath $HOME/.appstoreconnect/private_keys/AuthKey_$ASC_KEY_ID.p8
   -authenticationKeyID $ASC_KEY_ID -authenticationKeyIssuerID $ASC_ISSUER_ID"
