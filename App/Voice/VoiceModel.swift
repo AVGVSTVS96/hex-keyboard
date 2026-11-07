@@ -26,7 +26,7 @@ import UIKit
         var detail: String {
             switch self {
             case .v3: "Fast and accurate. Downloads once, about 500 MB."
-            case .ultra: "A little more accurate. Takes minutes to get ready, and warms the iPhone, each time iikb opens."
+            case .ultra: "A little more accurate. Takes minutes to get ready, and runs warm, each time iikb opens."
             case .apple: "Built into iOS."
             }
         }
@@ -267,7 +267,7 @@ nonisolated enum AppleSpeech {
     }
 
     private struct Unsupported: LocalizedError {
-        var errorDescription: String? { "Voice typing doesn't support this iPhone's language yet." }
+        var errorDescription: String? { "Voice typing doesn't support your language yet." }
     }
 
     private struct Unconvertible: LocalizedError {

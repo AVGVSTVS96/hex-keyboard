@@ -20,12 +20,12 @@ struct StatsPage: View {
 
         var title: String {
             switch self {
-            case .iPhone: "iPhone"
+            case .iPhone: ThisDevice.name
             case let .computer(name): name
             }
         }
 
-        var symbol: String { self == .iPhone ? "iphone" : "laptopcomputer" }
+        var symbol: String { self == .iPhone ? ThisDevice.symbol : "laptopcomputer" }
     }
 
     @Bindable private var router = Router.shared

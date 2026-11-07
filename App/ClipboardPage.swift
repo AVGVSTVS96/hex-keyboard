@@ -43,7 +43,7 @@ struct ClipboardPage: View {
         NavigationStack {
             Group {
                 if beside {
-                    Panes {
+                    Panes(list: true) {
                         list
                     } second: {
                         if let item = shownInFull {
@@ -182,7 +182,7 @@ struct ClipboardPage: View {
             Label("Nothing Copied Yet", systemImage: "list.clipboard")
         } description: {
             Text(store.started
-                ? "Everything you copy shows up here and in the keyboard’s clipboard, kept on this iPhone."
+                ? "Everything you copy shows up here and in the keyboard’s clipboard, kept on this \(ThisDevice.name)."
                 : "Type with iikb in any app, and what it keeps of what you copy shows up here.")
         }
     }

@@ -18,7 +18,7 @@ private struct ModelSettings: View {
     private let voice = VoiceModel.shared
 
     var body: some View {
-        Box(header: "Voice Model", footer: "Everything you say is written down on this iPhone and never leaves it. What you dictate while a Parakeet gets ready is written once it’s ready, in the order you said it.") {
+        Box(header: "Voice Model", footer: "Everything you say is written down on this \(ThisDevice.name) and never leaves it. What you dictate while a Parakeet gets ready is written once it’s ready, in the order you said it.") {
             ForEach([VoiceModel.Model.v3, .ultra, .apple], id: \.self) { choice in
                 ChoiceRow(title: choice.title, detail: choice.detail, picked: choice == voice.model) {
                     voice.pick(choice)
@@ -179,7 +179,7 @@ private struct MicrophoneSettings: View {
     @AppStorage("compareMicrophones") private var comparing = true
 
     var body: some View {
-        Box(header: "Microphone", footer: "Automatic hears from the iPhone, or a wired headset when one is plugged in, never from Bluetooth, so music on AirPods and speakers keeps its full quality while you dictate. A Bluetooth microphone puts its device on a call, at call quality, while the mic is on. A pick is used whenever it’s connected; when it isn’t, the iPhone’s hears.") {
+        Box(header: "Microphone", footer: "Automatic hears from the \(ThisDevice.name), or a wired headset when one is plugged in, never from Bluetooth, so music on AirPods and speakers keeps its full quality while you dictate. A Bluetooth microphone puts its device on a call, at call quality, while the mic is on. A pick is used whenever it’s connected; when it isn’t, the \(ThisDevice.name)’s hears.") {
             ChoiceRow(title: "Automatic", picked: choices.picked == nil) { choices.pick(nil) }
             ForEach(choices.all, id: \.uid) { microphone in
                 ChoiceRow(title: microphone.title, detail: detail(microphone), picked: choices.isPicked(microphone)) { choices.pick(microphone) }

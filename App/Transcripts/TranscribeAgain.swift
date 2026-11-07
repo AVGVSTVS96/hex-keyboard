@@ -11,7 +11,7 @@ struct RecordingSection: View {
     var body: some View {
         let kept = Transcripts.shared.hasRecording(transcript.id)
         if kept || transcript.mic != nil {
-            Box(footer: kept ? "iikb keeps the sound of each dictation on this iPhone, so it can be shared as a voice memo or written again with \(VoiceModel.shared.model.title)." : nil) {
+            Box(footer: kept ? "iikb keeps the sound of each dictation on this \(ThisDevice.name), so it can be shared as a voice memo or written again with \(VoiceModel.shared.model.title)." : nil) {
                 if let mic = transcript.mic { Fact(title: "Microphone", value: mic) }
                 if let voiceProcessing = transcript.voiceProcessing { Fact(title: "Voice Processing", value: voiceProcessing ? "On" : "Off") }
                 if let capture = transcript.capture.flatMap(Capture.init) { Fact(title: "Compared As", value: capture.title) }

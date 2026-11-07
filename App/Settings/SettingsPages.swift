@@ -171,12 +171,12 @@ struct PrivacyPage: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 28) {
-            Box(header: "What Leaves This iPhone") {
-                Label(Backup.isBuiltIn ? "Learned words, app-specific language and emoji choices, typing counts, dictations and clipboard history stay here and on your backup server." : "Learned words, app-specific language and emoji choices, typing counts, dictations and clipboard history stay here.", systemImage: "iphone").labelStyle(.aligned).row()
+            Box(header: "What Leaves This \(ThisDevice.name)") {
+                Label(Backup.isBuiltIn ? "Learned words, app-specific language and emoji choices, typing counts, dictations and clipboard history stay here and on your backup server." : "Learned words, app-specific language and emoji choices, typing counts, dictations and clipboard history stay here.", systemImage: ThisDevice.symbol).labelStyle(.aligned).row()
                 Label("iikb goes online to download its voice model, search GIFs, ask the App Store the names of apps you type in, and send the field’s text and app ID to sources you add.", systemImage: "network").labelStyle(.aligned).row()
             }
             if Backup.isBuiltIn {
-                Box(header: "Backup", footer: "iikb sends what it keeps to your server each time it changes, and the server keeps every version, so a lost iPhone, a reinstall or a bug can’t take it.") {
+                Box(header: "Backup", footer: "iikb sends what it keeps to your server each time it changes, and the server keeps every version, so a lost \(ThisDevice.name), a reinstall or a bug can’t take it.") {
                     switch backup {
                     case nil: RowText(title: "Checking your server…").row()
                     case .upToDate: RowText(title: "Up to date", detail: "Your dictations, Dictionary, clipboard and taps are there. The keyboard sends what it learns each time it closes.").row()
@@ -188,10 +188,10 @@ struct PrivacyPage: View {
             Box(footer: "iikb forgets the words it learned across apps and within each app, and where your thumbs land on each key. Your Dictionary stays.") {
                 ActionRow(title: "Reset Learned Words and Taps", role: .destructive) { confirmsReset = true }
             }
-            Box(footer: "Deletes the counts Stats keeps of your typing on this iPhone: never what you typed, only how much, how fast and in which app.") {
+            Box(footer: "Deletes the counts Stats keeps of your typing on this \(ThisDevice.name): never what you typed, only how much, how fast and in which app.") {
                 ActionRow(title: "Delete Typing Stats", role: .destructive) { confirmsDeleteTyping = true }
             }
-            Box(footer: transcripts.all.isEmpty ? "You haven’t dictated anything yet." : "Deletes all \(transcripts.all.count.formatted()) dictations and their sound from this iPhone.") {
+            Box(footer: transcripts.all.isEmpty ? "You haven’t dictated anything yet." : "Deletes all \(transcripts.all.count.formatted()) dictations and their sound from this \(ThisDevice.name).") {
                 ActionRow(title: "Delete All Transcripts", role: .destructive) { confirmsDelete = true }
                     .disabled(transcripts.all.isEmpty)
             }
@@ -207,10 +207,10 @@ struct PrivacyPage: View {
         .confirmationDialog("iikb will forget the words it learned and everything it learned about your taps.", isPresented: $confirmsReset, titleVisibility: .visible) {
             Button("Reset", role: .destructive) { MemoryStore.reset() }
         }
-        .confirmationDialog("Delete your typing stats from this iPhone?", isPresented: $confirmsDeleteTyping, titleVisibility: .visible) {
+        .confirmationDialog("Delete your typing stats from this \(ThisDevice.name)?", isPresented: $confirmsDeleteTyping, titleVisibility: .visible) {
             Button("Delete", role: .destructive) { TypingStats.delete() }
         }
-        .confirmationDialog("Delete all \(transcripts.all.count) transcripts from this iPhone?", isPresented: $confirmsDelete, titleVisibility: .visible) {
+        .confirmationDialog("Delete all \(transcripts.all.count) transcripts from this \(ThisDevice.name)?", isPresented: $confirmsDelete, titleVisibility: .visible) {
             Button("Delete All", role: .destructive) { transcripts.deleteAll() }
         }
         .confirmationDialog("Clear your clipboard history?", isPresented: $confirmsClearClipboard, titleVisibility: .visible) {

@@ -14,7 +14,7 @@ struct AddComputer: View {
     var body: some View {
         NavigationStack {
             Column {
-                Box(header: "On your Mac", footer: "Run this in Terminal with Keystroke counting there. It shows a QR code: scan it with your iPhone’s camera. With Tailscale on both, iikb reaches the Mac anywhere; without it, on the same Wi‑Fi.") {
+                Box(header: "On your Mac", footer: "Run this in Terminal with Keystroke counting there. It shows a QR code: scan it with your \(ThisDevice.name)’s camera. With Tailscale on both, iikb reaches the Mac anywhere; without it, on the same Wi‑Fi.") {
                     HStack(alignment: .center, spacing: 12) {
                         Text(Self.command)
                             .font(.footnote.monospaced())

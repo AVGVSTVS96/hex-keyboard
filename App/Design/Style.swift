@@ -102,3 +102,11 @@ struct Mark: View {
             .accessibilityHidden(true)
     }
 }
+
+/// The device iikb runs on: what people call it, "iPhone" or "iPad", wherever the app says where something is kept,
+/// and whether it can tap back, which an iPad, with no Taptic Engine, can't.
+enum ThisDevice {
+    static let name = UIDevice.current.model
+    static let symbol = UIDevice.current.userInterfaceIdiom == .pad ? "ipad" : "iphone"
+    static let hasHaptics = UIDevice.current.userInterfaceIdiom != .pad
+}
