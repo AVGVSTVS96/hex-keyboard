@@ -4,6 +4,9 @@
 # private API (KeyboardHost, HostApp, AppName, AppStatus), and then checks no private name is left in its binaries.
 # Xcode signs and uploads with an App Store Connect API key: ~/.appstoreconnect/env sets ASC_KEY_ID, ASC_ISSUER_ID and
 # ASC_TEAM, and the key is ~/.appstoreconnect/private_keys/AuthKey_$ASC_KEY_ID.p8.
+# Over ssh the login keychain is locked, and codesign fails with errSecInternalComponent: unlock it in the same ssh
+# session that runs this (security unlock-keychain -p … ~/Library/Keychains/login.keychain-db), since it locks again when
+# the session ends.
 set -eu
 cd "$(dirname "$0")/.."
 backup=Packages/KeyboardModules/Sources/KeyboardStore/Resources/Keys/backup.key
