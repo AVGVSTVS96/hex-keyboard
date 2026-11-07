@@ -211,43 +211,8 @@ themes() {
   [ -n "${KEEP:-}" ] || xcrun simctl shutdown "$id"
 }
 
-# Screenshots each of the app's screens on the iPhone Duo's four screens, as duo does for the keyboard:
-# shots/raw/duo/app/<tag>-<screen>-<page>-<appearance>.png. TOUCHES (a touch model, as the keyboard shares it),
-# TYPING (JSON lines of hours, as the keyboard shares them) and TRANSCRIPTS (JSON lines, as the app keeps them) fill
-# Stats and Transcripts, MAC (a Keystroke typing-stats.json) Stats' Mac as the copy last read, and CLIPBOARD (a
-# history.json, as ClipboardStore keeps it) Clipboard; PAGES picks the pages, SCREENS the screens; ARGS adds launch arguments to each
-# (-iikbScrollToEnd YES shows each page's end); SIM names the simulator.
-duoapp() {
-  local tag=$1 id data group; shift
-  id=$(ensure "${SIM:-iPhone Duo}" iPhone-Duo)
-  boot "$id"
-  allow "$id" paste
-  use "$id" iikb
-  unfold "$id" 0
-  group=$(xcrun simctl get_app_container "$id" "$BUNDLE" group.com.shahidy.iikb)
-  data=$(xcrun simctl get_app_container "$id" "$BUNDLE" data)
-  [ -n "${TOUCHES:-}" ] && mkdir -p "$group/Library" && cp "$TOUCHES" "$group/Library/touches.json"
-  [ -n "${TYPING:-}" ] && mkdir -p "$group/Library" && cp "$TYPING" "$group/Library/typing.jsonl"
-  [ -n "${MAC:-}" ] && mkdir -p "$data/Library/Caches/computers" "$data/Library/Application Support" && cp "$MAC" "$data/Library/Caches/computers/Mac.json" &&
-    echo '[{"name":"Mac","url":"http://mac.local:2593","token":"t"}]' >"$data/Library/Application Support/computers.json"
-  [ -n "${TRANSCRIPTS:-}" ] && mkdir -p "$data/Library/Application Support" && cp "$TRANSCRIPTS" "$data/Library/Application Support/transcripts.jsonl"
-  [ -n "${CLIPBOARD:-}" ] && mkdir -p "$group/Library/clipboard" && cp "$CLIPBOARD" "$group/Library/clipboard/history.json"
-  while read -r screen hinge orientation display; do
-    [ -n "${SCREENS:-}" ] && [[ " $SCREENS " != *" $screen "* ]] && continue
-    case $screen in open-*) unfold "$id" "$hinge" ;; esac
-    hub "$id" orientation "$orientation"
-    for appearance in ${APPEARANCES:-dark light}; do
-      xcrun simctl ui "$id" appearance "$appearance"
-      while read -r page args; do
-        [ -n "${PAGES:-}" ] && [[ " $PAGES " != *" $page "* ]] && continue
-        xcrun simctl terminate "$id" "$BUNDLE" 2>/dev/null || true
-        hub "$id" orientation "$orientation"
-        xcrun simctl launch "$id" "$BUNDLE" -iikbOrientation "$([ "$orientation" = portrait ] && echo portrait || echo landscape)" $args ${ARGS:-} >/dev/null 2>&1 || true
-        sleep "${SETTLE:-4}"
-        mkdir -p shots/raw/duo/app
-        xcrun simctl io "$id" screenshot --display="$display" "shots/raw/duo/app/$tag-$screen-$page-$appearance.png" >/dev/null 2>&1
-      done <<PAGES
-home -iikbTab home
+# The app's pages as duoapp and ipadapp screenshot them: a name and the launch arguments that open it.
+APP_PAGES="home -iikbTab home
 typing -iikbFocus YES
 settings -iikbSettings YES
 appearance -iikbSettings appearance
@@ -268,11 +233,106 @@ add-computer -iikbStats typing -iikbAddComputer YES
 taps -iikbTaps YES
 sources -iikbSettings sources
 access -iikbSettings access
-privacy -iikbSettings privacy
-PAGES
+privacy -iikbSettings privacy"
+
+# Fills an installed app with what duoapp and ipadapp show: TOUCHES (a touch model, as the keyboard shares it), TYPING
+# (JSON lines of hours, as the keyboard shares them) and TRANSCRIPTS (JSON lines, as the app keeps them) fill Stats and
+# Transcripts, MAC (a Keystroke typing-stats.json) Stats' Mac as the copy last read, and CLIPBOARD (a history.json, as
+# ClipboardStore keeps it) Clipboard.
+fill() {
+  local id=$1 group data
+  group=$(xcrun simctl get_app_container "$id" "$BUNDLE" group.com.shahidy.iikb)
+  data=$(xcrun simctl get_app_container "$id" "$BUNDLE" data)
+  [ -n "${TOUCHES:-}" ] && mkdir -p "$group/Library" && cp "$TOUCHES" "$group/Library/touches.json"
+  [ -n "${TYPING:-}" ] && mkdir -p "$group/Library" && cp "$TYPING" "$group/Library/typing.jsonl"
+  [ -n "${MAC:-}" ] && mkdir -p "$data/Library/Caches/computers" "$data/Library/Application Support" && cp "$MAC" "$data/Library/Caches/computers/Mac.json" &&
+    echo '[{"name":"Mac","url":"http://mac.local:2593","token":"t"}]' >"$data/Library/Application Support/computers.json"
+  [ -n "${TRANSCRIPTS:-}" ] && mkdir -p "$data/Library/Application Support" && cp "$TRANSCRIPTS" "$data/Library/Application Support/transcripts.jsonl"
+  [ -n "${CLIPBOARD:-}" ] && mkdir -p "$group/Library/clipboard" && cp "$CLIPBOARD" "$group/Library/clipboard/history.json"
+  return 0
+}
+
+# Screenshots each of the app's screens on the iPhone Duo's four screens, as duo does for the keyboard:
+# shots/raw/duo/app/<tag>-<screen>-<page>-<appearance>.png, filled as fill says; PAGES picks the pages, SCREENS the
+# screens; ARGS adds launch arguments to each (-iikbScrollToEnd YES shows each page's end); SIM names the simulator.
+duoapp() {
+  local tag=$1 id; shift
+  id=$(ensure "${SIM:-iPhone Duo}" iPhone-Duo)
+  boot "$id"
+  allow "$id" paste
+  use "$id" iikb
+  unfold "$id" 0
+  fill "$id"
+  while read -r screen hinge orientation display; do
+    [ -n "${SCREENS:-}" ] && [[ " $SCREENS " != *" $screen "* ]] && continue
+    case $screen in open-*) unfold "$id" "$hinge" ;; esac
+    hub "$id" orientation "$orientation"
+    for appearance in ${APPEARANCES:-dark light}; do
+      xcrun simctl ui "$id" appearance "$appearance"
+      while read -r page args; do
+        [ -n "${PAGES:-}" ] && [[ " $PAGES " != *" $page "* ]] && continue
+        xcrun simctl terminate "$id" "$BUNDLE" 2>/dev/null || true
+        hub "$id" orientation "$orientation"
+        xcrun simctl launch "$id" "$BUNDLE" -iikbOrientation "$([ "$orientation" = portrait ] && echo portrait || echo landscape)" $args ${ARGS:-} >/dev/null 2>&1 || true
+        sleep "${SETTLE:-4}"
+        mkdir -p shots/raw/duo/app
+        xcrun simctl io "$id" screenshot --display="$display" "shots/raw/duo/app/$tag-$screen-$page-$appearance.png" >/dev/null 2>&1
+      done <<<"$APP_PAGES"
     done
   done <<<"$DUO_SCREENS"
   [ -n "${KEEP:-}" ] || xcrun simctl shutdown "$id"
+}
+
+# iPads and the windows each gives the app: full screen upright and sideways, then windows dragged toward a size in
+# points, which iPadOS snaps to the sizes it tiles windows at, so each shot's name ends in the size it got.
+IPAD_WINDOWS="iPad-mini-A17-Pro portrait portrait -
+iPad-mini-A17-Pro landscape landscape -
+iPad-Pro-11-inch-M4-8GB portrait portrait -
+iPad-Pro-11-inch-M4-8GB landscape landscape -
+iPad-Pro-11-inch-M4-8GB third landscape 400x834
+iPad-Pro-11-inch-M4-8GB half landscape 600x834
+iPad-Pro-11-inch-M4-8GB two-thirds landscape 800x834
+iPad-Pro-11-inch-M4-8GB window landscape 900x640
+iPad-Pro-11-inch-M4-8GB portrait-half portrait 417x1210
+iPad-Pro-13-inch-M4-8GB portrait portrait -
+iPad-Pro-13-inch-M4-8GB landscape landscape -
+iPad-Pro-13-inch-M4-8GB half landscape 683x1032"
+
+# Screenshots each of the app's screens on iPads in each window of IPAD_WINDOWS, through UITests/AppShots, which turns
+# the iPad and drags the window to its size as you would: shots/raw/ipad/app/<tag>-<device>-<window>-<appearance>-<page>-<size>.png,
+# each its window alone; filled as fill says; IPADS, WINDOWS, PAGES and APPEARANCES pick.
+ipadapp() {
+  local tag=$1 device window orientation size id last= prefix
+  export APP=build/uitest/Build/Products/Debug-iphonesimulator/iikb.app
+  mkdir -p shots/raw/ipad/app
+  while read -r device window orientation size <&3; do
+    [ -n "${IPADS:-}" ] && [[ " $IPADS " != *" $device "* ]] && continue
+    [ -n "${WINDOWS:-}" ] && [[ " $WINDOWS " != *" $window "* ]] && continue
+    if [ "$device" != "$last" ]; then
+      id=$(ensure "$device" "$device")
+      [ -d "$APP" ] || { xcodegen generate -q
+        xcodebuild build-for-testing -project iikb.xcodeproj -scheme iikb -destination "id=$id" -derivedDataPath build/uitest -quiet; }
+      boot "$id"
+      allow "$id" paste
+      use "$id" iikb
+      fill "$id"
+      last=$device
+    fi
+    for appearance in ${APPEARANCES:-dark light}; do
+      xcrun simctl ui "$id" appearance "$appearance"
+      prefix="$PWD/shots/raw/ipad/app/$tag-$device-$window-$appearance"
+      TEST_RUNNER_IIKB_SHOTS=$prefix TEST_RUNNER_IIKB_ORIENTATION=$orientation TEST_RUNNER_IIKB_WINDOW=${size#-} \
+        TEST_RUNNER_IIKB_PAGES=$(while read -r page args; do
+          [ -n "${PAGES:-}" ] && [[ " $PAGES " != *" $page "* ]] && continue
+          echo "$page $args"
+        done <<<"$APP_PAGES") \
+        xcodebuild test-without-building -collect-test-diagnostics never -project iikb.xcodeproj -scheme iikb -destination "id=$id" \
+        -derivedDataPath build/uitest -only-testing:AppUITests/AppShots > build/uitest/app.log 2>&1 || failed=1
+      grep -E "error:|SHOT|Test Case .*(passed|failed)" build/uitest/app.log || true
+    done
+  done 3<<<"$IPAD_WINDOWS"
+  [ -n "${KEEP:-}" ] || xcrun simctl shutdown "$id"
+  return "${failed:-0}"
 }
 
 # Screenshots the app's Stats › Taps screen showing a touch model (JSON, as the keyboard shares it), light and dark:
