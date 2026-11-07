@@ -22,6 +22,11 @@ Everything is counted and timed, and nothing is ever written down: no letter of 
   Typing Stats leaves a token in the settings, so the keyboard deletes that copy too.
 - **Dictation**: the transcripts (`Transcripts`): words, how long each dictation ran, when, and the app it was typed
   into, which the keyboard names (`KeyboardHost`, `Dictation.host`) as you start and stop it.
+- **App names**: the keyboard knows an app only by its bundle ID (`com.atebits.Tweetie2`), and iOS gives an app no
+  public way to read another's name, so `AppName` asks Apple's iTunes Search API (`itunes.apple.com/lookup`) once for
+  the App Store's name, cuts its tagline and maker ("Gmail - Email by Google" is Gmail, "Claude by Anthropic" Claude)
+  and keeps it in Caches. Apple's own apps the store doesn't list, like Settings, are named in `AppName.unlisted`; any
+  other shows its bundle ID's last part.
 
 Speed is words a minute: for typing, words of five characters (the standard measure) over the time you were typing;
 for dictation, each dictation's words over its length, as Transcripts' pace. Privacy & Data › Delete Typing Stats

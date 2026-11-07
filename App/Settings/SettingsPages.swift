@@ -173,7 +173,7 @@ struct PrivacyPage: View {
         VStack(alignment: .leading, spacing: 28) {
             Box(header: "What Leaves This iPhone") {
                 Label(Backup.isBuiltIn ? "Learned words, app-specific language and emoji choices, typing counts, dictations and clipboard history stay here and on your backup server." : "Learned words, app-specific language and emoji choices, typing counts, dictations and clipboard history stay here.", systemImage: "iphone").labelStyle(.aligned).row()
-                Label("iikb goes online to download its voice model, search GIFs, and send the field’s text and app ID to sources you add.", systemImage: "network").labelStyle(.aligned).row()
+                Label("iikb goes online to download its voice model, search GIFs, ask the App Store the names of apps you type in, and send the field’s text and app ID to sources you add.", systemImage: "network").labelStyle(.aligned).row()
             }
             if Backup.isBuiltIn {
                 Box(header: "Backup", footer: "iikb sends what it keeps to your server each time it changes, and the server keeps every version, so a lost iPhone, a reinstall or a bug can’t take it.") {

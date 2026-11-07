@@ -19,6 +19,8 @@ Deleting iikb deletes all of it.
   sent; the model runs on the iPhone.
 - **GIF search.** What you type into GIF search goes to KLIPY, which returns the GIFs, with a random ID made for this
   install that KLIPY uses to rank results. Nothing else you type is sent.
+- **App names.** To show apps by name in Stats, Transcripts and Writing Style, the iikb app asks Apple's App Store
+  (iTunes Search API) for the names of the apps you've typed or dictated in, by their bundle IDs, once each.
 - **Sources you add.** A source is a web service you choose to plug in. iikb sends it the text of the field you're typing
   in, as [docs/sources.md](sources.md) describes. None is added unless you add it.
 - **Computers you add.** If you add your own Mac to Stats, iikb reads the typing counts it shares, over your own network.
