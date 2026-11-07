@@ -109,3 +109,20 @@ test("gives Keystroke the iPhone's typing and dictation as counts by day and hou
   expect(day.voice.hourChars[9]).toBe(17);
   expect(sources.iikb).toMatchObject({ words: 3, inserts: 1 });
 });
+
+test("an iPad's files go to a backup of their own, said back in the listing, and it still gets what the server gives", async () => {
+  const { dir, send } = await server();
+  dirs.push(`${dir}-ipad`);
+  await send("PUT", "/app/transcripts.jsonl", "iphone");
+  await send("PUT", "/personal/en.network", "net");
+  const ipad = (method: string, path: string, body?: string) =>
+    backup(dir, "secret")(new Request(`http://server${path}`, { method, body, headers: { authorization: "Bearer secret", "x-modified": "1762000000", "x-device": "iPad" } }));
+  expect((await ipad("PUT", "/app/transcripts.jsonl", "ipad")).status).toBe(204);
+  expect(await readFile(join(dir, "mirror/app/transcripts.jsonl"), "utf8")).toBe("iphone");
+  expect(await readFile(join(`${dir}-ipad`, "mirror/app/transcripts.jsonl"), "utf8")).toBe("ipad");
+  const listing = await ipad("GET", "/");
+  expect(listing.headers.get("x-device")).toBe("iPad");
+  expect(Object.keys(await listing.json()).sort()).toEqual(["app/transcripts.jsonl", "personal/en.network"]);
+  expect(await (await ipad("GET", "/personal/en.network")).text()).toBe("net");
+  expect((await send("GET", "/")).headers.get("x-device")).toBe("iPhone");
+});

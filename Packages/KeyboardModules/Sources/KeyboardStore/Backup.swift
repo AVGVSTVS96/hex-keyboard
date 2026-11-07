@@ -1,3 +1,4 @@
+import Darwin
 import Foundation
 
 /// Sends iikb's files to the backup server built in as `Resources/Keys/backup.key` (its address on the first line, its
@@ -22,6 +23,30 @@ nonisolated public enum Backup {
     }()
 
     public static var isBuiltIn: Bool { server != nil }
+
+    /// The kind of device this is, from its model ("iPad16,4" is an iPad). The server keeps an iPhone's files where it
+    /// always has, and another device's in a backup of its own (`server/backup.ts`), so an iPad never sends its files
+    /// over the iPhone's. An iPhone's build from before this sends no kind, and the server takes it for an iPhone.
+    static let device: String = {
+        var system = utsname()
+        uname(&system)
+        let machine = withUnsafeBytes(of: system.machine) { String(decoding: $0.prefix { $0 != 0 }, as: UTF8.self) }
+        return String(machine.prefix { $0.isLetter })
+    }()
+
+    /// The server's listing of what it holds for this device, or nil when it can't be reached. A device other than an
+    /// iPhone gets one only from a server that says it keeps that device apart, since an older one would put its files
+    /// over the iPhone's.
+    private static func listing(_ server: (url: URL, token: String)) async -> (request: URLRequest, held: [String: [Int]])? {
+        var request = URLRequest(url: server.url, cachePolicy: .reloadIgnoringLocalCacheData)
+        request.setValue("Bearer \(server.token)", forHTTPHeaderField: "Authorization")
+        request.setValue(device, forHTTPHeaderField: "X-Device")
+        guard let (data, response) = try? await URLSession.shared.data(for: request), let response = response as? HTTPURLResponse,
+              response.statusCode == 200, device == "iPhone" || response.value(forHTTPHeaderField: "X-Device") == device,
+              let held = try? JSONDecoder().decode([String: [Int]].self, from: data)
+        else { return nil }
+        return (request, held)
+    }
 
     private static var library: URL { .libraryDirectory }
 
@@ -62,11 +87,7 @@ nonisolated public enum Backup {
     @discardableResult
     public static func send(_ folders: [Folder], skip: @Sendable (String) -> Bool = { _ in false }) async -> Outcome? {
         guard let server else { return nil }
-        var request = URLRequest(url: server.url)
-        request.setValue("Bearer \(server.token)", forHTTPHeaderField: "Authorization")
-        guard let (data, response) = try? await URLSession.shared.data(for: request), (response as? HTTPURLResponse)?.statusCode == 200,
-              let held = try? JSONDecoder().decode([String: [Int]].self, from: data)
-        else { return .unreachable }
+        guard let (request, held) = await listing(server) else { return .unreachable }
         let files = folders.flatMap(contents).filter { !skip($0.name) }
         var outcome = Outcome.upToDate
         for file in files where held[file.name] != [file.size, file.modified] {
@@ -93,11 +114,8 @@ nonisolated public enum Backup {
     /// server's time. `current` when the copy is the server's or the server has nothing newer to give.
     public static func pull(_ name: String, to url: URL, after: Date = .distantPast) async -> Pulled {
         guard let server else { return .unavailable }
-        var request = URLRequest(url: server.url, cachePolicy: .reloadIgnoringLocalCacheData)
-        request.setValue("Bearer \(server.token)", forHTTPHeaderField: "Authorization")
-        guard let (data, response) = try? await URLSession.shared.data(for: request), (response as? HTTPURLResponse)?.statusCode == 200,
-              let held = try? JSONDecoder().decode([String: [Int]].self, from: data)
-        else { return .unavailable }
+        guard let (listed, held) = await listing(server) else { return .unavailable }
+        var request = listed
         guard let theirs = held[name], theirs.count == 2, Date(timeIntervalSince1970: Double(theirs[1])) > after else { return .current }
         let values = try? url.resourceValues(forKeys: [.fileSizeKey, .contentModificationDateKey])
         if values?.fileSize == theirs[0], values?.contentModificationDate.map({ Int($0.timeIntervalSince1970) }) == theirs[1] { return .current }

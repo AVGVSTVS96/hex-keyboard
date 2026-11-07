@@ -24,12 +24,25 @@
 # main as it is by then, so builds that finish meanwhile land as one batch and the runs queued behind it find their
 # build already on the iPhone. --now skips the wait.
 # Before building it runs scripts/gate and then scripts/formats on that commit, and installs nothing that fails either.
+# `scripts/phone iPad` does all of it on the iPad the Mac reaches instead, never touching the iPhone: its own stamp, and
+# its own backup (~/.local/share/iikb/backup-ipad, as the backup server keeps an iPad's apart; docs/backup.md).
+# Usage: scripts/phone [iPad] [--now|--reinstall]
 set -e
 cd "$(dirname "$0")/.."
+kind=iPhone flag=
+for arg; do
+  case $arg in (iPhone|iPad) kind=$arg ;; (--now|--reinstall) flag=$arg ;; (*) echo "usage: scripts/phone [iPad] [--now|--reinstall]" >&2; exit 2 ;; esac
+done
+set -- $flag
 build=../iikb-build
 exec 9>"$build.lock"
 flock 9
 stamp=$build.installed
+backups=${IIKB_BACKUP:-$HOME/.local/share/iikb/backup}
+if [ "$kind" != iPhone ]; then
+  stamp=$stamp-$(echo "$kind" | tr A-Z a-z)
+  backups=$HOME/.local/share/iikb/backup-$(echo "$kind" | tr A-Z a-z)
+fi
 wait=$(( ${PHONE_EVERY:-600} - $(date +%s) + $(stat -c %Y "$stamp" 2>/dev/null || echo 0) ))
 if [ "$wait" -gt 0 ] && [ "${1:-}" != --now ]; then
   echo "the last install was under 10 minutes ago, so this one installs main as it is in ${wait}s, with whatever lands meanwhile" >&2
@@ -39,29 +52,32 @@ fi
 git fetch -q origin main
 commit=$(git rev-parse --short origin/main)
 number=$(git rev-list --count origin/main)
-phone=$(ssh mac 'xcrun devicectl list devices --json-output /tmp/iikb-phone.json >/dev/null && /usr/bin/python3 -c "
-import json
-for d in json.load(open(\"/tmp/iikb-phone.json\"))[\"result\"][\"devices\"]:
-    h, c = d[\"hardwareProperties\"], d[\"connectionProperties\"]
-    if h.get(\"deviceType\") == \"iPhone\" and h.get(\"reality\") == \"physical\" and c.get(\"transportType\"): print(h[\"udid\"]); break"')
-[ -n "$phone" ] || { echo "the Mac doesn't reach an iPhone" >&2; exit 1; }
+phone=$(ssh mac sh -s "$kind" <<'MAC'
+xcrun devicectl list devices --json-output /tmp/iikb-phone.json >/dev/null && /usr/bin/python3 -c "
+import json, sys
+for d in json.load(open('/tmp/iikb-phone.json'))['result']['devices']:
+    h, c = d['hardwareProperties'], d['connectionProperties']
+    if h.get('deviceType') == sys.argv[1] and h.get('reality') == 'physical' and c.get('transportType'): print(h['udid']); break" "$1"
+MAC
+)
+[ -n "$phone" ] || { echo "the Mac doesn't reach an $kind" >&2; exit 1; }
 installed=$(ssh mac sh -s "$phone" <<'MAC'
 xcrun devicectl device info apps --device "$1" --bundle-id com.shahidy.iikb --json-output /tmp/iikb-apps.json >/dev/null 2>&1 &&
 /usr/bin/python3 -c "import json; print(next((a.get('bundleVersion', '') for a in json.load(open('/tmp/iikb-apps.json'))['result']['apps']), ''))"
 MAC
 )
 if [ -n "$installed" ] && [ "$installed" -gt "$number" ] && [ "${1:-}" != --reinstall ]; then
-  echo "the iPhone has build $installed, newer than main's $number ($commit), so nothing is installed" >&2
+  echo "the $kind has build $installed, newer than main's $number ($commit), so nothing is installed" >&2
   exit 1
 fi
 if [ "$installed" = "$number" ] && [ "${1:-}" != --reinstall ]; then
-  echo "build $number (main $commit) is already on the iPhone"
+  echo "build $number (main $commit) is already on the $kind"
   exit 0
 fi
 read -r stamped from < "$stamp" 2>/dev/null || true
 if [ "$installed" = "${stamped:-}" ] && [ "${1:-}" != --reinstall ] && git diff --quiet "$from" "$commit" -- App Keyboard Config/xtool \
   xtool.yml Package.swift Package.resolved Packages/KeyboardModules/Package.swift Packages/KeyboardModules/Sources ':(exclude)**/AGENTS.md' 2>/dev/null; then
-  echo "build $installed (main $from) is on the iPhone and nothing iikb is built from has changed since, so main $commit waits for a change that needs an install"
+  echo "build $installed (main $from) is on the $kind and nothing iikb is built from has changed since, so main $commit waits for a change that needs an install"
   exit 0
 fi
 git -C "$build" checkout -q -f --detach "$commit"
@@ -112,7 +128,7 @@ path = max(glob.glob(os.path.expanduser('~/.config/xtool/data/??????????')), key
 der = plistlib.load(open(path, 'rb'))['certificate']
 print(subprocess.run(['openssl', 'x509', '-inform', 'DER', '-noout', '-serial'], input=der, capture_output=True).stdout.decode().split('=')[1].strip())")
 ssh mac sh -s "$serial" < scripts/resign
-scripts/backup "$phone"
+IIKB_BACKUP=$backups scripts/backup "$phone"
 dictating() {
   ssh mac sh -s "$phone" <<'MAC'
 xcrun devicectl device info processes --device "$1" --json-output /tmp/iikb-processes.json >/dev/null 2>&1 &&
@@ -126,7 +142,7 @@ sys.exit(0 if running and (status.get('listening') or status.get('writing')) els
 MAC
 }
 while dictating; do
-  echo "waiting for the dictation on the iPhone to be recorded and written down, since an install would cut it off" >&2
+  echo "waiting for the dictation on the $kind to be recorded and written down, since an install would cut it off" >&2
   sleep 2
 done
 ssh mac xcrun devicectl device install app --device "$phone" Developer/iikb-phone/iikb.app
@@ -137,10 +153,10 @@ xcrun devicectl device info files --device "$1" --domain-type appDataContainer -
 MAC
 ) || true
 if [ "$fresh" = True ]; then
-  date +%Y-%m-%dT%H%M%S >> "${IIKB_BACKUP:-$HOME/.local/share/iikb/backup}/reinstalls"
+  mkdir -p "$backups" && date +%Y-%m-%dT%H%M%S >> "$backups/reinstalls"
   echo "the install started iikb in a new, empty container; scripts/restore $phone puts its data back (docs/backup.md)" >&2
 fi
 ssh mac 'cat > Developer/iikb-phone/unlocked' < scripts/unlocked
-ssh mac "pkill -f iikb-phone/unlocked; nohup /usr/bin/python3 -I Developer/iikb-phone/unlocked $phone >/dev/null 2>&1 </dev/null &"
+ssh mac "pkill -f 'iikb-phone/unlocked $phone'; nohup /usr/bin/python3 -I Developer/iikb-phone/unlocked $phone >/dev/null 2>&1 </dev/null &"
 echo "$number $(git rev-parse "$commit")" > "$stamp"
-echo "build $number (main $commit) is on the iPhone"
+echo "build $number (main $commit) is on the $kind"

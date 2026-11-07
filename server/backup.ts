@@ -6,7 +6,12 @@
  *
  *   BACKUP_TOKEN=secret bun server/backup.ts [--port 2592] [--dir ~/.local/share/iikb/backup]
  *
- * GET /         every file it holds, as { "app/transcripts.jsonl": [size, modified], … }, times in seconds
+ * Each request names its device in X-Device ("iPhone" when it names none, as builds before it). An iPhone's files are
+ * kept in <dir>; another device's in <dir>-<device> (~/.local/share/iikb/backup-ipad), so they never go over the
+ * iPhone's, while what the server gives back stays one for all of them. The listing says the device back in X-Device,
+ * which a device other than an iPhone waits for before sending anything.
+ *
+ * GET /         every file it holds for the device, and what it gives back, as { "app/transcripts.jsonl": [size, modified], … }, times in seconds
  * PUT /<name>   a file, with its modification time in X-Modified
  * GET /mac/<name>  a file the Mac sent, with its time in Last-Modified, for the app's Stats (docs/stats.md)
  * GET /personal/<name>  a file made here for the iPhone (`scripts/personal`'s network), the same way; the iPhone's
@@ -58,28 +63,36 @@ export const backup =
   (dir: string, token: string, now = () => new Date()) =>
   async (request: Request): Promise<Response> => {
     if (request.headers.get("authorization") !== `Bearer ${token}`) return new Response(null, { status: 401 });
-    const mirror = join(dir, "mirror");
+    const device = request.headers.get("x-device") ?? "iPhone";
+    if (!/^[A-Za-z]+$/.test(device)) return new Response(null, { status: 400 });
+    const shared = join(dir, "mirror");
+    const own = device === "iPhone" ? dir : `${dir.replace(/\/+$/, "")}-${device.toLowerCase()}`;
+    const mirror = join(own, "mirror");
     const name = decodeURIComponent(new URL(request.url).pathname).replace(/^\/+(backup\/*)?/, "");
-    if (request.method === "GET" && name === "") return Response.json(await held(mirror));
-    if (request.method === "GET" && name === "iphone/typing-stats.json") return Response.json(await keystroke(mirror));
+    if (request.method === "GET" && name === "") {
+      const gives = Object.entries(await held(shared)).filter(([file]) => given.some((folder) => file.startsWith(`${folder}/`)));
+      return Response.json({ ...(await held(mirror)), ...Object.fromEntries(gives) }, { headers: { "x-device": device } });
+    }
+    if (request.method === "GET" && name === "iphone/typing-stats.json") return Response.json(await keystroke(shared));
 
-    const file = join(mirror, name);
     if (request.method === "GET") {
+      const file = join(shared, name);
       const sent = Bun.file(file);
-      if (!given.some((folder) => file.startsWith(join(mirror, folder) + sep)) || !(await sent.exists())) return new Response(null, { status: 404 });
+      if (!given.some((folder) => file.startsWith(join(shared, folder) + sep)) || !(await sent.exists())) return new Response(null, { status: 404 });
       return new Response(sent, { headers: { "last-modified": new Date((await stat(file)).mtimeMs).toUTCString() } });
     }
+    const file = join(mirror, name);
     const modified = Number(request.headers.get("x-modified"));
     if (request.method !== "PUT" || !file.startsWith(mirror + sep) || !Number.isSafeInteger(modified)) return new Response(null, { status: 400 });
 
-    const incoming = join(dir, "incoming", crypto.randomUUID());
+    const incoming = join(own, "incoming", crypto.randomUUID());
     await mkdir(dirname(incoming), { recursive: true });
     await Bun.write(incoming, request);
     if (await Bun.file(file).exists()) {
       if (await same(file, incoming)) {
         await rm(incoming);
       } else {
-        const version = await free(join(dir, "versions"), stamp(now()), name);
+        const version = await free(join(own, "versions"), stamp(now()), name);
         await mkdir(dirname(version), { recursive: true });
         await rename(file, version);
       }

@@ -54,6 +54,11 @@ files against the server when it opens and says whether they're all there.
 `server/backup.ts` keeps what it's sent in `~/.local/share/iikb/backup/mirror`, with the modification time it was
 sent with. A file sent with other contents moves the one it replaces to `versions/<time>/` (`<time>.001` and on when that second
 already kept one of it); nothing is ever deleted.
+An iPad's files are kept apart, in `~/.local/share/iikb/backup-ipad`, so they never go over the iPhone's: each request
+names its device (`X-Device`, from the model, "iPad" or "iPhone"; none is an iPhone), and a device other than an iPhone
+sends nothing until the server's listing names it back. The personal network and the Mac's files are one for both.
+`scripts/phone iPad` backs the iPad up there too, and `IIKB_BACKUP=~/.local/share/iikb/backup-ipad scripts/restore`
+puts it back.
 It runs as the user service `iikb-backup` (dotfiles), on port 2592 behind `tailscale serve` at `/backup`, so
 only the tailnet reaches it, and takes requests with the token in `~/.config/iikb/backup.env`.
 
