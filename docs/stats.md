@@ -29,7 +29,7 @@ deletes the iPhone's counts.
 
 ## The Mac
 
-[Keystroke](https://glaze.app) is a Mac app Bassim made with Glaze that counts typing and dictation everywhere on the
+[Keystroke](https://glaze.app) is a Mac app made with Glaze that counts typing and dictation everywhere on the
 Mac, keys by keycode and dictated text by length, and keeps the counts in
 `~/Library/Application Support/<its bundle ID>/typing-stats.json` (version 3: each day's `typed` and `voice` counts,
 both by hour, and the apps dictation went into).
