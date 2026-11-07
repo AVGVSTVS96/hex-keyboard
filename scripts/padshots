@@ -1,0 +1,41 @@
+#!/bin/bash
+# Runs on the Mac. Every state of the keyboard (UITests/PadShots: typing, layers, the tray, the More menu, each panel, floating)
+# through the real extension on each iPad, portrait and landscape, light and dark, into shots/raw/pad/<tag>/:
+# scripts/padshots <tag>. DEVICES ("iPad Pro 11:iPad-Pro-11-inch-M5-12GB" …), ORIENTATIONS, APPEARANCES and STATES
+# (layers tray more emoji gif clipboard floating) narrow it; KEYBOARDS="system iikb" shoots Apple's beside it.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+tag=${1:?tag}
+export APP=build/uitest/Build/Products/Debug-iphonesimulator/iikb.app
+devices=${DEVICES:-"iPad mini:iPad-mini-A17-Pro|iPad Pro 11:iPad-Pro-11-inch-M5-12GB|iPad Pro 13:iPad-Pro-13-inch-M5-12GB"}
+built=
+IFS='|' read -ra specs <<<"$devices"
+for spec in "${specs[@]}"; do
+  name=${spec%%:*}
+  slug=$(echo "$name" | tr 'A-Z ' 'a-z-')
+  ID=$(scripts/sim ensure "$name" "${spec##*:}")
+  if [ -z "$built" ]; then
+    xcodegen generate -q
+    xcodebuild build-for-testing -project iikb.xcodeproj -scheme iikb -destination "id=$ID" -derivedDataPath build/uitest -quiet
+    built=1
+  fi
+  scripts/sim boot "$ID"
+  scripts/sim allow "$ID" paste
+  mkdir -p "shots/raw/pad/$tag"
+  for keyboard in ${KEYBOARDS:-iikb}; do
+  scripts/sim use "$ID" "$keyboard"
+  for orientation in ${ORIENTATIONS:-portrait landscape}; do
+    for appearance in ${APPEARANCES:-light dark}; do
+      xcrun simctl terminate "$ID" com.shahidy.iikb 2>/dev/null || true
+      xcrun simctl ui "$ID" appearance "$appearance"
+      sleep 2
+      TEST_RUNNER_IIKB_SHOTS="$PWD/shots/raw/pad/$tag/$slug-$orientation-$keyboard-$appearance" TEST_RUNNER_IIKB_ORIENTATION=$orientation \
+        TEST_RUNNER_IIKB_STATES="${STATES:-}" xcodebuild test-without-building -collect-test-diagnostics never -project iikb.xcodeproj \
+        -scheme iikb -destination "id=$ID" -derivedDataPath build/uitest -only-testing:AppUITests/PadShots > build/uitest/pad.log 2>&1 || failed=1
+      grep -E "error:|XCTAssert|FLOATING|Test Case .*(passed|failed)" build/uitest/pad.log || true
+    done
+  done
+  done
+  [ -n "${KEEP:-}" ] || xcrun simctl shutdown "$ID"
+done
+exit "${failed:-0}"
