@@ -15,7 +15,7 @@ final class RecordingShareTests: XCTestCase {
         XCTAssertTrue(row.waitForExistence(timeout: 10))
 
         row.press(forDuration: 1.2)
-        let send = iikb.buttons["Send Recording in Messages"]
+        let send = iikb.buttons["Send in Messages"]
         XCTAssertTrue(send.waitForExistence(timeout: 5))
         XCTAssertTrue(iikb.buttons["Share Recording"].exists)
         try shot("menu")

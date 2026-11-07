@@ -10,7 +10,7 @@ struct RecordingActions: View {
         if Transcripts.shared.hasRecording(transcript.id) {
             Box {
                 ActionRow(title: "Send in Messages", symbol: "message") { send(as: .message) }
-                ActionRow(title: "Share Recording", symbol: "waveform") { send(as: .memo) }
+                ActionRow(title: "Share Recording", symbol: "square.and.arrow.up") { send(as: .memo) }
                 if let failure { Text(failure).foregroundStyle(.red).row() }
             }
         }

@@ -163,9 +163,9 @@ private struct Actions: View {
         }
         ShareLink(item: transcript.text) { Label("Share Text", systemImage: "square.and.arrow.up") }
         if Transcripts.shared.hasRecording(transcript.id) {
-            Section {
-                Button("Send Recording in Messages", systemImage: "message") { try? RecordingShare.send(transcript, as: .message) }
-                Button("Share Recording", systemImage: "waveform") { try? RecordingShare.send(transcript, as: .memo) }
+            Section("Recording") {
+                Button("Send in Messages", systemImage: "message") { try? RecordingShare.send(transcript, as: .message) }
+                Button("Share Recording", systemImage: "square.and.arrow.up") { try? RecordingShare.send(transcript, as: .memo) }
             }
         }
         Button("Delete", systemImage: "trash", role: .destructive) { Transcripts.shared.delete([transcript.id]) }
