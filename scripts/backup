@@ -18,7 +18,7 @@ mkdir -p "$backup/mirror/app/recordings"
 have=$(cd "$backup/mirror/app/recordings" && ls | paste -sd, -)
 read -r -d '' mac <<'MAC' || true
 set -eu
-phone=$1 have=$2 id=$3 out=$(mktemp -d /tmp/iikb-backup.XXXX)
+phone=$1 id=$2 have=${3:-} out=$(mktemp -d /tmp/iikb-backup.XXXX)
 copy() { xcrun devicectl device copy from --device "$phone" --domain-type "$1" --domain-identifier "$2" --source "$3" --destination "$out/$4" >/dev/null 2>&1 || echo "skipped $3: not on the iPhone yet" >&2; }
 list() {
   xcrun devicectl device info files --device "$phone" --domain-type appDataContainer --domain-identifier "$id" \
@@ -46,7 +46,7 @@ copy appGroupDataContainer "group.$id" Library group/Library
 rm -f "$out/list.json"
 echo "$out"
 MAC
-staged=$(ssh mac sh -s "$phone" "$have" "$id" <<<"$mac")
+staged=$(ssh mac sh -s "$phone" "$id" "$have" <<<"$mac")
 time=$(date +%Y-%m-%dT%H%M%S)
 incoming=$(mktemp -d "$backup/incoming.XXXX")
 trap 'rm -rf "$incoming"' EXIT
