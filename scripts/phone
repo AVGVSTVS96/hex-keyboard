@@ -145,7 +145,12 @@ while dictating; do
   echo "waiting for the dictation on the $kind to be recorded and written down, since an install would cut it off" >&2
   sleep 2
 done
-ssh mac xcrun devicectl device install app --device "$phone" Developer/iikb-phone/iikb.app
+# Over Wi-Fi the connection can drop mid-install ("Connection invalid"); the next try goes through.
+for try in 1 2 3; do
+  ssh mac xcrun devicectl device install app --device "$phone" Developer/iikb-phone/iikb.app && break
+  [ "$try" -lt 3 ] || exit 1
+  echo "the install was cut off, so it tries again" >&2
+done
 fresh=$(ssh mac sh -s "$phone" <<'MAC'
 xcrun devicectl device info files --device "$1" --domain-type appDataContainer --domain-identifier com.shahidy.iikb \
   --subdirectory Library --json-output /tmp/iikb-library.json >/dev/null 2>&1 &&
