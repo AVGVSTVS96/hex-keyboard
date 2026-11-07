@@ -75,7 +75,13 @@ Swipe typing: slide across the letters and lift. On 400 real swipes its first gu
 
 ## Install
 
-iikb isn't on the App Store, so you build it yourself. The code and IDs still use the old name (the `iikb` scheme, `FullKeyboard`, `com.shahidy.iikb`, the `iikb://` links), so an existing install updates in place and keeps what it learned.
+Join the beta on TestFlight: [testflight.apple.com/join/xSQ2sdYZ](https://testflight.apple.com/join/xSQ2sdYZ). Open the link on your iPhone, install TestFlight if asked, then install iikb.
+
+Then on the phone: Settings › General › Keyboard › Keyboards › Add New Keyboard… › iikb, and turn on Allow Full Access. iikb needs it for haptics, voice, GIFs, the clipboard, Your Taps and sources. The clipboard also needs Settings › Apps › iikb › Paste from Other Apps set to Allow.
+
+### Build it yourself
+
+The TestFlight build leaves out the few private iOS calls App Review doesn't allow (`scripts/testflight`), such as returning you to the app you were typing in after dictation. A build of your own keeps them.
 
 On a Mac, with Xcode and [XcodeGen](https://github.com/yonaskolb/XcodeGen):
 
@@ -85,8 +91,6 @@ open iikb.xcodeproj
 ```
 
 Put your team in `Config/Team.xcconfig` (`DEVELOPMENT_TEAM = <your team ID>`) and run the `iikb` scheme. On Linux, `scripts/phone` builds and installs it with [AVGVSTVS96/xtool](https://github.com/AVGVSTVS96/xtool), a fork that keeps the app and App Group IDs (stock xtool installs a separate copy and drops the App Group); [AGENTS.md](AGENTS.md) has the details. A different team may need to swap in its own app and App Group IDs.
-
-Then on the phone: Settings › General › Keyboard › Keyboards › Add New Keyboard… › iikb, and turn on Allow Full Access. iikb needs it for haptics, voice, GIFs, the clipboard, Your Taps and sources. The clipboard also needs Settings › Apps › iikb › Paste from Other Apps set to Allow.
 
 ## How it's built
 
