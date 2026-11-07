@@ -229,36 +229,54 @@ struct TypingSettings: View {
 
 private struct LayoutSettings: View {
     private let model = SettingsModel.shared
+    @Environment(\.window) private var window
 
     var body: some View {
+        let here = KeysHere(screen: window)
         Box(header: "Size and Shape", footer: "Less space between the keys makes them bigger. The keyboard stays the same size.") {
             StopSlider(title: "Space Between Keys", label: "Key Spacing", level: model.binding(\.keySpacing), levels: KeySpacing.allCases, name: \.title, ends: ("Bigger Keys", "More Space"))
             StopSlider(title: "Corners", label: "Key Roundness", level: model.binding(\.keyRoundness), levels: KeyRoundness.allCases, name: \.title, ends: ("Sharper", "Rounder"))
         }
-        Box(header: "Keys") {
-            ToggleRow(title: "Number Row", detail: "1 to 0 above the letters. The keyboard grows upward.", isOn: model.binding(\.numberRow))
-            ToggleRow(title: "Emoji Key", detail: "Every emoji, from beside the space bar. Without it, a word’s emoji still show in the suggestions.", isOn: model.binding(\.emojiKey))
-            ToggleRow(title: "Record Key", detail: "The record button left of 123, in the globe’s place, instead of at the right of the bar. The globe goes to the keyboard’s menu.", isOn: model.binding(\.micKey))
+        if here.numberRow || here.emojiKey || here.recordKey {
+            Box(header: "Keys") {
+                if here.numberRow {
+                    ToggleRow(title: "Number Row", detail: "1 to 0 above the letters. The keyboard grows upward.", isOn: model.binding(\.numberRow))
+                }
+                if here.emojiKey {
+                    ToggleRow(title: "Emoji Key", detail: "Every emoji, from beside the space bar. Without it, a word’s emoji still show in the suggestions.", isOn: model.binding(\.emojiKey))
+                }
+                if here.recordKey {
+                    ToggleRow(title: "Record Key", detail: "The record button left of 123, in the globe’s place, instead of at the right of the bar. The globe goes to the keyboard’s menu.", isOn: model.binding(\.micKey))
+                }
+            }
         }
-        Box(header: "Globe Key", footer: "At the far left of the bottom row, on iPhones with no globe under the keyboard, like the Duo. As a spacer it keeps 123 away from the corner and does nothing when tapped. As a spacer or hidden, Next Keyboard is in the keyboard’s menu.") {
-            ForEach(GlobeKey.allCases, id: \.self) { globe in
-                ChoiceRow(title: globe.title, picked: model.settings.globeKey == globe) { model.update { $0.globeKey = globe } }
+        if here.globeKey {
+            Box(header: "Globe Key", footer: "At the far left of the bottom row, on iPhones with no globe under the keyboard, like the Duo. As a spacer it keeps 123 away from the corner and does nothing when tapped. As a spacer or hidden, Next Keyboard is in the keyboard’s menu.") {
+                ForEach(GlobeKey.allCases, id: \.self) { globe in
+                    ChoiceRow(title: globe.title, picked: model.settings.globeKey == globe) { model.update { $0.globeKey = globe } }
+                }
             }
         }
         Box(header: "Emoji, GIFs and Clipboard") {
             MenuRow(title: "Skin Tone", selection: model.binding(\.skinTone), choices: [nil] + SkinTone.allCases.map(Optional.some)) { tone in
                 "✋\(tone.map { String($0.modifier) } ?? "") \(tone?.title ?? "Default")"
             }
-            ToggleRow(title: "Compact Emoji & GIFs", detail: "One row that scrolls sideways, as in landscape, so the keyboard stays short in portrait too.", isOn: model.binding(\.compactPanels))
+            if here.largePanels {
+                ToggleRow(title: "Compact Emoji & GIFs", detail: "One row that scrolls sideways, as in landscape, so the keyboard stays short in portrait too.", isOn: model.binding(\.compactPanels))
+            }
             MenuRow(title: "Clipboard Length", selection: model.binding(\.clipboardLength), choices: ClipboardLength.allCases) { $0.title }
         }
-        Box(header: "Split and One-Handed", footer: "Split puts half the keys under each thumb on the open iPhone Duo in landscape. One-Handed moves them toward one thumb on an iPhone in portrait, on the Duo only folded. The keyboard’s menu has both too.") {
-            ToggleRow(title: "Split Keyboard", isOn: model.binding(\.split))
-            MenuRow(title: "One-Handed Keyboard", selection: model.binding(\.oneHanded), choices: OneHanded.allCases, label: Self.title(of:))
+        if here.split || here.oneHanded {
+            Box(header: "Split and One-Handed", footer: "Split puts half the keys under each thumb on the open iPhone Duo in landscape. One-Handed moves them toward one thumb on an iPhone in portrait, on the Duo only folded. The keyboard’s menu has both too.") {
+                if here.split { ToggleRow(title: "Split Keyboard", isOn: model.binding(\.split)) }
+                if here.oneHanded { MenuRow(title: "One-Handed Keyboard", selection: model.binding(\.oneHanded), choices: OneHanded.allCases, label: Self.title(of:)) }
+            }
         }
-        Box(header: "Keyboard Menu", footer: "Where to open layouts, Next Keyboard and iikb Settings: hold 123 or emoji and slide, or tap the menu button above the keys.") {
-            ForEach(KeyboardMenu.allCases, id: \.self) { place in
-                ChoiceRow(title: place.title, picked: model.settings.keyboardMenu == place) { model.update { $0.keyboardMenu = place } }
+        if here.keyboardMenu {
+            Box(header: "Keyboard Menu", footer: "Where to open layouts, Next Keyboard and iikb Settings: hold 123 or emoji and slide, or tap the menu button above the keys.") {
+                ForEach(KeyboardMenu.allCases, id: \.self) { place in
+                    ChoiceRow(title: place.title, picked: model.settings.keyboardMenu == place) { model.update { $0.keyboardMenu = place } }
+                }
             }
         }
     }
@@ -269,6 +287,27 @@ private struct LayoutSettings: View {
         case .left: "Left"
         case .right: "Right"
         }
+    }
+}
+
+/// Which layout settings change iikb's keys on this device, as KeyboardCore lays them out, so Appearance shows only
+/// those: an iPad's keyboard keeps its own globe, menu button and one-row panels, with none of an iPhone's extra keys or
+/// layouts.
+private struct KeysHere {
+    let numberRow, emojiKey, recordKey, globeKey, keyboardMenu, split, oneHanded, largePanels: Bool
+
+    init(screen: CGSize) {
+        let device = DeviceClass(isPad: UIDevice.current.userInterfaceIdiom == .pad, shortSide: min(screen.width, screen.height))
+        let all = LayoutContext(device: device, layer: .letters, showsGlobe: true, showsEmoji: true, showsGlobeKey: true, showsNumberRow: true, keyboardMenu: .hold)
+        numberRow = all.showsNumberRow
+        emojiKey = all.showsEmoji
+        globeKey = all.showsGlobeKey
+        keyboardMenu = all.keyboardMenu == .hold
+        recordKey = LayoutContext(device: device, layer: .letters, showsGlobe: true, showsMicKey: true).showsMicKey
+        split = LayoutContext(device: device, layer: .letters, isLandscape: true, isOpen: true).allowsSplit
+        oneHanded = LayoutContext(device: device, layer: .letters).allowsOneHanded
+        let upright = Size(width: min(screen.width, screen.height), height: max(screen.width, screen.height))
+        largePanels = !KeyboardGeometry(LayoutContext(device: device, layer: .letters), screen: upright, style: .current).metrics.toolbar.isCompact
     }
 }
 
@@ -494,13 +533,15 @@ struct FeedbackSettings: View {
     }
 
     var body: some View {
-        Box(header: "Haptics", footer: status.fullAccess ? "Standard is Apple’s keyboard’s own tap. Each step taps as you pick it." : "Haptics need Allow Full Access.") {
-            ToggleRow(title: "Key Haptics", isOn: hapticsOn)
-            if model.settings.haptics != .off {
-                HapticSlider(level: model.binding(\.haptics))
-            }
-            if !status.fullAccess {
-                ActionRow(title: "Allow Full Access", symbol: "arrow.up.forward") { AppStatus.openSettings() }
+        if ThisDevice.hasHaptics {
+            Box(header: "Haptics", footer: status.fullAccess ? "Standard is Apple’s keyboard’s own tap. Each step taps as you pick it." : "Haptics need Allow Full Access.") {
+                ToggleRow(title: "Key Haptics", isOn: hapticsOn)
+                if model.settings.haptics != .off {
+                    HapticSlider(level: model.binding(\.haptics))
+                }
+                if !status.fullAccess {
+                    ActionRow(title: "Allow Full Access", symbol: "arrow.up.forward") { AppStatus.openSettings() }
+                }
             }
         }
         Box {

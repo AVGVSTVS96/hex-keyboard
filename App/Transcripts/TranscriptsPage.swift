@@ -33,7 +33,7 @@ struct TranscriptsPage: View {
         NavigationStack {
             Group {
                 if beside {
-                    Panes {
+                    Panes(list: true) {
                         list
                     } second: {
                         if let transcript = store.all.first(where: { $0.id == (selected ?? store.all.first?.id) }) {
@@ -108,7 +108,7 @@ struct TranscriptsPage: View {
         ContentUnavailableView {
             Label("No Transcripts", systemImage: "waveform")
         } description: {
-            Text("Tap the mic at the right end of the keyboard’s suggestions and talk. Everything you dictate is kept here, on this iPhone.")
+            Text("Tap the mic at the right end of the keyboard’s suggestions and talk. Everything you dictate is kept here, on this \(ThisDevice.name).")
         }
     }
 

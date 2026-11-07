@@ -5,7 +5,9 @@ The containing app, in Raycast's look (`AppStyle`, `Components`: black pages, ne
 - A folder per feature (Voice, Transcripts, Stats, Settings, Dictionary); a piece more than one feature uses goes in `Design/`.
 - Five tabs in the system tab bar, which iOS 27.1 puts in the iPhone Duo's vertical bar.
 - Every page but Settings has the microphone's switch in its header: on keeps it on until you turn it off there; off lets it go once what's said is written down (`MicSwitch`, `Listener.turnMicOn`, `turnMicOff`).
-- Each page is laid out by the size it gets, never the fold (`Arrangement`, `Panes`): the open Duo in landscape, two panes splitting the width in half; everywhere else, one column.
+- Each page is laid out by the width it gets, never the device or the fold (`Arrangement`, `Panes`): from 750 points (the open Duo in landscape, an iPad either way up, a wide iPad window), two panes, halves or a list up to 480 wide beside the page it picked; narrower, one column.
+- `ThisDevice` names the device in what the app says (iPhone or iPad) and knows an iPad has no haptics; Appearance shows only the layout settings KeyboardCore applies on this device (`KeysHere`).
+- `scripts/sim ipadapp` (UITests/AppShots) screenshots the pages on iPads, turned and in windows dragged to Split View and Stage Manager sizes.
 - `Router` opens a tab and settings page from another.
 - `Settings.bundle` has the keyboard's switches in Settings › Apps › iikb.
 - `scripts/sim duoapp` screenshots every screen of it on the Duo's four screens.

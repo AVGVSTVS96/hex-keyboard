@@ -19,7 +19,7 @@ struct SettingsPage: View {
             switch self {
             case .appearance: "Appearance"
             case .typing: "Typing"
-            case .feedback: "Sound & Haptics"
+            case .feedback: ThisDevice.hasHaptics ? "Sound & Haptics" : "Sound"
             case .voice: "Voice"
             case .writing: "Writing Style"
             case .dictionary: "Dictionary"
@@ -35,7 +35,7 @@ struct SettingsPage: View {
             switch self {
             case .appearance: ("paintpalette.fill", .purple)
             case .typing: ("character.cursor.ibeam", .cyan)
-            case .feedback: ("hand.tap.fill", .pink)
+            case .feedback: (ThisDevice.hasHaptics ? "hand.tap.fill" : "speaker.wave.2.fill", .pink)
             case .voice: ("waveform", .red)
             case .writing: ("textformat", .orange)
             case .dictionary: ("character.book.closed.fill", .brown)
@@ -53,7 +53,7 @@ struct SettingsPage: View {
             return switch self {
             case .appearance: settings.theme.title
             case .typing, .privacy, .changelog: nil
-            case .feedback: settings.haptics.title
+            case .feedback: ThisDevice.hasHaptics ? settings.haptics.title : settings.sound ? "On" : "Off"
             case .voice: VoiceModel.shared.model.title
             case .writing: settings.dictationStyle.title
             case .dictionary: words == 1 ? "1 word" : "\(words.formatted()) words"
@@ -78,7 +78,7 @@ struct SettingsPage: View {
             Group {
                 if beside {
                     let picked = router.settingsPath.last ?? .appearance
-                    Panes {
+                    Panes(list: true) {
                         SettingsList(picked: picked) { router.settingsPath = [$0] }
                     } second: {
                         SettingsContent(page: picked, top: 12).id(picked)

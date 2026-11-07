@@ -1,15 +1,16 @@
 import SwiftUI
 
-/// How a page uses the screen it's on. Only the iPhone Duo open in landscape (951 × 669) has room for two columns,
-/// as an iPad's split view does; everywhere else, folded either way and open in portrait, a page is one column that
-/// scrolls as one, as iOS lays out a compact width.
+/// How a page uses the window it's given, by its width alone, never the device or the fold: two panes once each gets
+/// at least an iPhone's width (the open iPhone Duo in landscape, an iPad upright or sideways, a wide Split View or
+/// Stage Manager window), else one column that scrolls as one, as iOS lays out a compact width (the Duo folded or
+/// open upright, an iPad mini upright, a narrow window).
 enum Arrangement {
     case side, single
 
-    static let wide: CGFloat = 800
+    static let wide: CGFloat = 750
 
     init(window: CGSize) {
-        self = window.width >= Self.wide && window.width > window.height ? .side : .single
+        self = window.width >= Self.wide ? .side : .single
     }
 }
 
@@ -50,10 +51,12 @@ private struct WindowReader: ViewModifier {
     }
 }
 
-/// Two columns, each its own page scrolling on its own, splitting the width they're given in half, each with its own
-/// margin, so no line marks where they meet. They follow the viewport's size alone, never the fold, so folding the Duo
-/// a little changes nothing on screen. In one column they follow each other.
+/// Two columns, each its own page scrolling on its own, each with its own margin, so no line marks where they meet:
+/// two halves, or, for a list beside the page it picked (Settings, Transcripts, Clipboard), the list half the width up
+/// to 480, as wide as it reads well, and the page the rest. They follow the window's size alone, so folding the Duo a
+/// little or turning an iPad changes nothing but the widths. In one column they follow each other.
 struct Panes<First: View, Second: View>: View {
+    var list = false
     @ViewBuilder var first: First
     @ViewBuilder var second: Second
     @Environment(\.arrangement) private var arrangement
@@ -62,9 +65,10 @@ struct Panes<First: View, Second: View>: View {
         switch arrangement {
         case .side:
             GeometryReader { proxy in
+                let lead = list ? min(proxy.size.width / 2, 480) : proxy.size.width / 2
                 HStack(spacing: 0) {
-                    first.frame(width: proxy.size.width / 2)
-                    second.frame(width: proxy.size.width / 2)
+                    first.frame(width: lead)
+                    second.frame(width: proxy.size.width - lead)
                 }
             }
         case .single:
