@@ -39,6 +39,7 @@ scripts/mac scripts/build                       # sync to the Mac, xcodegen, bui
 scripts/coretest                                # KeyboardCore's tests here on Linux, no Mac (about 25 s)
 scripts/check                                   # this checkout built for the iPhone here on Linux, unsigned (a few minutes; one at a time)
 scripts/phone                                   # main's last commit built, signed and installed on the iPhone (--reinstall renews the signing)
+scripts/mac scripts/testflight                  # the App Store build (no private API, APP_STORE) archived, signed with the App Store Connect key and uploaded for TestFlight
 scripts/backup <udid>                           # the iPhone's iikb data copied to ~/.local/share/iikb/backup here, never deleted, replaced files kept in versions/ (scripts/phone runs it first)
 scripts/restore <udid> [--at <time>|now] [name…]  # the backup put back on the iPhone, all of it or the files named, as it is or as it was at a time; leaves out a copy much smaller than one replaced in the day after an install left iikb a new, empty container (docs/backup.md)
 scripts/mac scripts/verify                      # what landed, at once, on one iPhone Duo simulator: package and UI tests, light and dark, shots in shots/raw/verify/

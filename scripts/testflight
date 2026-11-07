@@ -1,0 +1,44 @@
+#!/bin/sh
+# Runs on the Mac: scripts/mac scripts/testflight. Archives the App Store build and uploads it to App Store Connect,
+# where TestFlight's public link hands it out. That build is compiled with APP_STORE, which leaves out every call to
+# private API (KeyboardHost, HostApp, AppName, AppStatus), and then checks no private name is left in its binaries.
+# Xcode signs and uploads with an App Store Connect API key: ~/.appstoreconnect/env sets ASC_KEY_ID, ASC_ISSUER_ID and
+# ASC_TEAM, and the key is ~/.appstoreconnect/private_keys/AuthKey_$ASC_KEY_ID.p8.
+set -eu
+cd "$(dirname "$0")/.."
+. ~/.appstoreconnect/env
+auth="-allowProvisioningUpdates -authenticationKeyPath $HOME/.appstoreconnect/private_keys/AuthKey_$ASC_KEY_ID.p8
+  -authenticationKeyID $ASC_KEY_ID -authenticationKeyIssuerID $ASC_ISSUER_ID"
+out=build/testflight
+rm -rf "$out"
+mkdir -p "$out"
+
+xcodegen generate -q
+xcodebuild -project iikb.xcodeproj -scheme iikb -configuration Release -destination generic/platform=iOS \
+  -archivePath "$out/iikb.xcarchive" -derivedDataPath build/appstore $auth -quiet archive \
+  DEVELOPMENT_TEAM="$ASC_TEAM" CURRENT_PROJECT_VERSION="$(date -u +%y%m%d.%H%M)" \
+  SWIFT_ACTIVE_COMPILATION_CONDITIONS='$(inherited) APP_STORE' GCC_PREPROCESSOR_DEFINITIONS='$(inherited) APP_STORE=1'
+
+app="$out/iikb.xcarchive/Products/Applications/iikb.app"
+for binary in "$app/iikb" "$app"/PlugIns/*.appex/*; do
+  [ -f "$binary" ] && [ -x "$binary" ] || continue
+  if strings -a "$binary" | grep -E '_UIKeyboardArbiterClient|LSApplicationWorkspace|LSApplicationProxy|TCCAccessPreflight|proc_pid_rusage|_hostProcessIdentifier'; then
+    echo "$binary still names private API above; App Review would reject it" >&2
+    exit 1
+  fi
+done
+
+cat >"$out/export.plist" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>method</key><string>app-store-connect</string>
+  <key>destination</key><string>upload</string>
+  <key>teamID</key><string>$ASC_TEAM</string>
+  <key>signingStyle</key><string>automatic</string>
+  <key>manageAppVersionAndBuildNumber</key><false/>
+</dict></plist>
+EOF
+xcodebuild -exportArchive -archivePath "$out/iikb.xcarchive" -exportOptionsPlist "$out/export.plist" \
+  -exportPath "$out/export" $auth
+echo "uploaded build $(/usr/libexec/PlistBuddy -c 'Print CFBundleVersion' "$app/Info.plist")"

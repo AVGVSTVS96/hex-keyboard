@@ -13,9 +13,13 @@ enum HostApp {
         return rusage(getpid(), RUSAGE_INFO_V4, &usage) == 0 ? Double(usage.ri_logical_writes) / 1_000_000 : 0
     }
 
+    #if APP_STORE
+    nonisolated private static func rusage(_ pid: pid_t, _ flavor: Int32, _ usage: UnsafeMutableRawPointer) -> Int32 { -1 }
+    #else
     /// libproc's `proc_pid_rusage`, in iOS's libSystem but not its SDK's headers.
     @_silgen_name("proc_pid_rusage")
     nonisolated private static func rusage(_ pid: pid_t, _ flavor: Int32, _ usage: UnsafeMutableRawPointer) -> Int32
+    #endif
 
     static func open(_ bundle: String) async -> Bool {
         if openByID(bundle) { return true }
@@ -25,6 +29,9 @@ enum HostApp {
     }
 
     private static func openByID(_ bundle: String) -> Bool {
+        #if APP_STORE
+        return false
+        #else
         let selector = NSSelectorFromString("openApplicationWithBundleID:")
         guard let type = NSClassFromString("LSApplicationWorkspace") as? NSObject.Type,
               let workspace = type.perform(NSSelectorFromString("defaultWorkspace"))?.takeUnretainedValue() as? NSObject,
@@ -32,6 +39,7 @@ enum HostApp {
         else { return false }
         typealias Open = @convention(c) (NSObject, Selector, NSString) -> Bool
         return unsafeBitCast(workspace.method(for: selector), to: Open.self)(workspace, selector, bundle as NSString)
+        #endif
     }
 
     /// Links that bring each app back where you were rather than performing an action, from Dictus's `KnownAppSchemes`

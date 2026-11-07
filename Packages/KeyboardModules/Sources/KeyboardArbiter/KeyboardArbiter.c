@@ -1,4 +1,8 @@
 #include "KeyboardArbiter.h"
+
+#ifdef APP_STORE
+bool iikbEnableKeyboardArbiter(void) { return false; }
+#else
 #include <mach-o/dyld.h>
 #include <objc/runtime.h>
 #include <string.h>
@@ -18,3 +22,4 @@ __attribute__((constructor)) static void enableInKeyboards(void) {
     uint32_t size = sizeof path;
     if (_NSGetExecutablePath(path, &size) == 0 && strstr(path, ".appex/")) iikbEnableKeyboardArbiter();
 }
+#endif
